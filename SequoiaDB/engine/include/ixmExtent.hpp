@@ -107,14 +107,25 @@ namespace engine
    */
    struct _ixmExtentHead : public SDBObject
    {
+      // eye catcher, must be 'IE'
       CHAR        _eyeCatcher [2] ;
+      // total number of keyNode in the extent
       UINT16      _totalKeyNodeNum ;
+      // 1 to 4096, the collectionID for this index
       UINT16      _mbID ;
+      // extent flag, including dms extent flag plus index extent flag
+      // dms flag uses low 4 bits, index flag uses high 4 bits
       CHAR        _flag ;
+      // current extent version
       CHAR        _version ;
+      // the parent extent id
       dmsExtentID _parentExtentID ;
+      // beginning of free space, it's starting from end of extent
       ixmOffset   _beginFreeOffset ;
+      // current free space
       UINT16      _totalFreeSize ;
+      // right pointer for the B+ tree
+      // DMS_INVALID_EXTENT for leaf page
       dmsExtentID _right ;
    } ;
    typedef struct _ixmExtentHead ixmExtentHead ;
@@ -130,13 +141,17 @@ namespace engine
       _dmsStorageIndex  *_pIndexSu ;
       INT32             _pageSize ;
 
+      // reorganize the extent
       INT32 _reorg (const Ordering &order, UINT16 &newPos) ;
       INT32 _reorg (const Ordering &order) ;
       INT32 _alloc ( INT32 requestSpace, UINT16 &beginOffset ) ;
 
       INT32 _splitPos ( UINT16 pos, UINT16 &splitPos ) ;
+      // this function physically copy key and rid into extent page
       INT32 _basicInsert ( UINT16 &pos, const dmsRecordID &rid,
                            const ixmKey &key, const Ordering &order ) ;
+      // this function is called when the page is too small for the new key, it
+      // will split the page and do insert
       INT32 _split ( UINT16 pos, const dmsRecordID &rid,
                      const ixmKey &key, const Ordering &order,
                      const dmsExtentID lchild, const dmsExtentID rchild,
@@ -180,6 +195,19 @@ namespace engine
                       BOOLEAN &found, INT32 direction,
                       const ixmIndexCB *indexCB ) ;
 
+      // currentKey is the key from current disk location that trying to
+      // be matched
+      // prevKey is the key examed from previous run
+      // keepFieldsNum is the number of fields from prevKey that should match
+      // the
+      // currentKey (for example if the prevKey is {c1:1, c2:1}, and
+      // keepFieldsNum
+      // = 1, that means we want to match c1:1 key for the current location.
+      // Depends on if we have skipToNext set, if we do that means we want to
+      // skip
+      // c1:1 and match whatever the next (for example c1:1.1); otherwise we
+      // want
+      // to continue match the elements from matchEle )
       INT32 _keyCmp ( const BSONObj &currentKey, const BSONObj &prevKey,
                       INT32 keepFieldsNum, BOOLEAN skipToNext,
                       const vector < const BSONElement *> &matchEle,
@@ -195,9 +223,11 @@ namespace engine
                        ixmRecordID &bestIxmRID,
                        dmsExtentID &resultExtent, _pmdEDUCB *cb ) ;
    public:
+      // initialize a memory pointer as new index extent
       _ixmExtent ( CHAR *extentStart, UINT16 mbID,
                    dmsExtentID parent, dmsExtentID me,
                    _dmsStorageIndex *pIndexSu ) ;
+      // create new extent id without parent
       _ixmExtent ( dmsExtentID extentID, UINT16 mbID,
                    _dmsStorageIndex *pIndexSu );
 
@@ -238,6 +268,7 @@ namespace engine
       {
          return DMS_INVALID_EXTENT == _extentHead->_parentExtentID ;
       }
+      // get the extent id for child
       dmsExtentID getChildExtentID ( UINT16 i )
       {
          if ( i>_extentHead->_totalKeyNodeNum ) return DMS_INVALID_EXTENT ;
@@ -260,6 +291,7 @@ namespace engine
          _extentHead->_parentExtentID = extentID ;
       }
       void setChildExtentID ( UINT16 i, dmsExtentID extentID ) ;
+      // get the pointer to child
       OSS_INLINE ossValuePtr getChildExtentPtr ( UINT16 i ) ;
       void setCompact()
       {
@@ -273,8 +305,10 @@ namespace engine
       {
          return 1==((CHAR*)_extentHead)[(_pageSize-1)] ;
       }
+      // find a spot to insert, this function doesn't do any physical insert
       INT32 insertStepOne ( ixmIndexInsertRequestImpl &insertRequest,
                             BOOLEAN dupAllowed ) ;
+      // find for a given key + rid
       INT32 find ( const ixmIndexCB *indexCB, const ixmKey &key,
                    const dmsRecordID &rid, const Ordering &order, UINT16 &pos,
                    BOOLEAN dupAllowed, BOOLEAN &found ) ;
@@ -283,6 +317,7 @@ namespace engine
                      BOOLEAN &found, INT32 direction,
                      const ixmIndexCB *indexCB ) ;
 
+      // actual insert into the ixmExtent at given pos
       INT32 insertHere ( UINT16 pos, const dmsRecordID &rid, const ixmKey &key,
                          const Ordering &order, dmsExtentID lchild,
                          dmsExtentID rchild,
@@ -297,10 +332,13 @@ namespace engine
       dmsExtentID getRoot () ;
       INT32 findSingle ( const ixmKey &key, const Ordering &order,
                          dmsRecordID &rid, ixmIndexCB *indexCB ) ;
+      // syncronized insert, insert a key and rid into index
       INT32 insert ( const ixmKey &key, const dmsRecordID &rid,
                      const Ordering &order, BOOLEAN dupAllowed,
                      ixmIndexCB *indexCB ) ;
+      // wipe out everything in the extent and all child extents
       void truncate ( ixmIndexCB *indexCB ) ;
+      // get the total number of elements in the index node and all children
       UINT64 count () ;
 
       BOOLEAN isStillValid( UINT16 mbID ) const ;
@@ -308,6 +346,28 @@ namespace engine
       /******************************************************/
       /*      index cursor usage functions                  */
       /******************************************************/
+      // This function locate the key by
+      // 1) check if the key is smaller or greater than first or last key in
+      // forward and backward search
+      // 2) if so it will jump into the child if exist
+      // 3) check if the key is greater or smaller than the last or first key in
+      // forward and backward search
+      // 4) if so it will jump into the child if exist
+      // 5) check if the key is in the page, if the key got child it will jump
+      // into it
+      // the rid may or may not be changed by the following condition
+      // A) forward scan
+      //   A.1) if first key is greater than prevKey, rid = first key rid and
+      //   scan most left pointer
+      //   A.2) if last key is smaller than prevKey, rid unchange and scan most
+      //   right pointer
+      //   A.3) in other condition,do binary search using keyFind and scan child
+      // B) backward scan
+      //   B.1) if last key is smaller than prevKey, rid = last key rid and scan
+      //   most right pointer
+      //   B.2) if first key is greater than prevKey, rid unchange and scan most
+      //   left pointer
+      //   B.3) in other condition,do binary search using keyFind and scan child
       INT32 keyLocate ( ixmRecordID &rid, const BSONObj &prevKey,
                         INT32 keepFieldsNum, BOOLEAN skipToNext,
                         const vector < const BSONElement *> &matchEle,

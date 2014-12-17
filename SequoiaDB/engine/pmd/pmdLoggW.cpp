@@ -63,6 +63,7 @@ namespace engine
          goto error ;
       }
 
+      // just sit here do nothing at the moment
       while ( !cb->isDisconnected() )
       {
          rc = dpsCb->run( cb );

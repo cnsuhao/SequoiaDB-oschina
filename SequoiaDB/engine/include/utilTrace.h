@@ -1,6 +1,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! */
 #ifndef utilTRACE_H__
 #define utilTRACE_H__
+// Component: util
 #define SDB__UTILCSV__INIT                                 0x100000000000868L
 #define SDB__UTILCSV__GETNEXTRECORD                        0x100000000000869L
 #define SDB_FROMJSON                                       0x10000000000086aL

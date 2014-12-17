@@ -120,6 +120,8 @@ namespace engine
       INT32 _findStartPoint( const DPS_LSN &remote, DPS_LSN &lsn ) ;
 
    private:
+      /// sub between <0, CLS_REPLSET_MAX_NODE_SIZE - 2>.
+      /// means ( w = 2 ) to ( w = CLS_REPLSET_MAX_NODE_SIZE ).
       _clsSyncMinHeap _syncList[CLS_REPLSET_MAX_NODE_SIZE - 1] ;
       DPS_LSN_OFFSET  _checkList[CLS_REPLSET_MAX_NODE_SIZE -1] ;
       _ossSpinXLatch _mtxs[CLS_REPLSET_MAX_NODE_SIZE - 1] ;
@@ -129,6 +131,7 @@ namespace engine
       _clsGroupInfo *_info ;
       MsgRouteID _syncSrc ;
 
+      /// valid _notifyList size
       UINT32 _validSync ;
       UINT32 _timeout ;
 

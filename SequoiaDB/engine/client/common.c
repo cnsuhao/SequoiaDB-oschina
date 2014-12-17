@@ -82,18 +82,29 @@ error :
 
 static BOOLEAN bson_endian_convert ( CHAR *data, off_t *off, BOOLEAN l2r )
 {
+   // object size after conversion
    INT32 objaftersize = 0 ;
+   // object size before conversion
    INT32 objbeforesize = *(INT32*)&data[*off] ;
+   // offset before conversion, this is used for sanity check by end of function
    off_t beginOff = *off ;
    INT32 objrealsize = 0 ;
+   // convert from before size to after-size
    ossEndianConvert4 ( objbeforesize, objaftersize ) ;
+   // assign size to after-size
    *(INT32*)&data[*off] = objaftersize ;
+   // the real size
    objrealsize = l2r?objbeforesize:objaftersize ;
+   // increase offset by 4
    *off += sizeof(INT32) ;
+   // loop until hitting '\0; for end of bson
    while ( BSON_EOO != data[*off] )
    {
+      // get bson element type
       CHAR type = data[*off] ;
+      // move offset to next in order to skip type
       *off += sizeof(CHAR) ;
+      // skip element name, note element name is a string ended up with '\0'
       *off += ossStrlen ( &data[*off] ) + 1 ;
       switch ( type )
       {
@@ -109,10 +120,13 @@ static BOOLEAN bson_endian_convert ( CHAR *data, off_t *off, BOOLEAN l2r )
       case BSON_CODE :
       case BSON_SYMBOL :
       {
+         // for those 3 types, there are 4 bytes length plus a string
+         // the length is the length of string plus '\0'
          INT32 len = *(INT32*)&data[*off] ;
          INT32 newlen = 0 ;
          ossEndianConvert4 ( len, newlen ) ;
          *(INT32*)&data[*off] = newlen ;
+         // 4 for length, then string with '\0'
          *off += sizeof(INT32) + (l2r?len:newlen) ;
          break ;
       }
@@ -126,10 +140,13 @@ static BOOLEAN bson_endian_convert ( CHAR *data, off_t *off, BOOLEAN l2r )
       }
       case BSON_BINDATA :
       {
+         // for bindata, there are 4 bytes length, 1 byte subtype and data
+         // note length is the real length of data
          INT32 len = *(INT32*)&data[*off] ;
          INT32 newlen ;
          ossEndianConvert4 ( len, newlen ) ;
          *(INT32*)&data[*off] = newlen ;
+         // 4 for length, 1 for subtype, then data
          *off += sizeof(INT32) + sizeof(CHAR) + (l2r?len:newlen) ;
          break ;
       }
@@ -138,15 +155,18 @@ static BOOLEAN bson_endian_convert ( CHAR *data, off_t *off, BOOLEAN l2r )
       case BSON_MINKEY :
       case BSON_MAXKEY :
       {
+         // nothing in those types
          break ;
       }
       case BSON_OID :
       {
+         // do we need to do conversion for this one? let's skip it first
          *off += 12 ;
          break ;
       }
       case BSON_BOOL :
       {
+         // one byte for true or false
          *off += 1 ;
          break ;
       }
@@ -161,33 +181,41 @@ static BOOLEAN bson_endian_convert ( CHAR *data, off_t *off, BOOLEAN l2r )
       }
       case BSON_REGEX :
       {
+         // two cstring, each with string
+         // for regex
          *off += ossStrlen ( &data[*off] ) + 1 ;
+         // for options
          *off += ossStrlen ( &data[*off] ) + 1 ;
          break ;
       }
       case BSON_DBREF :
       {
+         // dbref is 4 bytes lenth + string + 12 bytes
          INT32 len = *(INT32*)&data[*off] ;
          INT32 newlen = 0 ;
          ossEndianConvert4 ( len, newlen ) ;
          *(INT32*)&data[*off] = newlen ;
+         // 4 for length, then string, note len already included '\0' ;
          *off += sizeof(INT32) + (l2r?len:newlen) ;
          *off += 12 ;
          break ;
       }
       case BSON_CODEWSCOPE :
       {
+         // 4 bytes and 4 bytes + string, then obj
          INT32 value = 0 ;
          INT32 len, newlen ;
          BOOLEAN rc ;
          ossEndianConvert4 ( *(INT32*)&data[*off], value ) ;
          *(INT32*)&data[*off] = value ;
          *off += sizeof(INT32) ;
+         // then string
          len = *(INT32*)&data[*off] ;
          newlen = 0 ;
          ossEndianConvert4 ( len, newlen ) ;
          *(INT32*)&data[*off] = newlen ;
          *off += sizeof(INT32) + (l2r?len:newlen) ;
+         // then object
          rc = bson_endian_convert ( &data[*off], off, l2r ) ;
          if ( !rc )
             return rc ;
@@ -203,6 +231,7 @@ static BOOLEAN bson_endian_convert ( CHAR *data, off_t *off, BOOLEAN l2r )
       }
       case BSON_TIMESTAMP :
       {
+         // timestamp is with 2 4-bytes
          INT32 value = 0 ;
          ossEndianConvert4 ( *(INT32*)&data[*off], value ) ;
          *(INT32*)&data[*off] = value ;
@@ -222,6 +251,7 @@ static BOOLEAN bson_endian_convert ( CHAR *data, off_t *off, BOOLEAN l2r )
       }
       } // switch
    } // while ( BSON_EOO != data[*off] )
+   // jump off BSON_EOO at end of bson
    *off += sizeof(CHAR) ;
    if ( *off - beginOff != objrealsize )
       return FALSE ;
@@ -280,20 +310,25 @@ INT32 clientBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
       goto error ;
    }
 
+   // now the buffer is large enough
    pUpdate = (MsgOpUpdate*)(*ppBuffer) ;
    ossEndianConvertIf ( flag, pUpdate->flags, endianConvert ) ;
    ossEndianConvertIf ( clientDefaultVersion, pUpdate->version,
                         endianConvert ) ;
    ossEndianConvertIf ( clientDefaultW, pUpdate->w, endianConvert ) ;
+   // nameLength does NOT include '\0'
    nameLength = ossStrlen ( CollectionName ) ;
    ossEndianConvertIf ( nameLength, pUpdate->nameLength, endianConvert ) ;
+   // header assignment
    pUpdate->header.requestID           = reqID ;
    pUpdate->header.opCode              = opCode ;
    pUpdate->header.messageLength       = packetLength ;
    pUpdate->header.routeID.value       = clientDefaultRouteID ;
    pUpdate->header.TID                 = tid ;
+   // copy collection name
    ossStrncpy ( pUpdate->name, CollectionName, nameLength ) ;
    pUpdate->name[nameLength] = 0 ;
+   // get the offset of the first bson obj
    offset = ossRoundUpToMultipleX( offsetof(MsgOpUpdate, name) +
                                    nameLength + 1,
                                    4 ) ;
@@ -324,6 +359,7 @@ INT32 clientBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
       bson_copy ( &newhint, hint ) ;
 
       rc = bson_endian_convert ( (char*)bson_data(&newselector), &off, TRUE ) ;
+      // 0 for false, which is error
       if ( rc == 0 )
       {
          goto endian_convert_done ;
@@ -362,6 +398,7 @@ endian_convert_done :
       else
          rc = SDB_OK ;
    }
+   // sanity test
    if ( offset != packetLength )
    {
       ossPrintf ( "Invalid packet length"OSS_NEWLINE ) ;
@@ -523,11 +560,13 @@ INT32 clientBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
       ossPrintf ( "Failed to check buffer, rc = %d"OSS_NEWLINE, rc ) ;
       goto error ;
    }
+   // now the buffer is large enough
    pInsert                       = (MsgOpInsert*)(*ppBuffer) ;
    ossEndianConvertIf ( clientDefaultVersion, pInsert->version,
                                               endianConvert ) ;
    ossEndianConvertIf ( clientDefaultW, pInsert->w, endianConvert ) ;
    ossEndianConvertIf ( flag, pInsert->flags, endianConvert ) ;
+   // nameLength does NOT include '\0'
    nameLength = ossStrlen ( CollectionName ) ;
    ossEndianConvertIf( nameLength, pInsert->nameLength, endianConvert ) ;
    pInsert->header.requestID     = reqID ;
@@ -535,8 +574,10 @@ INT32 clientBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pInsert->header.messageLength = packetLength ;
    pInsert->header.routeID.value = 0 ;
    pInsert->header.TID           = ossGetCurrentThreadID() ;
+   // copy collection name
    ossStrncpy ( pInsert->name, CollectionName, nameLength ) ;
    pInsert->name[nameLength]=0 ;
+   // get the offset of the first bson obj
    offset = ossRoundUpToMultipleX( offsetof(MsgOpInsert, name) +
                                    nameLength + 1,
                                    4 ) ;
@@ -571,6 +612,7 @@ endian_convert_done :
       else
          rc = SDB_OK ;
    }
+   // sanity test
    if ( offset != packetLength )
    {
       ossPrintf ( "Invalid packet length"OSS_NEWLINE ) ;
@@ -643,11 +685,13 @@ INT32 clientBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
       goto error ;
    }
    nameLength = ossStrlen ( CollectionName ) ;
+   // now the buffer is large enough
    pQuery                        = (MsgOpQuery*)(*ppBuffer) ;
    ossEndianConvertIf ( clientDefaultVersion, pQuery->version,
                          endianConvert ) ;
    ossEndianConvertIf ( clientDefaultW, pQuery->w, endianConvert ) ;
    ossEndianConvertIf ( flag, pQuery->flags, endianConvert ) ;
+   // nameLength does NOT include '\0'
    ossEndianConvertIf ( nameLength, pQuery->nameLength, endianConvert ) ;
    ossEndianConvertIf ( numToSkip, pQuery->numToSkip, endianConvert ) ;
    ossEndianConvertIf ( numToReturn, pQuery->numToReturn, endianConvert ) ;
@@ -657,22 +701,28 @@ INT32 clientBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
    pQuery->header.routeID.value  = 0 ;
    pQuery->header.TID            = ossGetCurrentThreadID() ;
 
+   // copy collection name
    ossStrncpy ( pQuery->name, CollectionName, nameLength ) ;
    pQuery->name[nameLength]=0 ;
+   // get the offset of the first bson obj
    offset = ossRoundUpToMultipleX( offsetof(MsgOpQuery, name) +
                                    nameLength + 1,
                                    4 ) ;
 
    if ( !endianConvert )
    {
+      // write query condition
       ossMemcpy ( &((*ppBuffer)[offset]), bson_data(query), bson_size(query)) ;
       offset += ossRoundUpToMultipleX( bson_size(query), 4 ) ;
+      // write field select
       ossMemcpy ( &((*ppBuffer)[offset]), bson_data(fieldSelector),
                   bson_size(fieldSelector) ) ;
       offset += ossRoundUpToMultipleX( bson_size(fieldSelector), 4 ) ;
+      // write order by clause
       ossMemcpy ( &((*ppBuffer)[offset]), bson_data(orderBy),
                   bson_size(orderBy) ) ;
       offset += ossRoundUpToMultipleX( bson_size(orderBy), 4 ) ;
+      // write optimizer hint
       ossMemcpy ( &((*ppBuffer)[offset]), bson_data(hint),
                   bson_size(hint) ) ;
       offset += ossRoundUpToMultipleX( bson_size(hint), 4 ) ;
@@ -743,6 +793,7 @@ endian_convert_done :
       else
          rc = SDB_OK ;
    }
+   // sanity test
    if ( offset != packetLength )
    {
       ossPrintf ( "Invalid packet length"OSS_NEWLINE ) ;
@@ -823,7 +874,9 @@ INT32 clientBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
       ossPrintf ( "Failed to check buffer, rc = %d"OSS_NEWLINE, rc ) ;
       goto error ;
    }
+   // now the buffer is large enough
    pGetMore                       = (MsgOpGetMore*)(*ppBuffer) ;
+   // nameLength does NOT include '\0'
    ossEndianConvertIf ( numToReturn, pGetMore->numToReturn, endianConvert ) ;
    ossEndianConvertIf ( contextID, pGetMore->contextID, endianConvert ) ;
    pGetMore->header.requestID     = reqID ;
@@ -877,18 +930,22 @@ INT32 clientBuildDeleteMsg ( CHAR **ppBuffer, INT32 *bufferSize,
       goto error ;
    }
    nameLength = ossStrlen ( CollectionName ) ;
+   // now the buffer is large enough
    pDelete                       = (MsgOpDelete*)(*ppBuffer) ;
    ossEndianConvertIf ( clientDefaultVersion, pDelete->version, endianConvert ) ;
    ossEndianConvertIf ( clientDefaultW, pDelete->w, endianConvert ) ;
    ossEndianConvertIf ( flag, pDelete->flags, endianConvert ) ;
+   // nameLength does NOT include '\0'
    ossEndianConvertIf ( nameLength, pDelete->nameLength, endianConvert ) ;
    pDelete->header.requestID     = reqID ;
    pDelete->header.opCode        = MSG_BS_DELETE_REQ ;
    pDelete->header.messageLength = packetLength ;
    pDelete->header.routeID.value = 0 ;
    pDelete->header.TID           = ossGetCurrentThreadID() ;
+   // copy collection name
    ossStrncpy ( pDelete->name, CollectionName, nameLength ) ;
    pDelete->name[nameLength]=0 ;
+   // get the offset of the first bson obj
    offset = ossRoundUpToMultipleX( offsetof(MsgOpDelete, name) +
                                    nameLength + 1,
                                    4 ) ;
@@ -940,6 +997,7 @@ endian_convert_done :
       else
          rc = SDB_OK ;
    }
+   // sanity test
    if ( offset != packetLength )
    {
       ossPrintf ( "Invalid packet length"OSS_NEWLINE ) ;
@@ -990,6 +1048,8 @@ INT32 clientBuildKillContextsMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    INT32 rc               = SDB_OK ;
    MsgOpKillContexts *pKC = NULL ;
    SINT32 i               = 0 ;
+   // aligned by 8 since contextIDs are 64 bits
+   // so we don't need to manually align it, it must be 8 bytes aligned already
    INT32 packetLength = offsetof(MsgOpKillContexts, contextIDs) +
                         sizeof ( SINT64 ) * (numContexts) ;
    if ( packetLength < 0 )
@@ -1004,6 +1064,7 @@ INT32 clientBuildKillContextsMsg ( CHAR **ppBuffer, INT32 *bufferSize,
       ossPrintf ( "Failed to check buffer, rc = %d"OSS_NEWLINE, rc ) ;
       goto error ;
    }
+   // now the buffer is large enough
    pKC                       = (MsgOpKillContexts*)(*ppBuffer) ;
    pKC->header.requestID     = reqID ;
    pKC->header.opCode        = MSG_BS_KILL_CONTEXT_REQ ;
@@ -1022,6 +1083,7 @@ INT32 clientBuildKillContextsMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    }
    else
    {
+       // copy collection name
        ossMemcpy ( (CHAR*)(&pKC->contextIDs[0]), (CHAR*)pContextIDs,
                     sizeof(SINT64)*pKC->numContexts ) ;
    }
@@ -1081,10 +1143,12 @@ INT32 clientExtractReply ( CHAR *pBuffer, SINT32 *flag, SINT64 *contextID,
    {
       INT32 offset, count ;
       clientEndianConvertHeader ( &pReply->header ) ;
+      // convert variables endianess
       pReply->flags       = *flag ;
       pReply->contextID   = *contextID ;
       pReply->startFrom   = *startFrom ;
       pReply->numReturned = *numReturned ;
+      // we need to take care of all records in the reply message
       offset = ossRoundUpToMultipleX( sizeof(MsgOpReply), 4 ) ;
       count = 0 ;
       while ( count < *numReturned && offset < pReply->header.messageLength )
@@ -1191,6 +1255,7 @@ INT32 clientAppendOID ( bson *obj, bson_iterator *ret )
       }
       else
       {
+         // if we failed to allocate memory, let's return OOM
          rc = SDB_OOM ;
          goto error ;
       }
@@ -1223,35 +1288,48 @@ INT32 clientReplicaGroupExtractNode ( const CHAR *data,
       rc = SDB_INVALIDARG ;
       goto done ;
    }
+   // bson_init_finished_data does not accept const CHAR*, however since we are
+   // NOT going to perform any change, it's safe to cast const CHAR* to CHAR*
+   // here
    bson_init_finished_data ( &obj, (CHAR*)data ) ;
+   // find the host name
    if ( BSON_STRING == bson_find ( &ele, &obj, CAT_HOST_FIELD_NAME ) )
    {
       ossStrncpy ( pHostName, bson_iterator_string ( &ele ),
                    hostNameSize ) ;
    }
 
+   // find the node id
    if ( BSON_INT == bson_find ( &ele, &obj, CAT_NODEID_NAME ) )
    {
       *pNodeID = bson_iterator_int ( &ele ) ;
    }
 
+   // walk through services
    if ( BSON_ARRAY != bson_find ( &ele, &obj, CAT_SERVICE_FIELD_NAME ) )
    {
+      // the service is not array
       rc = SDB_SYS ;
       goto error ;
    }
    {
       const CHAR *serviceList = bson_iterator_value ( &ele ) ;
       bson_iterator_from_buffer ( &ele, serviceList ) ;
+      // loop for all elements in Services
       while ( bson_iterator_next ( &ele ) )
       {
          bson intObj ;
          bson_init ( &intObj ) ;
+         // make sure each element is object and construct intObj object
+         // bson_init_finished_data does not accept const CHAR*,
+         // however since we are NOT going to perform any change, it's safe
+         // to cast const CHAR* to CHAR* here
          if ( BSON_OBJECT == bson_iterator_type ( &ele ) &&
               BSON_OK == bson_init_finished_data ( &intObj,
                          (CHAR*)bson_iterator_value ( &ele ) ) )
          {
             bson_iterator k ;
+            // look for Type
             if ( BSON_INT != bson_find ( &k, &intObj,
                                          CAT_SERVICE_TYPE_FIELD_NAME ) )
             {
@@ -1259,6 +1337,7 @@ INT32 clientReplicaGroupExtractNode ( const CHAR *data,
                bson_destroy ( &intObj ) ;
                goto error ;
             }
+            // if we find the right service, let's record the service name
             if ( MSG_ROUTE_LOCAL_SERVICE == bson_iterator_int ( &k ) )
             {
                if ( BSON_STRING == bson_find ( &k, &intObj,
@@ -1917,19 +1996,24 @@ INT32 clientBuildAggrRequest( CHAR **ppBuffer, INT32 *bufferSize,
       ossPrintf ( "Failed to check buffer, rc = %d"OSS_NEWLINE, rc ) ;
       goto error ;
    }
+   // now the buffer is large enough
    pAggr = (MsgOpAggregate*)(*ppBuffer) ;
    ossEndianConvertIf ( clientDefaultVersion, pAggr->version,
                                               endianConvert ) ;
    ossEndianConvertIf ( clientDefaultW, pAggr->w, endianConvert ) ;
    ossEndianConvertIf ( clientDefaultFlags, pAggr->flags, endianConvert ) ;
+   // nameLength does NOT include '\0'
+   //nameLength = ossStrlen ( CollectionName ) ;
    ossEndianConvertIf( nameLength, pAggr->nameLength, endianConvert ) ;
    pAggr->header.requestID     = 0 ;
    pAggr->header.opCode        = MSG_BS_AGGREGATE_REQ ;
    pAggr->header.messageLength = packetLength ;
    pAggr->header.routeID.value = 0 ;
    pAggr->header.TID           = ossGetCurrentThreadID() ;
+   // copy collection name
    ossStrncpy ( pAggr->name, CollectionName, nameLength ) ;
    pAggr->name[nameLength]=0 ;
+   // get the offset of the first bson obj
    offset = ossRoundUpToMultipleX( offsetof(MsgOpInsert, name) +
                                    nameLength + 1,
                                    4 ) ;
@@ -1964,6 +2048,7 @@ endian_convert_done :
       else
          rc = SDB_OK ;
    }
+   // sanity test
    if ( offset != packetLength )
    {
       ossPrintf ( "Invalid packet length"OSS_NEWLINE ) ;
@@ -2101,6 +2186,7 @@ INT32 clientBuildTestMsg( CHAR **ppBuffer, INT32 *bufferSize,
       goto error ;
    }
    msgOpMsg = (MsgOpMsg*)(*ppBuffer) ;
+   // append the massage header
    msgOpMsg->header.requestID     = reqID ;
    msgOpMsg->header.opCode        = MSG_BS_MSG_REQ ;
    msgOpMsg->header.messageLength = len ;

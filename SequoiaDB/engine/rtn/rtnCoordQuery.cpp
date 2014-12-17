@@ -84,6 +84,8 @@ namespace engine
                                                  cb, sendNodes );
          if ( rcTmp != SDB_OK )
          {
+            // don't break,
+            // save the sub-context, then clear it while delete context
             PD_LOG ( PDERROR, "Failed to query on data-node, send request "
                      "failed(rc=%d)", rcTmp ) ;
             if ( SDB_OK == rc )
@@ -96,6 +98,7 @@ namespace engine
          rcTmp = rtnCoordGetReply( cb, sendNodes, replyQue, resCode ) ;
          if ( rcTmp != SDB_OK )
          {
+            // received interrupt
             PD_LOG ( PDWARNING, "Failed to query on data-node, get reply "
                      "failed(rc=%d)", rcTmp );
             if ( SDB_APP_INTERRUPT == rcTmp || SDB_OK == rc )
@@ -241,6 +244,7 @@ namespace engine
       BSONObj boOrderBy;
       CoordGroupList                   sendGroupList ;
 
+      // fill default-reply(query success)
       MsgHeader*pHeader                = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -269,6 +273,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                   "failed to parse query request(rc=%d)", rc );
 
+      // process command
       if ( pCollectionName != NULL && '$' == pCollectionName[0] )
       {
          rtnCoordCommand *pCmdProcesser = NULL;
@@ -287,6 +292,7 @@ namespace engine
          goto done;
       }
 
+      // process query
       try
       {
          boQuery = BSONObj( pQuery );
@@ -402,6 +408,8 @@ namespace engine
             PD_LOG( PDWARNING, "failed to get reply(rcTmp=%d)", rcTmp );
             if ( SDB_APP_INTERRUPT == rcTmp || SDB_OK == rc )
             {
+               // if it is interrupt, go to error
+               // the session will be released while process interrupt
                rc = rcTmp;
             }
          }
@@ -525,6 +533,9 @@ namespace engine
       pQuery->header.TID = cb->getTID();
       if ( pQuery->numToReturn > 0 && pQuery->numToSkip > 0 )
       {
+         // some record may skip on coord,
+         // so the num of records from data-node must
+         // more than "numToReturn + numToSkip"
          pQuery->numToReturn += pQuery->numToSkip ;
       }
       pQuery->numToSkip = 0 ;
@@ -538,6 +549,7 @@ namespace engine
       pQuery->version = cataInfo->getVersion() ;
       if ( cataInfo->isMainCL() )
       {
+         // query on main collection
          CoordSubCLlist subCLList ;
          CoordGroupSubCLMap groupSubCLMap ;
          rc = cataInfo->getMatchSubCLs( boQuery, subCLList ) ;
@@ -558,6 +570,7 @@ namespace engine
       else
       {
          CoordGroupList groupList ;
+         // query on normal collection
          rc = getNodeGroups( cataInfo, boQuery,
                              sendGroupList, groupList ) ;
          PD_CHECK( SDB_OK == rc, rc, retry_check, PDWARNING,

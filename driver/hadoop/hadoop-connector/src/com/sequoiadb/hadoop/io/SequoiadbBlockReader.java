@@ -46,6 +46,7 @@ public class SequoiadbBlockReader extends RecordReader<Object, BSONWritable> {
     private long seen = 0;
     private long total;
 	
+//    public SequoiadbBlockReader(InputSplit inputSplit,String collectionSpaceName,String collectionName){
       public SequoiadbBlockReader(InputSplit inputSplit, Configuration conf){
     	if(inputSplit==null||!(inputSplit instanceof SdbBlockSplit)){
     		throw new IllegalArgumentException("the inputsplit is not SdbBlockSplit" );
@@ -54,6 +55,7 @@ public class SequoiadbBlockReader extends RecordReader<Object, BSONWritable> {
 		String collectionSpaceName = SequoiadbConfigUtil.getInCollectionSpaceName(conf);
 		String queryStr = SequoiadbConfigUtil.getQueryString(conf);
 		String selectorStr = SequoiadbConfigUtil.getSelectorString(conf);
+//		String orderbyStr = SequoiadbConfigUtil.getOrderbyString(conf);
 		
     	this.sdbBlockSplit=(SdbBlockSplit)inputSplit;
     	   	
@@ -87,6 +89,7 @@ public class SequoiadbBlockReader extends RecordReader<Object, BSONWritable> {
 
     	log.info("queryStr = " + queryStr);
     	log.info("selectorStr = " + selectorStr);
+//    	log.info("orderbyStr = " + orderbyStr);
     	if ( queryStr != null && !queryStr.equalsIgnoreCase("null") ){
     		queryBson = (BSONObject) JSON.parse( queryStr );
     		log.info( "queryBson = " + queryBson.toString() );
@@ -97,6 +100,10 @@ public class SequoiadbBlockReader extends RecordReader<Object, BSONWritable> {
     		selectorBson.put("_id", null);
     		log.info( "selectorBson = " + selectorBson.toString() );
     	}
+//    	if ( orderbyStr != null && !orderbyStr.equalsIgnoreCase("null") ){
+//    		orderbyBson = (BSONObject) JSON.parse(orderbyStr);
+//    		log.info( "orderbyBson = " + orderbyBson.toString() );
+//    	}
     	this.cursor=dbCollection.query( queryBson, 
     			                        selectorBson,
     			                        orderbyBson,

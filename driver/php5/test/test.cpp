@@ -1,6 +1,7 @@
 #include "../ext/jstobs.h"
 #include "ossTypes.hpp"
 #include "iostream"
+//using namespace sdbclient ;
 
 #define RECEIVE_BUFFER_SIZE 4095
 #define COLLECTION_SPACE_MAX_SZ 127
@@ -82,6 +83,7 @@ INT32 readInput ( CHAR *pPrompt, INT32 numIndent )
    }
    printf("%s> ", pPrompt ) ;
    readLine ( receiveBuffer, sizeof(receiveBuffer) ) ;
+   // do a loop if the input end with '\\' character
    while ( receiveBuffer[strlen(receiveBuffer)-1] == '\\' &&
            RECEIVE_BUFFER_SIZE - strlen(receiveBuffer) > 0 )
    {
@@ -93,6 +95,7 @@ INT32 readInput ( CHAR *pPrompt, INT32 numIndent )
       readLine ( &receiveBuffer[strlen(receiveBuffer)-1],
                  RECEIVE_BUFFER_SIZE - strlen(receiveBuffer) ) ;
    }
+   // make sure we don't read out of range
    if ( RECEIVE_BUFFER_SIZE == strlen(receiveBuffer) )
    {
       printf ( "Error: Max input length is %d bytes\n", RECEIVE_BUFFER_SIZE ) ;
@@ -109,7 +112,9 @@ int main(int argc,char *argv[])
        return 0;
    }
    INT32 rc = SDB_OK ;
+   //rc = readInput ( "Please input a \"JSOB\"", 0 ) ;
    CHAR BUFF  [ RECEIVE_BUFFER_SIZE ] ;
+   //std::cout<<receiveBuffer<<"\n";
 
    bson *bs = bson_create () ;
    std::cout << argv[1] <<"\n" ; 
@@ -143,6 +148,7 @@ size_t ossSnprintf(char* pBuffer, size_t iLength, const char* pFormat, ...)
    n=vsnprintf(pBuffer, iLength, pFormat, ap);
 #endif
    va_end(ap);
+   // Set terminate if the length is greater than buffer size
    if((n<0) || (size_t)n>=iLength)
       n=iLength-1;
    pBuffer[n]='\0';

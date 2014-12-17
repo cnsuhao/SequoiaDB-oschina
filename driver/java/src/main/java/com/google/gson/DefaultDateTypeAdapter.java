@@ -34,6 +34,7 @@ import java.util.TimeZone;
  */
 final class DefaultDateTypeAdapter implements JsonSerializer<Date>, JsonDeserializer<Date> {
 
+  // TODO: migrate to streaming adapter
 
   private final DateFormat enUsFormat;
   private final DateFormat localFormat;
@@ -64,6 +65,8 @@ final class DefaultDateTypeAdapter implements JsonSerializer<Date>, JsonDeserial
     this.iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
   }
 
+  // These methods need to be synchronized since JDK DateFormat classes are not thread-safe
+  // See issue 162
   public JsonElement serialize(Date src, Type typeOfSrc, JsonSerializationContext context) {
     synchronized (localFormat) {
       String dateFormatAsString = enUsFormat.format(src);

@@ -862,6 +862,8 @@ namespace engine
          goto error ;
       }
 
+      /// we push condition of filter into phyf.
+      /// it's mem will be managed by phyf.
       s->_condition = NULL ;
    done:
       PD_TRACE_EXITRC( SDB__QGMBUILDER__CRTPHYFILTER, rc ) ;
@@ -901,6 +903,8 @@ namespace engine
          goto error ;
       }
 
+      /// we push condition of filter into phyf.
+      /// it's mem will be managed by phyf.
       s->_condition = NULL ;
       phy = pFilter;
    done:
@@ -1827,6 +1831,7 @@ namespace engine
          qgmOpField field ;
          field.type = type ;
          node->_selector.push_back( field ) ;
+         /// do nothing.
       }
       else if ( SQL_GRAMMAR::DBATTR == type )
       {
@@ -2033,6 +2038,7 @@ namespace engine
             }
          }
 
+         /// parse on.
          if ( ++itr != root->children.end() )
          {
             rc = _buildCondition( itr, join->_condition ) ;
@@ -2111,6 +2117,7 @@ namespace engine
 
          if ( NULL != alias )
          {
+            /// we do not set collection's alias, it is not used.
             rc = _table->getField( alias, len, select->_alias ) ;
             if ( SDB_OK != rc )
             {
@@ -2605,6 +2612,7 @@ namespace engine
             goto error ;
          }
 
+         ///default is asc.
          field.type = SQL_GRAMMAR::ASC ;
          if ( !isFromOne( field, order, FALSE ) )
          {

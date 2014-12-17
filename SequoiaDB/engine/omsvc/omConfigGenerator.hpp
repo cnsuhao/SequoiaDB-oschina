@@ -240,15 +240,19 @@ namespace engine
 
 
       private:
+         //**********configure******************
          string            _dbPath ;
          string            _svcName ;
          string            _role ;
 
          map<string, string> _additionalConfMap ;
+         //*************************************
 
+         //***********other attribute***********
          string            _dataGroupName ;
          string            _hostName ;
          string            _diskName ;
+         //*************************************
    } ;
 
    class propertyContainer : public SDBObject
@@ -307,6 +311,7 @@ namespace engine
 
          INT32                getDiskCount() ;
 
+         // get the disk count that no used before
          INT32                getFreeDiskCount() ;
 
          INT32                createNode( const string &role, 
@@ -478,6 +483,7 @@ namespace engine
          omCluster         _cluster ;
          string            _errorDetail ;
 
+         //check
          omBusinessConfigure _businessConf ;
    } ;
 }

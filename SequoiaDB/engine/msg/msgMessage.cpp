@@ -69,6 +69,8 @@ static INT32 msgCheckBuffer ( CHAR **ppBuffer, INT32 *bufferSize,
          PD_LOG ( PDERROR, "Failed to allocate %d bytes send buffer",
                   newSize ) ;
          rc = SDB_OOM ;
+         // realloc does NOT free original memory if it fails, so we have to
+         // assign pointer to original
          *ppBuffer = pOrigMem ;
          goto error ;
       }
@@ -136,28 +138,34 @@ INT32 msgBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
               "Failed to check buffer" ) ;
       goto error ;
    }
+   // now the buffer is large enough
    pUpdate                       = (MsgOpUpdate*)(*ppBuffer) ;
    pUpdate->version              = 1 ;
    pUpdate->w                    = 0 ;
    pUpdate->flags                = flag ;
+   // nameLength does NOT include '\0'
    pUpdate->nameLength           = ossStrlen ( CollectionName ) ;
    pUpdate->header.requestID     = reqID ;
    pUpdate->header.opCode        = MSG_BS_UPDATE_REQ ;
    pUpdate->header.messageLength = packetLength ;
    pUpdate->header.routeID.value = 0 ;
    pUpdate->header.TID           = ossGetCurrentThreadID() ;
+   // copy collection name
    ossStrncpy ( pUpdate->name, CollectionName, pUpdate->nameLength ) ;
    pUpdate->name[pUpdate->nameLength] = 0 ;
+   // get the offset of the first bson obj
    offset = ossRoundUpToMultipleX( offsetof(MsgOpUpdate, name) +
                                    pUpdate->nameLength + 1,
                                    4 ) ;
    ossMemcpy ( &((*ppBuffer)[offset]), selector->objdata(),
                                        selector->objsize());
+   // get the offset of the second bson obj
    offset += ossRoundUpToMultipleX( selector->objsize(), 4 ) ;
    ossMemcpy ( &((*ppBuffer)[offset]), updator->objdata(), updator->objsize());
    offset += ossRoundUpToMultipleX( updator->objsize(), 4 ) ;
    ossMemcpy ( &((*ppBuffer)[offset]), hint->objdata(), hint->objsize());
    offset += ossRoundUpToMultipleX( hint->objsize(), 4 ) ;
+   // sanity test
    if ( offset != packetLength )
    {
       pdLog ( PDERROR, __FUNC__, __FILE__, __LINE__,
@@ -188,23 +196,29 @@ INT32 msgExtractUpdate ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
    SDB_VALIDATE_GOTOERROR ( (SINT32)ossStrlen ( *ppCollectionName ) ==
                             pUpdate->nameLength, SDB_INVALIDARG,
                             "Invalid name length" ) ;
+   // get the offset for the first BSONObj
    offset = ossRoundUpToMultipleX ( offsetof(MsgOpUpdate, name) +
                                     pUpdate->nameLength + 1, 4 ) ;
    *ppSelector = &pBuffer[offset] ;
+   // sanity check in order to prevent memory overflow for invalid BSON obj
    if ( offset + *((SINT32*)*ppSelector) > pUpdate->header.messageLength )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+   // add the size of first BSONObj
    offset += ossRoundUpToMultipleX( *((SINT32*)*ppSelector), 4 ) ;
    *ppUpdator  = &pBuffer[offset] ;
+   // the result may not exactly match because messageLength is 4 bytes aligned
    if ( offset + *((SINT32*)*ppUpdator) > pUpdate->header.messageLength )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+   // add the size of second BSONObj
    offset += ossRoundUpToMultipleX( *((SINT32*)*ppUpdator), 4 ) ;
    *ppHint  = &pBuffer[offset] ;
+   // the result may not exactly match because messageLength is 4 bytes aligned
    if ( offset + *((SINT32*)*ppHint) > pUpdate->header.messageLength )
    {
       rc = SDB_INVALIDARG ;
@@ -248,23 +262,28 @@ INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
               "Failed to check buffer" ) ;
       goto error ;
    }
+   // now the buffer is large enough
    pInsert                       = (MsgOpInsert*)(*ppBuffer) ;
    pInsert->version              = 1 ;
    pInsert->w                    = 0 ;
    pInsert->flags                = flag ;
+   // nameLength does NOT include '\0'
    pInsert->nameLength           = ossStrlen ( CollectionName ) ;
    pInsert->header.requestID     = reqID ;
    pInsert->header.opCode        = MSG_BS_INSERT_REQ ;
    pInsert->header.messageLength = packetLength ;
    pInsert->header.routeID.value = 0 ;
    pInsert->header.TID           = ossGetCurrentThreadID() ;
+   // copy collection name
    ossStrncpy ( pInsert->name, CollectionName, pInsert->nameLength ) ;
    pInsert->name[pInsert->nameLength]=0 ;
+   // get the offset of the first bson obj
    offset = ossRoundUpToMultipleX( offsetof(MsgOpInsert, name) +
                                    pInsert->nameLength + 1,
                                    4 ) ;
    ossMemcpy ( &((*ppBuffer)[offset]), insertor->objdata(), insertor->objsize());
    offset += ossRoundUpToMultipleX( insertor->objsize(), 4 ) ;
+   // sanity test
    if ( offset != packetLength )
    {
       pdLog ( PDERROR, __FUNC__, __FILE__, __LINE__,
@@ -343,16 +362,19 @@ INT32 msgBuildInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
               "Failed to check buffer" ) ;
       goto error ;
    }
+   // now the buffer is large enough
    pInsert                       = (MsgOpInsert*)(*ppBuffer) ;
    pInsert->version              = 1 ;
    pInsert->w                    = 0 ;
    pInsert->flags                = flag ;
+   // nameLength does NOT include '\0'
    pInsert->nameLength           = ossStrlen ( CollectionName ) ;
    pInsert->header.requestID     = reqID ;
    pInsert->header.opCode        = MSG_BS_INSERT_REQ ;
    pInsert->header.messageLength = packetLength ;
    pInsert->header.routeID.value = 0 ;
    pInsert->header.TID           = ossGetCurrentThreadID() ;
+   // copy collection name
    ossStrncpy ( pInsert->name, CollectionName, pInsert->nameLength ) ;
    pInsert->name[pInsert->nameLength]=0 ;
    ioVec[0].iovBase = (void *)((CHAR *)pInsert + sizeof( MsgHeader ) );
@@ -377,6 +399,7 @@ INT32 msgAppendInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    INT32 rc             = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_MSGAPDINSERTMSG );
    MsgOpInsert *pInsert = (MsgOpInsert*)(*ppBuffer) ;
+   // make sure the it's a valid insert request
    SDB_ASSERT ( pInsert->header.messageLength &&
                 MSG_BS_INSERT_REQ ==  pInsert->header.opCode &&
                 ossIsAligned4 ( pInsert->header.messageLength ),
@@ -399,6 +422,7 @@ INT32 msgAppendInsertMsg ( CHAR **ppBuffer, INT32 *bufferSize,
               "Failed to check buffer" ) ;
       goto error ;
    }
+   // now the buffer is large enough
    pInsert->header.messageLength = packetLength ;
    ossMemcpy ( &((*ppBuffer)[offset]), insertor->objdata(), insertor->objsize());
    offset += ossRoundUpToMultipleX( insertor->objsize(), 4 ) ;
@@ -433,6 +457,7 @@ INT32 msgExtractInsert ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
    SDB_VALIDATE_GOTOERROR ( (SINT32)ossStrlen ( *ppCollectionName ) ==
                             pInsert->nameLength, SDB_INVALIDARG,
                             "Invalid name length" ) ;
+   // get the offset for the first BSONObj
    offset = ossRoundUpToMultipleX ( offsetof(MsgOpInsert, name) +
                                     pInsert->nameLength + 1, 4 ) ;
    *ppInsertor = &pBuffer[offset] ;
@@ -513,10 +538,12 @@ INT32 msgBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
               "Failed to check buffer" ) ;
       goto error ;
    }
+   // now the buffer is large enough
    pQuery                        = (MsgOpQuery*)(*ppBuffer) ;
    pQuery->version               = 1 ;
    pQuery->w                     = 0 ;
    pQuery->flags                 = flag ;
+   // nameLength does NOT include '\0'
    pQuery->nameLength            = ossStrlen ( CollectionName ) ;
    pQuery->header.requestID      = reqID ;
    pQuery->header.opCode         = MSG_BS_QUERY_REQ ;
@@ -525,22 +552,29 @@ INT32 msgBuildQueryMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
    pQuery->header.messageLength  = packetLength ;
    pQuery->header.routeID.value  = 0 ;
    pQuery->header.TID            = ossGetCurrentThreadID() ;
+   // copy collection name
    ossStrncpy ( pQuery->name, CollectionName, pQuery->nameLength ) ;
    pQuery->name[pQuery->nameLength]=0 ;
+   // get the offset of the first bson obj
    offset = ossRoundUpToMultipleX( offsetof(MsgOpQuery, name) +
                                    pQuery->nameLength + 1,
                                    4 ) ;
+   // write query condition
    ossMemcpy ( &((*ppBuffer)[offset]), query->objdata(), query->objsize() ) ;
    offset += ossRoundUpToMultipleX( query->objsize(), 4 ) ;
+   // write field select
    ossMemcpy ( &((*ppBuffer)[offset]), fieldSelector->objdata(),
                fieldSelector->objsize() ) ;
    offset += ossRoundUpToMultipleX( fieldSelector->objsize(), 4 ) ;
+   // write order by clause
    ossMemcpy ( &((*ppBuffer)[offset]), orderBy->objdata(),
                orderBy->objsize() ) ;
    offset += ossRoundUpToMultipleX( orderBy->objsize(), 4 ) ;
+   // write optimizer hint
    ossMemcpy ( &((*ppBuffer)[offset]), hint->objdata(),
                hint->objsize() ) ;
    offset += ossRoundUpToMultipleX( hint->objsize(), 4 ) ;
+   // sanity test
    if ( offset != packetLength )
    {
       pdLog ( PDERROR, __FUNC__, __FILE__, __LINE__,
@@ -591,6 +625,7 @@ INT32 msgExtractQuery  ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
    SDB_VALIDATE_GOTOERROR ( (SINT32)ossStrlen ( pQuery->name ) ==
                             pQuery->nameLength, SDB_INVALIDARG,
                             "Invalid name length" ) ;
+   // get the offset for the first BSONObj
    offset = ossAlign4 ( (UINT32)(offsetof(MsgOpQuery, name) +
                                  pQuery->nameLength + 1) ) ;
    if ( ppQuery )
@@ -598,11 +633,13 @@ INT32 msgExtractQuery  ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
       *ppQuery = &pBuffer[offset] ;
    }
    length = *((SINT32*)(&pBuffer[offset])) ;
+   // since there may another BSON followed by first one, we use >
    if ( offset + length > pQuery->header.messageLength )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+   // add the size of first BSONObj
    offset += ossAlign4( (UINT32)length ) ;
    if ( offset < pQuery->header.messageLength )
    {
@@ -611,6 +648,7 @@ INT32 msgExtractQuery  ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
          *ppFieldSelector = &pBuffer[offset] ;
       }
       length = *((SINT32*)(&pBuffer[offset])) ;
+      // the result should exactly match messageLength
       if ( offset + length > pQuery->header.messageLength )
       {
          rc = SDB_INVALIDARG ;
@@ -622,6 +660,7 @@ INT32 msgExtractQuery  ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+   // add the size of second BSONObj
    offset += ossAlign4( (UINT32)length ) ;
    if ( offset < pQuery->header.messageLength )
    {
@@ -630,6 +669,7 @@ INT32 msgExtractQuery  ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
          *ppOrderBy = &pBuffer[offset] ;
       }
       length = *((SINT32*)(&pBuffer[offset])) ;
+      // the result should exactly match messageLength
       if ( offset + length > pQuery->header.messageLength )
       {
          rc = SDB_INVALIDARG ;
@@ -641,6 +681,7 @@ INT32 msgExtractQuery  ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+   // add the size of third BSONObj
    offset += ossAlign4( (UINT32)length ) ;
    if ( offset < pQuery->header.messageLength )
    {
@@ -649,6 +690,7 @@ INT32 msgExtractQuery  ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
          *ppHint = &pBuffer[offset] ;
       }
       length = *((SINT32*)(&pBuffer[offset])) ;
+      // the result should exactly match messageLength
       if ( offset + length > pQuery->header.messageLength )
       {
          rc = SDB_INVALIDARG ;
@@ -695,7 +737,9 @@ INT32 msgBuildGetMoreMsg ( CHAR **ppBuffer, INT32 *bufferSize,
               "Failed to check buffer" ) ;
       goto error ;
    }
+   // now the buffer is large enough
    pGetMore                       = (MsgOpGetMore*)(*ppBuffer) ;
+   // nameLength does NOT include '\0'
    pGetMore->header.requestID     = reqID ;
    pGetMore->header.opCode        = MSG_BS_GETMORE_REQ ;
    pGetMore->numToReturn          = numToReturn ;
@@ -779,18 +823,22 @@ INT32 msgBuildDeleteMsg ( CHAR **ppBuffer, INT32 *bufferSize,
               "Failed to check buffer" ) ;
       goto error ;
    }
+   // now the buffer is large enough
    pDelete                       = (MsgOpDelete*)(*ppBuffer) ;
    pDelete->version              = 1 ;
    pDelete->w                    = 0 ;
    pDelete->flags                = flag ;
+   // nameLength does NOT include '\0'
    pDelete->nameLength           = ossStrlen ( CollectionName ) ;
    pDelete->header.requestID     = reqID ;
    pDelete->header.opCode        = MSG_BS_DELETE_REQ ;
    pDelete->header.messageLength = packetLength ;
    pDelete->header.routeID.value = 0 ;
    pDelete->header.TID           = ossGetCurrentThreadID() ;
+   // copy collection name
    ossStrncpy ( pDelete->name, CollectionName, pDelete->nameLength ) ;
    pDelete->name[pDelete->nameLength]=0 ;
+   // get the offset of the first bson obj
    offset = ossRoundUpToMultipleX( offsetof(MsgOpDelete, name) +
                                    pDelete->nameLength + 1,
                                    4 ) ;
@@ -800,6 +848,7 @@ INT32 msgBuildDeleteMsg ( CHAR **ppBuffer, INT32 *bufferSize,
 
    ossMemcpy ( &((*ppBuffer)[offset]), hint->objdata(), hint->objsize() );
    offset += ossRoundUpToMultipleX( hint->objsize(), 4 ) ;
+   // sanity test
    if ( offset != packetLength )
    {
       pdLog ( PDERROR, __FUNC__, __FILE__, __LINE__,
@@ -831,6 +880,7 @@ INT32 msgExtractDelete ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
    SDB_VALIDATE_GOTOERROR ( (SINT32)ossStrlen ( *ppCollectionName ) ==
                             pDelete->nameLength, SDB_INVALIDARG,
                             "Invalid name length" ) ;
+   // get the offset for the first BSONObj
    offset = ossRoundUpToMultipleX ( offsetof(MsgOpDelete, name) +
                                     pDelete->nameLength + 1, 4 ) ;
    *ppDeletor = &pBuffer[offset] ;
@@ -839,10 +889,12 @@ INT32 msgExtractDelete ( CHAR *pBuffer, INT32 *pflag, CHAR **ppCollectionName,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+   // add the size of first BSONObj
    offset += ossRoundUpToMultipleX( *((SINT32*)*ppDeletor), 4 ) ;
    if ( offset < pDelete->header.messageLength )
    {
       *ppHint = &pBuffer[offset] ;
+      // the result should exactly match messageLength
       if ( offset + *((SINT32*)*ppHint) >
            pDelete->header.messageLength )
       {
@@ -873,6 +925,8 @@ INT32 msgBuildKillContextsMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    INT32 rc              = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_MSGBLDKILLCONTXMSG );
    MsgOpKillContexts *pKC = NULL ;
+   // aligned by 8 since contextIDs are 64 bits
+   // so we don't need to manually align it, it must be 8 bytes aligned already
    INT32 packetLength = offsetof(MsgOpKillContexts, contextIDs) +
                         sizeof ( SINT64 ) * (numContexts) ;
    PD_TRACE1 ( SDB_MSGBLDKILLCONTXMSG, PD_PACK_INT(packetLength) );
@@ -890,6 +944,7 @@ INT32 msgBuildKillContextsMsg ( CHAR **ppBuffer, INT32 *bufferSize,
               "Failed to check buffer" ) ;
       goto error ;
    }
+   // now the buffer is large enough
    pKC                       = (MsgOpKillContexts*)(*ppBuffer) ;
    pKC->header.requestID     = reqID ;
    pKC->header.opCode        = MSG_BS_KILL_CONTEXT_REQ ;
@@ -897,6 +952,7 @@ INT32 msgBuildKillContextsMsg ( CHAR **ppBuffer, INT32 *bufferSize,
    pKC->numContexts          = numContexts ;
    pKC->header.routeID.value = 0 ;
    pKC->header.TID           = ossGetCurrentThreadID() ;
+   // copy collection name
    ossMemcpy ( (CHAR*)(&pKC->contextIDs[0]), (CHAR*)pContextIDs,
                sizeof(SINT64)*pKC->numContexts ) ;
 done :
@@ -918,6 +974,8 @@ INT32 msgExtractKillContexts ( CHAR *pBuffer,
    MsgOpKillContexts *pKC = (MsgOpKillContexts*)pBuffer ;
    *numContexts = pKC->numContexts ;
    *ppContextIDs = &pKC->contextIDs[0] ;
+   // we check exact match situation here, since the input should always
+   // aligned with 8
    if ( offsetof(MsgOpKillContexts, contextIDs) + pKC->numContexts *
         sizeof ( SINT64 ) != (UINT32)pKC->header.messageLength )
    {
@@ -958,12 +1016,14 @@ INT32 msgBuildMsgMsg ( CHAR **ppBuffer, INT32 *bufferSize,
               "Failed to check buffer" ) ;
       goto error ;
    }
+   // now the buffer is large enough
    pMsg                       = (MsgOpMsg*)(*ppBuffer) ;
    pMsg->header.requestID     = reqID ;
    pMsg->header.opCode        = MSG_BS_MSG_REQ ;
    pMsg->header.messageLength = packetLength ;
    pMsg->header.routeID.value = 0 ;
    pMsg->header.TID           = ossGetCurrentThreadID() ;
+   // copy collection name
    ossStrncpy ( pMsg->msg, pMsgStr, msgLen ) ;
    pMsg->msg[msgLen] = 0 ;
 done :
@@ -993,6 +1053,7 @@ done :
 error :
    goto done ;
 }
+// max 16MB delta increment
 #define MSG_MAX_DELTA_BUFFER_SZ 16777216
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDREPLYMSG, "msgBuildReplyMsg" )
 INT32 msgBuildReplyMsg ( CHAR **ppBuffer, INT32 *bufferSize, INT32 opCode,
@@ -1162,6 +1223,7 @@ error :
    goto done ;
 }
 
+// create reply header ONLY, note packet length is the header + data
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGBLDREPLYMSGHD, "msgBuildReplyMsgHeader" )
 void msgBuildReplyMsgHeader ( MsgOpReply &replyHeader, SINT32 packetLength,
                               INT32 opCode, SINT32 flag, SINT64 contextID, 
@@ -1274,6 +1336,7 @@ error :
    goto done ;
 }
 
+// cluster manager
 // PD_TRACE_DECLARE_FUNCTION (SDB_MSGBLDCMREQ, "msgBuildCMRequest" )
 INT32 msgBuildCMRequest ( CHAR **ppBuffer, INT32 *pBufferSize,
                           SINT32 remoCode,
@@ -1323,6 +1386,7 @@ INT32 msgBuildCMRequest ( CHAR **ppBuffer, INT32 *pBufferSize,
    pCMRequest->header.routeID.value = 0 ;
    pCMRequest->header.TID           = ossGetCurrentThreadID() ;
    pCMRequest->remoCode             = remoCode ;
+   // write arguments
    ossMemcpy ( &((*ppBuffer)[offset]), arg1->objdata(), arg1->objsize() ) ;
    offset += ossRoundUpToMultipleX ( arg1->objsize(), 4 ) ;
    ossMemcpy ( &((*ppBuffer)[offset]), arg2->objdata(), arg2->objsize() ) ;
@@ -1359,12 +1423,14 @@ INT32 msgExtractCMRequest ( CHAR *pBuffer, SINT32 *remoCode,
    MsgCMRequest *pCMRequest = (MsgCMRequest*) pBuffer ;
    *remoCode = pCMRequest->remoCode ;
 
+   // extract the first BSONObj
    *arg1 = &pBuffer[offset] ;
    if ( offset + *((SINT32*)*arg1) > pCMRequest->header.messageLength )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+   // extract the second BSONObj
    offset += ossRoundUpToMultipleX( *((SINT32*)*arg1), 4 ) ;
    if ( offset < pCMRequest->header.messageLength )
    {
@@ -1380,6 +1446,7 @@ INT32 msgExtractCMRequest ( CHAR *pBuffer, SINT32 *remoCode,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+   // extract the third BSONObj
    offset += ossRoundUpToMultipleX( *((SINT32*)*arg2), 4 ) ;
    if ( offset < pCMRequest->header.messageLength )
    {
@@ -1395,6 +1462,7 @@ INT32 msgExtractCMRequest ( CHAR *pBuffer, SINT32 *remoCode,
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+   // extract the fourth BSONObj
    offset += ossRoundUpToMultipleX( *((SINT32*)*arg3), 4 ) ;
    if ( offset < pCMRequest->header.messageLength )
    {
@@ -1475,10 +1543,12 @@ INT32 msgBuildDropIndexMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
               "Failed to check buffer" ) ;
       goto error ;
    }
+   // now the buffer is large enough
    pQuery                        = (MsgOpQuery*)(*ppBuffer) ;
    pQuery->version               = 1 ;
    pQuery->w                     = 0 ;
    pQuery->flags                 = 0 ;
+   // nameLength does NOT include '\0'
    pQuery->nameLength            = ossStrlen ( CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX ) ;
    pQuery->header.requestID      = reqID ;
    pQuery->header.opCode         = MSG_BS_QUERY_REQ ;
@@ -1487,22 +1557,29 @@ INT32 msgBuildDropIndexMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
    pQuery->header.messageLength  = packetLength ;
    pQuery->header.routeID.value  = 0 ;
    pQuery->header.TID            = ossGetCurrentThreadID() ;
+   // copy collection name
    ossStrncpy ( pQuery->name, CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX, pQuery->nameLength ) ;
    pQuery->name[pQuery->nameLength]=0 ;
+   // get the offset of the first bson obj
    offset = ossRoundUpToMultipleX( offsetof(MsgOpQuery, name) +
                                    pQuery->nameLength + 1,
                                    4 ) ;
+   // write query condition
    ossMemcpy ( &((*ppBuffer)[offset]), boQuery.objdata(), boQuery.objsize() ) ;
    offset += ossRoundUpToMultipleX( boQuery.objsize(), 4 ) ;
+   // write field select
    ossMemcpy ( &((*ppBuffer)[offset]), emptyObj.objdata(),
                emptyObj.objsize() ) ;
    offset += ossRoundUpToMultipleX( emptyObj.objsize(), 4 ) ;
+   // write order by clause
    ossMemcpy ( &((*ppBuffer)[offset]), emptyObj.objdata(),
                emptyObj.objsize() ) ;
    offset += ossRoundUpToMultipleX( emptyObj.objsize(), 4 ) ;
+   // write optimizer hint
    ossMemcpy ( &((*ppBuffer)[offset]), emptyObj.objdata(),
                emptyObj.objsize() ) ;
    offset += ossRoundUpToMultipleX( emptyObj.objsize(), 4 ) ;
+   // sanity test
    if ( offset != packetLength )
    {
       PD_LOG ( PDERROR,
@@ -1851,6 +1928,7 @@ INT32 msgExtractTuplesAndData( const MsgLobTuple **begin, UINT32 *tuplesSize,
    if ( sizeof( MsgLobTuple ) <= *tuplesSize )
    {
       const MsgLobTuple *t = *begin ;
+      //UINT32 dataLen = ossRoundUpToMultipleX( t->columns.len, 4 ) ;
       UINT32 dataLen = t->columns.len ;
       if ( sizeof( MsgLobTuple ) + dataLen <= *tuplesSize )
       {

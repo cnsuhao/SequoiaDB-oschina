@@ -86,6 +86,7 @@ namespace engine
       SAFE_DELETE ( _pCatAgent ) ;
       SAFE_DELETE ( _pNodeMgrAgent ) ;
 
+      //release event
       MAP_CAT_EVENT_IT it = _mapSyncCatEvent.begin () ;
       while ( it != _mapSyncCatEvent.end() )
       {
@@ -128,6 +129,7 @@ namespace engine
          goto error ;
       }
 
+      // init param
       for ( UINT32 i = 0 ; i < catAddrs.size() ; ++i )
       {
          if ( 0 == catAddrs[i]._host[ 0 ] )
@@ -147,6 +149,7 @@ namespace engine
          goto error ;
       }
 
+      // update catalog to agent
       for ( index = 0 ; index < _vecCatlog.size() ; ++index )
       {
          _pNetRtAgent->updateRoute ( _vecCatlog[index].nodeID,
@@ -188,6 +191,7 @@ namespace engine
    {
       if ( primary && SDB_EVT_OCCUR_BEFORE == type )
       {
+           // clear catalog info
          _pCatAgent->lock_w() ;
          _pCatAgent->clearAll() ;
          _pCatAgent->release_w() ;
@@ -310,6 +314,7 @@ namespace engine
       if ( SDB_CLS_NODE_NOT_EXIST == rc && !hasUpdateGroup )
       {
          hasUpdateGroup = TRUE ;
+         // need to update
          if ( CATALOG_GROUPID == groupID )
          {
             rc = updateCatGroup( FALSE, CLS_SHARD_TIMEOUT ) ;
@@ -341,6 +346,7 @@ namespace engine
             pos = ( pos + 1 ) % hosts.size() ;
             ossGetPort( tmpInfo._svc.c_str(), port ) ;
 
+            // use millisecond
             ossSocket tmpSocket ( tmpInfo._host.c_str(), port, millisec ) ;
             rc = tmpSocket.initSocket() ;
             PD_RC_CHECK( rc, PDERROR, "Init socket %s:%d failed, rc:%d",
@@ -354,11 +360,13 @@ namespace engine
                continue ;
             }
 
+            // send msg
             rc = tmpSocket.send( (const CHAR *)msg, msg->messageLength,
                                  sentLen, millisec ) ;
             PD_RC_CHECK( rc, PDERROR, "Send messge to %s:%d failed, rc:%d",
                          tmpInfo._host.c_str(), port, rc ) ;
 
+            // recieve msg, do not loop and retry
             rc = tmpSocket.recv( (CHAR*)&msgLength, sizeof(INT32), receivedLen,
                                  millisec ) ;
             PD_RC_CHECK( rc, PDERROR, "Recieve msg length failed, rc: %d",
@@ -370,6 +378,7 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
+            // buff is freed outside the function
             buff = (CHAR*)SDB_OSS_MALLOC( msgLength + 1 ) ;
             if ( !buff )
             {
@@ -379,6 +388,9 @@ namespace engine
                goto error ;
             }
             *(INT32*)buff = msgLength ;
+            // do not loop and retry, simply return error message when we failed to
+            // recv, including timeout, because this is internal communication and
+            // we should control the timeout value
             rc = tmpSocket.recv( &buff[sizeof(INT32)], msgLength-sizeof(INT32),
                                  receivedLen,
                                  millisec ) ;
@@ -433,6 +445,7 @@ namespace engine
                      _vecCatlog[tmpPrimary].service.c_str(),
                      rc ) ;
             _primary = -1 ;
+            //will send to all catalog node
          }
          else
          {
@@ -444,6 +457,7 @@ namespace engine
          }
       }
 
+      //send to all catlog node
       {
          UINT32 index = 0 ;
          INT32 rc1 = SDB_OK ;
@@ -495,15 +509,18 @@ namespace engine
       req.id.value = 0 ;
       req.id.columns.groupID = CATALOG_GROUPID ;
 
+      //send to a catalog
       UINT32 index = 0 ;
       INT32 rc = SDB_OK ;
 
       if ( millsec > 0 )
       {
+         // use request id to store tid
          req.header.requestID = (UINT64)ossGetCurrentThreadID() ;
          _upCatEvent.reset() ;
       }
 
+      // send message
       {
          ossScopedLock lock ( &_shardLatch, SHARED ) ;
 
@@ -544,6 +561,7 @@ namespace engine
 
       PD_LOG ( PDEVENT, "Clear all dms data" ) ;
 
+      //dump all collectionspace
       dmsCB->dumpInfo( csList, TRUE ) ;
       std::set<_monCollectionSpace>::const_iterator it = csList.begin() ;
       while ( it != csList.end() )
@@ -590,6 +608,7 @@ namespace engine
          goto error ;
       }
 
+      //First judge the request is send or not
       if ( FALSE == pEventInfo->send )
       {
          rc = _sendCatalogReq ( pCollectionName, 0, &(pEventInfo->sendNums) ) ;
@@ -619,6 +638,7 @@ namespace engine
             rc = result ;
          }
 
+         // if send=TRUE, must reset send flag
          _catLatch.get () ;
          pEventInfo->waitNum-- ;
 
@@ -631,6 +651,7 @@ namespace engine
          {
             pEventInfo->event.reset () ;
 
+            //release the event info
             SDB_OSS_DEL pEventInfo ;
             pEventInfo = NULL ;
             _mapSyncCatEvent.erase ( pCollectionName ) ;
@@ -664,6 +685,7 @@ namespace engine
          goto error ;
       }
 
+      //First judge the request is send or not
       if ( FALSE == pEventInfo->send )
       {
          rc = _sendGroupReq( groupID, 0, &(pEventInfo->sendNums) ) ;
@@ -693,6 +715,7 @@ namespace engine
             rc = result ;
          }
 
+         // if send=TRUE, must reset send flag
          _catLatch.get () ;
          pEventInfo->waitNum-- ;
 
@@ -705,6 +728,7 @@ namespace engine
          {
             pEventInfo->event.reset () ;
 
+            //release the event info
             SDB_OSS_DEL pEventInfo ;
             pEventInfo = NULL ;
             _mapSyncNMEvent.erase ( groupID ) ;
@@ -750,6 +774,7 @@ namespace engine
          }
          index++ ;
       }
+      // if we get here, that means we cannot find the id in _vecCatlog
       rc = SDB_SYS ;
       PD_LOG ( PDINFO, "Catlog primary node to [%s] id error[%u:%u:%u]",
                primary ? "primary" : "slave",
@@ -811,6 +836,7 @@ namespace engine
       msg->opCode = queryType ;
       msg->TID = 0 ;
       msg->routeID.value = 0 ;
+      //send message
       rc = sendToCatlog ( msg, pSendNum ) ;
 
    done:
@@ -905,6 +931,7 @@ namespace engine
       goto done ;
    }
 
+   //message fuctions
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__ONCATGPRES, "_clsShardMgr::_onCatCatGroupRes" )
    INT32 _clsShardMgr::_onCatCatGroupRes ( NET_HANDLE handle, MsgHeader * msg )
    {
@@ -933,6 +960,7 @@ namespace engine
       }
       primaryNode.columns.groupID = CATALOG_GROUPID ;
 
+      //update to shard net agent
       if ( 0 == version || version != _catVerion )
       {
          _shardLatch.get () ;
@@ -990,18 +1018,21 @@ namespace engine
          optCB->toString( newCfg ) ;
          if ( oldCfg != newCfg )
          {
+            // refresh to config file
             optCB->reflush2File() ;
          }
 
          _shardLatch.release () ;
       }
 
+      // if catalog group, get the primary from repl
       if ( CATALOG_GROUPID == nodeID().columns.groupID )
       {
          replCB *pRepl = sdbGetReplCB() ;
          primary = pRepl->getPrimary().columns.nodeID ;
       }
 
+      //update primary
       if ( primary != 0 )
       {
          primaryNode.columns.serviceID = MSG_ROUTE_CAT_SERVICE ;
@@ -1050,6 +1081,7 @@ namespace engine
                --(pEventInfo->sendNums) ;
                if ( pEventInfo->sendNums > 0 )
                {
+                  //ignore
                   rc = SDB_OK ;
                }
                else
@@ -1085,6 +1117,7 @@ namespace engine
 
          PD_LOG ( PDEVENT, "Update group[groupID:%u, rc: %d]", groupID, rc ) ;
 
+         //udpate node info to netAgent
          clsGroupItem* groupItem = NULL ;
          if ( SDB_OK == rc )
          {
@@ -1113,6 +1146,7 @@ namespace engine
          }
          _pNodeMgrAgent->release_w() ;
 
+         //find the event
          if ( pEventInfo )
          {
             pEventInfo->event.signalAll( rc ) ;
@@ -1147,9 +1181,11 @@ namespace engine
       {
          rc = SDB_CLS_UPDATE_CAT_FAILED ;
 
+         //need to found event info by request id
          pEventInfo = _findCatSyncEvent ( msg->requestID ) ;
          if ( pEventInfo )
          {
+            //the catalog info is delete, so will delete the local item
             if ( SDB_DMS_EOC == res->flags ||
                  SDB_DMS_NOTEXIST == res->flags )
             {
@@ -1158,11 +1194,13 @@ namespace engine
                _pCatAgent->release_w () ;
                pEventInfo->event.signalAll ( SDB_DMS_NOTEXIST ) ;
             }
+            //not primary node, should update catalog group info, and send again
             else if ( SDB_CLS_NOT_PRIMARY == res->flags )
             {
                --(pEventInfo->sendNums) ;
                if ( pEventInfo->sendNums > 0 )
                {
+                  // ignore
                   rc = SDB_OK ;
                   goto done ;
                }
@@ -1180,6 +1218,7 @@ namespace engine
                   goto error ;
                }
             }
+            //update catalog failed
             else
             {
                PD_LOG ( PDERROR, "Update catalog[%s] failed[response: %d]",
@@ -1215,6 +1254,7 @@ namespace engine
          PD_LOG ( PDEVENT, "Update catalog [version:%u, rc: %d]",
                   NULL == catSet ? 0 : catSet->getVersion(), rc ) ;
 
+         //signal collection info event
          BSONElement ele = objList[0].getField ( CAT_COLLECTION_NAME ) ;
          clsEventItem *pEventInfo = _findCatSyncEvent( ele.str().c_str(),
                                                        FALSE ) ;
@@ -1250,8 +1290,10 @@ namespace engine
          goto done ;
       }
 
+      //create new event info
       pEventInfo = SDB_OSS_NEW _clsEventItem ;
       pEventInfo->name = pCollectionName ;
+      //add to map
       _mapSyncCatEvent[pCollectionName] = pEventInfo ;
 
    done:
@@ -1298,8 +1340,10 @@ namespace engine
          goto done ;
       }
 
+      //create new event info
       pEventInfo = SDB_OSS_NEW _clsEventItem ;
       pEventInfo->groupID = groupID ;
+      //add to map
       _mapSyncNMEvent[groupID] = pEventInfo ;
 
    done:
@@ -1486,6 +1530,7 @@ namespace engine
       _mapSyncCSEvent[ requestID ] = item ;
       _catLatch.release() ;
 
+      // send request
       rc = _sendCSInfoReq( csName, requestID, &(item->sendNums) ) ;
       if ( rc )
       {
@@ -1541,6 +1586,7 @@ namespace engine
       it = _mapSyncCSEvent.find( msg->requestID ) ;
       if ( it == _mapSyncCSEvent.end() )
       {
+         // not found, timeout
          goto done ;
       }
 
@@ -1550,11 +1596,13 @@ namespace engine
       {
          rc = res->flags ;
 
+         //not primary node, should send again
          if ( SDB_CLS_NOT_PRIMARY == res->flags )
          {
             --(csItem->sendNums) ;
             if ( csItem->sendNums > 0 )
             {
+               // ignore
                rc = SDB_OK ;
                goto done ;
             }
@@ -1591,6 +1639,7 @@ namespace engine
          SDB_ASSERT ( numReturned == 1 && objList.size() == 1,
                       "Collection space item num must be 1" ) ;
 
+         //signal collection info event
          ele = objList[0].getField ( CAT_PAGE_SIZE_NAME ) ;
          if ( ele.isNumber() )
          {

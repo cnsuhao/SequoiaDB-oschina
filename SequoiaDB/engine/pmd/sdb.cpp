@@ -234,14 +234,17 @@ INT32 parseArguments ( int argc , CHAR ** argv , ArgInfo & argInfo )
 
    if ( 1 == argc )
    {
+      // Empty. Normal interactive mode
    }
    else if ( vm.count( "shell" ) )
    {
+      // Front-end mode
       argInfo.mode = FRONTEND_MODE ;
       argInfo.cmd = vm["shell"].as<string>() ;
    }
    else if ( vm.count( "file" ) )
    {
+      // Batch mode
       argInfo.mode = BATCH_MODE ;
       argInfo.filename = vm["file"].as<string>() ;
    }
@@ -277,6 +280,7 @@ INT32 enterBatchMode( sptScope * scope , const CHAR * filename ,
    SDB_ASSERT ( scope , "invalid argument" ) ;
    SDB_ASSERT ( filename && filename[0] != '\0' , "invalid arguement" ) ;
 
+   // read var
    if ( variable && variable[0] != '\0' )
    {
       varLen = ossStrlen ( variable ) ;
@@ -294,10 +298,12 @@ INT32 enterBatchMode( sptScope * scope , const CHAR * filename ,
    toker = ossStrtok( fileNameTmp, ",;", &last ) ;
    while ( toker )
    {
+      // trim begin space
       while ( ' ' == *toker )
       {
          ++toker ;
       }
+      // trim end space
       CHAR *lastPos = *toker ? toker + ossStrlen( toker ) : NULL ;
       while ( lastPos && ' ' == *( lastPos - 1 ) )
       {
@@ -319,6 +325,7 @@ INT32 enterBatchMode( sptScope * scope , const CHAR * filename ,
       {
          content += '\n' ;
 
+         //skip BOM (notepad auto add flag for UTF-8)
          if ( readlen >= 3 && (UINT8)temp[0] == 0xEF &&
               (UINT8)temp[1] == 0xBB && (UINT8)temp[2] == 0xBF )
          {
@@ -377,6 +384,7 @@ INT32 enterInteractiveMode ( sptScope *scope )
    SDB_ASSERT ( scope , "invalid argument" ) ;
    PD_TRACE_ENTRY ( SDB_ENTERINTATVMODE );
 
+   // initialize and load the history
    historyInit () ;
    linenoiseHistoryLoad( historyFile.c_str() ) ;
    g_lnBuilder.loadCmd( historyFile.c_str() ) ;
@@ -385,6 +393,7 @@ INT32 enterInteractiveMode ( sptScope *scope )
 
    while ( TRUE )
    {
+      // code is freed in loop_next: or at the end of this function
       if ( ! getNextCommand ( "> ", &code ) )
          break ;
 
@@ -417,11 +426,13 @@ INT32 enterInteractiveMode ( sptScope *scope )
 
       rc = SDB_OK ;
       ossGetCurrentTime ( tmBegin ) ;
+      // result is freed in loop_next:
       rc = scope->eval ( code , history.size(),
                          "(shell)" , 1, SPT_EVAL_FLAG_PRINT,
                          rval, detail ) ;
       ossGetCurrentTime ( tmEnd ) ;
       
+      // takes time
       tkTime = ( tmEnd.time * 1000000 + tmEnd.microtm ) -
                ( tmBegin.time * 1000000 + tmBegin.microtm ) ;
       sec = tkTime/1000000 ;
@@ -438,6 +449,8 @@ INT32 enterInteractiveMode ( sptScope *scope )
    return rc ;
 }
 
+// Concatenate into a string delimited by \0 and ended with \0\0
+// caller should free *args in the case of success
 // PD_TRACE_DECLARE_FUNCTION ( SDB_FORMATARGS, "formatArgs" )
 INT32 formatArgs ( const CHAR * program ,
                    const OSSPID & ppid ,
@@ -460,6 +473,7 @@ INT32 formatArgs ( const CHAR * program ,
    ppidLen = ossStrlen ( buf ) ;
    argSize = progLen + 1 + ppidLen + 2 ;
 
+   // caller is responsible for freeing *args
    *args = (CHAR*) SDB_OSS_MALLOC ( argSize ) ;
    if ( ! args )
    {
@@ -506,10 +520,12 @@ INT32 createDaemonProcess ( const CHAR * program , const OSSPID & ppid ,
    rc = getWaitPipeName ( ppid ,  waitName , sizeof ( waitName ) ) ;
    SH_VERIFY_RC
 
+   // waitPipe is deleted in done:
    rc = ossCreateNamedPipe ( waitName , 0 , 0 , OSS_NPIPE_INBOUND ,
                              1 , 0 , waitPipe ) ;
    SH_VERIFY_RC
 
+   // args is freed in done ;
    rc = formatArgs ( program , ppid , &args ) ;
    SH_VERIFY_RC
 
@@ -593,6 +609,7 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
 
    if ( rc == SDB_OK )
    {
+      // the second parameter 45 is ascii value of '-'
       p = ossStrrchr ( bpf2dName , 45 ) ;
       p = p + 1 ;
       while ( *p != '\0' )
@@ -608,11 +625,13 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
       }
       else
       {
+         // first we should delete the old pipes
          rc = ossCleanNamedPipeByName ( bpf2dName ) ;
          SH_VERIFY_RC
          rc = ossCleanNamedPipeByName ( bpd2fName ) ;
          SH_VERIFY_RC
 
+         // which will create those named pipes
          rc = ossLocateExecutable ( program , "sdbbp" , bpName , sizeof(bpName) ) ;
          SH_VERIFY_RC
 
@@ -625,6 +644,8 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
    }
    else if ( rc == SDB_FNE )
    {
+      // named pipe does not exist, so we need to create the daemon process
+      // which will create those named pipes
       rc = ossLocateExecutable ( program , "sdbbp" , bpName , sizeof(bpName) ) ;
       SH_VERIFY_RC
 
@@ -639,6 +660,7 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
       SH_VERIFY_RC
    }
 
+   // also write the trailing \0 to mark end of write
    rc = ossWriteNamedPipe ( f2dPipe , cmd , ossStrlen ( cmd ) , NULL ) ;
    SH_VERIFY_RC
 
@@ -649,13 +671,19 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
                               OSS_NPIPE_INFINITE_TIMEOUT , d2fPipe ) ;
    SH_VERIFY_RC
 
+   // rest are the actual message
+   // if we failed at first loop, we'll never enter here since rc != SDB_OK
    ossMemset ( receiveBuffer1, 0, SDB_FRONTEND_RECEIVEBUFFERSIZE ) ;
    ossMemset ( receiveBuffer2, 0, SDB_FRONTEND_RECEIVEBUFFERSIZE ) ;
    while ( TRUE )
    {
       rc = ossReadNamedPipe ( d2fPipe , &c , 1 , NULL ) ;
+      // loop until reading something
       if ( rc )
          break ;
+      //(tanzhaobo)here we use 2 buffers to receive context
+      // no mater witch buffer we are in, if the current buffer 
+      // not full, go on receiving to current buffer
       if ( ( pCurrentReceivePtr - &receiveBuffer1[0] <
              SDB_FRONTEND_RECEIVEBUFFERSIZE-1 &&
              pCurrentReceivePtr >= &receiveBuffer1[0] ) ||
@@ -663,12 +691,19 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
              SDB_FRONTEND_RECEIVEBUFFERSIZE-1 &&
              pCurrentReceivePtr >= &receiveBuffer2[0] ) )
       {
+         // if we are in buffer 1 or buffer 2
          *pCurrentReceivePtr = c ;
          ++pCurrentReceivePtr ;
       }
       else if ( pCurrentReceivePtr - &receiveBuffer1[0] ==
                 SDB_FRONTEND_RECEIVEBUFFERSIZE-1 )
       {
+         // (liangzhongkai)if we are at end of buffer 1, let's dump buffer 2 and then clear the
+         // buffer
+         // note we should NOT dump buffer 1 at the moment since we need to
+         // extract the rc at the end
+         //(tanzhaobo)if buffer 1 is full, we are going to use buffer 2, before this, let's ossPrintf the
+         // contexts in buffer 2 and clear it up
          receiveBuffer2[SDB_FRONTEND_RECEIVEBUFFERSIZE-1] = '\0' ;
          ossPrintf ( "%s", receiveBuffer2 ) ;
          ossMemset ( receiveBuffer2, 0, SDB_FRONTEND_RECEIVEBUFFERSIZE ) ;
@@ -679,6 +714,12 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
       else if ( pCurrentReceivePtr - &receiveBuffer2[0] ==
                 SDB_FRONTEND_RECEIVEBUFFERSIZE-1 )
       {
+         // (liangzhongkai)if we are at end of buffer 1, let's dump buffer 2 and then clear the
+         // buffer
+         // note we should NOT dump buffer 1 at the moment since we need to
+         // extract the rc at the end
+         //(tanzhaobo)if buffer 2 is full, we are going to use buffer 1, before this, let's ossPrintf the
+         // contexts in buffer 1 and clear it up
          receiveBuffer1[SDB_FRONTEND_RECEIVEBUFFERSIZE-1] = '\0' ;
          ossPrintf ( "%s", receiveBuffer1 ) ;
          ossMemset ( receiveBuffer1, 0, SDB_FRONTEND_RECEIVEBUFFERSIZE ) ;
@@ -688,11 +729,16 @@ INT32 enterFrontEndMode ( const CHAR * program , const CHAR * cmd )
       }
       else
       {
+         // something wrong, we should never hit here
          ossPrintf ( "SEVERE Error, we should never hit here"OSS_NEWLINE ) ;
          rc = SDB_SYS ;
          goto error ;
       }
    }
+   // (tanzhaobo)after we receive buffer, we may have some contents had not been ossPrintf,
+   // let's scan the buffer to ossPrintf the rest,
+   // the rule is simple, let's copy the contexts from the buffer which we are not writing to latest,
+   // and then copy from the buffer we are currently writting to
    if ( pCurrentReceivePtr - &receiveBuffer1[0] <=
         SDB_FRONTEND_RECEIVEBUFFERSIZE-1 &&
         pCurrentReceivePtr >= &receiveBuffer1[0] )
@@ -744,6 +790,12 @@ error :
 INT32 rc2ReturnCode( INT32 rc )
 {
    INT32 retCode = SDB_RETURNCODE_OK ;
+   // The rule is
+   // SDB_SYS : SDB_RETURNCODE_SYSTEM
+   // SDB_OK  : SDB_RETURNCODE_OK
+   // SDB_DMS_EOC && !sdbHasReadData() : SDB_RETURNCODE_EMPTY
+   // SDB_DMS_EOC && sdbHasReadData : SDB_OK
+   // Others  : SDB_RETURNCODE_ERROR
    switch ( rc )
    {
    case SDB_SYS :
@@ -772,6 +824,7 @@ int main ( int argc , CHAR **argv )
    PD_TRACE_ENTRY ( SDB_SDB_MAIN );
    ArgInfo           argInfo ;
 
+   // save the program's path
    rc = setProgramName( argv[0] );
    if ( rc )
    {
@@ -780,6 +833,7 @@ int main ( int argc , CHAR **argv )
 #if defined( _LINUX )
    signal( SIGCHLD, SIG_IGN ) ;
 #endif // _LINUX
+   //
    linenoiseSetCompletionCallback( (linenoiseCompletionCallback*)lineComplete ) ;
 
    rc = container.init() ;
@@ -788,6 +842,7 @@ int main ( int argc , CHAR **argv )
    scope = container.newScope() ;
    SH_VERIFY_COND ( scope , SDB_SYS ) ;
 
+   // parse Argument into argInfo
    rc = parseArguments ( argc , argv , argInfo ) ;
    if( SDB_SDB_HELP_ONLY == rc || SDB_SDB_VERSION_ONLY == rc )
    {

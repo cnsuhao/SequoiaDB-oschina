@@ -194,6 +194,7 @@ public class DBCursor {
 	public BSONObject getCurrent() throws BaseException{
 		if (connection == null)
 			throw new BaseException("SDB_RTN_CONTEXT_NOTEXIST");
+		// in case the first time we get date
         if ( index == -1 )
             return getNext();
         else

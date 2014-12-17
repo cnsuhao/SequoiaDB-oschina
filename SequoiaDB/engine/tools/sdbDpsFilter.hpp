@@ -142,6 +142,7 @@ protected:
 } ;
 typedef _iFilter iFilter ;
 
+// declare filter by DECLARE_FILTER
 #define DECLARE_FILTER( filterName, alias, typeIndex )                \
 class filterName : public SDBObject, public iFilter                   \
 {                                                                     \

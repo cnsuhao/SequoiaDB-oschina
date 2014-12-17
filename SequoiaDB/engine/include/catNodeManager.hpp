@@ -66,6 +66,7 @@ namespace engine
 
       ossEvent*      getChangeEvent() { return &_changeEvent ; }
 
+   // event process function
    protected:
       INT32 _onActiveEvent( pmdEDUEvent *event ) ;
       INT32 _onDeactiveEvent( pmdEDUEvent *event ) ;
@@ -76,6 +77,7 @@ namespace engine
       INT32 _processMsg( const NET_HANDLE &handle,
                          MsgHeader *pMsg ) ;
 
+   // message process functions
    protected:
       INT32 processCommandMsg( const NET_HANDLE &handle, MsgHeader *pMsg,
                                BOOLEAN writable ) ;
@@ -113,6 +115,7 @@ namespace engine
       void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;
       INT32 _sendFailedRsp( NET_HANDLE handle, INT32 res, MsgHeader *reqMsg) ;
 
+   // tool fuctions
    private:
       INT32 _createGrp( const CHAR *groupName ) ;
       INT32 _createNode( const CHAR *pQuery ) ;

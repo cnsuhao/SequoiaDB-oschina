@@ -169,6 +169,7 @@ namespace engine
 
       PD_LOG ( PDDEBUG, "Open storage unit file %s", _fullPathName ) ;
 
+      // open the file, create one if not exist
       rc = ossMmapFile::open ( _fullPathName, mode, OSS_RU|OSS_WU|OSS_RG ) ;
       if ( rc )
       {
@@ -188,8 +189,11 @@ namespace engine
          goto error ;
       }
 
+      // is it a brand new file
       if ( 0 == fileSize )
       {
+         // if it's a brand new file but we don't ask for creating new storage
+         // unit, then we exit with invalid su error
          if ( !createNew )
          {
             PD_LOG ( PDERROR, "storage unit file is empty: %s", _suFileName ) ;
@@ -202,6 +206,7 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to initialize Storage Unit, rc=%d", rc ) ;
             goto error ;
          }
+         // then we get the size again to make sure it's what we need
          rc = ossMmapFile::size ( fileSize ) ;
          if ( rc )
          {
@@ -219,6 +224,8 @@ namespace engine
          goto error ;
       }
 
+      // map metadata
+      // header, 64K
       rc = map ( DMS_HEADER_OFFSET, DMS_HEADER_SZ, (void**)&_dmsHeader ) ;
       if ( rc )
       {
@@ -226,11 +233,14 @@ namespace engine
          goto error ;
       }
 
+      /// lobPageSize is 0 if it was created by db with older version.
+      /// we reassign it with 256K -- yunwu
       if ( 0 == _dmsHeader->_lobdPageSize )
       {
          _dmsHeader->_lobdPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
       }
 
+      // after we load SU, let's verify it's expected file
       rc = _validateHeader( _dmsHeader ) ;
       if ( rc )
       {
@@ -239,6 +249,7 @@ namespace engine
          goto error ;
       }
 
+      // SME, 8MB
       rc = map ( DMS_SME_OFFSET, DMS_SME_SZ, (void**)&_dmsSME ) ;
       if ( rc )
       {
@@ -246,6 +257,9 @@ namespace engine
          goto error ;
       }
 
+      // initialize SME Manager, which is used to do fast-lookup and release
+      // for extents. Note _pageSize is initialized in _validateHeader, so
+      // we are safe to use page size here
       rc = _smeMgr.init ( this, _dmsSME ) ;
       if ( rc )
       {
@@ -257,6 +271,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "map file[%s] meta failed, rc: %d",
                    _suFileName, rc ) ;
 
+      // make sure the file size is multiple of segments
       if ( 0 != ( fileSize - _dataOffset() ) % _getSegmentSize() )
       {
          PD_LOG ( PDERROR, "Unexpected length[%d] of file: %s", fileSize,
@@ -282,6 +297,7 @@ namespace engine
                  fileSize ) ;
       }
 
+      // loop and map each segment into separate mem range
       _dataSegID = ossMmapFile::segmentSize() ;
       currentOffset = _dataOffset() ;
       while ( currentOffset < fileSize )
@@ -303,10 +319,14 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Extent segments failed, rc: %d", rc ) ;
       }
 
+      // create dirtyList to record dirty pages
+      // note dirty list doesn't contain header and metadata segments, only for
+      // data segments
       if ( _dirtyList )
       {
          SDB_OSS_FREE ( _dirtyList ) ;
       }
+      // memory will be freed in destructor
       _dirtyList = (CHAR*)SDB_OSS_MALLOC ( maxSegmentNum() / 8 ) ;
       if ( !_dirtyList )
       {
@@ -326,6 +346,7 @@ namespace engine
 
    void _dmsStorageBase::closeStorage ()
    {
+      // be sure the extend job has quit
       ossLatch( &_segmentLatch, SHARED ) ;
       ossUnlatch( &_segmentLatch, SHARED );
 
@@ -333,6 +354,9 @@ namespace engine
       {
          _dmsHeader     = NULL ;
          _dmsSME        = NULL ;
+         // release header and attempt to get page cleaner latch
+         // once page cleaner released the latch, the function is able to
+         // proceed
          ossLatch ( &_pagecleanerLatch ) ;
          _onClosed() ;
 
@@ -351,6 +375,7 @@ namespace engine
          goto done ;
       }
 
+      // close
       closeStorage() ;
 
       rc = ossDelete( _fullPathName ) ;
@@ -399,6 +424,7 @@ namespace engine
       _dmsHeader        = NULL ;
       _dmsSME           = NULL ;
 
+      // move to beginning of the file
       rc = ossSeek ( &_file, 0, OSS_SEEK_SET ) ;
       if ( rc )
       {
@@ -407,6 +433,7 @@ namespace engine
          goto error ;
       }
 
+      // allocate buffer for dmsHeader
       _dmsHeader = SDB_OSS_NEW dmsStorageUnitHeader ;
       if ( !_dmsHeader )
       {
@@ -416,8 +443,10 @@ namespace engine
          goto error ;
       }
 
+      // initialize a new header with empty size
       _initHeader ( _dmsHeader ) ;
 
+      // write the buffer into file
       rc = _writeFile ( &_file, (const CHAR *)_dmsHeader, DMS_HEADER_SZ ) ;
       if ( rc )
       {
@@ -428,6 +457,7 @@ namespace engine
       SDB_OSS_DEL _dmsHeader ;
       _dmsHeader = NULL ;
 
+      // then SME
       _dmsSME = SDB_OSS_NEW dmsSpaceManagementExtent ;
       if ( !_dmsSME )
       {
@@ -493,6 +523,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      // check page size
       if ( DMS_PAGE_SIZE4K  != pHeader->_pageSize &&
            DMS_PAGE_SIZE8K  != pHeader->_pageSize &&
            DMS_PAGE_SIZE16K != pHeader->_pageSize &&
@@ -521,6 +552,8 @@ namespace engine
          goto error ;
       }
 
+      // set storage info page size, lob meta page size is 256B,
+      // so can't be assign to storage info
       if ( (UINT32)_pStorageInfo->_pageSize != pHeader->_pageSize )
       {
          _pStorageInfo->_pageSize = pHeader->_pageSize ;
@@ -536,6 +569,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      // check eye catcher
       if ( 0 != ossStrncmp ( pHeader->_eyeCatcher, _getEyeCatcher(),
                              DMS_HEADER_EYECATCHER_LEN ) )
       {
@@ -546,11 +580,13 @@ namespace engine
          goto error ;
       }
 
+      // check version
       rc = _checkVersion( pHeader ) ;
       if ( rc )
       {
          goto error ;
       }
+      // check page size
       rc = _checkPageSize( pHeader ) ;
       if ( rc )
       {
@@ -634,6 +670,7 @@ namespace engine
    INT32 _dmsStorageBase::_preExtendSegment ()
    {
       INT32 rc = _extendSegments( 1 ) ;
+      // release lock
       ossUnlatch( &_segmentLatch, EXCLUSIVE ) ;
 
       if ( rc )
@@ -648,6 +685,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT64 fileSize = 0 ;
 
+      // now other normal applications still able to access metadata in
+      // read-only mode
+      // Then we'll check if adding new segments will exceed the limit
       UINT32 beginExtentID = _dmsHeader->_pageNum ;
       UINT32 endExtentID   = beginExtentID + _segmentPages * numSeg ;
 
@@ -659,6 +699,7 @@ namespace engine
          goto error ;
       }
 
+      // We'll also verify the SME shows DMS_SME_FREE for all needed pages
       for ( UINT32 i = beginExtentID; i < endExtentID; i++ )
       {
          if ( DMS_SME_FREE != _dmsSME->getBitMask( i ) )
@@ -668,9 +709,11 @@ namespace engine
          }
       }
 
+      // get file size for map or rollback
       rc = ossGetFileSize ( &_file, &fileSize ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to get file size, rc = %d", rc ) ;
 
+      // check wether the file length is match storage unit pages
       if ( fileSize != (INT64)_dmsHeader->_storageUnitSize * pageSize() )
       {
          PD_LOG( PDWARNING, "File[%s] size[%llu] is not match with storage "
@@ -689,6 +732,14 @@ namespace engine
                  fileSize ) ;
       }
 
+      // now we only hold extendsegment latch, no other sessions can extend
+      // but other sessions can freely create new extents in existing segments
+      // This should be safe because no one knows we are increasing the size of
+      // file, so other sessions will not attempt to access the new space
+      // then we need to increase the size of file first
+      // MAKE SURE NOT HOLD ANY METADATA LATCH DURING SUCH EXPENSIVE DISK 
+      // OPERATION extendSeg latch is held here so that it's not possible //
+      // two sessions doing same extend
       rc = ossExtendFile( &_file, _getSegmentSize() * numSeg ) ;
       if ( rc )
       {
@@ -696,16 +747,21 @@ namespace engine
          PD_LOG ( PDERROR, "Failed to extend storage unit for %lld bytes",
                   _getSegmentSize() * (UINT64)numSeg ) ;
 
+         // truncate the file when it's failed to extend file
          rc1 = ossTruncateFile ( &_file, fileSize ) ;
          if ( rc1 )
          {
             PD_LOG ( PDSEVERE, "Failed to revert the increase of segment, "
                      "rc = %d", rc1 ) ;
+            // if we increased the file size but got error, and we are not able
+            // to decrease it, something BIG wrong, let's panic
             ossPanic () ;
          }
+         // we need to manage how to truncate the file to original size here
          goto error ;
       }
 
+      // map all new segments into memory
       for ( UINT32 i = 0; i < numSeg ; i++ )
       {
          rc = map ( fileSize, _getSegmentSize(), NULL ) ;
@@ -717,6 +773,7 @@ namespace engine
          }
          _maxSegID += 1 ;
 
+         // update SME Manager
          rc = _smeMgr.depositASegment( (dmsExtentID)beginExtentID ) ;
          if ( rc )
          {
@@ -728,6 +785,7 @@ namespace engine
          beginExtentID += _segmentPages ;
          fileSize += _getSegmentSize() ;
 
+         // update header
          _dmsHeader->_storageUnitSize += _segmentPages ;
          _dmsHeader->_pageNum += _segmentPages ;
          _pageNum = _dmsHeader->_pageNum ;
@@ -769,6 +827,8 @@ namespace engine
             break ;
          }
 
+         // if not able to find any, that means all pages are occupied
+         // then we should call extendSegments
          if ( ossTestAndLatch( &_segmentLatch, EXCLUSIVE ) )
          {
             if ( segmentSize != _smeMgr.segmentNum() )
@@ -777,6 +837,7 @@ namespace engine
                continue ;
             }
 
+            // begin for extent
             rc = context ? context->pause() : SDB_OK ;
             if ( rc )
             {
@@ -788,6 +849,7 @@ namespace engine
 
             rc = _extendSegments( 1 ) ;
 
+            // end to resume
             rc1 = context ? context->resume() : SDB_OK ;
 
             ossUnlatch( &_segmentLatch, EXCLUSIVE ) ;
@@ -805,17 +867,20 @@ namespace engine
          }
          else
          {
+            // begin for extent
             rc = context ? context->pause() : SDB_OK ;
             PD_RC_CHECK( rc, PDERROR, "Failed to pause context[%s], rc: %d",
                          context->toString().c_str(), rc ) ;
             ossLatch( &_segmentLatch, SHARED ) ;
             ossUnlatch( &_segmentLatch, SHARED );
+            // end to resume
             rc = context ? context->resume() : SDB_OK ;
             PD_RC_CHECK( rc, PDERROR, "Failed to resum context[%s], rc: %d",
                          context->toString().c_str(), rc ) ;
          }
       }
 
+      // start extend segment job
       if ( _extendThreshold() > 0 &&
            _smeMgr.totalFree() < _extendThreshold() &&
            ossTestAndLatch( &_segmentLatch, EXCLUSIVE ) )
@@ -843,11 +908,17 @@ namespace engine
       return _smeMgr.totalFree() ;
    }
 
+   // flush all dirty segments to disk by traverse _dirtyList array
+   // this function returns void since it doesn't affect frontend workload
+   // regardless whether the flush success or not
    void _dmsStorageBase::flushDirtySegments ( UINT32 *pNum )
    {
       INT32 rc = SDB_OK ;
       INT32 maxSegmentID = 0 ;
       UINT32 numbers = 0 ;
+      // once we latch the storage unit, we have to check if the header is null.
+      // If the header is null, that means closeStorage is called and we should
+      // get out of the function
       if ( !_dmsHeader )
          goto done ;
       SDB_ASSERT ( _dataSegID && _dirtyList,
@@ -857,9 +928,14 @@ namespace engine
                    maxSegmentNum() + _dataSegID,
                    "current top segment id can't be greater than "
                    "maximum number of segment for storage unit" ) ;
+      // calculate how many "segment groups" we should go through
+      // note each group is consists of 8 segments
       maxSegmentID = ceil (( _maxSegID + 1 - _dataSegID ) / 8.0f ) ;
+      // always flush header and metadata
       for ( UINT32 i = 0; i < _dataSegID; ++i )
       {
+         // we should check the header before every phyical flush, to make sure
+         // the storage unit is still open at the time
          if ( !_dmsHeader )
             goto done ;
          rc = flush ( i, TRUE ) ;
@@ -871,14 +947,20 @@ namespace engine
          }
       }
 
+      // then flush data with dirty pages
       for ( INT32 i = 0; i < maxSegmentID; ++i )
       {
+         // we should check the header before every phyical flush,
+         // to make sure the storage unit is still open at the time
          if ( !_dmsHeader )
             goto done ;
+         // each byte represents 8 segments, let's check each byte first
          if ( _dirtyList[i] != 0 )
          {
+            // if the byte is not 0, let's see which page need to be flushed
             for ( INT32 j = 0; j < 8; ++j )
             {
+               // if the segment on j's bit is dirty, let's flush
                if ( OSS_BIT_TEST ( _dirtyList[i], ( 1 << j ) ) )
                {
                   rc = flush ( _dataSegID + (i<<3) + j, TRUE ) ;
@@ -888,6 +970,7 @@ namespace engine
                               "Failed to flush segment %d to disk, rc = %d",
                               i + _dataSegID, rc ) ;
                   }
+                  // now let's convert the bit back to 0
                   OSS_BIT_CLEAR ( _dirtyList[i], ( 1 << j ) ) ;
                   ++numbers ;
                } // if ( _dirtyList[i] & ( 1 << j ) )
@@ -908,6 +991,8 @@ namespace engine
    BOOLEAN dmsAccessAndFlagCompatiblity ( UINT16 collectionFlag,
                                           DMS_ACCESS_TYPE accessType )
    {
+      // if we are in crash recovery mode, only recovery thread is able to
+      // perform query, in this case we always return TRUE
       if ( !pmdGetStartup().isOK() )
       {
          return TRUE ;

@@ -89,6 +89,7 @@ namespace engine
    } ;
    typedef _clsCataItemKey clsCataItemKey ;
 
+   // the range is [lowBound, upBound)
    class _clsCatalogItem : public SDBObject
    {
       public:
@@ -444,6 +445,7 @@ namespace engine
    typedef _clsNodeMgrAgent nodeMgrAgent ;
 
 
+   /// cls catalog agent tool fucntions :
    INT32    clsPartition( const BSONObj &keyObj, UINT32 partitionBit ) ;
    INT32    clsPartition( const bson::OID &oid, UINT32 sequence, UINT32 partitionBit ) ;
 

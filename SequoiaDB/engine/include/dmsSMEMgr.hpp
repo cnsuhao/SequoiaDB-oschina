@@ -76,6 +76,7 @@ namespace engine
       ossSpinXLatch           _mutex ;
       _dmsSMEMgr              *_pSMEMgr ;
 
+      // caller must hold exclusive latch
       void  _resetMax () ;
 
    public :
@@ -116,11 +117,15 @@ namespace engine
       INT32 init ( _dmsStorageBase *pStorageBase,
                    _dmsSpaceManagementExtent *pSME ) ;
 
+      // attempt to reserve numPages pages from smp, if no more pages can be
+      // found in existing pages, foundPage is set to DMS_INVALID_EXTENT
       INT32 reservePages ( UINT16 numPages, dmsExtentID &foundPage,
                            UINT32 *pSegmentNum = NULL ) ;
 
+      // release numPages pages from page dmsExtentID
       INT32 releasePages ( dmsExtentID start, UINT16 numPages ) ;
 
+      // deposit free pages into manager, this is called only by _extendSegments
       INT32 depositASegment ( dmsExtentID start ) ;
 
       UINT32 segmentNum () ;

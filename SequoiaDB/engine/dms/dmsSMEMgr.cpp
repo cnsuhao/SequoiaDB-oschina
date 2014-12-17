@@ -55,6 +55,7 @@ namespace engine
       _totalSize   = maxNode ;
       _totalFree   = 0 ;
       _pSMEMgr     = pSMEMgr ;
+      // no free space at beggining
    }
 
    _dmsSegmentSpace::~_dmsSegmentSpace ()
@@ -62,6 +63,7 @@ namespace engine
       _freeSpaceList.clear() ;
    }
 
+   // caller must hold exclusive latch
    PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS__RSTMAX, "_dmsSegmentSpace::_resetMax" )
    void _dmsSegmentSpace::_resetMax ()
    {
@@ -69,6 +71,7 @@ namespace engine
       list<_dmsSegmentNode>::iterator it ;
       _maxNode = 0 ;
       UINT32 size = 0 ;
+      // loop through all free space
       for ( it = _freeSpaceList.begin(); it != _freeSpaceList.end(); ++it )
       {
          _dmsSegmentNode &node = (*it) ;
@@ -81,6 +84,9 @@ namespace engine
       PD_TRACE_EXIT ( SDB__DMSSMS__RSTMAX ) ;
    }
 
+   // reserve numPages number of pages, if we don't have such contigious space
+   // we'll return SDB_DMS_NOSPC, otherwise we return SDB_OK with foundPage
+   // indicating the ID of starting page
    PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS_RSVPAGES, "_dmsSegmentSpace::reservePages" )
    INT32 _dmsSegmentSpace::reservePages ( UINT16 numPages,
                                           dmsExtentID &foundPage )
@@ -99,13 +105,17 @@ namespace engine
          goto error ;
       }
 
+      // loop through all free space
       for ( it = _freeSpaceList.begin(); it != _freeSpaceList.end(); ++it )
       {
+         // get the node
          _dmsSegmentNode &node = (*it) ;
          oldsize = DMS_SEGMENT_NODE_GETSIZE( node ) ;
          if ( oldsize >= numPages )
          {
             foundPage = DMS_SEGMENT_NODE_GETSTART( node ) ;
+            // if we request exactly the number of pages that left, we should
+            // remove it from list
             if ( DMS_SEGMENT_NODE_GETSIZE( node ) == numPages )
             {
                _freeSpaceList.erase ( it ) ;
@@ -116,9 +126,11 @@ namespace engine
                DMS_SEGMENT_NODE_SET ( node, foundPage+numPages, newsize ) ;
             }
 
+            // add offset
             foundPage += _startExtent ;
             _totalFree -= numPages ;
 
+            // if we were the max, we have to change the current max
             if ( oldsize == _maxNode )
             {
                _resetMax () ;
@@ -126,6 +138,7 @@ namespace engine
             SDB_ASSERT ( _maxNode != _totalSize, "Internal logic error" ) ;
             rc = SDB_OK ;
 
+            // Set SME bit to DMS_SME_ALLOCATED
             {
                UINT32 bitStart = (UINT32)foundPage ;
                UINT32 bitEnd   = bitStart + numPages ;
@@ -141,6 +154,7 @@ namespace engine
          } // if ( oldsize >= numPages )
       } // for ( it = _freeSpaceList.begin();
 
+      // should never hit here
       PD_LOG ( PDSEVERE, "Internal logic error" ) ;
       SDB_ASSERT ( FALSE, "Internal logic error" ) ;
       rc = SDB_SYS ;
@@ -152,6 +166,19 @@ namespace engine
       goto done ;
    }
 
+   // release numPages of pages, and merge the block with others
+   // 1) sanity check to make sure we are in the right range
+   // 2) if the free list is empty, simply insert and goto done
+   // 3) otherwise loop through all nodes in the list
+   // 4) if we hit end of the list, let's insert into the last position and
+   //    goto 8
+   // 5) otherwise if we find any nodes got bigger extentID, let's compare if we
+   //    can merge with it
+   // 6) if the start+numPages == extentID-for-next-block, that means it's
+   //    contigious so that we can merge with a bigger block and goto 8
+   // 7) otherwise it cannot be merged with next, goto 8
+   // 8) after 4/5/6/7, we have to check whether able to merge the new node with
+   //    previous node.
    PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMS_RLSPAGES, "_dmsSegmentSpace::releasePages" )
    INT32 _dmsSegmentSpace::releasePages ( dmsExtentID start, UINT16 numPages,
                                           BOOLEAN bitSet )
@@ -168,6 +195,7 @@ namespace engine
 
       ossScopedLock lock( &_mutex ) ;
 
+      // make sure we are trying to release within range
       if ( start < _startExtent ||
            (start+numPages) > (_startExtent + _totalSize) )
       {
@@ -183,19 +211,24 @@ namespace engine
          goto done ;
       }
 
+      // build new node with starting position for numPages page
       DMS_SEGMENT_NODE_SET ( newnode, relaStart, numPages ) ;
 
+      // if the list is empty, then we simply add it into list
       if ( _freeSpaceList.empty () )
       {
          SDB_ASSERT ( _maxNode == 0, "max node must be 0 when free space is "
                       "empty" ) ;
+         // if the list is empty, we just need to insert
          _freeSpaceList.push_back ( newnode ) ;
          _maxNode = numPages ;
          goto done ;
       }
 
+      // loop through all free space and see if we can merge with any
       for ( it = _freeSpaceList.begin(); ; ++it )
       {
+         // if we hit the end, let's insert it to end and break the loop
          if ( _freeSpaceList.end() == it )
          {
             newSize = numPages ;
@@ -211,17 +244,24 @@ namespace engine
             break ;
          }
 
+         // get the node
          _dmsSegmentNode &node = (*it) ;
          UINT16      nodeStart = DMS_SEGMENT_NODE_GETSTART( node ) ;
          UINT16      nodeSize  = DMS_SEGMENT_NODE_GETSIZE( node ) ;
+         // run until we find the next one with bigger start id
          if ( relaStart < nodeStart )
          {
             if ( relaStart + numPages > nodeStart )
             {
+               // something wrong
+               // | start        ... <numPages>   |
+               //                    | nodeStart    ...|
+               // It's not valid to have overlap
                PD_LOG ( PDERROR, "Internal logic error" ) ;
                rc = SDB_SYS ;
                goto error ;
             }
+            // we should merge into this node
             else if ( relaStart + numPages == nodeStart )
             {
                newSize = nodeSize + numPages ;
@@ -234,6 +274,8 @@ namespace engine
             }
             else
             {
+               // too bad we can't merge, then let's insert one node in the
+               // middle
                newSize = numPages ;
                it1 = _freeSpaceList.insert ( it, newnode ) ;
                if ( newSize > _maxNode )
@@ -246,6 +288,13 @@ namespace engine
          else if ( relaStart == nodeStart ||
                    nodeStart + nodeSize > relaStart )
          {
+            // something wrong
+            // | start   ... <numPages>  |
+            // | nodeStart ....    |
+            // OR
+            //            | start ... <numPages> |
+            // |nodeStart ....<nodeSize>|
+            // It's not valid to have overlap
             PD_LOG ( PDERROR, "Internal logic error" ) ;
             rc = SDB_SYS ;
             goto error ;
@@ -254,19 +303,27 @@ namespace engine
          prevExist = TRUE ;
       } // for ( it = _freeSpaceList.begin();
 
+      // at last, let's try to merge the new node with previous one
       if ( prevExist )
       {
+         // so we must have previous one when we break after scanning first
+         // element
          _dmsSegmentNode &prevNode = (*oldit ) ;
          UINT16      prevStart = DMS_SEGMENT_NODE_GETSTART( prevNode ) ;
          UINT16      prevSize  = DMS_SEGMENT_NODE_GETSIZE( prevNode ) ;
          if ( prevStart + prevSize > relaStart )
          {
+            // something wrong
+            // | prevStart .... <prevSize> |
+            //                    | start  ....|
+            // It's not valid to have overlap
             PD_LOG ( PDERROR, "Internal logic error" ) ;
             rc = SDB_SYS ;
             goto error ;
          }
          else if ( prevStart + prevSize == relaStart )
          {
+            // so we can merge
             DMS_SEGMENT_NODE_SETSIZE ( prevNode, newSize+prevSize ) ;
             _freeSpaceList.erase ( it1 ) ;
             if ( newSize+prevSize > _maxNode )
@@ -274,6 +331,7 @@ namespace engine
                _maxNode = newSize+prevSize ;
             }
          }
+         // otherwise we can't merge, so keep it as is
       }
 
    done :
@@ -283,6 +341,7 @@ namespace engine
 
          if ( bitSet )
          {
+            // set SME bit to DMS_SME_FREE
             UINT32 bitStart = (UINT32)start ;
             UINT32 bitEnd   = bitStart + numPages ;
             for ( ; bitStart < bitEnd ; bitStart++ )
@@ -348,6 +407,7 @@ namespace engine
 
       for ( i = 0 ; i < pStorageBase->pageNum() ; ++i )
       {
+         // the same with: 0 == i % segmentPages
          if ( 0 == ( i & ( ( 1 << segmentPagesSqure ) - 1 ) ) )
          {
             newspace = SDB_OSS_NEW dmsSegmentSpace( i, segmentPages, this ) ;
@@ -381,6 +441,7 @@ namespace engine
          }
       }
 
+      // check whether we are still in free state at the end
       if ( i > 0 && DMS_SME_FREE == pSME->getBitMask( i - 1 ) )
       {
          rc = newspace->releasePages ( releaseBegin, i - releaseBegin, FALSE ) ;
@@ -399,6 +460,8 @@ namespace engine
       goto done ;
    }
 
+   // attempt to reserve numPages pages from smp, if no more pages can be
+   // found in existing pages, foundPage is set to DMS_INVALID_EXTENT
    PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSMEMGR_RSVPAGES, "_dmsSMEMgr::reservePages" )
    INT32 _dmsSMEMgr::reservePages ( UINT16 numPages, dmsExtentID &foundPage,
                                     UINT32 *pSegmentNum )
@@ -424,6 +487,8 @@ namespace engine
          }
       }
 
+      // if there's no free space left, we still return SDB_OK but set foundPage
+      // = DMS_INVALID_EXTENT
       rc = SDB_OK ;
       foundPage = DMS_INVALID_EXTENT ;
 
@@ -445,7 +510,9 @@ namespace engine
 
       INT32 rc             = SDB_OK ;
       UINT32 segmentPagesSqure = _pStorageBase->segmentPagesSquareRoot () ;
+      // the same with: DMS_MAX_PG / segmentPages
       UINT32 maxSegments   = DMS_MAX_PG >> segmentPagesSqure ;
+      // the same with: start / segmentPages
       UINT32 segmentID     = start >> segmentPagesSqure ;
 
       ossScopedRWLock lock( &_mutex, SHARED ) ;
@@ -482,7 +549,9 @@ namespace engine
       UINT16 segmentPages  = (UINT16)_pStorageBase->segmentPages() ;
       UINT32 segmentPagesSqure = _pStorageBase->segmentPagesSquareRoot() ;
       
+      // the same with: DMS_MAX_PG / segmentPages
       UINT32 maxSegments   = DMS_MAX_PG >> segmentPagesSqure ;
+      // the same with: start / segmentPages
       UINT32 segmentID     = start >> segmentPagesSqure ;
       dmsSegmentSpace *newspace = NULL ;
 
@@ -496,6 +565,7 @@ namespace engine
          goto error ;
       }
 
+      // memory is released in destructor
       newspace = SDB_OSS_NEW dmsSegmentSpace ( start, segmentPages, this ) ;
       if ( !newspace )
       {

@@ -1,3 +1,32 @@
+// Copyright 2011 Google Inc. All Rights Reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Various stubs for the open-source version of Snappy.
 
 #ifndef UTIL_SNAPPY_OPENSOURCE_SNAPPY_STUBS_INTERNAL_H_
 #define UTIL_SNAPPY_OPENSOURCE_SNAPPY_STUBS_INTERNAL_H_
@@ -20,21 +49,29 @@
 
 #if defined(__x86_64__)
 
+// Enable 64-bit optimized versions of some routines.
 #define ARCH_K8 1
 
 #endif
 
+// Needed by OS X, among others.
 #ifndef MAP_ANONYMOUS
 #define MAP_ANONYMOUS MAP_ANON
 #endif
 
+// Pull in std::min, std::ostream, and the likes. This is safe because this
+// header file is never used from any public header files.
 using namespace std;
 
+// The size of an array, if known at compile-time.
+// Will give unexpected results if used on a pointer.
+// We undefine it first, since some compilers already have a definition.
 #ifdef ARRAYSIZE
 #undef ARRAYSIZE
 #endif
 #define ARRAYSIZE(a) (sizeof(a) / sizeof(*(a)))
 
+// Static prediction hints.
 #ifdef HAVE_BUILTIN_EXPECT
 #define PREDICT_FALSE(x) (__builtin_expect(x, 0))
 #define PREDICT_TRUE(x) (__builtin_expect(!!(x), 1))
@@ -43,6 +80,10 @@ using namespace std;
 #define PREDICT_TRUE(x) x
 #endif
 
+// This is only used for recomputing the tag byte table used during
+// decompression; for simplicity we just remove it from the open-source
+// version (anyone who wants to regenerate it can just do the call
+// themselves within main()).
 #define DEFINE_bool(flag_name, default_value, description) \
   bool FLAGS_ ## flag_name = default_value
 #define DECLARE_bool(flag_name) \
@@ -53,7 +94,9 @@ namespace snappy {
 static const uint32 kuint32max = static_cast<uint32>(0xFFFFFFFF);
 static const int64 kint64max = static_cast<int64>(0x7FFFFFFFFFFFFFFFLL);
 
+// Potentially unaligned loads and stores.
 
+// x86 and PowerPC can simply do these loads and stores native.
 
 #if defined(__i386__) || defined(__x86_64__) || defined(__powerpc__)
 
@@ -65,6 +108,14 @@ static const int64 kint64max = static_cast<int64>(0x7FFFFFFFFFFFFFFFLL);
 #define UNALIGNED_STORE32(_p, _val) (*reinterpret_cast<uint32 *>(_p) = (_val))
 #define UNALIGNED_STORE64(_p, _val) (*reinterpret_cast<uint64 *>(_p) = (_val))
 
+// ARMv7 and newer support native unaligned accesses, but only of 16-bit
+// and 32-bit values (not 64-bit); older versions either raise a fatal signal,
+// do an unaligned read and rotate the words around a bit, or do the reads very
+// slowly (trip through kernel mode). There's no simple #define that says just
+// “ARMv7 or higher”, so we have to filter away all ARMv5 and ARMv6
+// sub-architectures.
+//
+// This is a mess, but there's not much we can do about it.
 
 #elif defined(__arm__) && \
       !defined(__ARM_ARCH_4__) && \
@@ -86,6 +137,9 @@ static const int64 kint64max = static_cast<int64>(0x7FFFFFFFFFFFFFFFLL);
 #define UNALIGNED_STORE16(_p, _val) (*reinterpret_cast<uint16 *>(_p) = (_val))
 #define UNALIGNED_STORE32(_p, _val) (*reinterpret_cast<uint32 *>(_p) = (_val))
 
+// TODO(user): NEON supports unaligned 64-bit loads and stores.
+// See if that would be more efficient on platforms supporting it,
+// at least for copies.
 
 inline uint64 UNALIGNED_LOAD64(const void *p) {
   uint64 t;
@@ -99,6 +153,8 @@ inline void UNALIGNED_STORE64(void *p, uint64 v) {
 
 #else
 
+// These functions are provided for architectures that don't support
+// unaligned loads and stores.
 
 inline uint16 UNALIGNED_LOAD16(const void *p) {
   uint16 t;
@@ -132,6 +188,8 @@ inline void UNALIGNED_STORE64(void *p, uint64 v) {
 
 #endif
 
+// This can be more efficient than UNALIGNED_LOAD64 + UNALIGNED_STORE64
+// on some platforms, in particular ARM.
 inline void UnalignedCopy64(const void *src, void *dst) {
   if (sizeof(void *) == 8) {
     UNALIGNED_STORE64(dst, UNALIGNED_LOAD64(src));
@@ -144,6 +202,7 @@ inline void UnalignedCopy64(const void *src, void *dst) {
   }
 }
 
+// The following guarantees declaration of the byte swap functions.
 #ifdef WORDS_BIGENDIAN
 
 #ifdef HAVE_SYS_BYTEORDER_H
@@ -161,6 +220,7 @@ inline void UnalignedCopy64(const void *src, void *dst) {
 #define bswap_64(x) _byteswap_uint64(x)
 
 #elif defined(__APPLE__)
+// Mac OS X / Darwin features
 #include <libkern/OSByteOrder.h>
 #define bswap_16(x) OSSwapInt16(x)
 #define bswap_32(x) OSSwapInt32(x)
@@ -170,11 +230,13 @@ inline void UnalignedCopy64(const void *src, void *dst) {
 #include <byteswap.h>
 
 #elif defined(bswap32)
+// FreeBSD defines bswap{16,32,64} in <sys/endian.h> (already #included).
 #define bswap_16(x) bswap16(x)
 #define bswap_32(x) bswap32(x)
 #define bswap_64(x) bswap64(x)
 
 #elif defined(BSWAP_64)
+// Solaris 10 defines BSWAP_{16,32,64} in <sys/byteorder.h> (already #included).
 #define bswap_16(x) BSWAP_16(x)
 #define bswap_32(x) BSWAP_32(x)
 #define bswap_64(x) BSWAP_64(x)
@@ -200,8 +262,18 @@ inline uint64 bswap_64(uint64 x) {
 
 #endif  // WORDS_BIGENDIAN
 
+// Convert to little-endian storage, opposite of network format.
+// Convert x from host to little endian: x = LittleEndian.FromHost(x);
+// convert x from little endian to host: x = LittleEndian.ToHost(x);
+//
+//  Store values into unaligned memory converting to little endian order:
+//    LittleEndian.Store16(p, x);
+//
+//  Load unaligned values stored in little endian converting to host order:
+//    x = LittleEndian.Load16(p);
 class LittleEndian {
  public:
+  // Conversion functions.
 #ifdef WORDS_BIGENDIAN
 
   static uint16 FromHost16(uint16 x) { return bswap_16(x); }
@@ -224,6 +296,7 @@ class LittleEndian {
 
 #endif  // !defined(WORDS_BIGENDIAN)
 
+  // Functions to do unaligned loads and stores in little-endian order.
   static uint16 Load16(const void *p) {
     return ToHost16(UNALIGNED_LOAD16(p));
   }
@@ -241,10 +314,15 @@ class LittleEndian {
   }
 };
 
+// Some bit-manipulation functions.
 class Bits {
  public:
+  // Return floor(log2(n)) for positive integer n.  Returns -1 iff n == 0.
   static int Log2Floor(uint32 n);
 
+  // Return the first set least / most significant bit, 0-indexed.  Returns an
+  // undefined value if n == 0.  FindLSBSetNonZero() is similar to ffs() except
+  // that it's 0-indexed.
   static int FindLSBSetNonZero(uint32 n);
   static int FindLSBSetNonZero64(uint64 n);
 
@@ -298,9 +376,11 @@ inline int Bits::FindLSBSetNonZero(uint32 n) {
   return rc;
 }
 
+// FindLSBSetNonZero64() is defined in terms of FindLSBSetNonZero().
 inline int Bits::FindLSBSetNonZero64(uint64 n) {
   const uint32 bottombits = static_cast<uint32>(n);
   if (bottombits == 0) {
+    // Bottom bits are zero, so scan in top bits
     return 32 + FindLSBSetNonZero(static_cast<uint32>(n >> 32));
   } else {
     return FindLSBSetNonZero(bottombits);
@@ -309,15 +389,26 @@ inline int Bits::FindLSBSetNonZero64(uint64 n) {
 
 #endif  // End portable versions.
 
+// Variable-length integer encoding.
 class Varint {
  public:
+  // Maximum lengths of varint encoding of uint32.
   static const int kMax32 = 5;
 
+  // Attempts to parse a varint32 from a prefix of the bytes in [ptr,limit-1].
+  // Never reads a character at or beyond limit.  If a valid/terminated varint32
+  // was found in the range, stores it in *OUTPUT and returns a pointer just
+  // past the last byte of the varint32. Else returns NULL.  On success,
+  // "result <= limit".
   static const char* Parse32WithLimit(const char* ptr, const char* limit,
                                       uint32* OUTPUT);
 
+  // REQUIRES   "ptr" points to a buffer of length sufficient to hold "v".
+  // EFFECTS    Encodes "v" into "ptr" and returns a pointer to the
+  //            byte just past the last encoded byte.
   static char* Encode32(char* ptr, uint32 v);
 
+  // EFFECTS    Appends the varint representation of "value" to "*s".
   static void Append32(string* s, uint32 value);
 };
 
@@ -344,6 +435,7 @@ inline const char* Varint::Parse32WithLimit(const char* p,
 }
 
 inline char* Varint::Encode32(char* sptr, uint32 v) {
+  // Operate on characters as unsigneds
   unsigned char* ptr = reinterpret_cast<unsigned char*>(sptr);
   static const int B = 128;
   if (v < (1<<7)) {
@@ -370,10 +462,26 @@ inline char* Varint::Encode32(char* sptr, uint32 v) {
   return reinterpret_cast<char*>(ptr);
 }
 
+// If you know the internal layout of the std::string in use, you can
+// replace this function with one that resizes the string without
+// filling the new space with zeros (if applicable) --
+// it will be non-portable but faster.
 inline void STLStringResizeUninitialized(string* s, size_t new_size) {
   s->resize(new_size);
 }
 
+// Return a mutable char* pointing to a string's internal buffer,
+// which may not be null-terminated. Writing through this pointer will
+// modify the string.
+//
+// string_as_array(&str)[i] is valid for 0 <= i < str.size() until the
+// next call to a string method that invalidates iterators.
+//
+// As of 2006-04, there is no standard-blessed way of getting a
+// mutable reference to a string's internal buffer. However, issue 530
+// (http://www.open-std.org/JTC1/SC22/WG21/docs/lwg-defects.html#530)
+// proposes this as the method. It will officially be part of the standard
+// for C++0x. This should already work on all current implementations.
 inline char* string_as_array(string* str) {
   return str->empty() ? NULL : &*str->begin();
 }

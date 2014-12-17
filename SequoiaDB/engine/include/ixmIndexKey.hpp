@@ -64,30 +64,41 @@ namespace engine
       GEN_OBJ_ARRAY_FIELD_NAME      = 3
    } ;
 
+   // Index KeyGen is the operator to extract keys from given object
+   // It depends on its underlying ixmIndexDetails control block
+   // ixmIndexKeyGen is local to each thread
    class _ixmIndexKeyGen : public SDBObject
    {
    protected:
       INT32 indexVersion() const ;
       IndexSuitability _suitability( const BSONObj& query ,
                                      const BSONObj& order ) const ;
+      //BSONSizeTracker _sizeTracker ;
       vector<const CHAR*> _fieldNames ; // vector contains all fields
       vector<BSONElement> _fixedElements ; // dummy element for KeyGenerator
       BSONObj _undefinedKey ;
 
       INT32                _nFields ; // number of fields
+      // index key pattern
       BSONObj              _keyPattern ;
       BSONObj              _info ;
       UINT16               _type ;
 
       IXM_KEYGEN_TYPE      _keyGenType ;
 
+      //const _ixmIndexCB *_indexCB ;
       void _init() ;
       friend class _ixmKeyGenerator ;
    public:
+      // create key generator from index control block
       _ixmIndexKeyGen ( const _ixmIndexCB *indexCB,
                         IXM_KEYGEN_TYPE genType = GEN_OBJ_NO_FIELD_NAME ) ;
+      // create key generator from key def
       _ixmIndexKeyGen ( const BSONObj &keyDef,
                         IXM_KEYGEN_TYPE genType = GEN_OBJ_NO_FIELD_NAME ) ;
+      // this function overwrite _keyPattern and _info with a new index info
+      // object. This will make the ixmIndexKeyGen generate different key than
+      // it supposed to
       INT32 reset ( const BSONObj & info ) ;
       INT32 reset ( const _ixmIndexCB *indexCB ) ;
       INT32 getKeys ( const BSONObj &obj, BSONObjSet &keys,

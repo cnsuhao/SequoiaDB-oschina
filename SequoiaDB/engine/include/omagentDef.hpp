@@ -193,6 +193,7 @@ namespace engine
    #define FILE_REMOVE_COORD_RG             "removeCoordRG.js"
    #define FILE_REMOVE_DATA_RG              "removeDataRG.js"
 
+//   #define FILE_ROLLBACK_STANDALONE         "rollbackStandalone.js"
    #define FILE_ROLLBACK_CATALOG            "rollbackCatalog.js"
    #define FILE_ROLLBACK_COORD              "rollbackCoord.js"
    #define FILE_ROLLBACK_DATANODE           "rollbackDataNode.js"

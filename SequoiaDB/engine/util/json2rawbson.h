@@ -37,6 +37,7 @@
 
 #include "core.h"
 SDB_EXTERN_C_START
+// this function should NEVER be directly called other than fromjson.cpp
 CHAR * json2rawcbson ( const CHAR *str ) ;
 CHAR * json2rawbson ( const CHAR *str ) ;
 SDB_EXTERN_C_END

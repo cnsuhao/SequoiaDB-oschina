@@ -70,6 +70,7 @@ namespace engine
    _clsDataDstBaseSession : implement
    */
    BEGIN_OBJ_MSG_MAP( _clsDataDstBaseSession, _pmdAsyncSession )
+      //ON_MSG
       ON_MSG( MSG_CLS_FULL_SYNC_META_RES, handleMetaRes )
       ON_MSG( MSG_CLS_FULL_SYNC_INDEX_RES, handleIndexRes )
       ON_MSG( MSG_CLS_FULL_SYNC_NOTIFY_RES, handleNotifyRes )
@@ -159,6 +160,8 @@ namespace engine
    void _clsDataDstBaseSession::onRecieve( const NET_HANDLE netHandle,
                                            MsgHeader * msg )
    {
+      // set the net handle, when peer socket close, the session will to be
+      // delete auto
       PD_TRACE_ENTRY ( SDB__CLSDATADBS_ONRECV );
       if ( MSG_CLS_FULL_SYNC_BEGIN_RES == (UINT32)msg->opCode &&
            NET_INVALID_HANDLE == _netHandle )
@@ -203,15 +206,20 @@ namespace engine
          MsgClsFSMetaReq msg ;
          msg.header.TID = CLS_TID( _sessionID ) ;
          msg.header.requestID = ++_requestID ;
+         // _current is the current collection that we want to sync
          string &fullName = _fullNames.at( _current ) ;
          BSONObjBuilder builder ;
          BSONObj obj ;
+         // split the collection name
          UINT32 pos = fullName.find_first_of('.') ;
          CHAR *collecion = &(fullName.at( pos + 1 )) ;
          const CHAR *cs = fullName.c_str() ;
+         // break the name into space+collection
          fullName.replace( pos, 1, 1, '\0' ) ;
+         // build a new bson request
          builder.append( CLS_FS_CS_NAME, cs ) ;
          builder.append( CLS_FS_COLLECTION_NAME, collecion ) ;
+         /// add element: keyobj:{}
          builder.append( CLS_FS_KEYOBJ, _keyObjB() ) ;
          builder.append( CLS_FS_END_KEYOBJ, _keyObjE() ) ;
          builder.append( CLS_FS_NEEDDATA, _needData() ) ;
@@ -220,6 +228,7 @@ namespace engine
                                     obj.objsize() ;
          PD_LOG( PDDEBUG, "Session[%s]: send meta: %s", sessionName(),
                  obj.toString().c_str() ) ;
+         // send the request to source
          _agent->syncSend( _selector.src(),
                            &( msg.header ), ( void * )obj.objdata(),
                            obj.objsize() ) ;
@@ -254,9 +263,12 @@ namespace engine
       return ;
    }
 
+   // this function is called once collection and indexes are created, and ready
+   // to receive data.
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDATADBS__NOTIFY, "_clsDataDstBaseSession::_notify" )
    void _clsDataDstBaseSession::_notify( CLS_FS_NOTIFY_TYPE type )
    {
+      // prepare notify request
       PD_TRACE_ENTRY ( SDB__CLSDATADBS__NOTIFY );
       MsgClsFSNotify msg ;
       msg.header.TID = CLS_TID( _sessionID ) ;
@@ -305,6 +317,7 @@ namespace engine
    {
       SDB_ASSERT ( _current <= _fullNames.size(), "current is error" ) ;
       PD_TRACE_ENTRY ( SDB__CLSDATADBS__ADDDCL );
+      //delete duplication
       UINT32 index = _current + 1 ;
       while ( index < _fullNames.size() )
       {
@@ -406,6 +419,7 @@ namespace engine
          PD_LOG( PDDEBUG, "Session[%s]: recv fullnames:[%s]", sessionName(),
                  obj.toString().c_str() ) ;
 
+         // empty collection space
          ele = obj.getField( CLS_FS_CSNAMES ) ;
          if ( Array != ele.type() )
          {
@@ -461,6 +475,7 @@ namespace engine
                                                           lobPageSize ) ;
          }
 
+         // collection list
          ele = obj.getField( CLS_FS_FULLNAMES ) ;
          if ( Array != ele.type() )
          {
@@ -576,6 +591,7 @@ namespace engine
          }
          else
          {
+            /// forward-compatible -- yunwu
             lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
          }
 
@@ -655,6 +671,7 @@ namespace engine
       goto done ;
    }
 
+   // this function handles the response message from _meta()
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDATADBS_HNDMETARES, "_clsDataDstBaseSession::handleMetaRes" )
    INT32 _clsDataDstBaseSession::handleMetaRes( NET_HANDLE handle,
                                                 MsgHeader* header )
@@ -677,6 +694,7 @@ namespace engine
 
       _selector.clearTime() ;
 
+      //if the collection[space] not exist, will to next
       if ( SDB_DMS_CS_NOTEXIST == msg->header.res ||
            SDB_DMS_NOTEXIST == msg->header.res )
       {
@@ -684,6 +702,7 @@ namespace engine
          ++_current ;
          _notify( CLS_FS_NOTIFY_TYPE_OVER ) ;
 
+         //get next collection
          _meta () ;
          goto done ;
       }
@@ -700,6 +719,7 @@ namespace engine
       CHAR *objdata = ( CHAR *)( &( msg->header ) ) +
                                  sizeof( MsgClsFSMetaRes ) ;
       INT32 lobPageSize = 0 ;
+      // extract the meta response
       if ( SDB_OK != _extractMeta( objdata,
                                    cs, collection,
                                    pageSize,
@@ -710,13 +730,16 @@ namespace engine
          goto done ;
       }
 
+      // join space + collection to a full collection name
       clsJoin2Full( cs.c_str(), collection.c_str(), fullName ) ;
+      // sanity check to make sure we are on the right collection
       if ( 0 != _fullNames.at( _current ).compare( fullName ) )
       {
          PD_LOG( PDWARNING, "Session[%s]: ignore msg. msg meta: %s, local: %s",
                  sessionName(), fullName, _fullNames.at( _current ).c_str() ) ;
          goto done ;
       }
+      // create local cs and collection
       rc = _replayer.replayCrtCS( cs.c_str(), pageSize, lobPageSize,
                                   eduCB(),
                                   SDB_SESSION_FS_DST == sessionType() ?
@@ -738,6 +761,7 @@ namespace engine
          goto done ;
       }
       _status = CLS_FS_STATUS_INDEX ;
+      // after recreating collection, let's send index request
       _index() ;
 
    done:
@@ -745,6 +769,7 @@ namespace engine
       return SDB_OK ;
    }
 
+   // this function response to _index() request
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSDATADBS_HNDINXRES2, "_clsDataDstBaseSession::handleIndexRes" )
    INT32 _clsDataDstBaseSession::handleIndexRes( NET_HANDLE handle,
                                                  MsgHeader* header )
@@ -771,6 +796,7 @@ namespace engine
          BSONObj obj ;
          BOOLEAN noMore = FALSE ;
          vector<BSONObj> indexes ;
+         // extract all indexes
          CHAR *objdata = ( CHAR * )( &( msg->header.header ) ) +
                                      sizeof( MsgClsFSIndexRes )  ;
          if ( SDB_OK != _extractIndex( objdata,
@@ -779,6 +805,7 @@ namespace engine
             _disconnect() ;
             goto done ;
          }
+         // for each index we received, let's reply creating index
          if ( !noMore )
          {
             vector<BSONObj>::iterator itr = indexes.begin() ;
@@ -791,6 +818,7 @@ namespace engine
 
          ++_packet ;
          _status = CLS_FS_STATUS_NOTIFY_DOC ;
+         // we are ready to receive actual data
          _notify( CLS_FS_NOTIFY_TYPE_DOC ) ;
       }
    done:
@@ -857,6 +885,11 @@ namespace engine
          }
          else
          {
+            /// status moving:
+            /// | current status |  eof     | not eof |
+            /// |    doc         |  lob     | log     |
+            /// |    log         |  doc/lob | log     |
+            /// |    lob         |  -       | log     |
             _status = CLS_FS_STATUS_NOTIFY_LOB ;
             _notify( CLS_FS_NOTIFY_TYPE_LOB ) ;
             _needMoreDoc = FALSE ;
@@ -907,6 +940,7 @@ namespace engine
             _status = CLS_FS_STATUS_META ;
             ++_current ;
             _notify( CLS_FS_NOTIFY_TYPE_OVER ) ;
+            //get next collection
             _meta() ;
          }
       }
@@ -1219,6 +1253,7 @@ namespace engine
    _clsFSDstSession : implement
    */
    BEGIN_OBJ_MSG_MAP( _clsFSDstSession, _clsDataDstBaseSession )
+      //ON_MSG
       ON_MSG( MSG_CLS_FULL_SYNC_BEGIN_RES, handleBeginRes )
       ON_MSG( MSG_CLS_FULL_SYNC_END_RES, handleEndRes )
       ON_MSG( MSG_CLS_FULL_SYNC_TRANS_RES, handleSyncTransRes )
@@ -1291,15 +1326,21 @@ namespace engine
          goto done ;
       }
 
+      //clear all catalog info
       sdbGetShardCB()->getCataAgent()->lock_w() ;
       sdbGetShardCB()->getCataAgent()->clearAll() ;
       sdbGetShardCB()->getCataAgent()->release_w() ;
 
       dpsCB = pmdGetKRCB()->getDPSCB() ;
+      // change to meta
       _status = CLS_FS_STATUS_META ;
+      // clear trans info
       sdbGetTransCB()->clearTransInfo() ;
+      // disable trans need load
       sdbGetTransCB()->setIsNeedSyncTrans( FALSE ) ;
+      // set business not ok
       pmdGetStartup().ok( FALSE ) ;
+      // clear all log
       dpsCB->move ( 0, 0 ) ;
       if ( SDB_OK != dpsCB->move( _expectLSN.offset, _expectLSN.version ) )
       {
@@ -1315,6 +1356,7 @@ namespace engine
                  "[ver:%d][offset:%lld]", sessionName(), expect.version,
                  expect.offset ) ;
 
+         /// before send meta req, we clear local data.
          if ( SDB_OK != sdbGetClsCB()->clearAllData () )
          {
             PD_LOG( PDERROR, "FS Session[%s]: Failed to clear data.",
@@ -1324,6 +1366,7 @@ namespace engine
          }
       }
 
+      // create empty collection space
       {
          CS_PS_TUPLES::iterator itCS = _mapEmptyCS.begin() ;
          while ( itCS != _mapEmptyCS.end() )
@@ -1393,6 +1436,7 @@ namespace engine
          _timeout = 0 ;
       }
 
+      // disconnect all collection
       sdbGetClsCB()->getShardRouteAgent()->disconnectAll() ;
 
       PD_TRACE_EXIT ( SDB__CLSFSDS__BEGIN );
@@ -1477,6 +1521,7 @@ namespace engine
       BOOLEAN result = TRUE ;
       PD_TRACE_ENTRY ( SDB__CLSFSDS__ISREADY );
 
+      //if change to primary
       if ( sdbGetReplCB()->primaryIsMe() )
       {
          PD_LOG( PDWARNING, "FS Session[%s] disconnect when self is primary",
@@ -1485,6 +1530,7 @@ namespace engine
          result = FALSE ;
          goto done ;
       }
+      //if peer node is sharing-break, should quit
       if ( CLS_FS_STATUS_BEGIN != _status &&
            _recvTimeout > CLS_SRC_SESSION_NO_MSG_TIME &&
            !sdbGetReplCB()->isAlive ( _selector.src() ) )
@@ -1610,6 +1656,7 @@ namespace engine
    _clsSplitDstSession : implement
    */
    BEGIN_OBJ_MSG_MAP( _clsSplitDstSession, _clsDataDstBaseSession )
+      //ON_MSG
       ON_MSG ( MSG_CAT_SPLIT_START_RSP, handleTaskNotifyRes )
       ON_MSG ( MSG_CAT_SPLIT_CHGMETA_RSP, handleTaskNotifyRes )
       ON_MSG ( MSG_CAT_SPLIT_CLEANUP_RSP, handleTaskNotifyRes )
@@ -1662,6 +1709,7 @@ namespace engine
    void _clsSplitDstSession::_onAttach ()
    {
       PD_TRACE_ENTRY ( SDB__CLSSPLDS_ONATH );
+      // the task already start, need to clean up the dirty data
       if ( CLS_TASK_STATUS_RUN == _pTask->status() ||
            CLS_TASK_STATUS_PAUSE == _pTask->status() )
       {
@@ -1680,6 +1728,7 @@ namespace engine
             ossSleep ( OSS_ONE_SEC ) ;
          }
       }
+      // the task is finished, need to notify peer to clean up data
       else if ( CLS_TASK_STATUS_FINISH == _pTask->status() )
       {
          PD_LOG ( PDEVENT, "Split Session[%s]: Split task[%s] already finished,"
@@ -1693,10 +1742,12 @@ namespace engine
       PD_LOG ( PDEVENT, "Split Session[%s]: Begin to split[%s]",
                sessionName(), _pTask->taskName() ) ;
 
+      // register collection
       clsTaskMgr *pTaskMgr = pmdGetKRCB()->getClsCB()->getTaskMgr() ;
       pTaskMgr->regCollection( _pTask->clFullName() ) ;
       _regTask = TRUE ;
 
+      // begin
       _begin() ;
 
       PD_TRACE_EXIT ( SDB__CLSSPLDS_ONATH );
@@ -1709,12 +1760,14 @@ namespace engine
       clsCB *pClsMgr = pmdGetKRCB()->getClsCB() ;
       UINT32 splitTaskCount = 0 ;
 
+      // unregister collection
       if ( _regTask )
       {
          pClsMgr->getTaskMgr()->unregCollection( _pTask->clFullName() ) ;
          _regTask = FALSE ;
       }
 
+      // if the session is not finished, restart query
       if ( CLS_FS_STATUS_END != _status || STEP_END != _step )
       {
          if ( 0 != _needSyncData && _step < STEP_META )
@@ -1739,8 +1792,11 @@ namespace engine
 
       splitTaskCount = pClsMgr->getTaskMgr()->taskCount( _pTask->taskType() ) ;
       pClsMgr->removeTask( _pTask->taskID() ) ;
+      //remove task from taskMgr
       pClsMgr->getTaskMgr()->removeTask( (UINT64)CLS_TID( sessionID() ) ) ;
 
+      // when task complete and no the same type task, should notify cluster
+      // to query all the node tasks
       if ( CLS_FS_STATUS_END == _status && STEP_END == _step &&
            1 == splitTaskCount )
       {
@@ -1751,6 +1807,7 @@ namespace engine
 
       _disconnect() ;
 
+      // when all task is finished, close the socket
       if ( getMeta() && 1 == getMeta()->getBasedHandleNum() )
       {
          PD_LOG( PDEVENT, "Split Session[%s] close socket[handle: %d]",
@@ -1779,6 +1836,7 @@ namespace engine
          ret = FALSE ;
          goto done ;
       }
+      // when the node is not primary, need disconnect
       else if ( !sdbGetReplCB()->primaryIsMe() )
       {
          PD_LOG ( PDERROR, "Split Session[%s]: Self node is not primary, "
@@ -1810,10 +1868,12 @@ namespace engine
       return SDB_OK ;
    }
 
+   // this function prepare a split begin request and send to source
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSPLDS__BEGIN, "_clsSplitDstSession::_begin" )
    void _clsSplitDstSession::_begin ()
    {
       PD_TRACE_ENTRY ( SDB__CLSSPLDS__BEGIN );
+      // need to send start to catalog
       if ( STEP_NONE == _step )
       {
          _taskNotify ( MSG_CAT_SPLIT_START_REQ ) ;
@@ -1823,11 +1883,16 @@ namespace engine
          MsgClsFSBegin msg ;
          msg.type = CLS_FS_TYPE_BETWEEN_SETS ;
          msg.header.TID = CLS_TID( _sessionID ) ;
+         // pickup the source group id
          MsgRouteID src = _selector.selectPrimary( _pTask->sourceID(),
                                                    MSG_ROUTE_SHARD_SERVCIE );
+         // validate
          if ( MSG_INVALID_ROUTEID != src.value )
          {
             msg.header.requestID = ++_requestID ;
+            // simply send the packet to source
+            // note this function does not wait for response, callback function
+            // will call handleBeginRes to take response
             _agent->syncSend( src, &msg ) ;
             _timeout = 0 ;
          }
@@ -1853,6 +1918,7 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB__CLSSPLDS__END );
 
+      // if task has canceled, need to clean data
       if ( CLS_TASK_STATUS_CANCELED == _pTask->status() &&
            STEP_REMOVE != _step )
       {
@@ -1889,6 +1955,7 @@ namespace engine
       }
       else if ( STEP_META == _step )
       {
+         //need to update catalog
          INT32 rc = _pShardMgr->syncUpdateCatalog( _pTask->clFullName(),
                                                    OSS_ONE_SEC ) ;
          if ( SDB_DMS_NOTEXIST == rc )
@@ -1898,6 +1965,7 @@ namespace engine
          }
          else
          {
+            // be sure the splitKey is in self range
             std::string mainCLName;
             catAgent *pCatAgent = _pShardMgr->getCataAgent() ;
             pCatAgent->lock_r () ;
@@ -1907,6 +1975,7 @@ namespace engine
             {
                mainCLName = catSet->getMainCLName();
                NodeID selfNode = _pShardMgr->nodeID () ;
+               // the catalog is already correct
                if ( catSet->isKeyInGroup( _pTask->splitKeyObj(),
                                           selfNode.columns.groupID ) )
                {
@@ -1938,6 +2007,7 @@ namespace engine
       }
       else if ( STEP_END_LOG == _step )
       {
+         //get the last log
          _notify ( CLS_FS_NOTIFY_TYPE_LOG ) ;
       }
       else if ( STEP_FINISH == _step )
@@ -1946,6 +2016,7 @@ namespace engine
       }
       else if ( STEP_CLEANUP == _step )
       {
+         // notify the dst session to clean up data
          MsgClsFSEnd msg ;
 
          msg.header.TID = CLS_TID( _sessionID ) ;
@@ -2040,12 +2111,14 @@ namespace engine
 
       if ( SDB_CLS_NOT_PRIMARY == msg->flags )
       {
+         //update catalog primary
          _pShardMgr->updateCatGroup( TRUE ) ;
          goto done ;
       }
       else if ( SDB_DMS_EOC == msg->flags ||
                 SDB_CAT_TASK_NOTFOUND == msg->flags )
       {
+         //the task is removed
          PD_LOG ( PDWARNING, "Split Session[%s]: The split task[%s] is removed",
                   sessionName(), _pTask->taskName() ) ;
          if ( STEP_REMOVE != _step )
@@ -2070,9 +2143,11 @@ namespace engine
          goto done ;
       }
 
+      // SDB_OK
       switch ( _step )
       {
          case STEP_NONE :
+            // go to begin to send a request to source, in order to start split
             _step = STEP_START ;
             _begin () ;
             break ;
@@ -2095,13 +2170,17 @@ namespace engine
       return SDB_OK ;
    }
 
+   // after source returned "BEGIN SPLIT" request, we'll get into this call back
+   // function
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSPLDS_HNDBGRES, "_clsSplitDstSession::handleBeginRes" )
    INT32 _clsSplitDstSession::handleBeginRes ( NET_HANDLE handle,
                                                MsgHeader * header )
    {
       PD_TRACE_ENTRY ( SDB__CLSSPLDS_HNDBGRES );
+      // this function always returns SDB_OK
       MsgClsFSBeginRes *msg = ( MsgClsFSBeginRes * )header ;
       _expectLSN = msg->lsn ;
+      // sanity check
       if ( CLS_FS_STATUS_BEGIN != _status )
       {
          PD_LOG( PDWARNING, "Split Session[%s]: ignore msg. local statsus: "
@@ -2114,8 +2193,10 @@ namespace engine
          goto done ;
       }
 
+      // sanity check request id, disgard old requests
       CHECK_REQUEST_ID ( msg->header.header, _requestID ) ;
 
+      // if source refused to split
       if ( SDB_OK != msg->header.res )
       {
          PD_LOG ( PDWARNING, "Split Session[%s]: Node[%d] refused split sync "
@@ -2125,12 +2206,17 @@ namespace engine
          goto done ;
       }
 
+      // reset timer
       _selector.clearTime() ;
 
+      //set fullname, which is used to set the collection names that need to be
+      //sync
       _fullNames.clear () ;
       _fullNames.push_back ( _pTask->clFullName() ) ;
 
       _status = CLS_FS_STATUS_META ;
+      // meta is going to send elements in _fullNames list to Source, and source
+      // is going to handle the request in order to send the data to Dest
       _meta() ;
    done:
       PD_TRACE_EXIT ( SDB__CLSSPLDS_HNDBGRES );
@@ -2151,6 +2237,7 @@ namespace engine
       }
 
       _step = STEP_REMOVE ;
+      // notify catalog remove the task
       _taskNotify( MSG_CAT_SPLIT_FINISH_REQ ) ;
 
    done:

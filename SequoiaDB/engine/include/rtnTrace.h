@@ -1,6 +1,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! */
 #ifndef rtnTRACE_H__
 #define rtnTRACE_H__
+// Component: rtn
 #define SDB__RTNCONTEXTLOB_OPEN                            0x4000000041cL
 #define SDB__RTNCONTEXTLOB_WRITE                           0x4000000041dL
 #define SDB__RTNCONTEXTLOB_GETLOBMETADATA                  0x4000000041eL

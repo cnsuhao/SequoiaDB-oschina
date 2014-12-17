@@ -73,6 +73,7 @@ namespace engine
          virtual void   _onAttach () ;
          virtual INT32  _defaultMsgFunc ( NET_HANDLE handle, MsgHeader* msg ) ;
 
+      // msg map function
       protected:
          INT32       _onNodeMgrReq( const NET_HANDLE &handle,
                                     MsgHeader *pMsg ) ;

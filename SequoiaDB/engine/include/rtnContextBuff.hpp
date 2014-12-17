@@ -53,6 +53,7 @@ using namespace bson ;
 namespace engine
 {
 
+   // default buffer size should be at least DMS_PAGE_SIZE64K
    #define RTN_DFT_BUFFERSIZE                DMS_PAGE_SIZE_MAX
    #define RTN_RESULTBUFFER_SIZE_MAX         DMS_SEGMENT_SZ
 

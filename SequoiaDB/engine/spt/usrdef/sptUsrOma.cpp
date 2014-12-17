@@ -293,6 +293,7 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get config, rc: %d", rc ) ;
       }
 
+      // add role
       {
          BSONObjBuilder builder ;
          BSONObjIterator it( config ) ;
@@ -534,6 +535,7 @@ namespace engine
          }
       }
 
+      // exePath + ../conf/sdbcm.conf
       ossGetEWD( confFile, OSS_MAX_PATHSIZE ) ;
       utilCatPath( confFile, OSS_MAX_PATHSIZE, SDBCM_CONF_PATH_FILE ) ;
 
@@ -853,6 +855,7 @@ namespace engine
       BSONObj confObj ;
       string str ;
 
+      // hostname
       rc = arg.getString( 0, hostname ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -871,6 +874,7 @@ namespace engine
          goto error ;
       }
 
+      // svcname
       rc = arg.getString( 1, svcname ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -889,6 +893,7 @@ namespace engine
          goto error ;
       }
 
+      // isReplace
       if ( arg.argc() > 2 )
       {
          rc = arg.getNative( 2, (void*)&isReplace, SPT_NATIVE_INT32 ) ;
@@ -899,6 +904,7 @@ namespace engine
         }
       }
 
+      // confFile
       if ( arg.argc() > 3 )
       {
          rc = arg.getString( 3, confFile ) ;
@@ -932,6 +938,7 @@ namespace engine
          {
             if ( 0 == ossStrcmp( e.valuestr(), svcname.c_str() ) )
             {
+               // same with hostname, not change
                goto done ;
             }
             else if ( !isReplace )
@@ -946,6 +953,7 @@ namespace engine
          else if ( e1.type() == String &&
                    0 == ossStrcmp( e1.valuestr(), svcname.c_str() ) )
          {
+            // same with default, not change
             goto done ;
          }
       }
@@ -1026,6 +1034,7 @@ namespace engine
          BSONElement e = confObj.getField( hostname ) ;
          if ( e.eoo() )
          {
+            // not exist, don't delete
             goto done ;
          }
       }

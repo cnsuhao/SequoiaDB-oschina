@@ -52,6 +52,8 @@ public class SdbSplitFactory {
 	 * @exception
 	 * @since 1.0.0
 	 */
+//	public static List<InputSplit> getSplits(JobContext jobContext,
+//			String collectionSpaceName, String collectionName) {
 	public static List<InputSplit> getSplits(JobContext jobContext) {
 		System.out.println(jobContext.getClass().getName());
 
@@ -106,6 +108,7 @@ public class SdbSplitFactory {
 			int port = Integer.parseInt((String) obj.get("ServiceName"));
 			String scanType = (String) obj.get("ScanType");
 
+			// TODO
 			if ("ixscan".equals(scanType)) {
 				String indexName = (String) obj.get("IndexName");
 				int indexLID = (Integer) obj.get("IndexLID");

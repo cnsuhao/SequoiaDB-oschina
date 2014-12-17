@@ -17,6 +17,7 @@
 #ifndef FUNCTION_SDB_HPP__
 #define FUNCTION_SDB_HPP__
 
+//#include "jstobs.h"
 #include "client.hpp"
 #include "ossUtil.h"
 #include "ossMem.h"
@@ -210,6 +211,7 @@ INT32 createNode ( sdbReplicaGroup *gr,
                    const CHAR *pDatabasePath,
                    std::map<std::string,std::string> &config ) ;
 
+//INT32 activate ( sdbReplicaGroup *gr );
 
 INT32 groupStop ( sdbReplicaGroup *gr ) ;
 

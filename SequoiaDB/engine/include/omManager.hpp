@@ -107,6 +107,7 @@ namespace engine
          UINT32      setTimer( UINT32 milliSec ) ;
          void        killTimer( UINT32 timerID ) ;
 
+         // comm interface
          netRouteAgent* getRouteAgent() ;
          MsgRouteID     updateAgentInfo( const string &host,
                                          const string &service ) ;
@@ -158,6 +159,7 @@ namespace engine
                                            INT32 flag, BSONObj response ) ;
 
 
+      // Msg functions
       protected:
 
       private:

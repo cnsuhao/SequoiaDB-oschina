@@ -118,6 +118,7 @@ namespace engine
    #define OM_TOOL_MODE_ADD_STR        "addhost"
    #define OM_TOOL_MODE_DEL_STR        "delhost"
 
+   // initialize options
    void init ( po::options_description &desc )
    {
       COMMANDS_ADD_PARAM_OPTIONS_BEGIN ( desc )
@@ -251,6 +252,7 @@ namespace engine
 
          if ( 2 != columns.size() && 3 != columns.size() )
          {
+            // unreconigze format, ignore
             item._ip = *itr ;
             vecItems.push_back( item ) ;
             continue ;
@@ -258,11 +260,14 @@ namespace engine
 
          if ( !isValidIPV4( columns.at( 0 ).c_str() ) )
          {
+            // unreconigze format, ignore
             item._ip = *itr ;
             vecItems.push_back( item ) ;
             continue ;
          }
 
+         /// xxx.xxx.xxx.xxx xxxx
+         /// xxx.xxx.xxx.xxx xxxx.xxxx xxxx
          item._ip = columns[ 0 ] ;
          if ( columns.size() == 3 )
          {
@@ -322,6 +327,7 @@ namespace engine
       }
       isOpen = TRUE ;
 
+      // read file
       rc = ossReadN( &file, fileSize, pBuff, hasRead ) ;
       if ( rc )
       {
@@ -338,6 +344,7 @@ namespace engine
          goto error ;
       }
 
+      // remove last empty
       if ( vecItems.size() > 0 )
       {
          VEC_HOST_ITEM::iterator itr = vecItems.end() - 1 ;
@@ -371,6 +378,7 @@ namespace engine
       OSSFILE file ;
       stringstream ss ;
 
+      // 1. first create the file if not exist
       if ( SDB_OK != ossAccess( HOSTS_FILE ) )
       {
          rc = ossOpen ( HOSTS_FILE, OSS_READWRITE|OSS_SHAREWRITE|OSS_REPLACE,
@@ -382,11 +390,13 @@ namespace engine
          }
       }
 
+      // 2. remove the tmp file
       if ( SDB_OK == ossAccess( tmpFile.c_str() ) )
       {
          ossDelete( tmpFile.c_str() ) ;
       }
 
+      // 3. Create the tmp file
       rc = ossOpen ( tmpFile.c_str(), OSS_READWRITE|OSS_SHAREWRITE|OSS_REPLACE,
                      OSS_RU|OSS_WU|OSS_RG|OSS_RO, file ) ;
       if ( rc )
@@ -395,6 +405,7 @@ namespace engine
          goto error ;
       }
 
+      // 3. write data
       {
          VEC_HOST_ITEM::iterator it = vecItems.begin() ;
          UINT32 count = 0 ;
@@ -421,6 +432,7 @@ namespace engine
 
       ossClose( file ) ;
 
+      // 4. backup the file
       {
          string backupFile = string( HOSTS_FILE ) + ".bak" ;
          if ( SDB_OK == ossAccess( backupFile.c_str() ) )
@@ -437,6 +449,7 @@ namespace engine
          }
       }
 
+      // 5. commit the file
       rc = ossRenamePath( tmpFile.c_str(), HOSTS_FILE ) ;
       if ( SDB_OK != rc )
       {
@@ -499,6 +512,7 @@ namespace engine
          vecItems.push_back( info ) ;
       }
 
+      // write
       rc = writeHostsFile( vecItems, err ) ;
       if ( rc )
       {
@@ -539,6 +553,7 @@ namespace engine
          }
       }
 
+      // write
       rc = writeHostsFile( vecItems, err ) ;
       if ( rc )
       {
@@ -589,6 +604,7 @@ namespace engine
       po::options_description desc ( "Command options" ) ;
       init ( desc ) ;
 
+      // validate arguments
       rc = resolveOTArgs ( desc, argc, argv, mode, hostName, ip ) ;
       if( rc )
       {

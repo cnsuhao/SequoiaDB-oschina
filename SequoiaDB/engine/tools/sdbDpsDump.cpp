@@ -64,6 +64,7 @@ BOOLEAN dumpVerbos    = FALSE ;
 vector<SINT32> logID ;
 CHAR logFileName [128] ;
 
+// format log file for the given log ID
 // PD_TRACE_DECLARE_FUNCTION ( SDB_FORMATLOG, "formatLog" )
 INT32 formatLog ( SINT32 logID )
 {
@@ -86,6 +87,7 @@ INT32 formatLog ( SINT32 logID )
    INT64 restLen = 0 ;
    INT64 readPos = 0 ;
 
+   // file open
    rc = ossOpen ( logFileName, OSS_DEFAULT | OSS_READONLY,
                   OSS_RU | OSS_WU | OSS_RG, file ) ;
    if ( rc )
@@ -94,6 +96,7 @@ INT32 formatLog ( SINT32 logID )
       goto error ;
    }
    opened = TRUE ;
+   // calculte file size
    rc = ossGetFileSize ( &file, &fileSize ) ;
    if ( rc )
    {
@@ -101,6 +104,7 @@ INT32 formatLog ( SINT32 logID )
                logFileName, rc ) ;
       goto error ;
    }
+   // make sure the size is valid
    if ( fileSize < DPS_LOG_HEAD_LEN )
    {
       printf ( "Log file %s is %lld bytes, which is smaller than log file head",
@@ -109,6 +113,7 @@ INT32 formatLog ( SINT32 logID )
       goto error ;
    }
 
+   // log file must be multiple of page size
    if ( ( fileSize - DPS_LOG_HEAD_LEN ) % DPS_DEFAULT_PAGE_SIZE != 0 )
    {
       printf ( "Log file %s is %lld bytes, which is not aligned with page size",
@@ -117,6 +122,7 @@ INT32 formatLog ( SINT32 logID )
       goto error ;
    }
 
+   // allocate memory
    pBuffer = (CHAR*)SDB_OSS_MALLOC ( fileSize ) ;
    if ( !pBuffer )
    {
@@ -125,6 +131,7 @@ INT32 formatLog ( SINT32 logID )
       goto error ;
    }
 
+   // read into buffer
    restLen = fileSize ;
    while ( restLen > 0 )
    {
@@ -139,6 +146,7 @@ INT32 formatLog ( SINT32 logID )
       restLen -= fileRead ;
       readPos += fileRead ;
    }
+   // start format log head
    pCur = pBuffer ;
    if ( DPS_LOG_HEAD_LEN * LOG_BUFFER_FORMAT_MULTIPLIER > outputBufferSz )
    {
@@ -162,6 +170,9 @@ INT32 formatLog ( SINT32 logID )
                              DPS_DMP_OPT_FORMATTED ) ;
    printf ( "%s\n", pOutputBuffer ) ;
    logHeader = ( _dpsLogHeader*)pCur ;
+   // calculate the first lsn in the file based on the beginOffset, note we
+   // always assume the log file is complete and all other log files got exactly
+   // same size
    if ( DPS_INVALID_LOG_FILE_ID != logHeader->_logID )
    {
       UINT64 beginOffset = logHeader->_firstLSN.offset ;
@@ -169,6 +180,7 @@ INT32 formatLog ( SINT32 logID )
       pCur += beginOffset ;
    }
    pCur += DPS_LOG_HEAD_LEN ;
+   // then dump each record
    while ( pCur < pBuffer + fileSize )
    {
       dpsLogRecord record ;
@@ -235,8 +247,10 @@ INT32 parseArg ( int argc, char **argv )
    INT32 to   = -1 ;
    for ( INT32 count = 0; count < argc; ++count )
    {
+      // for -f
       if ( 0 == ossStrncmp ( argv[count], ARG_FROM, ossStrlen ( ARG_FROM ) ) )
       {
+         // make sure we don't have -l
          if ( expect == ARG_EXPECT_LOG )
          {
             printf ( "Cannot specify both range and log\n" ) ;
@@ -244,18 +258,22 @@ INT32 parseArg ( int argc, char **argv )
             goto error ;
          }
          ++count ;
+         // make sure we still have more arguments
          if ( count >= argc )
          {
             printf ( "Log ID must follow "ARG_FROM"\n" ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
+         // record from
          from = atoi ( argv[count] ) ;
          expect = ARG_EXPECT_RANGE ;
       }
+      // for -t
       else if ( 0 == ossStrncmp ( argv[count], ARG_TO,
                                   ossStrlen ( ARG_TO ) ) )
       {
+         // make sure we don't have -l
          if ( expect == ARG_EXPECT_LOG )
          {
             printf ( "Cannot specify both range and log\n" ) ;
@@ -263,18 +281,21 @@ INT32 parseArg ( int argc, char **argv )
             goto error ;
          }
          ++count ;
+         // make sure we still have more arguments
          if ( count >= argc )
          {
             printf ( "Log ID must follow "ARG_TO"\n" ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
+         // record to
          to = atoi ( argv[count] ) ;
          expect = ARG_EXPECT_RANGE ;
       }
       else if ( 0 == ossStrncmp ( argv[count], ARG_LOG,
                                   ossStrlen ( ARG_LOG ) ) )
       {
+         // make sure we don't have -t or -f
          if ( expect == ARG_EXPECT_RANGE )
          {
             printf ( "Cannot specify both range and log\n" ) ;
@@ -282,12 +303,14 @@ INT32 parseArg ( int argc, char **argv )
             goto error ;
          }
          ++count ;
+         // make sure we still have more arguments
          if ( count >= argc )
          {
             printf ( "Log ID must follow "ARG_TO"\n" ) ;
             rc = SDB_INVALIDARG ;
             goto error ;
          }
+         // push log to logID list
          logID.push_back ( atoi ( argv[count] ) ) ;
          expect = ARG_EXPECT_LOG ;
       }
@@ -298,6 +321,7 @@ INT32 parseArg ( int argc, char **argv )
          goto error ;
       }
    }
+   // make sure we have good range
    if ( ARG_EXPECT_RANGE == expect )
    {
       if ( from < 0 || to < 0 )

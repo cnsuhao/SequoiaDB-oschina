@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 
+// optlist.xml elements for web page
 #define OPTLISTTAG            "optlist"
 #define LONGTAG               "long"
 #define SHORTTAG              "short"
@@ -12,6 +13,7 @@
 #define HIDDENTAG             "hidden"
 #define DETAILTAG             "detail"
 
+// optOtherInfoForWeb.xml elements for web page
 #define OPTOTHERINFOFORWEBTAG "optOtherInfoForWeb"
 #define TOPICTAG              "topic"
 #define TITLETAG              "title"
@@ -98,6 +100,7 @@ void OptGenForWeb::loadOtherInfoFromXML ()
         {
             if ( TITLETAG == v.first )
             {
+                // get the title tag
                 try
                 {
                     newele->titletag = v.second.get<string>(language) ;
@@ -111,6 +114,7 @@ void OptGenForWeb::loadOtherInfoFromXML ()
             }
             else if ( SUBTITLETAG == v.first )
             {
+                // subtile tag
                 try
                 {
                     newele->subtitletag = v.second.get<string>(language) ;
@@ -124,6 +128,7 @@ void OptGenForWeb::loadOtherInfoFromXML ()
             }
             else if ( STHEADTAG == v.first )
             {
+                // sthead tag
                 try
                 {
                     BOOST_FOREACH( ptree::value_type &v1, v.second )
@@ -159,6 +164,7 @@ void OptGenForWeb::loadOtherInfoFromXML ()
             }
             else if ( NOTETAG == v.first )
             {
+                // note tag
                 try
                 {
                     BOOST_FOREACH( ptree::value_type &v2, v.second )
@@ -226,13 +232,16 @@ void OptGenForWeb::loadFromXML ()
             {
                 ishidden = FALSE ;
             }
+            // we don't need the notes whose hidden tag is true
             if ( ishidden )
             {
                 continue ;
             }
 
+            // long tag could not be null
             try
             {
+                // long
                 newele->longtag += v.second.get<string>(LONGTAG) ;
             }
             catch ( std::exception &e )
@@ -241,8 +250,10 @@ void OptGenForWeb::loadFromXML ()
                      << endl ;
                 continue ;
             }
+            // if no detail tag, we don't need this note
             try
             {
+                // detail
                 newele->detailtag = v.second.get_child(DETAILTAG
                                            ).get<string>(language) ;
             }
@@ -250,16 +261,21 @@ void OptGenForWeb::loadFromXML ()
             {
                 continue ;
             }
+            // short tag can be null
             try
             {
+                // short
+                //newele->shorttag += v.second.get<string>(SHORTTAG).c_str[0] ;
                 newele->shorttag += v.second.get<string>(SHORTTAG) ;
             }
             catch ( std::exception &e )
             {
                 newele->shorttag += "-" ;
             }
+            // type tag can be null
             try
             {
+                // type
                 newele->typeofwebtag = v.second.get<string>(TYPEOFWEBTAG) ;
             }
             catch ( std::exception &e )
@@ -318,12 +334,15 @@ string OptGenForWeb::genOptions ()
    </body>
 </topic>
 ******************************/
+    // build <sthead></sthead>
     sthead.add ( STEMTRYTAG, (*ite)->stentry_nametag ) ;
     sthead.add ( STEMTRYTAG, (*ite)->stentry_acronymtag ) ;
     sthead.add ( STEMTRYTAG, (*ite)->stentry_typetag ) ;
     sthead.add ( STEMTRYTAG, (*ite)->stentry_desttag ) ;
+    // build <simpletabl></simpletabl>
     simpletable.add ( XML_COMMENTTAG, XMLCOMMENT ) ;
     simpletable.add_child ( STHEADTAG, sthead ) ;
+    // build <strow></strow> and add them into <simpletable>
     for ( it = optlist.begin(); it != optlist.end(); it++ )
     {
         strow.clear () ;
@@ -331,18 +350,25 @@ string OptGenForWeb::genOptions ()
         strow.add ( STEMTRYTAG, (*it)->shorttag ) ;
         strow.add ( STEMTRYTAG, (*it)->typeofwebtag ) ;
         strow.add ( STEMTRYTAG, (*it)->detailtag ) ;
+        // add s_s_s_s_strow to s_s_s_simpletable
         simpletable.add_child ( STROWTAG, strow ) ;
     }
+    // build <note></note>
     note.add ( PTAG, (*ite)->firsttag ) ;
     note.add ( PTAG, (*ite)->secondtag ) ;
+    // build <section></section>
     section.add ( TITLETAG, (*ite)->subtitletag ) ;
     section.add_child ( SIMPLETABLETAG, simpletable ) ;
     section.add_child ( NOTETAG, note ) ;
+    // build <body></body>
     body.add_child ( SECTIONTAG, section ) ;
+    // build <topic></topic>
     topic.add ( TITLETAG, (*ite)->titletag ) ;
     topic.add_child ( BODYTAG, body ) ;
+    // add attribute, and then finish building the property tree
     pt.add_child ( TOPICTAG, topic ) ;
     pt.add ( TOPIC_ATTRTAG, TOPIC_ATTR ) ;
+    // write to stream
     xml_writer_settings<char> settings( '\t', 1 ) ;
     write_xml ( oss, pt, settings ) ;
     return oss.str () ;
@@ -381,6 +407,7 @@ void OptGenForWeb::gendoc()
         cout << "Can not open file: " << fileName << endl;
         exit(0);
     }
+    // add DTD
     found = str.find_first_of ( '>' ) ;
     if ( string::npos != found )
     {

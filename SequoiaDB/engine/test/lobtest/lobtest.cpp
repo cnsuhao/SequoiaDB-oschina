@@ -91,6 +91,7 @@ void insert_1()
    {
       CHAR tmp[25] ;
       bson_oid_to_string( &( oids[i]), tmp ) ;
+//      cout << "query:" << tmp << endl ;
 
       rc = sdbOpenLob( cl, &( oids[i] ), SDB_LOB_READ, &lob ) ;
       if ( SDB_OK != rc )
@@ -234,6 +235,7 @@ TEST(lobTest, seek_1)
    for ( UINT32 j = 0 ; j < bufSize; ++j )
    {
       buf[j] = ( CHAR )rand() ;
+//      buf[j] = 'a' + j % 26 ;
    }
    
    bson_oid_gen( &oid ) ;
@@ -562,6 +564,7 @@ void remove_1()
       {
       CHAR tmp[25] ;
       bson_oid_to_string( &( oids[j]), tmp ) ;
+      //cout << "query:" << tmp << endl ;
 
       rc = sdbOpenLob( cl, &( oids[j] ), SDB_LOB_READ, &lob ) ;
       if ( SDB_OK != rc )

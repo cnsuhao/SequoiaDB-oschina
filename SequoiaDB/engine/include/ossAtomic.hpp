@@ -42,6 +42,9 @@
 #include "oss.hpp"
 #include "ossAtomicBase.hpp"
 
+//
+// OSS atomic class
+//
 
 template <class T>
 class ossAtomicPredicateGreaterThan : public SDBObject
@@ -67,6 +70,9 @@ class ossAtomicPredicateLesserThan : public SDBObject
 
 class _ossAtomic32 ;
 
+// Implements atomic operation on a signed 32bit value.
+// Note:
+//    32bit alignment is required for this type.
 class _ossAtomicSigned32 : public SDBObject
 {
    public :
@@ -111,6 +117,7 @@ class _ossAtomicSigned32 : public SDBObject
       {
          init ( val ) ;
       }
+      // object can be reinit to another value
       void init ( valueType val )
       {
          m_value.value = val ;
@@ -201,6 +208,9 @@ class _ossAtomicSigned32 : public SDBObject
 typedef class _ossAtomicSigned32 ossAtomicSigned32 ;
 
 
+// Implements atomic operation on an unsigned 32bit value.
+// Note:
+//    32bit alignment is required for this type.
 class _ossAtomic32 : public SDBObject
 {
    private :
@@ -306,6 +316,9 @@ typedef class _ossAtomic32 ossAtomic32 ;
 
 class _ossAtomic64 ;
 
+// Implements atomic operation on a signed 64bit value.
+// Note:
+//    64bit alignment is required for this type.
 class _ossAtomicSigned64 : public SDBObject
 {
    public :
@@ -439,6 +452,9 @@ class _ossAtomicSigned64 : public SDBObject
 } ;
 typedef class _ossAtomicSigned64 ossAtomicSigned64 ;
 
+// Implements atomic operation on an unsigned 64bit value.
+// Note:
+//    64bit alignment is required for this type.
 class _ossAtomic64 : public SDBObject
 {
    private :

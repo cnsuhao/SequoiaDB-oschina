@@ -97,6 +97,8 @@ namespace engine
    class _CoordCataInfo : public SDBObject
    {
    public:
+      // if the catalogue-info is update,
+      // build a new one, don't modify the old
       _CoordCataInfo( INT32 version, const char *pCollectionName )
       :_catlogSet ( pCollectionName, FALSE )
       {}
@@ -221,6 +223,7 @@ namespace engine
       }
 
    private:
+      // if the catalogue-info is update, build a new one, don't modify the old
       _CoordCataInfo()
       :_catlogSet( NULL, FALSE ) 
       {}  

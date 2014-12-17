@@ -23,6 +23,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #endif
+//#include <boost/intrusive_ptr.hpp>
 #include <set>
 #include <list>
 #include <vector>
@@ -94,6 +95,7 @@ namespace bson {
         * owned = whether this object owns this buffer.
         */
         explicit BSONObj(const char *msgdata, bool check=true) {
+          //_holder = NULL ;
           init(msgdata, check);
         }
 
@@ -159,6 +161,7 @@ namespace bson {
         bool isOwned() const
         {
            return _holder.get() != 0;
+           //return _holder != 0 ;
         }
 
         /** assure the data buffer is under the control of this BSONObj and not a remote buffer
@@ -388,6 +391,10 @@ namespace bson {
             return (x & 0x7fffffff) | 0x8000000; // must be > 0
         }
 
+        // Return a version of this object where top level elements of types
+        // that are not part of the bson wire protocol are replaced with
+        // string identifier equivalents.
+        // TODO Support conversion of element types other than min and max.
         BSONObj clientReadable() const;
 
         /** Return new object with the field names replaced by those in the
@@ -480,6 +487,12 @@ namespace bson {
             char data[4]; // start of object
 
             void zero() { refCount.zero(); }
+            //void inc () { refCount++ ; }
+            //void dec () { if(--refCount == 0){
+            //                 free(this) ; } }
+            //void dec () { --refCount ; }
+            //bool isZero () { return 0 == refCount ; }
+            // these are called automatically by boost::intrusive_ptr
             friend void intrusive_ptr_add_ref(Holder* h) { h->refCount++; }
             friend void intrusive_ptr_release(Holder* h) {
 #if defined(_DEBUG) // cant use dassert or DEV here
@@ -501,12 +514,14 @@ namespace bson {
 
     private:
         const char *_objdata;
+        //Holder *_holder ;
         bson_intrusive_ptr< Holder > _holder;
 
         void _assertInvalid() const;
 
         void init(Holder *holder) {
             _holder = holder; // holder is now managed by intrusive_ptr
+            //_holder->inc() ;
             init(holder->data);
         }
     };
@@ -519,6 +534,7 @@ namespace bson {
 
 
     struct BSONArray : BSONObj {
+        // Don't add anything other than forwarding constructors!!!
         BSONArray(): BSONObj() {}
         explicit BSONArray(const BSONObj& obj): BSONObj(obj) {}
     };

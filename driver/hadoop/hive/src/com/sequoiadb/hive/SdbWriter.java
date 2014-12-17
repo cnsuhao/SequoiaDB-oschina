@@ -39,6 +39,7 @@ public class SdbWriter implements RecordWriter {
 	private List<BSONObject> objectBuffer = new ArrayList<BSONObject>(
 			bufferMaxSize * 2);
 
+	// private List<BSONObject> objectBuffer = new LinkedList<BSONObject>();
 
 	public SdbWriter(String connAddr, String spaceName, String colName,
 			int RecoredNum) {
@@ -61,9 +62,11 @@ public class SdbWriter implements RecordWriter {
 			localAddr = InetAddress.getLocalHost();
 			LOG.debug(localAddr.getHostAddress());
 		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
 			LOG.error(e.getMessage());
 		}
 
+		//Get all localtion address.
 		ArrayList<SdbConnAddr> localAddrList = new ArrayList<SdbConnAddr>();
 		for (int i = 0; i < addrList.length; i++) {
 			if (addrList[i].getHost().equals(localAddr.getHostAddress()) || addrList[i].getHost().equals(localAddr.getHostName())) {
@@ -71,6 +74,7 @@ public class SdbWriter implements RecordWriter {
 			}
 		}
 
+		//If not any local address
 		if (localAddrList.isEmpty()) {
 			for (int i = 0; i < addrList.length; i++) {
 				localAddrList.add(addrList[i]);
@@ -107,6 +111,7 @@ public class SdbWriter implements RecordWriter {
 	@Override
 	public void close(boolean abort) throws IOException {
 
+		// flush buffer.
 		if (objectBuffer.size() > 0) {
 			collection.bulkInsert(objectBuffer,
 					DBCollection.FLG_INSERT_CONTONDUP);
@@ -122,7 +127,12 @@ public class SdbWriter implements RecordWriter {
 		MapWritable map = (MapWritable) w;
 		BSONObject dbo = new BasicBSONObject();
 		for (final Map.Entry<Writable, Writable> entry : map.entrySet()) {
+			// System.err.println("Write: key=" + entry.getKey().toString()
+			// + ", val=" + entry.getValue().toString());
 			String key = entry.getKey().toString();
+			// if ("id".equals(key)) {
+			// key = "_id";
+			// }
 			dbo.put(key.toLowerCase(), getObjectFromWritable(entry.getValue()));
 		}
 		
@@ -137,22 +147,31 @@ public class SdbWriter implements RecordWriter {
 
 	private Object getObjectFromWritable(Writable w) {
 		if (w instanceof IntWritable) {
+			// int
 			return ((IntWritable) w).get();
 		} else if (w instanceof ShortWritable) {
+			// short
 			return ((ShortWritable) w).get();
 		} else if (w instanceof ByteWritable) {
+			// byte
 			return ((ByteWritable) w).get();
 		} else if (w instanceof BooleanWritable) {
+			// boolean
 			return ((BooleanWritable) w).get();
 		} else if (w instanceof LongWritable) {
+			// long
 			return ((LongWritable) w).get();
 		} else if (w instanceof FloatWritable) {
+			// float
 			return ((FloatWritable) w).get();
 		} else if (w instanceof DoubleWritable) {
+			// double
 			return ((DoubleWritable) w).get();
 		} else if (w instanceof NullWritable) {
+			// null
 			return null;
 		} else {
+			// treat as string
 			return w.toString();
 		}
 

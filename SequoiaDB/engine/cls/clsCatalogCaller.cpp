@@ -71,6 +71,7 @@ namespace engine
             SDB_OSS_FREE( meta.header ) ;
             meta.bufLen = 0 ;
          }
+         // memory is free in destructor
          meta.header = ( MsgHeader *)SDB_OSS_MALLOC( header->messageLength ) ;
          if ( NULL == meta.header )
          {

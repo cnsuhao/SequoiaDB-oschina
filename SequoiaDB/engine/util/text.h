@@ -1,4 +1,5 @@
 /******************************************************************************/
+// text.h
 /*
  *    Copyright 2010 10gen Inc.
  *
@@ -125,6 +126,8 @@ using namespace std;
 
 #endif
 
+    // expect that n contains a base ten number and nothing else after it
+    // NOTE win version hasn't been tested directly
     inline BOOLEAN parseLL( const char *n, INT64 *out ) {
 	if(!n)
 		return 0LL;
@@ -142,6 +145,7 @@ using namespace std;
         catch ( ... ) {
             endLen = 0;
         }
+	// if we don't convert any bytes, or the byte on the index value is not '\0', then we hit invalid char
 	if(endLen == 0 || n[endLen]!=0)
 		return FALSE;
 #endif // !defined(_WIN32)

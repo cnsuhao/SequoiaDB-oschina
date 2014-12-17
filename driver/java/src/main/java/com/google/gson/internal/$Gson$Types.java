@@ -108,17 +108,22 @@ public final class $Gson$Types {
       return new WildcardTypeImpl(w.getUpperBounds(), w.getLowerBounds());
 
     } else {
+      // type is either serializable as-is or unsupported
       return type;
     }
   }
 
   public static Class<?> getRawType(Type type) {
     if (type instanceof Class<?>) {
+      // type is a normal class.
       return (Class<?>) type;
 
     } else if (type instanceof ParameterizedType) {
       ParameterizedType parameterizedType = (ParameterizedType) type;
 
+      // I'm not exactly sure why getRawType() returns Type instead of Class.
+      // Neal isn't either but suspects some pathological case related
+      // to nested classes exists.
       Type rawType = parameterizedType.getRawType();
       checkArgument(rawType instanceof Class);
       return (Class<?>) rawType;
@@ -128,6 +133,8 @@ public final class $Gson$Types {
       return Array.newInstance(getRawType(componentType), 0).getClass();
 
     } else if (type instanceof TypeVariable) {
+      // we could use the variable's bounds, but that won't work if there are multiple.
+      // having a raw type that's more general than necessary is okay
       return Object.class;
 
     } else if (type instanceof WildcardType) {
@@ -149,9 +156,11 @@ public final class $Gson$Types {
    */
   public static boolean equals(Type a, Type b) {
     if (a == b) {
+      // also handles (a == null && b == null)
       return true;
 
     } else if (a instanceof Class) {
+      // Class already specifies equals().
       return a.equals(b);
 
     } else if (a instanceof ParameterizedType) {
@@ -159,6 +168,7 @@ public final class $Gson$Types {
         return false;
       }
 
+      // TODO: save a .clone() call
       ParameterizedType pa = (ParameterizedType) a;
       ParameterizedType pb = (ParameterizedType) b;
       return equal(pa.getOwnerType(), pb.getOwnerType())
@@ -194,6 +204,7 @@ public final class $Gson$Types {
           && va.getName().equals(vb.getName());
 
     } else {
+      // This isn't a type we support. Could be a generic array type, wildcard type, etc.
       return false;
     }
   }
@@ -216,6 +227,7 @@ public final class $Gson$Types {
       return context;
     }
 
+    // we skip searching through interfaces if unknown is an interface
     if (toResolve.isInterface()) {
       Class<?>[] interfaces = rawType.getInterfaces();
       for (int i = 0, length = interfaces.length; i < length; i++) {
@@ -227,6 +239,7 @@ public final class $Gson$Types {
       }
     }
 
+    // check our supertypes
     if (!rawType.isInterface()) {
       while (rawType != Object.class) {
         Class<?> rawSupertype = rawType.getSuperclass();
@@ -239,6 +252,7 @@ public final class $Gson$Types {
       }
     }
 
+    // we can't resolve this further
     return toResolve;
   }
 
@@ -296,6 +310,7 @@ public final class $Gson$Types {
     }
 
     Type mapType = getSupertype(context, contextRawType, Map.class);
+    // TODO: strip wildcards?
     if (mapType instanceof ParameterizedType) {
       ParameterizedType mapParameterizedType = (ParameterizedType) mapType;
       return mapParameterizedType.getActualTypeArguments();
@@ -304,6 +319,7 @@ public final class $Gson$Types {
   }
 
   public static Type resolve(Type context, Class<?> contextRawType, Type toResolve) {
+    // this implementation is made a little more complicated in an attempt to avoid object-creation
     while (true) {
       if (toResolve instanceof TypeVariable) {
         TypeVariable<?> typeVariable = (TypeVariable<?>) toResolve;
@@ -377,6 +393,7 @@ public final class $Gson$Types {
   static Type resolveTypeVariable(Type context, Class<?> contextRawType, TypeVariable<?> unknown) {
     Class<?> declaredByRaw = declaringClassOf(unknown);
 
+    // we can't reduce this further
     if (declaredByRaw == null) {
       return unknown;
     }
@@ -420,6 +437,7 @@ public final class $Gson$Types {
     private final Type[] typeArguments;
 
     public ParameterizedTypeImpl(Type ownerType, Type rawType, Type... typeArguments) {
+      // require an owner type if the raw type needs it
       if (rawType instanceof Class<?>) {
         Class<?> rawTypeAsClass = (Class<?>) rawType;
         checkArgument(ownerType != null || rawTypeAsClass.getEnclosingClass() == null);
@@ -546,6 +564,7 @@ public final class $Gson$Types {
     }
 
     @Override public int hashCode() {
+      // this equals Arrays.hashCode(getLowerBounds()) ^ Arrays.hashCode(getUpperBounds());
       return (lowerBound != null ? 31 + lowerBound.hashCode() : 1)
           ^ (31 + upperBound.hashCode());
     }

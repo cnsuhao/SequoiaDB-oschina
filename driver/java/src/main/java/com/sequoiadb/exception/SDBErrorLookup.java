@@ -45,6 +45,7 @@ public class SDBErrorLookup {
 		mapByType = new HashMap<String, SDBError>();
 		mapByCode = new HashMap<Integer, SDBError>();
 
+		// Read properties file.
 		InputStream in = SDBErrorLookup.class.getClassLoader()
 				.getResourceAsStream("errors.properties");
 		Properties properties = new Properties();

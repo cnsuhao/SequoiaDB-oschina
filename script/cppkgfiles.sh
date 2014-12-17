@@ -214,7 +214,7 @@ copy_file $src_dir_smp_cs/BulkInsert.cs $dest_dir_smp_cs
 copy_file $src_dir_smp_cs/Common.cs $dest_dir_smp_cs
 copy_file $src_dir_smp_cs/Find.cs $dest_dir_smp_cs
 copy_file $src_dir_smp_cs/Insert.cs $dest_dir_smp_cs
-copy_file $src_dir_smp_cs/sdbcs.dll $dest_dir_smp_cs
+copy_file $src_dir_smp_cs/sequoiadb.dll $dest_dir_smp_cs
 src_dir_smp_cpp="$sdb_path/client/samples/CPP"
 dest_dir_smp_cpp="$pkg_src_tmp/samples/CPP"
 mkdir -p $dest_dir_smp_cpp
@@ -249,8 +249,8 @@ copy_file $src_dir_smp_java_smp/Update.java $dest_dir_smp_java_smp
 dest_dir_smp_js="$pkg_src_tmp/samples/JS"
 mkdir -p $dest_dir_smp_js
 copy_file $sdb_path/client/samples/JS/example.js $dest_dir_smp_js
-src_dir_smp_php="$sdb_path/client/samples/PHP"
-dest_dir_smp_php="$pkg_src_tmp/samples/PHP"
+src_dir_smp_php="$sdb_path/client/samples/PHP/sequoiadb"
+dest_dir_smp_php="$pkg_src_tmp/samples/PHP/sequoiadb"
 mkdir -p $dest_dir_smp_php
 copy_file $src_dir_smp_php/server.php $dest_dir_smp_php
 copy_file $src_dir_smp_php/show.htm $dest_dir_smp_php
@@ -261,8 +261,8 @@ copy_file $src_dir_smp_php/css/style.css $dest_dir_smp_php_css
 dest_dir_smp_php_js="$dest_dir_smp_php/js"
 mkdir -p $dest_dir_smp_php_js
 copy_file $src_dir_smp_php/js/common.js $dest_dir_smp_php_js
-src_dir_pyt="$sdb_path/client/samples/Python"
-dest_dir_pyt="$pkg_src_tmp/samples/Python"
+src_dir_pyt="$sdb_path/client/samples/Python/sequoiadb"
+dest_dir_pyt="$pkg_src_tmp/samples/Python/sequoiadb"
 mkdir -p $dest_dir_pyt
 copy_file $src_dir_pyt/collectionspace.py $dest_dir_pyt
 copy_file $src_dir_pyt/connect.py $dest_dir_pyt

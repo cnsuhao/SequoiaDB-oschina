@@ -40,12 +40,18 @@
 #include "oss.h"
 #include "ossMem.hpp"
 
+// we should NEVER AND EVER put any virtual function in this object
+// and we should never cast an object to SDBObject and delete.
 class SDBObject
 {
 protected :
+   // never instantiate SDBObject
    SDBObject () {}
 public :
+   // do NOT put virtual destructor because it will change the inherited object
+   // size
 
+   // regular new
    void * operator new ( size_t size ) throw ( const char * )
    {
       void *p = SDB_OSS_MALLOC(size) ;
@@ -70,6 +76,7 @@ public :
       SDB_OSS_FREE(p) ;
    }
 
+   // new with file/line number
    void * operator new ( size_t size, const CHAR *pFile, UINT32 line )
          throw ( const char * )
    {
@@ -96,6 +103,7 @@ public :
       SDB_OSS_FREE(p) ;
    }
 
+   // no throw
    void * operator new ( size_t size, const std::nothrow_t & )
    {
       return SDB_OSS_MALLOC(size) ;
@@ -116,6 +124,7 @@ public :
       SDB_OSS_FREE(p) ;
    }
 
+   // no throw with line number
    void * operator new ( size_t size, const CHAR *pFile,
                          UINT32 line, const std::nothrow_t & )
    {

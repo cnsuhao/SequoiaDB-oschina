@@ -148,6 +148,7 @@ namespace engine
                                              _msgObj.objsize() ) ) ;
             if ( ( UINT32 )_msgObj.objsize() < _header.bsonLen )
             {
+               /// align the bsonobj
                itr->second.bodies.push_back( netIOV( _alignBuf,
                                                      _header.bsonLen - _msgObj.objsize() ) ) ;
             }
@@ -292,8 +293,11 @@ namespace engine
          goto error ;
       }
 
+      /// TODO: rewrite this part when new coord session is done.
       while ( !replyQueue.empty() )
       {
+         /// when replyHeader is pushed to _replyBuf, replyHeader will be released
+         /// when call clear().
          MsgOpReply *replyHeader = ( MsgOpReply * )( replyQueue.front() ) ;
          replyQueue.pop() ;
          INT32 flag = replyHeader->flags ;
@@ -339,6 +343,9 @@ namespace engine
          }
          else if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == flag )
          {
+            /// here we do not retry to send msg.
+            /// coz we need to refresh catalog info and
+            /// reopen sub streams.
             _replyBuf.push_back( replyHeader ) ;
             _tuples.erase( id ) ; 
             continue ;
@@ -409,6 +416,7 @@ namespace engine
       MSG_TUPLES::const_iterator itr = _tuples.begin() ;
       for ( ; itr != _tuples.end(); ++itr )
       {
+         /// refresh length of msg.
          _header.header.messageLength = itr->second.totalLen ;
          _header.contextID = itr->second.contextID ;
          if ( !_options.dispatchedByGroupID )

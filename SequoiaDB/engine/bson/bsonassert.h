@@ -34,6 +34,8 @@
 #include <memory>
 #include <iostream>
 #include <sstream>
+//#include <boost/noncopyable.hpp>
+//#include <boost/utility.hpp>
 
 #include "stringdata.h"
 

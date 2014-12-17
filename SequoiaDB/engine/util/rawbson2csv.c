@@ -55,6 +55,9 @@ static void local_time ( time_t *Time, struct tm *TM )
 #if defined (__linux__ )
    localtime_r( Time, TM ) ;
 #elif defined (_WIN32)
+   // The Time represents the seconds elapsed since midnight (00:00:00),
+   // January 1, 1970, UTC. This value is usually obtained from the time
+   // function.
    localtime_s( TM, Time ) ;
 #endif
 }
@@ -392,10 +395,12 @@ INT32 bson2csv( CHAR delChar, CHAR delField, CHAR *pbson,
    while ( bson_iterator_next( &it ) )
    {
       fieldType = bson_iterator_type( &it ) ;
+      //if BSON_EOO == fieldType ( which is 0 ),that means we hit end of object
       if ( BSON_EOO == fieldType )
       {
          break ;
       }
+      // do NOT concat "," for first entrance
       if ( isFirst )
       {
          isFirst = FALSE ;
@@ -412,6 +417,7 @@ INT32 bson2csv( CHAR delChar, CHAR delField, CHAR *pbson,
       {
          continue ;
       }
+      //then we check the data type
       rc = _appendValue( delChar, &it, ppBuffer, pCSVSize ) ;
       if ( rc )
       {

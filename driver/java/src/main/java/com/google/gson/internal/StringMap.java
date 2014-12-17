@@ -97,6 +97,7 @@ public final class StringMap<V> extends AbstractMap<String, V> implements Serial
    */
   private boolean useFastHash = true;
 
+  // Views - lazily initialized
   private Set<String> keySet;
   private Set<Entry<String, V>> entrySet;
   private Collection<V> values;
@@ -159,6 +160,7 @@ public final class StringMap<V> extends AbstractMap<String, V> implements Serial
       }
     }
 
+    // No entry for (non-null) key is present; create one
     if (size++ > threshold) {
       tab = doubleCapacity();
       index = hash & (tab.length - 1);
@@ -172,11 +174,13 @@ public final class StringMap<V> extends AbstractMap<String, V> implements Serial
     if (useFastHash && collisionCount >= MAX_COLLISIONS) {
       LinkedEntry<V> entry = header.nxt;
 
+      // clear the table
       Arrays.fill(table, null);
       size = 0;
       header.nxt = header.prv = header;
       useFastHash = false;
 
+      // fill it up in iteration order
       for (; entry != header; entry = entry.nxt) {
         put(entry.key, entry.value);
       }
@@ -188,6 +192,7 @@ public final class StringMap<V> extends AbstractMap<String, V> implements Serial
   private void addNewEntry(String key, V value, int hash, int index) {
     LinkedEntry<V> header = this.header;
 
+    // Create new entry, link it on to list, and put it into table
     LinkedEntry<V> oldTail = header.prv;
     LinkedEntry<V> newTail = new LinkedEntry<V>(
         key, value, hash, table[index], header, oldTail);
@@ -290,6 +295,7 @@ public final class StringMap<V> extends AbstractMap<String, V> implements Serial
       size = 0;
     }
 
+    // Clear all links to help GC
     LinkedEntry<V> header = this.header;
     for (LinkedEntry<V> e = header.nxt; e != header; ) {
       LinkedEntry<V> nxt = e.nxt;
@@ -525,12 +531,25 @@ public final class StringMap<V> extends AbstractMap<String, V> implements Serial
 
   private static int fastHash(Object key) {
     int h = key.hashCode();
+    // Apply Doug Lea's supplemental hash function to avoid collisions for
+    // hashes that do not differ in lower or upper bits.
     h ^= (h >>> 20) ^ (h >>> 12);
     return h ^ (h >>> 7) ^ (h >>> 4);
   }
 
   private static final int seed = new Random().nextInt();
   private static int unpredictableHash(String key) {
+    // Ensuring that the hash is unpredictable and well distributed.
+    //
+    // Finding unpredictable hash functions is a bit of a dark art as we need to balance
+    // good unpredictability (to avoid DoS) and good distribution (for performance).
+    //
+    // We achieve this by using the same algorithm as the Perl version, but this implementation
+    // is being written from scratch by inder who has never seen the
+    // Perl version (for license compliance).
+    //
+    // TODO: investigate http://code.google.com/p/cityhash/ and http://code.google.com/p/smhasher/
+    // both of which may have better distribution and/or unpredictability.
     int h = seed;
     for (int i = 0; i < key.length(); ++i) {
       int h2 = h + key.charAt(i);
@@ -538,6 +557,8 @@ public final class StringMap<V> extends AbstractMap<String, V> implements Serial
       h = h3 ^ (h3 >>> 6); // h3 / 64
     }
 
+    // Apply Doug Lea's supplemental hash function to avoid collisions for
+    // hashes that do not differ in lower or upper bits.
     h ^= (h >>> 20) ^ (h >>> 12);
     return h ^ (h >>> 7) ^ (h >>> 4);
   }

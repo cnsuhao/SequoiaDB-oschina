@@ -79,6 +79,7 @@ namespace engine
       {
          _cscbVec.push_back ( NULL ) ;
          _delCscbVec.push_back ( NULL ) ;
+         // free in desctructor
          _latchVec.push_back ( new(std::nothrow) ossRWMutex() ) ;
          _freeList.push_back ( i ) ;
       }
@@ -94,6 +95,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      // 1. load all
       if ( SDB_ROLE_COORD != pmdGetDBRole() )
       {
          rc = rtnLoadCollectionSpaces ( pmdGetOptionCB()->getDbPath(),
@@ -104,6 +106,7 @@ namespace engine
                       rc ) ;
       }
 
+      // 2. init temp cb
       rc = _tempCB.init() ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init temp cb, rc: %d", rc ) ;
 
@@ -316,6 +319,7 @@ namespace engine
 
       if ( NULL != dpsCB )
       {
+         // reserved log-size
          rc = dpsCSDel2Record( pName, record ) ;
          if ( SDB_OK != rc )
          {
@@ -334,6 +338,9 @@ namespace engine
       }
 
    retry :
+      // now let's lock the collectionspace, if we can't lock it, let's return
+      // false. we shouldn't wait forever
+      //if ( !_latchVec[suID]->try_get() )
       if ( SDB_OK != _latchVec[suID]->lock_w( OSS_ONE_SEC ) )
       {
          rc = SDB_LOCK_FAILED ;
@@ -347,9 +354,14 @@ namespace engine
 
       _latchVec[suID]->release_w () ;
 
+      // there is a small timing hole before getting the latch, so we have
+      // to get current suID again to verify
       if ( _cscbNameMap.end() == (it = _cscbNameMap.find(pName)) ||
            suID != (*it).second )
       {
+         // if we no longer able to find the collectionspace, or the same
+         // name maps to another suID, then let's get out of here
+         //_latchVec[suID]->release () ;
          _mutex.release () ;
          rc = SDB_DMS_CS_NOTEXIST ;
          goto error ;
@@ -394,6 +406,7 @@ namespace engine
       _cscbNameMap.erase(pName) ;
       _freeList.push_back ( suID ) ;
 
+      // log here
       if ( dpsCB )
       {
          info.setInfoEx( csLID, ~0, DMS_INVALID_EXTENT, cb ) ;
@@ -431,6 +444,7 @@ namespace engine
                                        SDB_DPSCB *dpsCB )
    {
       INT32 rc = SDB_OK ;
+      // PD_TRACE_ENTRY ( SDB__SDB_DMSCB__CSCBNMREMVP1 );
       dmsStorageUnitID suID ;
       SDB_DMS_CSCB *pCSCB = NULL;
 #if defined (_WINDOWS)
@@ -449,6 +463,9 @@ namespace engine
       _mutex.release_shared () ;
 
    retry :
+      // now let's lock the collectionspace, if we can't lock it, let's return
+      // false. we shouldn't wait forever
+      //if ( !_latchVec[suID]->try_get() )
       if ( SDB_OK != _latchVec[suID]->lock_w( OSS_ONE_SEC ) )
       {
          rc = SDB_LOCK_FAILED ;
@@ -462,9 +479,14 @@ namespace engine
 
       _latchVec[suID]->release_w () ;
 
+      // there is a small timing hole before getting the latch, so we have
+      // to get current suID again to verify
       if ( _cscbNameMap.end() == (it = _cscbNameMap.find(pName)) ||
            suID != (*it).second )
       {
+         // if we no longer able to find the collectionspace, or the same
+         // name maps to another suID, then let's get out of here
+         //_latchVec[suID]->release () ;
          _mutex.release () ;
          rc = SDB_DMS_CS_NOTEXIST ;
          goto error ;
@@ -497,6 +519,7 @@ namespace engine
       _mutex.release () ;
 
    done :
+      // PD_TRACE_EXITRC ( SDB__SDB_DMSCB__CSCBNMREMVP1, rc );
       return rc ;
    error :
       goto done ;
@@ -508,6 +531,7 @@ namespace engine
                                              SDB_DPSCB *dpsCB )
    {
       INT32 rc = SDB_OK ;
+      // PD_TRACE_ENTRY ( SDB__SDB_DMSCB__CSCBNMREMVP1CANCEL );
       dmsStorageUnitID suID ;
       SDB_DMS_CSCB *pCSCB = NULL;
 #if defined (_WINDOWS)
@@ -520,6 +544,7 @@ namespace engine
          DMSCB_XLOCK
          if ( _cscbNameMap.end() == (it = _cscbNameMap.find(pName)) )
          {
+            // there must be some errors if the cs is not in del-map
             SDB_ASSERT( FALSE, "faint, why the cs is not in the map?" );
             rc = SDB_DMS_CS_NOTEXIST;
             goto error;
@@ -539,6 +564,7 @@ namespace engine
       }
 
    done :
+      // PD_TRACE_EXITRC ( SDB__SDB_DMSCB__CSCBNMREMVP1CANCEL, rc );
       return rc ;
    error :
       goto done ;
@@ -551,6 +577,7 @@ namespace engine
                                        SDB_DMS_CSCB *&pCSCB )
    {
       INT32 rc = SDB_OK ;
+      //PD_TRACE_ENTRY ( SDB__SDB_DMSCB__CSCBNMREMVP2 );
       dmsStorageUnitID suID ;
       UINT32 csLID = ~0 ;
 #if defined (_WINDOWS)
@@ -561,10 +588,14 @@ namespace engine
       pCSCB = NULL ;
       {
          DMSCB_XLOCK
+         // in this phase, the cs must be moved to del-map.
          if ( _cscbNameMap.end() == (it = _cscbNameMap.find(pName)) )
          {
+            // there must be some errors if the cs is not in del-map.
             SDB_ASSERT( FALSE, "faint, why the cs is not in map?" );
 
+            // if we no longer able to find the collectionspace, or the same
+            // name maps to another suID, then let's get out of here
             rc = SDB_DMS_CS_NOTEXIST ;
             goto error ;
          }
@@ -580,6 +611,7 @@ namespace engine
          _cscbNameMap.erase(it) ;
          _freeList.push_back ( suID ) ;
 
+         // log here
          if ( dpsCB )
          {
             dpsMergeInfo info ;
@@ -602,6 +634,7 @@ namespace engine
       }
 
    done :
+      // PD_TRACE_EXITRC ( SDB__SDB_DMSCB__CSCBNMREMVP2, rc );
       return rc ;
    error :
       pCSCB = NULL ;
@@ -837,6 +870,7 @@ namespace engine
       lobPageSz = su->getLobPageSize() ;
       if ( NULL != dpsCB )
       {
+         // reserved log-size
          rc = dpsCSCrt2Record( pName, pageSize, lobPageSz, record ) ;
          if ( SDB_OK != rc )
          {
@@ -855,17 +889,21 @@ namespace engine
       }
 
       rc = _CSCBNameInsert ( pName, topSequence, su, suID ) ;
+      // push cs into page clean history list
       if ( SDB_OK == rc )
       {
          INT32 tempRC = SDB_OK ;
+         // we don't care if the page clean su is added into list or not
          tempRC = _joinPageCleanSU ( suID ) ;
          if ( tempRC )
          {
+            // just show warning, doesn't hurt too much
             PD_LOG ( PDWARNING,
                      "Failed to join storage unit to page clean history, "
                      "rc = %d", tempRC ) ;
          }
       }
+      // write dps
       if ( SDB_OK == rc && dpsCB )
       {
          UINT32 suLID = su->LogicalCSID() ;
@@ -916,6 +954,7 @@ namespace engine
          dmsStorageUnit *su = cscb->_su ;
          SDB_ASSERT ( su, "storage unit pointer can't be NULL" ) ;
 
+         // release the DMSCB latch before attempting to drop the collectionspace
          _mutex.release_shared() ;
          rc = _CSCBNameRemove ( pName, cb, dpsCB, pCSCB ) ;
 
@@ -962,6 +1001,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      //PD_TRACE_ENTRY ( SDB__SDB_DMSCB_DROPCSP1 ) ;
       if ( !pName )
       {
          rc = SDB_INVALIDARG ;
@@ -979,12 +1019,14 @@ namespace engine
          dmsStorageUnit *su = cscb->_su ;
          SDB_ASSERT ( su, "storage unit pointer can't be NULL" ) ;
 
+         // release the DMSCB latch before attempting to drop the collectionspace
          _mutex.release_shared() ;
          rc = _CSCBNameRemoveP1( pName, cb, dpsCB ) ;
          PD_RC_CHECK( rc, PDERROR,
                      "failed to drop cs(rc=%d)", rc );
       }
    done :
+      //PD_TRACE_EXITRC ( SDB__SDB_DMSCB_DROPCSP1, rc );
       return rc ;
    error :
       goto done ;
@@ -996,6 +1038,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      //PD_TRACE_ENTRY ( SDB__SDB_DMSCB_DROPCSP1CANCEL ) ;
       if ( !pName )
       {
          rc = SDB_INVALIDARG ;
@@ -1006,6 +1049,7 @@ namespace engine
                   "failed to cancel remove cs(rc=%d)",
                   rc );
    done :
+      //PD_TRACE_EXITRC ( SDB__SDB_DMSCB_DROPCSP1CANCEL, rc );
       return rc ;
    error :
       goto done ;
@@ -1018,6 +1062,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       SDB_DMS_CSCB *pCSCB = NULL ;
 
+      //PD_TRACE_ENTRY ( SDB__SDB_DMSCB_DROPCSP2 ) ;
       if ( !pName )
       {
          rc = SDB_INVALIDARG ;
@@ -1028,6 +1073,7 @@ namespace engine
 
          if ( SDB_OK == rc && pCSCB )
          {
+            // if remove file failed, we can do nothing
             rc = pCSCB->_su->remove() ;
             SDB_OSS_DEL pCSCB ;
             PD_RC_CHECK( rc, PDERROR,
@@ -1035,6 +1081,7 @@ namespace engine
          }
       }
    done :
+      //PD_TRACE_EXITRC ( SDB__SDB_DMSCB_DROPCSP2, rc );
       return rc ;
    error :
       goto done ;
@@ -1056,6 +1103,7 @@ namespace engine
       {
          su = NULL ;
          dmsStorageUnitID suID = (*it).second ;
+         //ossScopedLock lock ( _latchVec[suID], SHARED ) ;
          ossScopedRWLock lock ( _latchVec[suID], SHARED ) ;
          SDB_DMS_CSCB *cscb = _cscbVec[suID] ;
          if ( !cscb )
@@ -1104,6 +1152,7 @@ namespace engine
          {
             continue ;
          }
+         // do not dump temp cs
          else if ( dmsIsSysCSName(cscb->_name) &&
                    0 == ossStrcmp(cscb->_name, SDB_DMSTEMP_NAME ) )
          {
@@ -1112,6 +1161,7 @@ namespace engine
          monCollectionSpace cs ;
          dmsStorageUnitStat statInfo ;
 
+         // get stat info
          su->getStatInfo( statInfo ) ;
          totalDataFreeSize    = su->totalFreeSize( DMS_SU_DATA ) +
                                 statInfo._totalDataFreeSpace ;
@@ -1177,6 +1227,7 @@ namespace engine
    void _SDB_DMSCB::dumpInfo ( INT64 &totalFileSize )
    {
       totalFileSize = 0;
+      // PD_TRACE_ENTRY ( SDB__SDB_DMSCB_DUMPINFO4 );
       dmsStorageUnit *su = NULL ;
       DMSCB_SLOCK
 #if defined (_WINDOWS)
@@ -1198,6 +1249,7 @@ namespace engine
          SDB_ASSERT ( su, "storage unit pointer can't be NULL" );
          totalFileSize += su->totalSize();
       }
+      //PD_TRACE_EXIT ( SDB__SDB_DMSCB_DUMPINFO4 );
    }
 
    dmsTempCB *_SDB_DMSCB::getTempCB ()
@@ -1205,6 +1257,13 @@ namespace engine
       return &_tempCB ;
    }
 
+   // this function get the first su in _pageCleanHistoryList if the last clean
+   // timestamp is greater than pagecleanInterval, otherwise set suID to
+   // DMS_INVALID_SUID for nothing to clean
+   // Once the first su is dispatched, it will be removed from the list and
+   // being locked
+   // The SU will be added back to list once page cleaning is finished by
+   // calling joinPageCleanSU
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_DISPATCHPAGECLEANSU, "_SDB_DMSCB::dispatchPageCleanSU" )
    _dmsStorageUnit *_SDB_DMSCB::dispatchPageCleanSU ( dmsStorageUnitID *suID )
    {
@@ -1218,19 +1277,26 @@ namespace engine
       DMSCB_XLOCK
       if ( _pageCleanHistoryList.size() == 0 )
          goto done ;
+      // get the first su in the list
       firstSU = _pageCleanHistoryList.front() ;
+      // get delta time of the first su's last refresh time and current time
       deltaTime = pmdGetKRCB()->getCurTime () - firstSU.first ;
+      // deltaTime.toUINT64 returns timestamp in microseconds, so we need to
+      // convert to milliseconds by dividing 1000
       if ( deltaTime.toUINT64() / 1000 >
            (UINT64)optCB->getPageCleanInterval() )
       {
+         // that means we need to dispatch the su
          PD_TRACE1 ( SDB__SDB_DMSCB_DISPATCHPAGECLEANSU,
                      PD_PACK_ULONG ( firstSU.second ) ) ;
+         // if we can find the cs, let's lock the cs and return suID
          if ( NULL != _cscbVec[firstSU.second] )
          {
             *suID = firstSU.second ;
             _latchVec[*suID]->lock_r() ;
             su = _cscbVec[*suID]->_su ;
          }
+         // pop the su from history list
          _pageCleanHistorySet.erase ( firstSU.second ) ;
          _pageCleanHistoryList.pop_front () ;
       }
@@ -1239,6 +1305,8 @@ namespace engine
       return su ;
    }
 
+   // add storage unit back to page clean history list with current timestamp as
+   // last refresh time
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB_JOINPAGECLEANSU, "_SDB_DMSCB::joinPageCleanSU" )
    INT32 _SDB_DMSCB::joinPageCleanSU ( dmsStorageUnitID suID )
    {
@@ -1260,22 +1328,31 @@ namespace engine
       goto done ;
    }
 
+   // same as joinPageCleanSU, without latch
+   // we have to be careful that the su may be dropped before joining the su, so
+   // we have to check up first
    // PD_TRACE_DECLARE_FUNCTION ( SDB__SDB_DMSCB__JOINPAGECLEANSU, "_SDB_DMSCB::_joinPageCleanSU" )
    INT32 _SDB_DMSCB::_joinPageCleanSU ( dmsStorageUnitID suID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__SDB_DMSCB__JOINPAGECLEANSU ) ;
 
+      // check if suID is still in the list
       SDB_DMS_CSCB *cscb = _cscbVec [ suID ] ;
       if ( cscb &&
            0 == _pageCleanHistorySet.count ( suID ) )
       {
+         // note there could be a small timing hole that the CS is recreate
+         // after it's dropped, before the joinpagecleansu is called.
+         // Therefore we have to count the history set every time, to make sure
+         // the suID doesn't exist in the list already
          _pageCleanHistoryList.push_back ( std::make_pair(
                pmdGetKRCB()->getCurTime (), suID ) ) ;
          _pageCleanHistorySet.insert ( suID ) ;
       }
       else if ( !cscb )
       {
+         // if the cs no longer exist, we don't have to push it back to list
          rc = SDB_DMS_CS_NOTEXIST ;
          goto error ;
       }

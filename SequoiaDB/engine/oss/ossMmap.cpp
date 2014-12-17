@@ -42,6 +42,7 @@
 #if defined (_LINUX)
 #include <sys/mman.h>
 #elif defined (_WINDOWS)
+// this defines DMS page size, need to verify with Windows page granularity
 #include "dms.hpp"
 #endif
 
@@ -77,6 +78,7 @@ void _ossMmapFile::close ()
 {
    PD_TRACE_ENTRY ( SDB__OSSMMF_CLOSE );
    OSSMMAP_XLOCK
+   // clear all maped regions
    for ( vector< ossMmapSegment >::iterator i = _segments.begin();
          i != _segments.end(); i++ )
    {
@@ -91,6 +93,7 @@ void _ossMmapFile::close ()
 #endif
    }
    _segments.clear() ;
+   // close opened file
    if ( _opened )
    {
       ossClose ( _file ) ;
@@ -135,10 +138,12 @@ INT32 _ossMmapFile::map ( UINT64 offset, UINT32 length, void **pAddress )
 #if defined (_WINDOWS)
    SYSTEM_INFO si;
 #endif
+   // if we don't want to map anything, just return success
    if ( 0 == length )
    {
       goto done ;
    }
+   // then let's get file size to make sure we are mapping right range
    rc = ossGetFileSize ( &_file, (INT64*)&fileSize ) ;
    if ( rc )
    {
@@ -161,6 +166,7 @@ INT32 _ossMmapFile::map ( UINT64 offset, UINT32 length, void **pAddress )
 
    SDB_ASSERT ( length!=0, "invalid length to map" ) ;
 
+   // map region into memory
 #if defined (_LINUX)
    segment = mmap( NULL, length, PROT_READ|PROT_WRITE, MAP_SHARED,
                    _file.fd, offset ) ;
@@ -183,8 +189,12 @@ INT32 _ossMmapFile::map ( UINT64 offset, UINT32 length, void **pAddress )
       }
       goto error ;
    }
+   // advise kernel to not copy the memory during fork
+   // we don't care the return value anyway
    madvise ( segment, length, MADV_DONTFORK|MADV_SEQUENTIAL ) ;
 #elif defined (_WINDOWS)
+   // make sure the requested offset is aligned with OS memory allocation
+   // granularity. Otherwise MapViewOfFile will fail
    GetSystemInfo(&si);
    if ( offset % si.dwAllocationGranularity != 0 )
    {

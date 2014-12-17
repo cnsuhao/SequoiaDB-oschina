@@ -159,6 +159,7 @@ namespace engine
          CHAR localPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
          CHAR path[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
          string svcname = vm[PMD_OPTION_SVCNAME].as<string>() ;
+         // break service names using ';'
          rc = utilSplitStr( svcname, listServices, ", \t" ) ;
          if ( rc )
          {
@@ -214,6 +215,7 @@ namespace engine
       if ( vm.count( PMD_OPTION_OPTIONS ) )
       {
          options = vm[ PMD_OPTION_OPTIONS ].as<string>() ;
+         // can't include '-c/--confpath/-p/--svcname'
          if ( ossStrstr( options.c_str(), "-c" ) ||
               ossStrstr( options.c_str(), "-p" ) ||
               ossStrstr( options.c_str(),
@@ -246,6 +248,7 @@ namespace engine
 
       if ( pConfPath && 0 != ossStrlen( pConfPath ) )
       {
+         // when is force, the config file is not exist, can't add config info
          if ( !isForce || 0 == ossAccess( pConfPath ) )
          {
             listArgv.push_back( SDBCM_OPTION_PREFIX PMD_OPTION_CONFPATH ) ;
@@ -257,6 +260,7 @@ namespace engine
       {
          listArgv.push_back( pOptions ) ;
       }
+      // when is force, need add svcname
       if ( isForce && svcname && 0 != ossStrlen( svcname ) )
       {
          listArgv.push_back( SDBCM_OPTION_PREFIX PMD_OPTION_SVCNAME ) ;
@@ -291,6 +295,7 @@ namespace engine
 
       init( desc, all ) ;
 
+      // validate arguments
       rc = resolveArgument ( desc, all, vm, argc, argv, configs, nodesInfo,
                              typeFilter, roleFilter, options ) ;
       if ( rc )
@@ -316,6 +321,7 @@ namespace engine
          isForce = TRUE ;
       }
 
+      // make path
       rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
@@ -336,7 +342,9 @@ namespace engine
       {
          useAgr = FALSE ;
          utilNodeInfo info ;
+         // get all configs
          CHAR localPath [ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+         // build 'conf/local' file path
          rc = utilBuildFullPath( rootPath, SDBCM_LOCAL_PATH,
                                  OSS_MAX_PATHSIZE, localPath ) ;
          if ( rc )
@@ -370,11 +378,13 @@ namespace engine
          handles.push_back( (OSSHANDLE)0 ) ;
       }
 
+      // start nodes
       for ( UINT32 j = 0 ; j < configs.size() ; ++j )
       {
          ++total ;
          utilNodeInfo &info = nodesInfo[ j ] ;
          OSSHANDLE &handle = handles[ j ] ;
+         // first check
          rc = utilGetServiceByConfigPath( configs[ j ], svcname,
                                           info._svcname ) ;
          if ( SDB_OK == rc && !svcname.empty() &&
@@ -387,6 +397,7 @@ namespace engine
             continue ;
          }
 
+         // start node
          buildListArgs( enginePathName, isForce,
                         configs[ j ].c_str(),
                         options.c_str(),
@@ -404,6 +415,7 @@ namespace engine
          info._svcname = svcname ;
       }
 
+      // wait node to ok
       for ( UINT32 j = 0 ; j < configs.size() ; ++j )
       {
          utilNodeInfo &info = nodesInfo[ j ] ;
@@ -412,10 +424,12 @@ namespace engine
 
          if ( !info._orgname.empty() )
          {
+            // alread start node
             continue ;
          }
          if ( info._pid == OSS_INVALID_PID && info._svcname.empty() )
          {
+            // failed node
             continue ;
          }
          tmpRC = utilWaitNodeOK( info, info._svcname.c_str(), info._pid ) ;
@@ -440,6 +454,7 @@ namespace engine
                        getErrDesp( utilShellRC2RC( rc ) ) ) ;
             ++failedNum ;
          }
+         // close handle
          ossCloseProcessHandle( handle ) ;
       }
 

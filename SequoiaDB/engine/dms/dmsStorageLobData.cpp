@@ -269,6 +269,7 @@ namespace engine
          goto error ;
       }
 
+      // reopen when the offset grater than lastSz
       if ( writeOffset + len > _lastSz )
       {
          rc = _reopen() ;
@@ -362,6 +363,7 @@ namespace engine
          goto error ;
       }
 
+      // reopen when the offset grater than lastSz
       if ( readOffset + len > _lastSz )
       {
          rc = _reopen() ;
@@ -419,6 +421,7 @@ namespace engine
          goto error ;
       }
 
+      // reopen when the offset grater than lastSz
       if ( ( SINT64 )(offset + len) > _lastSz )
       {
          rc = _reopen() ;
@@ -498,6 +501,7 @@ namespace engine
       SDB_ASSERT( 0 == len % OSS_FILE_DIRECT_IO_ALIGNMENT, "impossible" ) ;
       OSSFILE file ;
       UINT32 mode = OSS_READWRITE | OSS_SHAREREAD  ;
+      /// free in done.
       CHAR *extendBuf = NULL ;
       UINT32 bufSize = DMS_LOBD_EXTEND_LEN ;
 
@@ -571,6 +575,7 @@ namespace engine
             }
             else
             {
+               /// we only need to write some bytes at the end of file.
                bufSize = OSS_FILE_DIRECT_IO_ALIGNMENT ;
                extendSize = OSS_FILE_DIRECT_IO_ALIGNMENT ;
             }
@@ -776,6 +781,7 @@ namespace engine
          t.size = sizeof( header ) ;   
       }
 
+      /// no need to align size of header.
       rc = ossWriteN( &_file, ( const CHAR * )( t.buf ), t.size ) ;
       if ( SDB_OK != rc )
       {

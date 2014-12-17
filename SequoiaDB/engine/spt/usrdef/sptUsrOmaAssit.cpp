@@ -78,6 +78,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Connect to %s:%s failed, rc: %d",
                    pHostName, pServiceName, rc ) ;
 
+      // get coord group
       rc = _getCoordGroupHandle( _groupHandle ) ;
       PD_RC_CHECK( rc, PDERROR, "Get group handle failed, rc: %d", rc ) ;
 
@@ -207,6 +208,7 @@ namespace engine
       handle = (ossValuePtr)r ;
 
       ossMemset( (void*)r, 0, sizeof( sdbRNStruct ) ) ;
+      // set members
       r->_handleType = SDB_HANDLE_TYPE_REPLICANODE ;
       r->_connection = s->_connection ;
       r->_sock = s->_sock ;
@@ -243,6 +245,7 @@ namespace engine
       handle = (ossValuePtr)r ;
 
       ossMemset( (void*)r, 0, sizeof( sdbRGStruct ) ) ;
+      // set members
       r->_handleType = SDB_HANDLE_TYPE_REPLICAGROUP ;
       r->_connection = _handle ;
       r->_sock = connection->_sock ;

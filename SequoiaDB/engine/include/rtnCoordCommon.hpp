@@ -220,6 +220,8 @@ namespace engine
    INT32 rtnCoordGetRemoteCataGroupInfoByAddr ( pmdEDUCB *cb,
                                         CoordGroupInfoPtr &groupInfo );
 
+   /// if only want to get groupinfo by groupid,
+   /// set groupName = NULL.
    INT32 rtnCoordGetRemoteGroupInfo ( pmdEDUCB *cb,
                               UINT32 groupID,
                               const CHAR *groupName,

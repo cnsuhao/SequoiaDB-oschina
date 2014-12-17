@@ -1,6 +1,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! */
 #ifndef clsTRACE_H__
 #define clsTRACE_H__
+// Component: cls
 #define SDB__CLSVSSD_HDINPUT                               0x800000688L
 #define SDB__CLSVSSD_HDTMOUT                               0x800000689L
 #define SDB__CLSVSSD_ACTIVE                                0x80000068aL

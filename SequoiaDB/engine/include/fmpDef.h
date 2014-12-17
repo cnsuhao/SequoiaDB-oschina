@@ -49,6 +49,8 @@
 #define PD_FMP_DIAGLOG_PREFIX       "fmpdiag"
 #define PD_FMP_DIAGLOG_SUBFIX       "log"
 
+/// WARNING: do not modify this define.
+/// spdFMP.cpp::SPD_NEXT is depend on this define.
 #define FMP_MSG_MAGIC               {0xFF, 0xFE, 0xFD, 0xFB, 0}
 
 #define FMP_FUNC_VALUE        FIELD_NAME_FUNC
@@ -73,6 +75,7 @@
 #define FMP_CONTROL_STEP_DOWNLOAD   1
 #define FMP_CONTROL_STEP_EVAL       2
 #define FMP_CONTROL_STEP_FETCH      3
+/// when add step, max must be changed.
 #define FMP_CONTROL_SETP_MAX        4
 
 

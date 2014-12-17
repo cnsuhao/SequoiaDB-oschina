@@ -149,7 +149,9 @@ namespace engine
    {
       PD_LOG( PDEVENT, "Recieve interrupt msg[handle: %u, tid: %u]",
               handle, header->TID ) ;
+      // release the ' handle + tid ' all context
       _delContext( handle, header->TID ) ;
+      // not reply
       return SDB_OK ;
    }
 
@@ -158,7 +160,9 @@ namespace engine
    {
       PD_LOG( PDEVENT, "Recieve disconnect msg[handle: %u, tid: %u]",
               handle, header->TID ) ;
+      // release the ' handle + tid ' all context
       _delContext( handle, header->TID ) ;
+      // not reply
       return SDB_OK ;
    }
 
@@ -231,6 +235,8 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB_CATMAINCT_INIT ) ;
 
+      // after initializing, let's attempt to create collectionspace and
+      // collections
       rc = _ensureMetadata () ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to create metadata "
                     "collections/indexes, rc = %d", rc ) ;
@@ -294,6 +300,7 @@ namespace engine
       goto done ;
    }
 
+   // NO NEED TO SYNC LOG FOR ANY CREATION
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT__ENSUREMETADATA, "catMainController::_ensureMetadata" )
    INT32 catMainController::_ensureMetadata()
    {
@@ -301,6 +308,7 @@ namespace engine
       pmdEDUCB *cb = pmdGetThreadEDUCB() ;
       PD_TRACE_ENTRY ( SDB_CATMAINCT__ENSUREMETADATA ) ;
 
+      // create SYSCAT.SYSNODES
       rc = _createSysCollection( CAT_NODE_INFO_COLLECTION, cb ) ;
       if ( rc )
       {
@@ -319,6 +327,7 @@ namespace engine
          goto error ;
       }
 
+      // create SYSCAT.SYSCOLLECTIONSPACES
       rc = _createSysCollection ( CAT_COLLECTION_SPACE_COLLECTION, cb ) ;
       if ( rc )
       {
@@ -331,6 +340,7 @@ namespace engine
          goto error ;
       }
 
+      // create SYSCAT.SYSCOLLECTIONS
       rc = _createSysCollection ( CAT_COLLECTION_INFO_COLLECTION, cb ) ;
       if ( rc )
       {
@@ -343,6 +353,7 @@ namespace engine
          goto error ;
       }
 
+      // create SYSCAT.SYSTASKS
       rc = _createSysCollection ( CAT_TASK_INFO_COLLECTION, cb ) ;
       if ( rc )
       {
@@ -355,6 +366,7 @@ namespace engine
          goto error ;
       }
 
+      // create SYSCAT.SYSDOMAINS
       rc = _createSysCollection ( CAT_DOMAIN_COLLECTION, cb ) ;
       if ( rc )
       {
@@ -367,6 +379,7 @@ namespace engine
          goto error ;
       }
 
+      // create SYSCAT.SYSHISTORY
       rc = _createSysCollection( CAT_HISTORY_COLLECTION, cb ) ;
       if ( rc )
       {
@@ -379,6 +392,7 @@ namespace engine
          goto error ;
       }
 
+      /// procedures
       rc = _createSysCollection ( CAT_PROCEDURES_COLLECTION, cb ) ;
       if ( rc )
       {
@@ -398,6 +412,8 @@ namespace engine
       goto done ;
    }
 
+   // when we activate the main controller, we should always assume there's
+   // metadata collections exist
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT_ACTIVE, "catMainController::_onActiveEvent" )
    INT32 catMainController::_onActiveEvent( pmdEDUEvent *event )
    {
@@ -455,6 +471,7 @@ namespace engine
          _pCatCB->getCatNodeMgr()->getChangeEvent()->signal() ;
          PD_LOG( PDERROR, "Post deactive event to node manager failed, "
                  "rc: %d", rc ) ;
+         // run continue
       }
       _pCatCB->getCatlogueMgr()->getChangeEvent()->reset() ;
       rc = _pEduMgr->postEDUPost( _catalogManagerEDUID,
@@ -464,6 +481,7 @@ namespace engine
          _pCatCB->getCatlogueMgr()->getChangeEvent()->signal() ;
          PD_LOG( PDERROR, "Post deactive event to catalog manager failed, "
                  "rc: %d", rc ) ;
+         // run continue
       }
 
       _pCatCB->getCatlogueMgr()->getChangeEvent()->wait() ;
@@ -518,6 +536,7 @@ namespace engine
       MsgOpReply *pReply     = NULL ;
 
       PD_TRACE_ENTRY ( SDB_CATMAINCT_GETMOREMSG ) ;
+      // send the reply whether successful or not
       rc = rtnGetMore( pGetMore->contextID, pGetMore->numToReturn,
                        buffObj, _pEDUCB, _pRtnCB ) ;
       if ( rc )
@@ -525,6 +544,7 @@ namespace engine
          _delContextByID( pGetMore->contextID, FALSE );
       }
       msgLen =  sizeof(MsgOpReply) + buffObj.size() ;
+      // free by end of function
       pReply = (MsgOpReply *)SDB_OSS_MALLOC( msgLen );
       if ( NULL == pReply )
       {
@@ -831,6 +851,8 @@ namespace engine
       {
          PD_LOG ( PDERROR, "failed to send the message(routeID=%lld)",
                   pMsgHeader->routeID.value);   //print the routeID, don't print handle,
+                                                //because we can't get any
+                                                //useful info from handle
          goto error ;
       }
    done :
@@ -1144,6 +1166,7 @@ namespace engine
             ++iterMap ;
             continue ;
          }
+         // rtn delete
          _pRtnCB->contextDelete( iterMap->first, _pEDUCB );
          _contextLst.erase( iterMap++ ) ;
       }
@@ -1166,6 +1189,7 @@ namespace engine
             ++iterMap ;
             continue ;
          }
+         // rtn delete
          _pRtnCB->contextDelete( iterMap->first, _pEDUCB ) ;
          _contextLst.erase( iterMap++ ) ;
       }

@@ -42,6 +42,7 @@
  *
  */
 
+// in windows, both 32 and 64 shows _WIN32
 #if defined (_WIN32)
    #define _WINDOWS
    #include <ws2tcpip.h>
@@ -50,6 +51,8 @@
    #define __FUNC__ __FUNCTION__
 #endif
 
+// platform macros
+// only windows 64 bit has _win64
 #if defined (_WIN32) && !defined (_WIN64)
    #define _WINDOWS32
 #elif defined (_WIN64)
@@ -67,6 +70,7 @@
    #define _LINUX
 #endif
 
+// architecture
 #if defined ( _WINDOWS32 ) || defined ( _LIN32 )
    #define OSS_ARCH_32
 #elif defined ( _WINDOWS64 ) || defined ( _LIN64 ) || defined ( _PPCLIN64 )
@@ -97,20 +101,26 @@
    #define __FUNC__ __func__
    #define SDB_EXPORT
 
+   // max fd size is 65528 on linux
    #define OSS_FD_SETSIZE  65528
+   // this header must be included BEFORE __FD_SETSIZE declaration
    #include <bits/types.h>
    #include <linux/posix_types.h>
 
+   // must not include select.h before the file
    #if defined (SDB_ENGINE) || defined (SDB_CLIENT)
       #ifdef _SYS_SELECT_H
       # error "Can't include <sys/select.h> before the file"
       #endif //_SYS_SELECT_H
    #endif //SDB_ENGINE || SDB_CLIENT
 
+   // __FD_SETSIZE is only for Linux and HPUX
    #undef __FD_SETSIZE
    #define __FD_SETSIZE    OSS_FD_SETSIZE
+   // FD_SETSIZE is for all other unix
    #undef FD_SETSIZE
    #define FD_SETSIZE      __FD_SETSIZE
+   // sys/types.h must be included AFTER __FD_SETSIZE declaration
    #include <sys/types.h>
 
 #elif defined _WINDOWS
@@ -121,6 +131,7 @@
    #else
       #define SDB_EXPORT __declspec(dllimport)
    #endif
+   // we can't change fd_setsize for windows
    #define OSS_FD_SETSIZE  FD_SETSIZE
    #include <sys/types.h>
 #endif

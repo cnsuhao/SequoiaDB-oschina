@@ -1,6 +1,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! */
 #ifndef ossTRACE_H__
 #define ossTRACE_H__
+// Component: oss
 #define SDB_OSSRSTSYSSIG                                   0x100000007d2L
 #define SDB_OSSSIGHNDABT                                   0x100000007d3L
 #define SDB_OSSFUNCADDR2NM                                 0x100000007d4L

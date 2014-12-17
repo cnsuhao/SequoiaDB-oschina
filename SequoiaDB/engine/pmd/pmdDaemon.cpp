@@ -150,6 +150,7 @@ namespace engine
 
    iPmdDMNChildProc::iPmdDMNChildProc()
    {
+      // first run: wait for 1 cycle to check if the child is start
       _deadTime = PMDDMN_SHMSTAT_EXPRIRED_TIMES - 1 ;
       _procInfo = NULL;
       _pid = OSS_INVALID_PID;

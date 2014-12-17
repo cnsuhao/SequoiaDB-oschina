@@ -71,6 +71,8 @@ namespace engine
    {
       _name.clear() ;
 
+      /// when it is a object,
+      /// value will be released in js destructor.
       if ( String == _type )
       {
          CHAR *p = ( CHAR * )_value ;

@@ -140,8 +140,11 @@ void _ossAsioMsgProcessor::_handleReadPacketHead (
    }
    if ( !_message )
    {
+      // page size unit is 4096 bytes
       INT32 bufSize = ossRoundUpToMultipleX ( _header.messageLength,
                                               SDB_PAGE_SIZE ) ;
+      // currently let's malloc a buffer. later we should change this to a
+      // static log buffer to avoid frequent dynamic memory allocation
       _message = (CHAR*)SDB_OSS_MALLOC ( bufSize ) ;
       if ( !_message )
       {
@@ -268,6 +271,7 @@ void _ossASIO::_handleAccept ( boost::shared_ptr<ossAsioMsgProcessor> processor,
       goto done ;
    }
    processor->run() ;
+   // repeatedly call accept in order to accept more messages
    _accept() ;
 done :
    PD_TRACE_EXIT ( SDB__OSSAIO__HNDAPT );
@@ -306,6 +310,7 @@ INT32 _ossASIO::connect ( CHAR *pHostName, CHAR *pServiceName,
    if ( !rc )
    {
       *sock = &processor->socket() ;
+      // start run the processor if connection is established
       processor->run() ;
    }
    else

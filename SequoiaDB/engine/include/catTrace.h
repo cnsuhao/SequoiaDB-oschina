@@ -1,6 +1,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! */
 #ifndef catTRACE_H__
 #define catTRACE_H__
+// Component: cat
 #define SDB_CATALOGCB_INIT                                 0x400000145L
 #define SDB_CATALOGCB_INSERTGROUPID                        0x400000146L
 #define SDB_CATALOGCB_REMOVEGROUPID                        0x400000147L

@@ -71,14 +71,19 @@ namespace engine
 
       BSONObj toBson( BOOLEAN keepAlias = TRUE ) const ;
 
+      /// get all fields in condition tree.
+      /// eg: a > 1 and b < d and c = "abc"
+      /// --> a, b, d
       INT32 getAllAttr( qgmDbAttrPtrVec &fields ) ;
 
+      /// _qgmConditionNode in nodes should be freed by caller.
       INT32 separate( qgmConditionNodePtrVec &nodes ) ;
 
       INT32 merge( qgmConditionNodePtrVec &nodes ) ;
 
       INT32 merge( _qgmConditionNode *node ) ;
 
+//      BOOLEAN validate() ;
 
    private:
       INT32 _getAllAttr( _qgmConditionNode *node,

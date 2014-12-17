@@ -437,6 +437,8 @@ public class ReplicaGroup {
 	private SDBMessage adminCommand(String cmdType, String contextType,
 			BSONObject query) throws BaseException {
 		IConnection connection = sequoiadb.getConnection();
+		// Admin command request
+		// long reqId = 0;
 		BSONObject dummyObj = new BasicBSONObject();
 		SDBMessage sdbMessage = new SDBMessage();
 		String commandString = SequoiadbConstants.ADMIN_PROMPT + cmdType + " "
@@ -448,6 +450,8 @@ public class ReplicaGroup {
 		sdbMessage.setCollectionFullName(commandString);
 		sdbMessage.setFlags(0);
 		sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
+		// sdbMessage.setResponseTo(reqId);
+		// reqId++;
 		sdbMessage.setRequestID(0);
 		sdbMessage.setSkipRowsCount(-1);
 		sdbMessage.setReturnRowsCount(-1);

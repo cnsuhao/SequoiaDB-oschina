@@ -166,6 +166,7 @@ namespace engine
       }
       else
       {
+         /// do nothing.
       }
 
    done:
@@ -181,6 +182,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__QGMPLSCAN__EXECONDATA ) ;
       INT32 rc = SDB_OK ;
 
+      // close prefetch
       BSONObj selector = _selector.selector() ;
       rc = rtnQuery ( _collection.toString().c_str(), selector, _condition,
                       _orderby, _hint, 0, eduCB, _skip, _return,
@@ -288,6 +290,7 @@ namespace engine
       }
       else
       {
+         /// do nothing.
       }
 
    done:

@@ -332,6 +332,7 @@ namespace engine
          virtual INT32   doCommand() ;
 
       protected:
+                         // overwrite
          INT32           _getRestHostList( string &clusterName, 
                                            list<BSONObj> &hostInfo ) ;
 
@@ -354,6 +355,7 @@ namespace engine
          INT32           _getPacketFullPath( char *path ) ;
          INT32           _checkHostExistence( list<BSONObj> &hostInfoList ) ;
 
+         //***********************
          INT32           _addHost2( const string &clusterName, 
                                     list<BSONObj> &hostInfoList, 
                                     UINT64 &taskID ) ;
@@ -361,6 +363,7 @@ namespace engine
                                                list<BSONObj> &hostInfoList, 
                                                BSONObj &conf ) ;
          INT32           _addHostByAgent( BSONObj &conf, UINT64 taskID ) ;
+         //************************
    };
 
    class omListHostCommand : public omCreateClusterCommand

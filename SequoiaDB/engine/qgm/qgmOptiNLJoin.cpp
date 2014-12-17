@@ -102,6 +102,7 @@ namespace engine
       {
          if ( cond->left->value.relegation() == outer()->getAlias( TRUE ) )
          {
+            // swap left and right
             _qgmConditionNode *tmp = cond->left ;
             cond->left = cond->right ;
             cond->right = tmp ;
@@ -123,6 +124,7 @@ namespace engine
             }
             else
             {
+               /// when it is eg or ne, do nothing.
             }
          }
 #ifdef _DEBUG
@@ -167,6 +169,9 @@ namespace engine
 
    BOOLEAN _qgmOptiNLJoin::canSwapInnerOuter() const
    {
+      // if is not inner join, can't swap
+      // if has make condition, can't swap
+      // if has push sort, can't swap
       if ( SQL_GRAMMAR::INNERJOIN != _joinType ||
            _hasMakeVar || _hasPushSort )
       {
@@ -191,6 +196,7 @@ namespace engine
 
    BOOLEAN _qgmOptiNLJoin::needMakeCondition() const
    {
+      // if has condition, and not make
       if ( _condition && !_hasMakeVar )
       {
          return TRUE ;
@@ -224,6 +230,7 @@ namespace engine
 
       if ( _hints.empty() )
       {
+         // create a condtion oprUnit
          condUnit = SDB_OSS_NEW qgmFilterUnit( QGM_OPTI_TYPE_FILTER ) ;
          if ( !condUnit )
          {
@@ -272,6 +279,7 @@ namespace engine
          goto error ;
       }
 
+      // if not inner join, can make condition in init function
       if ( _condition && SQL_GRAMMAR::INNERJOIN != _joinType )
       {
          rc = makeCondition() ;
@@ -299,6 +307,7 @@ namespace engine
             goto done ;
          }
 
+         // create join unit
          joinUnit = SDB_OSS_NEW qgmOprUnit( QGM_OPTI_TYPE_JOIN ) ;
          if ( !joinUnit )
          {
@@ -324,8 +333,11 @@ namespace engine
                      NULL != _condition->left &&
                      NULL != _condition->right, "can not be NULL") ;
          SDB_ASSERT( SQL_GRAMMAR::DBATTR == _condition->left->type &&
+//                     SQL_GRAMMAR::SQLMAX <  _condition->right->type,
                      SQL_GRAMMAR::DBATTR == _condition->right->type,
                      "impossible" ) ;
+         /// here we reset right type with dbattr.
+//         _condition->right->type = SQL_GRAMMAR::DBATTR ;
 
          joinUnit = SDB_OSS_NEW qgmOprUnit( QGM_OPTI_TYPE_JOIN ) ;
          if ( !joinUnit )
@@ -392,6 +404,7 @@ namespace engine
    {
       stringstream ss ;
       ss << "{" << this->_qgmOptiTreeNode::toString() ;
+      // join type
 
       if ( SQL_GRAMMAR::INNERJOIN == _joinType )
       {
@@ -470,6 +483,7 @@ namespace engine
       qgmFilterUnit *outerUnit = NULL ;
       qgmFilterUnit *innerUnit = NULL ;
 
+      // if not make condition, need to make
       if ( needMakeCondition() )
       {
          rc = makeCondition() ;
@@ -483,6 +497,7 @@ namespace engine
 
       if ( QGM_OPTI_TYPE_SORT == oprUnit->getType() )
       {
+         // push to outer
          oprUnit->setDispatchAlias( outer()->getAlias( TRUE ) ) ;
          oprUnit->resetNodeID() ;
          _oprUnits.insert( _oprUnits.begin(), oprUnit ) ;
@@ -533,6 +548,7 @@ namespace engine
             }
          }
 
+         // condition
          conds = filterUnit->getConditions() ;
          itCond = conds.begin() ;
          while ( itCond != conds.end() )
@@ -543,6 +559,7 @@ namespace engine
                condNode = condNode->left ;
             }
 
+            // const value, add to outer and inner
             if ( condNode->type != SQL_GRAMMAR::DBATTR )
             {
                outerUnit->addCondition( *itCond ) ;
@@ -584,6 +601,7 @@ namespace engine
             outerUnit->addOpField( dummyField ) ;
          }
 
+         // if varList is not in select fields, add
          QGM_VARLIST::iterator itVar = _varList.begin() ;
          while ( itVar != _varList.end() )
          {
@@ -598,6 +616,7 @@ namespace engine
             ++itVar ;
          }
 
+         /// if it is a hash join, check all the condition fields exist in sub.
          if ( !_hints.empty() )
          {
             SDB_ASSERT( _varList.empty(), "must be empty" ) ;
@@ -650,6 +669,7 @@ namespace engine
          innerUnit = NULL ;
 
          filterUnit->emptyCondition() ;
+         // delete
          SDB_OSS_DEL filterUnit ;
       }
       else
@@ -748,6 +768,7 @@ namespace engine
                                QGM_HINT_HASHJOIN,
                                itr->value.size() ))
          {
+            /// TODO: judgement should be done in optimize.
             if ( NULL != _condition &&
                  SQL_GRAMMAR::EG == _condition->type )
             {

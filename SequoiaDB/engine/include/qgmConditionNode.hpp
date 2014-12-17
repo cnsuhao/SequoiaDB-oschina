@@ -47,6 +47,7 @@ namespace engine
    {
       qgmDbAttr value ;
 
+      /// when type > SQL_GRAMMAR::SQLMAX, var is effective.
       const BSONElement *var ;
       INT32 type ;
       _qgmConditionNode *left ;

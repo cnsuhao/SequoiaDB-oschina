@@ -8,15 +8,20 @@ import java.util.TreeSet;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
+// import org.apache.hadoop.hive.metastore.api.hive_metastoreConstants;
+// import org.apache.hadoop.hive.metastore.api.Constants;
 import org.apache.hadoop.mapred.JobConf;
 
 public class ConfigurationUtil {
 	public static final Log LOG = LogFactory.getLog(ConfigurationUtil.class.getName());
 	
+	//The parameter name of database name 
 	public static final String SPACE_NAME = "db";
+	//The parameter name of table name 
 	public static final String COLLECTION_NAME = "name";
 	public static final String COLUMN_MAPPING = "columns";
 	
+	//The space name which defined in table property.
 	public static final String CS_NAME = "sdb.space";
 	public static final String CL_NAME = "sdb.collection";
 	public static final String DB_ADDR = "sdb.address";

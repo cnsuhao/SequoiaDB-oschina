@@ -30,13 +30,17 @@
 #include "lib/md5.hpp"
 #include <limits>
 
+//#include "util/json.h"
 #include "bson.hpp"
 #include "util/optime.h"
+//#include <boost/static_assert.hpp>
+//#include <boost/lexical_cast.hpp>
 
 #include "ordering.h"
 #include "util/embedded_builder.h"
 
 
+// make sure our assumptions are valid
 /*BOOST_STATIC_ASSERT( sizeof(short) == 2 );
 BOOST_STATIC_ASSERT( sizeof(int) == 4 );
 BOOST_STATIC_ASSERT( sizeof(long long) == 8 );
@@ -44,6 +48,7 @@ BOOST_STATIC_ASSERT( sizeof(double) == 8 );
 BOOST_STATIC_ASSERT( sizeof(bson::Date_t) == 8 );
 BOOST_STATIC_ASSERT( sizeof(bson::OID) == 12 );*/
 
+//TODO(jbenet) fix these.
 #define out() std::cout
 #ifndef log
 #define log(...) std::cerr
@@ -79,15 +84,18 @@ namespace bson {
     }
 
 
+    // for convenience, '{' is greater than anything and stops number parsing
     inline int lexNumCmp( const char *s1, const char *s2 ) {
         bool p1, p2, n1, n2 ;
         char *e1 ;
         char *e2 ;
         int len1, len2, result ;
+        //cout << "START : " << s1 << "\t" << s2 << endl;
         while( *s1 && *s2 ) {
 
             p1 = ( *s1 == (char)255 );
             p2 = ( *s2 == (char)255 );
+            //cout << "\t\t " << p1 << "\t" << p2 << endl;
             if ( p1 && !p2 )
                 return 1;
             if ( p2 && !p1 )
@@ -97,28 +105,34 @@ namespace bson {
             n2 = isNumber( *s2 );
 
             if ( n1 && n2 ) {
+                // get rid of leading 0s
                 while ( *s1 == '0' ) s1++;
                 while ( *s2 == '0' ) s2++;
 
                 e1 = (char*)s1;
                 e2 = (char*)s2;
 
+                // find length
+                // if end of string, will break immediately ('\0')
                 while ( isNumber (*e1) ) e1++;
                 while ( isNumber (*e2) ) e2++;
 
                 len1 = (int)(e1-s1);
                 len2 = (int)(e2-s2);
 
+                // if one is longer than the other, return
                 if ( len1 > len2 ) {
                     return 1;
                 }
                 else if ( len2 > len1 ) {
                     return -1;
                 }
+                // if the lengths are equal, just strcmp
                 else if ( (result = strncmp(s1, s2, len1)) != 0 ) {
                     return result;
                 }
 
+                // otherwise, the numbers are equal
                 s1 = e1;
                 s2 = e2;
                 continue;
@@ -176,6 +190,7 @@ namespace bson {
                 break;
             default:
                 if ( *i >= 0 && *i <= 0x1f ) {
+                    //TODO: these should be utf16 code-units not bytes
                     char c = *i;
                     ret << "\\u00" << toHexLower(&c, 1);
                 }
@@ -320,6 +335,7 @@ namespace bson {
             }
             else {
                 s << "/" << escape( regex() , true ) << "/";
+                // FIXME Worry about alpha order?
                 for ( const char *f = regexFlags(); *f; ++f ) {
                     switch ( *f ) {
                     case 'g':
@@ -390,6 +406,7 @@ namespace bson {
                 if ( fn[3] == 0 )
                     return BSONObj::NE;
 
+                // matches anything with $near prefix
                 if ( fn[3] == 'a' && fn[4] == 'r')
                     return BSONObj::opNEAR;
             }
@@ -497,6 +514,7 @@ namespace bson {
                 if( L == R ) return 0;
                 return 1;
             }
+            // else fall through
         case NumberInt:
         case NumberDouble: {
             double left = l.number();
@@ -538,6 +556,7 @@ namespace bson {
         }
         case BinData: {
             int lsz = l.objsize(); // our bin data size in bytes,
+                                   // not including the subtype byte
             int rsz = r.objsize();
             if ( lsz - rsz != 0 ) return lsz - rsz;
             return memcmp(l.value()+4, r.value()+4, lsz+1);
@@ -570,6 +589,12 @@ namespace bson {
 
     /* Matcher --------------------------------------*/
 
+// If the element is something like:
+//   a : { $gt : 3 }
+// we append
+//   a : 3
+// else we just append the element.
+//
     void appendElementHandlingGtLt(BSONObjBuilder& b, const BSONElement& e) {
         if ( e.type() == Object ) {
             BSONElement fe = e.embeddedObject().firstElement();
@@ -650,16 +675,22 @@ namespace bson {
             if ( rstart >= rsize )
                 return LEFT_SUBFIELD;
 
+            // find the earliest '.' from current position
             char *a = (char*)strchr ( &l[lstart], '.' ) ;
             char *b = (char*)strchr ( &r[rstart], '.' ) ;
+            // locate the ., or end of the string
             char *lend = ( NULL == a ) ? ( (char*)&l[lsize] ) : a ;
             char *rend = ( NULL == b ) ? ( (char*)&r[rsize] ) : b ;
 
+            // get the original left and right
             char lold = *lend ;
             char rold = *rend ;
+            // set as end of string
             *lend     = '\0' ;
             *rend     = '\0' ;
+            // do string compare
             int x = lexNumCmp ( &l[lstart], &r[rstart] ) ;
+            // restore old value
             *lend     = lold ;
             *rend     = rold ;
             if ( x < 0 )
@@ -714,6 +745,7 @@ namespace bson {
         try {
             BSONObjIterator it( *this );
             while( it.moreWithEOO() ) {
+                // both throw exception on failure
                 BSONElement e = it.next(true);
                 e.validate();
 
@@ -748,6 +780,7 @@ namespace bson {
         BSONObjIterator j(r);
         unsigned mask = 1;
         while ( 1 ) {
+            // so far, equal...
 
             BSONElement l = i.next();
             BSONElement r = j.next();
@@ -783,6 +816,7 @@ namespace bson {
         BSONObjIterator j(r);
         BSONObjIterator k(idxKey);
         while ( 1 ) {
+            // so far, equal...
 
             BSONElement l = i.next();
             BSONElement r = j.next();
@@ -798,6 +832,7 @@ namespace bson {
             /*
                         if( ordered && o.type() == String && strcmp(o.valuestr(), "ascii-proto") == 0 &&
                             l.type() == String && r.type() == String ) {
+                            // note: no negative support yet, as this is just sort of a POC
                             x = _stricmp(l.valuestr(), r.valuestr());
                         }
                         else*/ {
@@ -816,6 +851,7 @@ namespace bson {
        BSONObjBuilder b;
        return b.appendNull("").obj();
     }
+    //BSONObj staticNull = fromjson( "{'':null}" );
     BSONObj staticNull = staticNullObj();
 
     static BSONObj staticUndefinedObj ()
@@ -894,6 +930,7 @@ namespace bson {
                     }
                 }
                 else {
+                    // do nothing: no match
                 }
             }
         }
@@ -955,6 +992,7 @@ namespace bson {
     BSONObj BSONObj::extractFields(const BSONObj& pattern , bool fillWithNull )
       const {
         BSONObjBuilder b(32); // scanandorder.h can make a zillion of these,
+                              // so we start the allocation very small
         BSONObjIterator i(pattern);
         while ( i.moreWithEOO() ) {
             BSONElement e = i.next();
@@ -1206,6 +1244,7 @@ namespace bson {
     }
 
     void dotted2nested(BSONObjBuilder& b, const BSONObj& obj) {
+        //use map to sort fields
         BSONMap sorted = bson2map(obj);
         EmbeddedBuilder eb(&b);
         for(BSONMap::const_iterator it=sorted.begin(); it!=sorted.end(); ++it) {

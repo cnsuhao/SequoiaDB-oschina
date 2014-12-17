@@ -126,8 +126,10 @@ namespace engine
          {
             BSONObj record ( (const CHAR*)pDataPos ) ;
             rc = su->insertRecord ( pCollectionShortName, record, cb, dpsCB ) ;
+            // check return code
             if ( rc )
             {
+               // if we want to skip duplicate key error
                if ( ( SDB_IXM_DUP_KEY == rc ) &&
                     ( FLG_INSERT_CONTONDUP & flags ) )
                {

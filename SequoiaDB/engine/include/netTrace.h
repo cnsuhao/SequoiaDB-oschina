@@ -1,6 +1,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! */
 #ifndef netTRACE_H__
 #define netTRACE_H__
+// Component: net
 #define SDB_NETMLTRTAGT_SYNCSENDWITHOUTSESSION             0x80000002b1L
 #define SDB_NETMLTRTAGT_SYNCSEND                           0x80000002b2L
 #define SDB_NETMLTRTAGT_SYNCSEND2                          0x80000002b3L

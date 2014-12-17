@@ -27,6 +27,8 @@
  */
 
 
+// This Header File is automatically generated, you MUST NOT modify this file anyway!
+// On the contrary, you can modify the xml file "sequoiadb/misc/autogen/optlist.xml" if necessary!
 
 #ifndef PMDOPTIONS_H_
 #define PMDOPTIONS_H_

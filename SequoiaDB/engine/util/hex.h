@@ -1,4 +1,5 @@
 /******************************************************************************/
+// util/hex.h
 
 /*    Copyright 2009 10gen Inc.
  *
@@ -21,6 +22,7 @@
 #include "../bson/util/builder.h"
 #include "pd.hpp"
 namespace engine {
+    //can't use hex namespace because it conflicts with hex iostream function
     inline int fromHex( char c ) {
         if ( '0' <= c && c <= '9' )
             return c - '0';

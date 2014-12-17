@@ -80,6 +80,10 @@ sed -i "s/SDB_ENGINE_VERISON_CURRENT/$begin_ver/g" $pkg_tmp_path/rpm/SPECS/sequo
 sed -i "s/SDB_ENGINE_SUBVERSION_CURRENT/$sub_ver/g" $pkg_tmp_path/rpm/SPECS/sequoiadb.spec
 echo "build the RPM package"
 mkdir -p $pkg_tmp_path/rpm/SOURCES
+mkdir -p $pkg_tmp_path/rpm/BUILD
+mkdir -p $pkg_tmp_path/rpm/BUILDROOT
+mkdir -p $pkg_tmp_path/rpm/RPMS
+mkdir -p $pkg_tmp_path/rpm/SRPMS
 rm -rf $pkg_tmp_path/rpm/SOURCES/*
 mv $pkg_tmp_path/$sdb_name.tar.gz $pkg_tmp_path/rpm/SOURCES
 rpmbuild --rmsource --define "_topdir $pkg_tmp_path/rpm" -bb $pkg_tmp_path/rpm/SPECS/sequoiadb.spec

@@ -666,6 +666,7 @@ INT32 utilSdbTemplet::run( INT32 argc, CHAR **argv, const CHAR *pPName )
    }
 
 #if defined (_LINUX)
+   // signal handler
    rc = _utilSetupSignalHandler () ;
    if ( rc )
    {

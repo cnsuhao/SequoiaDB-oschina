@@ -1,3 +1,4 @@
+// nonce.cpp
 
 /*    Copyright 2009 10gen Inc.
  *
@@ -17,11 +18,16 @@
 #include "lib/nonce.h"
 #include <stdlib.h>
 #include <time.h>
+//#include <boost/static_assert.hpp>
+//#include <boost/thread/mutex.hpp>
 using namespace std;
 namespace Nonce {
 
+    //BOOST_STATIC_ASSERT( sizeof(nonce) == 8 );
 
     Security::Security() {
+        //static int n;
+        //assert(++n == 1 && "Security is a singleton class");
         init();
     }
 
@@ -33,6 +39,8 @@ namespace Nonce {
     }
 
     nonce Security::getNonce() {
+        //static boost::mutex m;
+        //boost::mutex::scoped_lock lk(m);
 
         nonce n;
       #if defined(_WIN32)

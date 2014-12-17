@@ -113,9 +113,13 @@ namespace engine
          INT32 _initAddHostsInfo( BSONObj &info ) ;
 
       private:
+         // raw add host info
          BSONObj                     _addHostInfoObj ;
+         // job name
          string                      _jobName ;
+         // add host info
          vector<AddHostInfo>         _addHostInfo ;
+         // task info
          INT64                       _taskID ;
          _omaAddHostTask*            _pTask ;
    } ;
@@ -294,11 +298,14 @@ namespace engine
 
       private:
          BOOLEAN                     _isStandalone ;
+         // raw install info
          BSONObj                     _installInfoObj ;
+         // install info after category
          vector<BSONObj>             _coord ;
          vector<BSONObj>             _catalog ;
          vector<BSONObj>             _data ;
          vector<BSONObj>             _standalone ;
+         // task info
          INT64                       _taskID ;
          string                      _name ;
          _omaInsDBBusTask*           _pTask ;
@@ -323,12 +330,15 @@ namespace engine
 
       private:
          BOOLEAN                     _isStandalone ;
+         // raw uninstall info
          BSONObj                     _uninstallInfoObj ;
          BSONObj                     _cataAddrInfo ;
+         // uninstall info after category
          map<string, BSONObj>        _coord ;
          map<string, BSONObj>        _catalog ;
          map<string, BSONObj>        _data ;
          map<string, BSONObj>        _standalone ;
+         // task info
          INT64                       _taskID ;
          string                      _name ;
          _omaRmDBBusTask*            _pTask ;
@@ -390,27 +400,38 @@ namespace engine
    } ;
 
 
+   // start add host job
    INT32 startAddHostJob( string jobName, _omaAddHostTask *pTask, EDUID *pEDUID ) ;
 
+   // start rollback host job
    INT32 startRbHostJob( string jobName, _omaAddHostTask *pTask, EDUID *pEDUID ) ;
 
+   // start add host task job
    INT32 startAddHostTaskJob ( const CHAR *pAddHostInfo, EDUID *pEDUID ) ;
 
+   // start create standalone job
    INT32 startCreateStandaloneJob ( _omaInsDBBusTask *pTask,
                                     EDUID *pEDUID ) ;
+   // start create catalog job
    INT32 startCreateCatalogJob ( _omaInsDBBusTask *pTask,
                                  EDUID *pEDUID ) ;
+   // start create coord job
    INT32 startCreateCoordJob ( _omaInsDBBusTask *pTask,
                                EDUID *pEDUID ) ;
+   // start create data job
    INT32 startCreateDataJob ( const CHAR *pGroupName,
                               _omaInsDBBusTask *pTask,
                               EDUID *pEDUID ) ;
+   // start install db business task job
    INT32 startInsDBBusTaskJob ( const CHAR *pInstallInfo, EDUID *pEDUID ) ;
+   // start remove db business task job
    INT32 startRmDBBusTaskJob ( const CHAR *pUninstallInfo, EDUID *pEDUID ) ;
+   // start install db business task rollback job
    INT32 startInsDBBusTaskRbJob ( BOOLEAN isStandalone,
                                   string &vCoordSvcName,
                                   _omaInsDBBusTask *pTask,
                                   EDUID *pEDUID ) ;
+   // start create remove virtual coord job
    INT32 startRemoveVirtualCoordJob ( const CHAR *vCoordSvcName,
                                       _omaInsDBBusTask *pTask,
                                       EDUID *pEDUID ) ;

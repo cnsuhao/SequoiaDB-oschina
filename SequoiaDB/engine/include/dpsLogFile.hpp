@@ -94,6 +94,7 @@ namespace engine
    {
    private:
       _OSS_FILE      *_file ;
+      // 32 bit size, so we can support up to 4GB file size
       UINT32         _fileSize ;
       UINT32         _fileNum ;
       UINT32         _idleSize ;
@@ -123,14 +124,21 @@ namespace engine
       string toString() const ;
 
    public:
+      // initialize file
       INT32 init ( const CHAR *path, UINT32 fileSize, UINT32 fileNum ) ;
+      // write into file
       INT32 write ( const CHAR *content, UINT32 len ) ;
+      // read from file
       INT32 read ( const DPS_LSN_OFFSET &lOffset, UINT32 len, CHAR *buf ) ;
+      // close the file
       INT32 close();
+      // get how much space we still able to write
       UINT32 getIdleSize() { return _idleSize ; }
       UINT32 getLength () { return _fileSize - _idleSize ; }
+      // reset metadata
       INT32 reset ( UINT32 logID, const DPS_LSN_OFFSET &offset,
                     const DPS_LSN_VER &version ) ;
+      // get first lsn
       DPS_LSN getFirstLSN ( BOOLEAN mustExist = TRUE ) ;
 
       BOOLEAN isZeroStart()
@@ -156,8 +164,11 @@ namespace engine
          _logHeader._fileSize = _fileSize ;
          _logHeader._version  = DPS_LOG_FILE_VERSION1 ;
       }
+      // flush log file header
       INT32 _flushHeader() ;
+      // restore header
       INT32 _readHeader () ;
+      // restore from file
       INT32 _restore () ;
    };
    typedef class _dpsLogFile dpsLogFile;

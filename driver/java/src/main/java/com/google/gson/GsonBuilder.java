@@ -380,6 +380,7 @@ public final class GsonBuilder {
    * @since 1.2
    */
   public GsonBuilder setDateFormat(String pattern) {
+    // TODO(Joel): Make this fail fast if it is an invalid date format
     this.datePattern = pattern;
     return this;
   }

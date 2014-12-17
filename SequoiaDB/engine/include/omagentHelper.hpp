@@ -62,6 +62,7 @@ namespace engine
 
    INT32 omaReleaseCommand ( _omaCommand **ppCommand ) ;
 
+   // build reply buffer
    INT32 omaBuildReplyMsgBody ( CHAR **ppBuffer, INT32 *bufferSize,
                                 SINT32 numReturned,
                                 vector<BSONObj> *objList ) ;

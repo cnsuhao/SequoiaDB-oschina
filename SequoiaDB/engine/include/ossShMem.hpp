@@ -47,7 +47,12 @@
 
 
 #if defined (_LINUX)
+// to  create  a new segment.
+// If this flag is not used, then ossSHMAlloc() will find
+// the segment associated with key and check to see
+// if the user  has  permission to access the segment.
 #define OSS_SHM_CREATE        IPC_CREAT
+// used with OSS_SHM_CREATE to ensure failure if the segment already exists
 #define OSS_SHM_EXCL          IPC_EXCL
 
 typedef UINT32    ossSHMMid;
@@ -57,7 +62,12 @@ typedef key_t     ossSHMKey;
 typedef HANDLE    ossSHMMid;
 typedef CHAR*     ossSHMKey;
 
+// to  create  a new segment.
+// If this flag is not used, then ossSHMAlloc() will find
+// the segment associated with key and check to see
+// if the user  has  permission to access the segment.
 #define OSS_SHM_CREATE        0X01
+// used with OSS_SHM_CREATE to ensure failure if the segment already exists
 #define OSS_SHM_EXCL          0X02
 
 #endif

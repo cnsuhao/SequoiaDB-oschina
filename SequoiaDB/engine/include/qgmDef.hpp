@@ -97,8 +97,10 @@ namespace engine
          _size = 0 ;
       }
 
+      /// note: compare the ptr rather than str
       BOOLEAN operator==( const _qgmField &field )const
       {
+         // return ossStrncmp( this->begin, field.begin, size ) ;
          return this->_begin == field._begin
                 && this->_size == field._size ;
       }
@@ -329,6 +331,7 @@ namespace engine
 
       }
 
+      /// warning: we do not release next in destructor.
       virtual ~_qgmFetchOut()
       {
          next = NULL ;

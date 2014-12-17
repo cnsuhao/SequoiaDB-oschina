@@ -1,6 +1,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! */
 #ifndef msgTRACE_H__
 #define msgTRACE_H__
+// Component: msg
 #define SDB_MSGPASCATGRPRES                                0x4000000281L
 #define SDB_MSGPASCATGRPOBJ                                0x4000000282L
 #define SDB_GETSVCNAME                                     0x4000000283L

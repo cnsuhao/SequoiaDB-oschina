@@ -82,7 +82,9 @@ namespace engine
       _fileName += OSS_FILE_SEP ;
       _fileName += PMD_STARTUP_FILE_NAME ;
 
+      // attempt to access the file
       rc = ossAccess ( _fileName.c_str() ) ;
+      // if the file does not exist, that means we were normally shutdown
       if ( SDB_FNE == rc )
       {
          _startType = SDB_START_NORMAL ;
@@ -95,16 +97,19 @@ namespace engine
             goto done ;
          }
       }
+      // if we get permission error, we can't continue
       else if ( SDB_PERM == rc )
       {
          PD_LOG ( PDSEVERE, "Permission denied when creating startup file" ) ;
          goto error ;
       }
+      // for unknown error, let's stop starting up the engine
       else if ( rc )
       {
          PD_LOG ( PDSEVERE, "Failed to access startup file, rc = %d", rc ) ;
          goto error ;
       }
+      // file exist means business is not ok
       else
       {
          _ok = FALSE ;
@@ -131,6 +136,7 @@ namespace engine
       _fileOpened = TRUE ;
 
    retry:
+      // lock the file
       rc = ossLockFile ( &_file, OSS_LOCK_EX ) ;
       if ( SDB_PERM == rc )
       {
@@ -178,6 +184,7 @@ namespace engine
          }
       }
 
+      //write char
       rc = ossSeekAndWrite ( &_file, 0, PMD_STARTUP_START_CHAR,
                              PMD_STARTUP_START_CHAR_LEN, &written ) ;
       if ( SDB_OK != rc )
@@ -186,6 +193,7 @@ namespace engine
       }
       ossFsync( &_file ) ;
 
+      // print startup from crash/normal after locked the file
       if ( SDB_START_NORMAL != _startType )
       {
          PD_LOG ( PDEVENT, "Start up from crash" ) ;

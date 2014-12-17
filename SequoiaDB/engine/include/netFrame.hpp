@@ -58,6 +58,7 @@ namespace engine
    class _netFrame : public SDBObject
    {
       public:
+         /// handler will not be freed by frame
          _netFrame( _netMsgHandler *handler ) ;
 
          ~_netFrame() ;
@@ -88,10 +89,18 @@ namespace engine
 
          NET_EH getEventHandle( const NET_HANDLE &handle ) ;
 
+         /// can only be called for once. non-reentrant
          INT32 listen( const CHAR *hostName,
                        const CHAR *serviceName ) ;
 
+//         INT32 asyncConnect( const CHAR *hostName,
+//                             const CHAR *serviceName,
+//                             const NET_HANDLE &id ) ;
 
+         /// if call this func with same params for twice,
+         /// will create two connections.
+         /// the connection will be maintained until the
+         /// disconnect happens.
          INT32 syncConnect( const CHAR *hostName,
                             const CHAR *serviceName,
                             const _MsgRouteID &id ) ;
@@ -127,6 +136,7 @@ namespace engine
                           MsgHeader *header,
                           const netIOVec &iov ) ;
 
+         /// frame will not release handler for ever
          INT32 addTimer( UINT32 millsec, _netTimeoutHandler *handler,
                          UINT32 &timerid );
 

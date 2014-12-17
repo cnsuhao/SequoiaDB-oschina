@@ -1,6 +1,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! */
 #ifndef pmdTRACE_H__
 #define pmdTRACE_H__
+// Component: pmd
 #define SDB_PMDLOADWORKER                                  0x200000000001ccL
 #define SDB_PMDBGJOBENTPNT                                 0x200000000001cdL
 #define SDB_PMDHANDLESYSINFOREQUEST                        0x200000000001ceL

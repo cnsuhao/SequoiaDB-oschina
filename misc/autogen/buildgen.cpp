@@ -55,6 +55,7 @@ void BuildGen::run ()
    }
    gettimeofday(&tv, &tz);
    tt = tv.tv_sec ;
+   // we are single threaded, we are safe here :)
    otm = localtime ( &tt ) ;
    ossSnprintf ( timeInfo, TIMEBUFFERSIZE, SDB_ENGINE_BUILD_FORMAT,
                  otm->tm_year+1900,

@@ -173,6 +173,7 @@ namespace engine
       if ( _metaObj.isEmpty() )
       {
          BSONObjBuilder builder ;
+         /// we can get nothing when mode is create.
          builder.append( FIELD_NAME_LOB_SIZE, (long long)_meta._lobLen ) ;
          builder.append( FIELD_NAME_LOB_PAGE_SIZE, _lobPageSz ) ;
          builder.append( FIELD_NAME_LOB_CREATTIME, (long long)_meta._createTime ) ;
@@ -310,6 +311,7 @@ namespace engine
          goto error ;
       }
 
+      /// re array the data and try to get a complete piece.
       rc = _lw.prepare2Write( _offset, len, buf ) ;
       if ( SDB_OK != rc )
       {
@@ -317,6 +319,8 @@ namespace engine
          goto error ;
       }
 
+      /// if we update offset after write,
+      /// some data will not be removed when rollback
       _offset += len ;
 
       while ( _lw.getNextWriteSequences( tuples )  )
@@ -389,6 +393,7 @@ namespace engine
          goto error ;
       }
 
+      /// data may be cached.
       if ( _pool.match( _offset ) )
       {
          rc = _readFromPool( len, context, cb, readLen ) ;
@@ -402,8 +407,10 @@ namespace engine
          goto done ;
       }
 
+      /// clear cache when we can not get data from it.
       _pool.clear() ;
 
+      /// reset the read len of a suitable value
       rc = _lw.prepare2Read( _meta._lobLen,
                              _offset, len,
                              tuples ) ;

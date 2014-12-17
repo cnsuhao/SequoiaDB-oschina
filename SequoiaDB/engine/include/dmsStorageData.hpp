@@ -87,24 +87,31 @@ namespace engine
       MB FLAG(_flag) values :
    */
    #define DMS_MB_BASE_MASK                        0x000F
+   // BASE MASK 0~3 bit
    #define DMS_MB_FLAG_FREE                        0x0000
    #define DMS_MB_FLAG_USED                        0x0001
    #define DMS_MB_FLAG_DROPED                      0x0002
 
    #define DMS_MB_OPR_TYPE_MASK                    0x00F0
+   // OPR MASK 4~7 bit
    #define DMS_MB_FLAG_OFFLINE_REORG               0x0010
    #define DMS_MB_FLAG_ONLINE_REORG                0x0020
    #define DMS_MB_FLAG_LOAD                        0x0040
 
    #define DMS_MB_OPR_PHASE_MASK                   0x0F00
+   // OPR PHASE 8~11 bit
 
+   // {{ DMS_MB_FLAG_OFFLINE_REORG OPR BEGIN
    #define DMS_MB_FLAG_OFFLINE_REORG_SHADOW_COPY   0x0100
    #define DMS_MB_FLAG_OFFLINE_REORG_TRUNCATE      0x0200
    #define DMS_MB_FLAG_OFFLINE_REORG_COPY_BACK     0x0400
    #define DMS_MB_FLAG_OFFLINE_REORG_REBUILD       0x0800
+   // DMS_MB_FLAG_OFFLINE_REORG OPR END }}
 
+   // {{ DMS_MB_FLAG_LOAD OPR BEGIN
    #define DMS_MB_FLAG_LOAD_LOAD                   0x0100
    #define DMS_MB_FLAG_LOAD_BUILD                  0x0200
+   // DMS_MB_FLAG_LOAD OPR END }}
 
    #define DMS_MB_BASE_FLAG(x)                     ((x)&DMS_MB_BASE_MASK)
    #define DMS_MB_OPR_FLAG(x)                      ((x)&DMS_MB_OPR_TYPE_MASK)
@@ -178,6 +185,9 @@ namespace engine
    */
    struct _dmsMetadataBlock
    {
+      // every records < 32 bytes go to slot 0
+      // every records >=32 and < 64 go to slot 1...
+      // every records
       enum deleteListType
       {
          _32 = 0,
@@ -217,12 +227,14 @@ namespace engine
       dmsExtentID    _loadFirstExtentID ;
       dmsExtentID    _loadLastExtentID ;
       dmsExtentID    _mbExExtentID ;
+      // for stat
       UINT64         _totalRecords ;
       UINT32         _totalDataPages ;
       UINT32         _totalIndexPages ;
       UINT64         _totalDataFreeSpace ;
       UINT64         _totalIndexFreeSpace ;
       UINT32         _totalLobPages ;
+      // end
       CHAR           _pad [ 404 ] ;
 
       void reset ( const CHAR *clName = NULL,
@@ -270,6 +282,7 @@ namespace engine
          _totalIndexFreeSpace    = 0 ;
          _totalLobPages          = 0 ;
 
+         // pad
          ossMemset( _pad, 0, sizeof( _pad ) ) ;
       }
    } ;
@@ -435,15 +448,18 @@ namespace engine
       {
          return SDB_OK ;
       }
+      // already lock(type not same), need to unlock
       if ( -1 != _mbLockType && SDB_OK != ( rc = pause() ) )
       {
          return rc ;
       }
+      // check before lock
       if ( !DMS_IS_MB_INUSE(_mb->_flag) || _clLID != _mb->_logicalID )
       {
          return SDB_DMS_NOTEXIST ;
       }
       ossLatch( _latch, (OSS_LATCH_MODE)lockType ) ;
+      // check after lock
       if ( !DMS_IS_MB_INUSE(_mb->_flag) || _clLID != _mb->_logicalID )
       {
          ossUnlatch( _latch, (OSS_LATCH_MODE)lockType ) ;
@@ -552,6 +568,8 @@ namespace engine
 
          OSS_INLINE const dmsMBStatInfo* getMBStatInfo( UINT16 mbID ) const ;
 
+         // update extent logical id and expanded meta
+         // must hold mb exclusive lock
          INT32         addExtent2Meta( dmsExtentID extID, dmsExtent *extent,
                                        dmsMBContext *context ) ;
 
@@ -559,6 +577,7 @@ namespace engine
 
       public:
 
+         // create a new collection for given name, returns collectionID
          INT32 addCollection ( const CHAR *pName,
                                UINT16 *collectionID,
                                UINT32 attributes = 0,
@@ -595,12 +614,16 @@ namespace engine
                               BOOLEAN mustOID = TRUE,
                               BOOLEAN canUnLock = TRUE ) ;
 
+         // if deletedDataPtr = 0, will get from recordID
+         // must hold mb exclusive lock
          INT32 deleteRecord ( dmsMBContext *context,
                               const dmsRecordID &recordID,
                               ossValuePtr deletedDataPtr,
                               _pmdEDUCB * cb,
                               SDB_DPSCB *dpscb ) ;
 
+         // if updatedDataPtr = 0, will get from recordID
+         // must hold mb exclusive lock
          INT32 updateRecord ( dmsMBContext *context,
                               const dmsRecordID &recordID,
                               ossValuePtr updatedDataPtr,
@@ -608,6 +631,8 @@ namespace engine
                               SDB_DPSCB *dpscb,
                               _mthModifier &modifier ) ;
 
+         // the dataRecord is not owned
+         // Caller must hold mb exclusive/shared lock
          INT32 fetch ( dmsMBContext *context,
                        const dmsRecordID &recordID,
                        BSONObj &dataRecord,
@@ -653,6 +678,7 @@ namespace engine
                                  dmsExtentID extLID, BOOLEAN needUnLock ) ;
 
       private:
+         //   must be hold the mb EXCLUSIVE lock in this functions :
          INT32          _saveDeletedRecord ( dmsMB *mb,
                                              const dmsRecordID &recordID,
                                              INT32 recordSize = 0 ) ;
@@ -696,6 +722,7 @@ namespace engine
                                               _pmdEDUCB *cb,
                                               BOOLEAN decCount = TRUE ) ;
 
+         // must hold mb exclusive lock
          INT32          _extentUpdatedRecord ( dmsMBContext *context,
                                                const dmsRecordID &recordID,
                                                ossValuePtr recordDataPtr,
@@ -709,6 +736,9 @@ namespace engine
       private:
          dmsMetadataManagementExtent         *_dmsMME ;     // 4MB
 
+         // latch for each MB. For normal record SIUD, shared latches are
+         // requested exclusive latch on mblock is only when changing
+         // metadata (say add an extent into the MB, or create/drop the MB)
          ossSpinSLatch                       _mblock [ DMS_MME_SLOTS ] ;
          dmsMBStatInfo                       _mbStatInfo [ DMS_MME_SLOTS ] ;
          ossSpinSLatch                       _metadataLatch ;
@@ -800,6 +830,7 @@ namespace engine
          return SDB_INVALIDARG ;
       }
 
+      // metadata shared lock
       if ( (UINT32)DMS_INVALID_CLID == clLID )
       {
          _metadataLatch.get_shared() ;
@@ -807,6 +838,7 @@ namespace engine
          _metadataLatch.release_shared() ;
       }
 
+      // context lock
       _latchContext.get() ;
       if ( _vecContext.size () > 0 )
       {
@@ -841,6 +873,7 @@ namespace engine
       UINT16 mbID = DMS_INVALID_MBID ;
       UINT32 clLID = DMS_INVALID_CLID ;
 
+      // metadata shared lock
       _metadataLatch.get_shared() ;
       mbID = _collectionNameLookup( pName ) ;
       if ( DMS_INVALID_MBID != mbID )

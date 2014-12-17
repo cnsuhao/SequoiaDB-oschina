@@ -44,6 +44,7 @@
 #include "ixmIndexKey.hpp"
 #include "../bson/ordering.h"
 
+//#include <vector>
 
 namespace engine
 {
@@ -70,6 +71,9 @@ namespace engine
 
       INT32 next( _rtnSortTuple **tuple ) ;
 
+//      static INT32 compare(const BSONObj &obj1, _rtnSortTuple *tuple1,
+//                           const BSONObj &obj2, _rtnSortTuple *tuple2,
+//                           const bson::Ordering &order ) ;
 
    private:
       INT32 _quickSort( _rtnSortTuple **left,
@@ -84,6 +88,7 @@ namespace engine
       INT32 _insertSort( _rtnSortTuple **left,
                          _rtnSortTuple **right ) ;
 
+      // INT32 _setHashFromObj( const BSONObj &obj, _rtnSortTuple *tuple ) ;
 
       INT32 _swapLeftSameKey( _rtnSortTuple **left,
                               _rtnSortTuple **right,
@@ -95,6 +100,8 @@ namespace engine
 
 
    private:
+      //std::vector<UINT32> _rands ;
+      //UINT32 _rand ;
       bson::BSONObj _orderObj ;
       _ixmIndexKeyGen _keyGen ;
       bson::Ordering _order ;

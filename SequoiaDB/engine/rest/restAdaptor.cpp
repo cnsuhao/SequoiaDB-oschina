@@ -178,6 +178,7 @@ namespace engine
       {
          pHttpCon->_pTempKey[pHttpCon->_tempKeyLen] = 0 ;
          pHttpCon->_pTempValue[pHttpCon->_tempValueLen] = 0 ;
+         //printf("%s %s \n", pHttpCon->_pTempKey, pHttpCon->_pTempValue ) ;
          pHttpCon->_requestHeaders.insert(
                std::make_pair( pHttpCon->_pTempKey, pHttpCon->_pTempValue ) ) ;
          pHttpCon->_pTempKey = NULL ;
@@ -209,6 +210,7 @@ namespace engine
          ( at - pHttpCon->_pHeaderBuf ) ;
       pPath[i] = 0 ;
 
+      //printf( "path: %s\n", pHttpCon->_pPath ) ;
 
       if( i + 1 < length )
       {
@@ -236,6 +238,7 @@ namespace engine
          {
             pHttpCon->_pTempKey[pHttpCon->_tempKeyLen] = 0 ;
             pHttpCon->_pTempValue[pHttpCon->_tempValueLen] = 0 ;
+            //printf("%s %s \n", pHttpCon->_pTempKey, pHttpCon->_pTempValue ) ;
             pHttpCon->_requestHeaders.insert(
                   std::make_pair( pHttpCon->_pTempKey,pHttpCon->_pTempValue ) );
             pHttpCon->_pTempKey = NULL ;
@@ -338,6 +341,7 @@ namespace engine
             {
                pBuffer[i] = 0 ;
             }
+            //printf("%s = %s\n", pBuffer + keyOffset, pBuffer + valueOffset ) ;
             pHttpConnection->_requestQuery.insert(
                   std::make_pair(pBuffer + keyOffset, pBuffer + valueOffset) ) ;
             keyOffset = i + 1 ;
@@ -858,6 +862,7 @@ namespace engine
          goto error ;
       }
 
+      //if http body size > 0,than Content-Length must exist
       if ( pContentLength )
       {
          bodySize = ossAtoi( pContentLength ) ;
@@ -998,6 +1003,7 @@ namespace engine
       appendHttpBody( pSession, pBuffer, length, 0 ) ;
       */
 
+      //set http body size
       if( HTTP_OK == rspCode )
       {
          ossSnprintf( httpBodySize, 255, "%d",
@@ -1057,6 +1063,7 @@ namespace engine
             goto error ;
          }
       }
+      //HTTP/1.1[space]
       rc = pSession->sendData( REST_FUN_STRING( REST_STRING_HTTP ),
                                _timeout ) ;
       if ( rc )
@@ -1064,6 +1071,7 @@ namespace engine
          PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
          goto error ;
       }
+      //http type 200 OK
       rc = pSession->sendData( REST_FUN_STRING( responseHeader[ rspCode ] ),
                                _timeout ) ;
       if ( rc )
@@ -1082,6 +1090,7 @@ namespace engine
       for( it = pHttpCon->_responseHeaders.begin();
             it != pHttpCon->_responseHeaders.end(); ++it )
       {
+         //key
          rc = pSession->sendData( REST_FUN_STRING( it->first ),
                                   _timeout ) ;
          if ( rc )
@@ -1089,6 +1098,7 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
             goto error ;
          }
+         //:
          rc = pSession->sendData( REST_FUN_STRING( REST_STRING_COLON ),
                                   _timeout ) ;
          if ( rc )
@@ -1096,6 +1106,7 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
             goto error ;
          }
+         //value
          rc = pSession->sendData( REST_FUN_STRING( it->second ),
                                   _timeout ) ;
          if ( rc )
@@ -1103,6 +1114,7 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to send data, rc=%d", rc ) ;
             goto error ;
          }
+         //CRLF
          rc = pSession->sendData( REST_FUN_STRING( CRLF ),
                                   _timeout ) ;
          if ( rc )
@@ -1111,6 +1123,7 @@ namespace engine
             goto error ;
          }
       }
+      //CRLF
       rc = pSession->sendData( REST_FUN_STRING( CRLF ),
                                _timeout ) ;
       if ( rc )

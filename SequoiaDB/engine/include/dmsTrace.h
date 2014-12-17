@@ -1,6 +1,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! */
 #ifndef dmsTRACE_H__
 #define dmsTRACE_H__
+// Component: dms
 #define SDB__DMSSTORAGELOADEXT__ALLOCEXTENT                0x1000000000000L
 #define SDB__DMSSTORAGELOADEXT__IMPRTBLOCK                 0x1000000000001L
 #define SDB__DMSSTORAGELOADEXT__LDDATA                     0x1000000000002L

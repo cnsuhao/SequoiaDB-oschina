@@ -1,6 +1,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! */
 #ifndef ixmTRACE_H__
 #define ixmTRACE_H__
+// Component: ixm
 #define SDB__IXMINXCB1                                     0x20000000005caL
 #define SDB__IXMINXCB2                                     0x20000000005cbL
 #define SDB__IXMINXCB_GETKEY                               0x20000000005ccL

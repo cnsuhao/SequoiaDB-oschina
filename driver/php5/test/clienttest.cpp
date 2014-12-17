@@ -22,6 +22,7 @@ int main()
 {
    pBuf = NULL ;
    bufSize = 0 ;
+   //===ÄÚÈÝ=======
    
    INT32 rc = SDB_OK ;
    CHAR condition[3][23] = 
@@ -52,6 +53,7 @@ int main()
    rc = connection.getCollectionSpace ( "foo", cs ) ;
    if ( rc )
    {
+      //printf ("Failed to get collectionspace, rc = %d\n", rc ) 
       cout<<rc<<endl;
       return rc ;
    }
@@ -64,6 +66,7 @@ int main()
 
    rc = collection.bulkInsert ( FLG_INSERT_CONTONDUP, &condition_bson[0], 3 );
    cout<<rc<<endl;
+   //===½áÊø=======
    if ( pBuf )
    {
       free ( pBuf ) ;
@@ -88,12 +91,16 @@ BOOLEAN _reallocateBuffer ()
    else
       currentSize += currentSize>INC_BUF_SIZE?INC_BUF_SIZE:currentSize ;
 
+   // allocate memory
    pBuf = (CHAR*)malloc(sizeof(CHAR) * currentSize) ;
+   // if allocate failed, we have to restore the original buffer pointer
+   // and return FALSE
    if ( !pBuf )
    {
       pBuf = pOldBuf ;
       return FALSE ;
    }
+   // otherwise let's free the original memory and set bufSize
    free ( pOldBuf ) ;
    bufSize = currentSize ;
    return TRUE ;
@@ -139,6 +146,7 @@ INT32 createCollection ( const CHAR *csName, const CHAR *cName )
    rc = connection.getCollectionSpace ( csName, cs ) ;
    if ( rc )
    {
+      //printf ("Failed to get collectionspace, rc = %d\n", rc ) ;
       return rc ;
    }
 
@@ -151,6 +159,7 @@ INT32 dropCollection ( const CHAR *csName, const CHAR *cName )
    rc = connection.getCollectionSpace ( csName, cs ) ;
    if ( rc )
    {
+      //printf ("Failed to get collectionspace, rc = %d\n", rc ) ;
       return rc ;
    }
    rc = cs.dropCollection ( cName ) ;
@@ -301,6 +310,7 @@ INT32 queryData ( const CHAR *csName    , const CHAR *cName    ,
    rc = connection.getCollectionSpace ( csName, cs ) ;
    if ( rc )
    {
+      //printf ("Failed to get collectionspace, rc = %d\n", rc ) ;
       return rc ;
    }
    rc = cs.getCollection ( cName, collection ) ;

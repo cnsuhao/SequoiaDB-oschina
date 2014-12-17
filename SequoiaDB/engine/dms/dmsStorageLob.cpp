@@ -94,8 +94,10 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB_OPEN ) ;
 
+      // copy path
       ossStrncpy( _path, path, OSS_MAX_PATHSIZE ) ;
 
+      // if not create lobs
       if ( 0 == _dmsData->getHeader()->_createLobs )
       {
          _needDelayOpen = TRUE ;
@@ -137,6 +139,7 @@ namespace engine
 
       _needDelayOpen = FALSE ;
 
+      // set data header
       _dmsData->updateCreateLobs( 1 ) ;
 
    done:
@@ -994,12 +997,14 @@ namespace engine
       PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__PUSH2BUCKET ) ;
       DMS_LOB_PAGEID &pageInBucket = _dmsBME->_buckets[bucket] ;
 
+      /// empty bucket
       if ( DMS_LOB_INVALID_PAGEID == pageInBucket )
       {
          pageInBucket = pageId ;
          blk._prevPageInBucket = DMS_LOB_INVALID_PAGEID ;
          blk._nextPageInBucket = DMS_LOB_INVALID_PAGEID ;
       }
+      /// neet to find the last one
       else
       {
          DMS_LOB_PAGEID tmpPage = pageInBucket ;
@@ -1287,10 +1292,12 @@ namespace engine
          }
          else
          {
+            /// not allocated.
             ++current ;
          }
       } while ( TRUE ) ;
 
+      /// point to the next.
       pos = current ;
    done:
       if ( mbContext->isMBLock() )
@@ -1490,6 +1497,7 @@ namespace engine
          }
       }
 
+      // clear the stat info
       mbContext->mbStat()->_totalLobPages = 0 ;
 
       if ( NULL != dpscb )

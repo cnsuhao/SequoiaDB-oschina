@@ -1,6 +1,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! */
 #ifndef sptTRACE_H__
 #define sptTRACE_H__
+// Component: spt
 #define SDB_SE_GLBSE                                       0x800000000000cbL
 #define SDB_SE_NEWSCOPE                                    0x800000000000ccL
 #define SDB_SCOPE_INIT                                     0x800000000000cdL

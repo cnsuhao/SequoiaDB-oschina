@@ -110,11 +110,16 @@ namespace engine
 
          CHAR                       _dftSvcName[ OSS_MAX_SERVICENAME + 1 ] ;
          CHAR                       _cmServiceName[ OSS_MAX_SERVICENAME + 1 ] ;
+         // -1: always restart, 0: nerver restart
          INT32                      _restartCount ;
+         // restart time interval ( minute ), ignore this if <= 0
          INT32                      _restartInterval ;
+         // TRUE: start all nodes while CM start.
          BOOLEAN                    _autoStart ;
          INT32                      _diagLevel ;
+         // om address, ex: 192.168.20.106:8000,192.168.21.106:8000
          CHAR                       _omAddress[ OSS_MAX_PATHSIZE + 1 ] ;
+         // is general agent, default FALSE
          BOOLEAN                    _isGeneralAgent ;
 
          CHAR                       _cfgFileName[ OSS_MAX_PATHSIZE + 1 ] ;

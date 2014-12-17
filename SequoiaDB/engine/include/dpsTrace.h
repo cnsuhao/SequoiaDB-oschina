@@ -1,6 +1,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! */
 #ifndef dpsTRACE_H__
 #define dpsTRACE_H__
+// Component: dps
 #define SDB__DPSMSGBLK_EXTEND                              0x100000030aL
 #define SDB__DPSRPCMGR_INIT                                0x100000030bL
 #define SDB__DPSRPCMGR__RESTRORE                           0x100000030cL

@@ -1,3 +1,4 @@
+// BSONEncoder.java
 
 /**
  *      Copyright (C) 2008 10gen Inc.
@@ -78,6 +79,7 @@ public class BasicBSONEncoder implements BSONEncoder {
 
 	}
 
+	//@Override
 	public byte[] encode(BSONObject o) {
 		BasicOutputBuffer buf = new BasicOutputBuffer();
 		set(buf);
@@ -86,12 +88,14 @@ public class BasicBSONEncoder implements BSONEncoder {
 		return buf.toByteArray();
 	}
 
+	//@Override
 	public void set(OutputBuffer out) {
 		if (_buf != null) throw new IllegalStateException("in the middle of something");
 
 		_buf = out;
 	}
 
+	//@Override
 	public void done() {
 		_buf = null;
 	}
@@ -114,6 +118,7 @@ public class BasicBSONEncoder implements BSONEncoder {
 	 *            the object to encode
 	 * @return the number of characters in the encoding
 	 */
+	//@Override
 	public int putObject(BSONObject o) {
 		return putObject(null, o);
 	}
@@ -153,6 +158,7 @@ public class BasicBSONEncoder implements BSONEncoder {
 			}
 		}
 
+		// TODO: reduce repeated code below.
 		if (o instanceof Map) {
 			for (Entry<String, Object> e : ((Map<String, Object>) o).entrySet()) {
 
@@ -240,6 +246,7 @@ public class BasicBSONEncoder implements BSONEncoder {
 		else if (val instanceof MaxKey)
 			putMaxKey(name);
 		else if (putSpecial(name, val)) {
+			// no-op
 		} else {
 			throw new IllegalArgumentException("can't serialize " + val.getClass());
 		}
@@ -360,6 +367,8 @@ public class BasicBSONEncoder implements BSONEncoder {
 		int before = _buf.getPosition();
 		_buf.write(data);
 		int after = _buf.getPosition();
+		// com.mongodb.util.MyAsserts.assertEquals( after - before , data.length
+		// );
 	}
 
 	protected void putUUID(String name, UUID val) {
@@ -385,6 +394,7 @@ public class BasicBSONEncoder implements BSONEncoder {
 
 	protected void putObjectId(String name, ObjectId oid) {
 		_put(OID, name);
+		// according to spec, values should be stored big endian
 		_buf.writeIntBE(oid._time());
 		_buf.writeIntBE(oid._machine());
 		_buf.writeIntBE(oid._inc());
@@ -404,6 +414,7 @@ public class BasicBSONEncoder implements BSONEncoder {
 		_put(MAXKEY, name);
 	}
 
+	// ----------------------------------------------
 
 	/**
 	 * Encodes the type and key.

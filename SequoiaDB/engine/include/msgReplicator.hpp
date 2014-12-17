@@ -168,6 +168,7 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
       DPS_LSN_OFFSET  oldestTransLsn;
       _MsgReplSyncRes()
       {
+          /// not contains the length of data
          header.header.messageLength = sizeof( _MsgReplSyncRes ) ;
          header.header.opCode = MSG_CLS_SYNC_RES ;
          header.header.routeID.value = MSG_INVALID_ROUTEID ;
@@ -253,6 +254,8 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    } ;
    typedef class _MsgClsFSBegin MsgClsFSBegin ;
 
+   /// msg: | -- MsgClsFSBeginRes -- | -- bson -- |
+   /// bson: { fullnames:[{fullname:xxx}]}
    class _MsgClsFSBeginRes : public SDBObject
    {
    public :
@@ -333,6 +336,8 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    } ;
    typedef class _MsgClsFSEndRes MsgClsFSEndRes ;
 
+   /// msg: | -- _MsgClsFSRequire -- | -- bson -- |
+   /// bson: {cs:"xxx", collection:"xxx", keyobj:{"":value1,"":value2}, needdata:1/0}
    class _MsgClsFSMetaReq : public SDBObject
    {
    public :
@@ -348,6 +353,8 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    } ;
    typedef class _MsgClsFSMetaReq MsgClsFSMetaReq ;
 
+   /// msg: | -- _MsgClsFSRequireRes -- | -- bson -- |
+   /// bson: {cs:"xxx",  csmeta:xxx}
    class _MsgClsFSMetaRes : public SDBObject
    {
    public :
@@ -379,6 +386,8 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    } ;
    typedef class _MsgClsFSIndexReq MsgClsFSIndexReq ;
 
+   /// msg: | -- MsgClsFSIndexRes -- | -- bson -- |
+   /// bson: {nomore:xx, indexes:[index:xxx]}
    class _MsgClsFSIndexRes : public SDBObject
    {
    public :
@@ -424,6 +433,9 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    #define CLS_FS_EOF -1
    #define CLS_FS_NOT_EOF 0
 
+   /// msg: | -- _MsgClsFSNotify -- | -- data -- |
+   /// data: if DOC: | record bson | record bson |...|
+   ///       if LOG: | log | log |...|
    class _MsgClsFSNotifyRes : public SDBObject
    {
    public :

@@ -91,6 +91,8 @@ private:
    Classified_info _query_gen ; // general functions in sdbQuery
    Classified_info _query_cond ; // functions about condition in sdbQuery
    Classified_info _query_curs ; // functions about cursor in sdbQuery
+   // mapping functions to the top category,
+   // e.g. query.cond.hint is show as query.hint
    smmap _classify ; 
    BOOLEAN troffFileNotEixt ;
 } ;

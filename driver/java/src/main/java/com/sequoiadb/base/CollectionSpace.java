@@ -230,12 +230,16 @@ public class CollectionSpace {
 			BSONObject arg2, BSONObject arg3, BSONObject arg4)
 			throws BaseException {
 		IConnection connection = sequoiadb.getConnection();
+		// Admin command request
+		// long reqId = 0;
 		BSONObject dummyObj = new BasicBSONObject();
 		SDBMessage sdbMessage = new SDBMessage();
 		sdbMessage.setMatcher(arg1);
 		sdbMessage.setCollectionFullName(commandString);
 		sdbMessage.setFlags(0);
 		sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
+		// sdbMessage.setResponseTo(reqId);
+		// reqId++;
 		sdbMessage.setRequestID(0);
 		sdbMessage.setSkipRowsCount(-1);
 		sdbMessage.setReturnRowsCount(-1);

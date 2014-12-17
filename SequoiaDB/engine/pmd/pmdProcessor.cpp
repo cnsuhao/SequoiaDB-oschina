@@ -77,6 +77,7 @@ namespace engine
       }
       else
       {
+         //SDB_SESSION_REST
          _pmdRestSession *pRestSession = 
                                  dynamic_cast<_pmdRestSession*>( _pSession ) ;
          SDB_ASSERT( NULL != pRestSession, "" ) ;
@@ -124,6 +125,10 @@ namespace engine
       {
          rc = _onDisconnectMsg() ;
       }
+//      else if ( !_pClient->isAuthed() )
+//      {
+//         rc = SDB_AUTH_AUTHORITY_FORBIDDEN ;
+//      }
       else
       {
          switch( msg->opCode )
@@ -220,6 +225,7 @@ namespace engine
          BSONObj selector( pSelectorBuffer );
          BSONObj updator( pUpdatorBuffer );
          BSONObj hint( pHintBuffer );
+         // add last op info
          MON_SAVE_OP_DETAIL( _pEDUCB->getMonAppCB(), msg->opCode,
                              "CL:%s, Match:%s, Updator:%s, Hint:%s",
                              pCollectionName,
@@ -265,6 +271,7 @@ namespace engine
       try
       {
          BSONObj insertor( pInsertor ) ;
+         // add list op info
          MON_SAVE_OP_DETAIL( _pEDUCB->getMonAppCB(), msg->opCode,
                              "CL:%s, Insertors:%s, count: %d",
                              pCollectionName,
@@ -326,6 +333,7 @@ namespace engine
             BSONObj selector ( pFieldSelector ) ;
             BSONObj orderBy ( pOrderByBuffer ) ;
             BSONObj hint ( pHintBuffer ) ;
+            // add last op info
             MON_SAVE_OP_DETAIL( _pEDUCB->getMonAppCB(), msg->opCode,
                                "CL:%s, Match:%s, Selector:%s, OrderBy:%s, "
                                "Hint:%s", pCollectionName,
@@ -398,6 +406,7 @@ namespace engine
 
          PD_LOG ( PDDEBUG, "Command: %s", pCommand->name () ) ;
 
+         //run command
          rc = rtnRunCommand( pCommand, _pSession->getServiceType(),
                              _pEDUCB, _pDMSCB, _pRTNCB,
                              dpsCB, 1, &contextID ) ;
@@ -434,6 +443,7 @@ namespace engine
       {
          BSONObj deletor ( pDeletorBuffer ) ;
          BSONObj hint ( pHintBuffer ) ;
+         // add last op info
          MON_SAVE_OP_DETAIL( _pEDUCB->getMonAppCB(), msg->opCode,
                             "CL:%s, Deletor:%s, Hint:%s",
                             pCollectionName,
@@ -472,6 +482,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Session[%s] extract get more msg failed, "
                    "rc: %d", _pSession->sessionName(), rc ) ;
 
+      // add last op info
       MON_SAVE_OP_DETAIL( _pEDUCB->getMonAppCB(), msg->opCode,
                           "ContextID:%lld, NumToRead:%d",
                           contextID, numToRead ) ;
@@ -773,6 +784,7 @@ namespace engine
       PD_LOG ( PDEVENT, "Session[%s, %lld] recieved interrupt msg",
                _pSession->sessionName(), _pEDUCB->getID() ) ;
 
+      // delete all contextID, rollback transaction
       INT64 contextID = -1 ;
       while ( -1 != ( contextID = _pEDUCB->contextPeek() ) )
       {
@@ -820,6 +832,7 @@ namespace engine
    }
 
 
+   //***************_pmdCoordProcessor*********************
    _pmdCoordProcessor::_pmdCoordProcessor()
    {
       _pErrorObj   = NULL ;
@@ -835,6 +848,8 @@ namespace engine
       }
       if ( NULL != _pResultBuff )
       {
+         //TODO:
+         //SDB_OSS_DEL _pResultBuff ;
          _pResultBuff = NULL ;
       }
    }
@@ -875,6 +890,7 @@ namespace engine
       }
       else
       {
+         //SDB_SESSION_REST
          _pmdRestSession *pRestSession = 
                                  dynamic_cast<_pmdRestSession*>( _pSession ) ;
          SDB_ASSERT( NULL != pRestSession, "" ) ;
@@ -919,6 +935,8 @@ namespace engine
       }
       if ( NULL != _pResultBuff )
       {
+         //TODO:
+         //SDB_OSS_DEL _pResultBuff ;
          _pResultBuff = NULL ;
       }
       CoordCB *pCoordcb  = _pKrcb->getCoordCB();
@@ -947,6 +965,7 @@ namespace engine
                   break ;
                }
             }
+            /// warning: will go on default when not a command.
          }
       default:
          {
@@ -956,6 +975,7 @@ namespace engine
             rc = pOperator->execute( ( CHAR* )msg, msg->messageLength,
                                      &_pResultBuff, _pEDUCB,
                                      replyHeader, &_pErrorObj ) ;
+            // query with return data
             if ( MSG_BS_QUERY_REQ == msg->opCode 
                  && ( ((MsgOpQuery*)msg)->flags & FLG_QUERY_WITH_RETURNDATA )
                  && -1 != replyHeader.contextID 

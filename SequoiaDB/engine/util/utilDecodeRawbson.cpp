@@ -192,6 +192,7 @@ INT32 utilDecodeBson::_parseSubField( CHAR *pField, fieldResolve *pParent )
          PD_LOG ( PDERROR, "Field does not has the\".\" symbol", rc ) ;
          goto error ;
       }
+      //off export a.b
       *pSubField = 0 ;
       ++pSubField ;
       pFieldRe->pField = pField ;

@@ -1,6 +1,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! */
 #ifndef monTRACE_H__
 #define monTRACE_H__
+// Component: mon
 #define SDB_MONGETNODENAME                                 0x40000000007a7L
 #define SDB_MONGETSESSIONNAME                              0x40000000007a8L
 #define SDB_MONAPPSESSIONNAME                              0x40000000007a9L

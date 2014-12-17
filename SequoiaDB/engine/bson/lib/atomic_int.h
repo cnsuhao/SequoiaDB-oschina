@@ -1,3 +1,5 @@
+// atomic_int.h
+// atomic wrapper for unsigned
 
 /*    Copyright 2009 10gen Inc.
  *
@@ -56,6 +58,7 @@ namespace mongo {
         return InterlockedDecrement((volatile long*)&x)+1;
     }
 #elif defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4)
+    // this is in GCC >= 4.1
     inline void AtomicUInt::zero() { x = 0; } // TODO: this isn't thread safe - maybe
     AtomicUInt AtomicUInt::operator++() {
         return __sync_add_and_fetch(&x, 1);
@@ -71,6 +74,7 @@ namespace mongo {
     }
 #elif defined(__GNUC__)  && (defined(__i386__) || defined(__x86_64__))
     inline void AtomicUInt::zero() { x = 0; } // TODO: this isn't thread safe
+    // from boost 1.39 interprocess/detail/atomic.hpp
     inline unsigned atomic_int_helper(volatile unsigned *x, int val) {
         int r;
         asm volatile

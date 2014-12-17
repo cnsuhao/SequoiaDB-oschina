@@ -124,6 +124,7 @@ namespace engine
          _rtnCommand *create ( const CHAR *command ) ;
          void         release ( _rtnCommand *pCommand ) ;
 
+      //protected:
          INT32 _register ( const CHAR * name, CDM_NEW_FUNC pFunc ) ;
 
          INT32        _insert ( _cmdBuilderInfo * pCmdInfo,
@@ -142,6 +143,7 @@ namespace engine
    _rtnCmdBuilder * getRtnCmdBuilder () ;
 
 
+   //Command list
    class _rtnCoordOnly : public _rtnCommand
    {
       protected:

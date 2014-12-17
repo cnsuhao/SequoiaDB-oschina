@@ -55,6 +55,18 @@
 
 namespace  engine
 {
+   // For whenever trying to use thread-based long jump pointer, here are
+   // steps
+   // 1) determine if the per-thread variable is initialized
+   // 2) if not, run reset(new ossValuePtr(<init value>));
+   // 3) set the *_longJmpPtr to whenever you like
+   // 4) same method to use it
+   // ex:
+   // if(_longJmpPtr.get() == 0 )
+   //    _longJmpPtr.reset(new ossValuePtr(0));
+   // (*_longJmpPtr)=(ossValuePtr)0xabcdabcd;
+   //
+   // everytime you use *_longJmpPtr, it's thread specific value
 
    oss_edu_data* ossGetThreadEDUData()
    {
@@ -105,6 +117,7 @@ namespace  engine
       SINT32 prevNestedHandlerLevel = 0 ;
       OSS_SIGFUNCPTR  pPrevNestedHandler = NULL ;
 
+      // save current mask
       pthread_sigmask( SIG_SETMASK, NULL, &savemask ) ;
 
       sigemptyset( &tmpmask ) ;
@@ -125,10 +138,15 @@ namespace  engine
 
          if ( 0 == ossSetJump( pEduData->ossNestedSignalHanderJmpBuf, 1 ) )
          {
+            // unblock it for this thread, so we can use nested trap handler
+            // to longjmp() back.
             pthread_sigmask( SIG_UNBLOCK, &tmpmask, NULL ) ;
          }
          else
          {
+            // jumped back
+            //
+            // trapFile.Write("long jump back\n" ) ;
             trapFile.Close() ;
             goto error ;
          }
@@ -161,17 +179,22 @@ namespace  engine
             ossDumpStackTrace( OSS_HANDARGS, &trapFile ) ;
          }
 
+         // testing
+         // trapFile.Write("testing trap while dumping stack trace\n" ) ;
+         // memcpy( NULL, "CRASH", 5 ) ;
 
          trapFile.Close() ;
       }
 
    done :
+      // restore original signal handler ;
       if ( NULL != pEduData )
       {
          pEduData->ossEDUNestedSignalHandler = pPrevNestedHandler ;
          OSS_SET_NESTED_HANDLER_LEVEL( pEduData, prevNestedHandlerLevel ) ;
       }
 
+      // restore original signal mask ;
       pthread_sigmask( SIG_SETMASK, &savemask, NULL ) ;
 
       PD_TRACE_EXIT ( SDB_OSSST );
@@ -205,14 +228,25 @@ namespace  engine
          {
             if ( OSS_AM_I_HANDLING_NESTED_SIGNAL( pEduData ) )
             {
+               // in case it traps while dealing with a nested signal( e.g,
+               // there is another trap or receives another signal, say SIGBUS,
+               // while ossEDUNestedSignalHandler is in progress ),
+               // we need an emergency exit, acutally nothing more we can do,
+               // simply reset signal handler to system default one, SIG_DEL,
+               // to avoid getting stuck in infinite recursion.
                ossSignalHandlerAbort( OSS_HANDARGS, dumpPath ) ;
             }
             OSS_INVOKE_NESTED_SIGNAL_HANDLER( pEduData ) ;
             pEduData->ossEDUNestedSignalHandler( OSS_HANDARGS ) ;
+            // in most cases, we should not get here, since the nested signal
+            // handler will long jump to other places.
             OSS_LEAVE_NESTED_SIGNAL_HANDLER( pEduData ) ;
          }
          else
          {
+            // when a nested trap detected and there is no associated
+            // signal handler, try to dump the stack trace then bring engine
+            // down.
             ossSignalHandlerAbort( OSS_HANDARGS, dumpPath ) ;
             ossStackTrace( OSS_HANDARGS, dumpPath ) ;
             goto done ;
@@ -220,8 +254,10 @@ namespace  engine
       }
       OSS_ENTER_SIGNAL_HANDLER( pEduData ) ;
 
+      // dump stack trace
       ossStackTrace( OSS_HANDARGS, dumpPath ) ;
 
+      // restore system default signal handler
       ossSignalHandlerAbort( OSS_HANDARGS, dumpPath ) ;
 
       OSS_LEAVE_SIGNAL_HANDLER( pEduData ) ;
@@ -276,8 +312,11 @@ namespace  engine
 
          OSS_LEAVE_SIGNAL_HANDLER( pEduData ) ;
 
+         // The following function will disable the pop-up window that appears
+         // when the crash occurs.
          SetErrorMode( SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX ) ;
 
+         // Terminate the process
          TerminateProcess( GetCurrentProcess(), (UINT)-1 ) ;
       }
    done :
@@ -367,6 +406,7 @@ namespace  engine
       if ( trapFile.isValid() )
       {
          trapFile.seekToEnd () ;
+         // System info
          trapFile.Write(" -------- System Information --------\n" ) ;
          ossDumpSystemTime ( &trapFile ) ;
          ossDumpDatabaseInfo ( &trapFile ) ;
@@ -395,6 +435,7 @@ namespace  engine
                          sysInfo.lpMaximumApplicationAddress,
                          sysInfo.dwActiveProcessorMask ) ;
 
+         // OS info
          OSVerInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
          GetVersionEx ( (OSVERSIONINFO*) &OSVerInfo ) ;
          if ( OSVerInfo.dwMajorVersion == 6 )
@@ -463,6 +504,7 @@ namespace  engine
 
             if ( NULL != lpEP )
             {
+               //  dump registers
                trapFile.Write( "-------- Registers --------\n" ) ;
             #ifndef _WIN64
                trapFile.fWrite( SEGREG,
@@ -514,6 +556,7 @@ namespace  engine
                                 lpEP->ContextRecord->SegSs ) ;
             #endif
 
+               // point of failure
                trapFile.fWrite( "-------- Point of failure --------\n" ) ;
                ossMemset( pName, 0, sizeof( pName ) ) ;
                ossGetSymbolNameFromAddress( hProcess,
@@ -522,6 +565,7 @@ namespace  engine
                trapFile.fWrite( "%s\n", pName ) ;
             }  // if NULL != lpEP
 
+            // dump stack frames
             trapFile.fWrite( "\n-------- Stack frames --------\n" ) ;
          #ifndef _WIN64
             if ( NULL != lpEP )
@@ -633,12 +677,14 @@ namespace  engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSREGSIGHND, "ossRegisterSignalHandle" )
    INT32 ossRegisterSignalHandle ( ossSigSet & sigSet, SIG_HANDLE handle )
    {
+      // handle=NULL means reset signal handler to default ( SIG_DFL )
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_OSSREGSIGHND );
       struct sigaction newact ;
       sigemptyset ( &newact.sa_mask ) ;
       newact.sa_flags = 0 ;
       newact.sa_handler = ( __sighandler_t )handle ;
+      // SIGKILL and SIGSTOP can't be overwritten
       sigSet.sigDel ( SIGKILL ) ;
       sigSet.sigDel ( SIGSTOP ) ;
       INT32 sig = 1 ;
@@ -651,6 +697,7 @@ namespace  engine
          }
          ++sig ;
       }
+      //PD_LOG ( PDDEBUG, "Register signal handler succeed" ) ;
 
       PD_TRACE_EXITRC ( SDB_OSSREGSIGHND, rc );
       return rc ;

@@ -103,6 +103,7 @@ namespace engine
 
          _pmdRemoteSession* parent() { return _parent ; }
 
+         // Req Msg
          void        setReqMsg( MsgHeader *pReqMsg,
                                 pmdEDUMemTypes memType = PMD_EDU_MEM_NONE ) ;
          void        setReqMsgMemType( pmdEDUMemTypes memType ) { _memType = memType ; }
@@ -110,26 +111,31 @@ namespace engine
          pmdEDUMemTypes getReqMemType() const { return _memType ; }
          void        clearRequestInfo() ;
 
+         // IOVec
          netIOVec*   getIODatas() { return &_ioDatas ; }
          void        clearIODatas() { _ioDatas.clear() ; }
          void        addIODatas( const netIOVec &ioVec ) ;
          void        addIOData( const netIOV &io ) ;
          UINT32      getIODataLen() ;
 
+         // Reply
          MsgHeader*  getRspMsg( BOOLEAN owned = FALSE ) ;
          void        clearReplyInfo() ;
 
+         // Other
          UINT64      getNodeIDUInt() const { return _nodeID.value ; }
          MsgRouteID  getNodeID() const { return _nodeID ; }
          UINT64      getReqID() const { return _reqID ; }
          void        setUserData( UINT64 userData ) { _userData = userData ; }
          UINT64      getUserData() const { return _userData ; }
 
+         // Process
          void        setProcessInfo( INT32 processResult ) ;
          BOOLEAN     isProcessed() const { return _isProcessed ; }
          INT32       getProcessRet() const { return _processResult ; }
          void        clearProcessInfo() ;
 
+         // Status
          BOOLEAN     isDisconnect() const { return _isDisconnect ; }
          BOOLEAN     isSend() const { return _isSend ; }
          BOOLEAN     hasReply() const { return _event._Data ? TRUE : FALSE ; }
@@ -400,6 +406,7 @@ namespace engine
          _pmdEDUCB            *_pEDUCB ;
          netRouteAgent        *_pAgent ;
 
+         // last for free entry
          posAndNode           _assitNodeBuff[ PMD_SITE_NODEID_BUFF_SIZE + 1 ] ;
          UINT32               _nodeBuffSize ;
 

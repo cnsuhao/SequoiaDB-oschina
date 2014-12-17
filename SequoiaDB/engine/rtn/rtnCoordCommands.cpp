@@ -67,6 +67,8 @@
 using namespace bson;
 namespace engine
 {
+   // NOTE: don't define any members that will change while execute
+   //       because coordCommand-obj will be shared for different threads
    RTN_COORD_CMD_BEGIN
    RTN_COORD_CMD_ADD( COORD_CMD_BACKUP_OFFLINE, rtnCoordBackupOffline )
    RTN_COORD_CMD_ADD( COORD_CMD_LIST_BACKUPS, rtnCoordListBackup )
@@ -302,6 +304,7 @@ namespace engine
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
       SINT64 contextID                 = -1;
 
+      // fill default-reply(list success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof(MsgOpReply);
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -313,6 +316,7 @@ namespace engine
       replyHeader.numReturned          = 0;
       replyHeader.startFrom            = 0;
 
+      // get ready for query conditions
       INT32       flag                 = 0;
       CHAR       *pCollectionName      = NULL;
       SINT64      numToSkip            = 0;
@@ -325,6 +329,7 @@ namespace engine
       rtnContextCoord *pContext        = NULL;
       MsgOpQuery *pListReq             = NULL;
 
+      // extract query
       rc = msgExtractQuery( pReceiveBuffer, &flag, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery,
                             &pFieldSelector, &pOrderBy, &pHint );
@@ -335,6 +340,7 @@ namespace engine
                   rc );
          goto error ;
       }
+      // create a new context
       rc = pRtncb->contextNew( RTN_CONTEXT_COORD, (rtnContext**)&pContext,
                                contextID, cb );
       if ( rc )
@@ -346,11 +352,13 @@ namespace engine
       rc = pContext->open( BSONObj(), pSrc->numToReturn, pSrc->numToSkip ) ;
       PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
 
+      // forward source request to dest
       pListReq = pSrc;
       pListReq->header.opCode = requestType;
       pListReq->header.routeID.value = 0;
       pListReq->header.TID = cb->getTID();
 
+      // execute query data group on catalog
       rc = executeOnCataGroup ( (CHAR*)pListReq, pRouteAgent,
                                 cb, pContext ) ;
       if ( rc )
@@ -363,6 +371,7 @@ namespace engine
       replyHeader.contextID = contextID ;
       return rc;
    error :
+      // make sure to clear context whenever error happened
       if ( contextID >= 0 )
       {
          pRtncb->contextDelete( contextID, cb );
@@ -495,6 +504,7 @@ namespace engine
          {
             PD_LOG( PDERROR, "failed to get cata group:%d, will retry ? :%d",
                     rc, !needToRetry ) ;
+            /// only retry once.
             if ( needToRetry )
             {
                goto error ;
@@ -586,12 +596,15 @@ namespace engine
             goto error ;
          }
 
+         /// contexid should be -1 when numreturn is over 0.
+         /// but we try to get more from catalog for safety.
          if ( -1 != replyHeader->contextID )
          {
             rc = context->addSubContext( replyHeader->header.routeID,
                                          replyHeader->contextID ) ;
             if ( SDB_OK != rc )
             {
+               /// TODO: how to release cata
                PD_LOG( PDERROR, "failed to add sub context:%d", rc ) ;
                goto error ;
             }
@@ -633,6 +646,7 @@ namespace engine
 
          replyQueue.pop();
          SDB_OSS_FREE ( replyHeader );
+         /// catalog should returned only one record.
          break ;
       }
    done:
@@ -645,6 +659,8 @@ namespace engine
       PD_TRACE_EXITRC( SDB_RTNCOCOM__GETREPLYOBJSFROMQUEUE, rc ) ;
       return rc ;
    error:
+      /// WARNING: if we get a error before addSubContext is done,
+      /// context in catalog will leak.
       goto done ;
    }
 
@@ -664,6 +680,8 @@ namespace engine
       REPLY_QUE replyQue;
       INT32 probe = 0 ;
    retry :
+      // first let's get catalog group info, first round from cache (
+      // isNeedRefresh = FALSE )
       rc = rtnCoordGetCatGroupInfo( cb, isNeedRefresh, catGroupInfo );
       if ( rc )
       {
@@ -672,6 +690,7 @@ namespace engine
          PD_LOG ( PDERROR, "Execute on catalogue node failed, failed to get "
                   "catalogue group info(rc=%d)", rc );
       }
+      // send a request to priamry
       rc = rtnCoordSendRequestToPrimary( pBuffer, catGroupInfo, sendNodes,
                                          pRouteAgent, MSG_ROUTE_CAT_SERVICE,
                                          cb );
@@ -680,6 +699,7 @@ namespace engine
          probe = 200 ;
          goto error ;
       }
+      // get reply message
       rc = rtnCoordGetReply( cb, sendNodes, replyQue,
                              MAKE_REPLY_TYPE(((MsgHeader*)pBuffer)->opCode) ) ;
       if ( rc )
@@ -687,6 +707,7 @@ namespace engine
          probe = 300 ;
          goto error ;
       }
+      // consume all reply messages
       while ( !replyQue.empty() )
       {
          MsgOpReply *pReply = (MsgOpReply *)(replyQue.front());
@@ -743,12 +764,16 @@ namespace engine
       return rc;
    error :
       rtnCoordClearRequest( cb, sendNodes );
+      // if we can't find primary and we havne't retry, that means our data
+      // could be out of date, so let's refresh and retry
       if ( ( SDB_RTN_NO_PRIMARY_FOUND == rc || SDB_CLS_NOT_PRIMARY == rc ) &&
            !isNeedRefresh )
       {
          isNeedRefresh = TRUE ;
          goto retry ;
       }
+      // if we already retried or it's not NOT_PRAIMRY error, let's dump out
+      // error
       switch ( probe )
       {
       case 100 :
@@ -877,6 +902,7 @@ namespace engine
          *pNumToSkip = numToSkip ;
       }
 
+      // retset numToReturn and skip
       if ( numToReturn > 0 && numToSkip > 0 )
       {
          pQueryMsg->numToReturn = numToReturn + numToSkip ;
@@ -1064,6 +1090,7 @@ namespace engine
       SINT64 contextID = -1 ;
       rtnContextCoord *pContext = NULL ;
 
+      // fill default-reply
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer ;
       replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
       replyHeader.header.opCode        = MSG_BS_QUERY_RES ;
@@ -1074,6 +1101,7 @@ namespace engine
       replyHeader.flags                = SDB_OK ;
       replyHeader.numReturned          = 0 ;
       replyHeader.startFrom            = 0 ;
+      // set tid
       pHeader->TID = cb->getTID() ;
 
       BSONObj filterObj ;
@@ -1088,21 +1116,26 @@ namespace engine
       REQUESTID_MAP successNodes ;
       ROUTE_RC_MAP failedNodes ;
 
+      // get filter obj
       rc = _getFilterFromMsg( pReceiveBuffer, packSize, filterObj, &orderBy,
                               &numToReturn, &numToSkip ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to get filter obj, rc: %d", rc ) ;
 
+      // list all groups
       rc = rtnCoordGetAllGroupList( cb, allGroupLst ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get all group list, rc: %d", rc ) ;
+      // parse groups from msg
       if ( !filterObj.isEmpty() )
       {
          rc = rtnCoordParseGroupList( cb, filterObj, groupLst ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to parse groups, rc: %d", rc  ) ;
       }
+      // if no group, will send to all groups
       if ( groupLst.size() == 0 )
       {
          groupLst = allGroupLst ;
       }
+      // get nodes
       rc = rtnCoordGetGroupNodes( cb, filterObj, _nodeSelWhenNoFilter(),
                                   groupLst, sendNodes ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get nodes, rc: %d", rc ) ;
@@ -1115,12 +1148,15 @@ namespace engine
       }
       if ( _useContext() )
       {
+         // create context
          rc = pRtncb->contextNew( RTN_CONTEXT_COORD, (rtnContext**)&pContext,
                                   contextID, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to create context, rc: %d", rc ) ;
+         // open context
          rc = pContext->open( orderBy, numToReturn, numToSkip ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open context, rc: %d", rc ) ;
       }
+      // send backup msg
       rtnCoordSendRequestToNodes( pReceiveBuffer, sendNodes, 
                                   pRouteAgent, cb, successNodes,
                                   failedNodes ) ;
@@ -1238,6 +1274,7 @@ namespace engine
       CoordCB *pCoordcb                = pKrcb->getCoordCB() ;
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent() ;
 
+      // fill default-reply
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -1255,18 +1292,22 @@ namespace engine
 
       pHeader->TID = cb->getTID() ;
 
+      // 1. list all groups
       rc = rtnCoordGetAllGroupList( cb, allGroupLst ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get all group list, rc: %d", rc ) ;
 
+      // 2. parse groups from msg
       rc = rtnCoordParseGroupList( cb, (MsgOpQuery*)pReceiveBuffer,
                                    FILTER_ID_MATCHER, groupLst ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to parse groups, rc: %d", rc ) ;
 
+      // 3. if no group, will send to all groups
       if ( groupLst.size() == 0 )
       {
          groupLst = allGroupLst ;
       }
 
+      // 4. execute on gorups
       rc = executeOnDataGroup( pHeader, groupLst, sendGroupLst, pRouteAgent,
                                cb, NULL ) ;
       PD_RC_CHECK( rc, PDWARNING, "Backup in some group failed, rc: %d", rc ) ;
@@ -1306,6 +1347,7 @@ namespace engine
       CoordCB *pCoordcb                = pKrcb->getCoordCB();
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
 
+      // fill default-reply(delete success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -1325,6 +1367,7 @@ namespace engine
       CoordGroupList groupLst ;
       CoordGroupList sendGroupLst ;
 
+      // execute create collection on catalog
       rc = executeOnCataGroup ( (CHAR*)pCreateReq, pRouteAgent,
                                 cb, NULL, &groupLst ) ;
       if ( rc )
@@ -1333,6 +1376,7 @@ namespace engine
          goto error ;
       }
 
+      // print debug info
       if ( getPDLevel() >= PDDEBUG )
       {
          std::string strSpaceName;
@@ -1393,10 +1437,12 @@ namespace engine
          }
       }
 
+      // send request to data-nodes
       pCreateReq->header.opCode = MSG_BS_QUERY_REQ;
       rc = executeOnDataGroup( (MsgHeader *)pCreateReq, groupLst,
                                sendGroupLst, pRouteAgent, cb,
                                TRUE ) ;
+      // ignore the error from data node
       if ( rc != SDB_OK )
       {
          PD_LOG ( PDWARNING,
@@ -1410,6 +1456,9 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNCOCMDCRCS_EXE, rc ) ;
       return rc;
    /*error_rollback :
+      // the only possible code jumping here is failure creating cs on data
+      // node, so we only need to rollback the create_space operation on catalog
+      // node
       pCreateReq->header.opCode = MSG_CAT_DROP_SPACE_REQ ;
       rcTmp = executeOnCataGroup( (CHAR *)pCreateReq, requestID, pRouteAgent,
                                   cb ) ;
@@ -1433,6 +1482,7 @@ namespace engine
    {
       INT32 rc                         = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCOCMDALCL_EXE ) ;
+      // fill default-reply
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -1490,6 +1540,7 @@ namespace engine
          goto error ;
       }
 
+      // send request to catalog
       rc = executeOnCataGroup ( (CHAR*)pAlterReq, pRouteAgent, cb,
                                 NULL, &groupList ) ;
       if ( rc )
@@ -1499,6 +1550,7 @@ namespace engine
          goto error ;
       }
 
+      /// refresh catalog version.
       rc = rtnCoordGetCataInfo( cb, fullName, TRUE, cataInfo ) ;
       if ( SDB_OK != rc )
       {
@@ -1508,17 +1560,21 @@ namespace engine
          goto error ;
       }
 
+      /// empty main cl has no groups
       if ( !groupList.empty() )
       {
+         /// reassign it as a command.
          pAlterReq->header.opCode = MSG_BS_QUERY_REQ ;
          pAlterReq->version = cataInfo->getVersion() ;
 
+         /// send request to data
          rc = executeOnDataGroup( (MsgHeader *)pAlterReq, groupList,
                                    sendList, pRouteAgent, cb,
                                    TRUE ) ;
          if ( SDB_MAIN_CL_OP_ERR == rc ||
               SDB_CLS_COORD_NODE_CAT_VER_OLD == rc )
          {
+            /// we only want to update data's catalog version.
             rc = SDB_OK ;
          }
          else if ( SDB_OK != rc )
@@ -1530,6 +1586,7 @@ namespace engine
          }
          else
          {
+            /// do nothing.
          }
       }
    done :
@@ -1555,6 +1612,7 @@ namespace engine
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
       vector<BSONObj> replyFromCata ;
 
+      // fill default-reply(delete success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -1611,6 +1669,7 @@ namespace engine
                       "The sharding-type of main-collection must be range" ) ;
          }
          eleName = boQuery.getField( FIELD_NAME_NAME ) ;
+         // get collection name
          if ( eleName.type() != String )
          {
             PD_LOG( PDERROR, "Field[%s] type[%d] is error",
@@ -1628,6 +1687,7 @@ namespace engine
          goto error ;
       }
 
+      // send request to catalog
       if ( !isMainCL )
       {
          rc = executeOnCataGroup ( (CHAR*)pCreateReq, pRouteAgent,
@@ -1647,6 +1707,7 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to get catalog info of "
                          "collection[%s], rc: %d", pCollectionName, rc ) ;
 
+            // send request to data-nodes
             pCreateReq->header.opCode = MSG_BS_QUERY_REQ;
             pCreateReq->version = cataInfo->getVersion() ;
             rc = executeOnDataGroup( (MsgHeader *)pCreateReq, groupLst,
@@ -1677,6 +1738,7 @@ namespace engine
          }
       }
 
+      /// check whether should notify data group to complete tasks.
       if ( !isMainCL && !replyFromCata.empty() )
       {
       BSONElement task = replyFromCata.at(0).getField( CAT_TASKID_NAME ) ;
@@ -1686,6 +1748,8 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to notify data groups to start task:%d", rc ) ;
+            /// meta data has already been modified.
+            /// here we change a errno.
             rc = SDB_BUT_FAILED_ON_DATA ;
             goto error ;
          }
@@ -1697,6 +1761,8 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNCOCMDCRCL_EXE, rc ) ;
       return rc;
    /*error_rollback :
+      // since the only place jump to here is failure creating collection on
+      // data node, so during rollback we just need to drop the one from catalog
       pCreateReq->header.opCode = MSG_CAT_DROP_COLLECTION_REQ ;
       rcTmp = executeOnCataGroup( (CHAR *)pCreateReq, requestID,
                                   pRouteAgent, cb ) ;
@@ -1743,6 +1809,7 @@ namespace engine
       msgHeader->header.opCode = MSG_CAT_QUERY_TASK_REQ ;
       msgHeader->header.messageLength = bufferLen ;
       
+      /// get task info from catalog.
       rc = executeOnCataGroup( buffer, agent,
                                cb, NULL, NULL, &reply ) ;
       if ( SDB_OK != rc )
@@ -1751,6 +1818,7 @@ namespace engine
          goto error ;
       }
 
+      /// notify all groups to start task.
       {
       BSONElement group ;
       CoordGroupInfoPtr gpInfo ;
@@ -1812,6 +1880,7 @@ namespace engine
             everRc = ( SDB_OK == everRc ) ? rc : everRc ;
             rc = SDB_OK ;
             continue ;
+            /// here we try to send msg to all groups, do not goto error.
          }
       }
 
@@ -1840,6 +1909,7 @@ namespace engine
          PD_LOG( PDERROR, "failed to wait task done:%d", rc ) ;
          rc = SDB_OK ;
          ossSleep( 5000 ) ;
+         /// do not return err. only sleep some time to wait task done.
       }
       }
       }
@@ -1878,6 +1948,7 @@ namespace engine
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
       SINT64 contextID                 = -1;
 
+      // fill default-reply(snapshot success)
       MsgHeader*pHeader                = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -2007,6 +2078,7 @@ namespace engine
                                      MSG_ROUTE_SHARD_SERVCIE ) ;
             }
 
+            // not get node routeid
             if ( MSG_INVALID_ROUTEID == routeID.value )
             {
                if ( !isNeedRefresh )
@@ -2059,6 +2131,9 @@ namespace engine
                replyQue.pop();
                if ( SDB_OK == rc )
                {
+                  // snapshot reset does not return context ID, but all other
+                  // logics are the same, so we put it in same snapshot
+                  // processing function with special handling here
                   if ( SDB_OK == pReply->flags &&
                        pReply->contextID != -1 )
                   {
@@ -2321,6 +2396,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "failed to get group list(rc=%d)", rc );
       for ( i = 0; i < groupLst.size(); i++ )
       {
+         // ignore the catalog-group
          if ( groupCond.isEmpty() && CATALOG_GROUPID == groupLst[i]->getGroupID() )
          {
             continue;
@@ -2724,6 +2800,9 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNCOCMDSSCONT_BUILDREQMSG, rc ) ;
       return rc ;
    }
+   // snapshot collection operation. Basically this operation from coord does
+   // not broadcast to data node. Instead it works like ListGroups, which sends
+   // request to catalog
    PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSCLS_EXE, "rtnCoordCMDSnapshotCollections::execute" )
    INT32 rtnCoordCMDSnapshotCollectionsTmp::execute( CHAR *pReceiveBuffer,
                                                      SINT32 packSize,
@@ -2768,9 +2847,11 @@ namespace engine
                                                          BSONObj *hint )
    {
       INT32 rc = SDB_OK ;
+      //PD_TRACE_ENTRY ( SDB_RTNCOCMDSSRESETTMP_BUILDREQMSG ) ;
       rc = msgBuildQueryMsg( ppBuffer, bufferSize, COORD_CMD_SNAPSHOTRESET,
                              flag, 0, numToSkip, numToReturn, query, fieldSelector,
                              orderBy, hint );
+      //PD_TRACE_EXITRC ( SDB_RTNCOCMDSSRESETTMP_BUILDREQMSG, rc ) ;
       return rc ;
    }
 
@@ -2783,6 +2864,7 @@ namespace engine
                                            BSONObj **ppErrorObj )
    {
       INT32 rc = SDB_OK;
+      //PD_TRACE_ENTRY ( SDB_RTNCOCMD2PC_EXE ) ;
       SINT64 contextID = -1;
       pmdKRCB *pKrcb = pmdGetKRCB();
       _SDB_RTNCB *pRtncb = pKrcb->getRTNCB();
@@ -2820,6 +2902,7 @@ namespace engine
       }
       fillReply( (MsgHeader *)pReceiveBuffer, rc, ppErrorObj,
                   replyHeader );
+      //PD_TRACE_EXITRC ( SDB_RTNCOCMD2PC_EXE, rc ) ;
       return rc;
    error:
       if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == rc && !hasRetry )
@@ -2869,6 +2952,7 @@ namespace engine
                                                    BOOLEAN isNeedRefresh )
    {
       INT32 rc = SDB_OK;
+      //PD_TRACE_ENTRY ( SDB_RTNCOCMD2PC_DOP1 ) ;
       pmdKRCB *pKrcb                   = pmdGetKRCB();
       CoordCB *pCoordcb                = pKrcb->getCoordCB();
       _SDB_RTNCB *pRtncb               = pKrcb->getRTNCB();
@@ -2911,6 +2995,7 @@ namespace engine
                    "Failed to execute phase-1 on data node(rc=%d)",
                    rc );
    done:
+      //PD_TRACE_EXITRC ( SDB_RTNCOCMD2PC_DOP1, rc ) ;
       return rc;
    error:
       if ( contextID >= 0 )
@@ -2928,6 +3013,7 @@ namespace engine
                                                    SINT64 &contextID )
    {
       INT32 rc = SDB_OK;
+      //PD_TRACE_ENTRY ( SDB_RTNCOCMD2PC_DOP2 ) ;
       pmdKRCB *pKrcb = pmdGetKRCB();
       _SDB_RTNCB *pRtncb = pKrcb->getRTNCB();
       rtnContextBuf buffObj;
@@ -2941,6 +3027,7 @@ namespace engine
                    "Failed to execute phase-2 on data node(rc=%d)",
                    rc );
    done:
+      //PD_TRACE_EXITRC ( SDB_RTNCOCMD2PC_DOP2, rc ) ;
       return rc;
    error:
       if ( -1 != contextID )
@@ -2961,6 +3048,7 @@ namespace engine
                                              std::string &strCLName )
    {
       INT32 rc = SDB_OK;
+      //PD_TRACE_ENTRY ( SDB_RTNCODROPCL_GETCLNAME ) ;
       INT32 flag                       = 0;
       CHAR *pCommandName               = NULL;
       SINT64 numToSkip                 = 0;
@@ -2993,6 +3081,7 @@ namespace engine
          goto error;
       }
    done:
+      //PD_TRACE_EXITRC ( SDB_RTNCODROPCL_GETCLNAME, rc ) ;
       return rc;
    error:
       goto done;
@@ -3006,6 +3095,7 @@ namespace engine
                                                 BOOLEAN isNeedRefresh )
    {
       INT32 rc = SDB_OK;
+      //PD_TRACE_ENTRY ( SDB_RTNCODROPCL_GETGPLST ) ;
       std::string strCLName;
       CoordCataInfoPtr cataInfo;
       BOOLEAN hasRetry = FALSE;
@@ -3036,6 +3126,7 @@ namespace engine
                   rc );
       pDropReq->version = cataInfo->getVersion();
    done:
+      //PD_TRACE_EXITRC ( SDB_RTNCODROPCL_GETGPLST, rc ) ;
       return rc;
    error:
       goto done;
@@ -3046,6 +3137,7 @@ namespace engine
                                              pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK;
+      //PD_TRACE_ENTRY ( SDB_RTNCODROPCL_CMPL ) ;
       pmdKRCB *pKrcb = pmdGetKRCB();
       CoordCB *pCoordcb = pKrcb->getCoordCB();
       std::string strCLName;
@@ -3065,6 +3157,7 @@ namespace engine
          pCoordcb->delCataInfo( strMainCLName );
       }
    done:
+      //PD_TRACE_EXITRC ( SDB_RTNCODROPCL_CMPL, rc ) ;
       return SDB_OK;
    error:
       goto done;
@@ -3075,6 +3168,7 @@ namespace engine
                                                    pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK;
+      //PD_TRACE_ENTRY ( SDB_RTNCODROPCL_DOONCATA ) ;
       SINT32 opCode;
       UINT32 TID;
       MsgOpQuery *pDropReq             = (MsgOpQuery *)pReceiveBuffer ;
@@ -3097,6 +3191,7 @@ namespace engine
    done:
       pDropReq->header.opCode = opCode;
       pDropReq->header.TID = TID;
+      //PD_TRACE_EXITRC ( SDB_RTNCODROPCL_DOONCATA, rc ) ;
       return rc;
    error:
       goto done;
@@ -3115,6 +3210,7 @@ namespace engine
                                                        BOOLEAN isNeedRefresh )
    {
       INT32 rc = SDB_OK;
+      //PD_TRACE_ENTRY ( SDB_RTNCODROPCS_GETGPLST ) ;
 
       INT32 flag                       = 0;
       CHAR *pCommandName               = NULL;
@@ -3172,6 +3268,7 @@ namespace engine
       }
    done:
       SAFE_OSS_FREE( pBuffer );
+      //PD_TRACE_EXITRC ( SDB_RTNCODROPCS_GETGPLST, rc ) ;
       return rc;
    error:
       goto done;
@@ -3182,6 +3279,7 @@ namespace engine
                                                         pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK;
+      //PD_TRACE_ENTRY ( SDB_RTNCODROPCS_DOONCATA ) ;
       SINT32 opCode;
       UINT32 TID;
       MsgOpQuery *pDropReq             = (MsgOpQuery *)pReceiveBuffer ;
@@ -3203,6 +3301,7 @@ namespace engine
    done:
       pDropReq->header.opCode = opCode ;
       pDropReq->header.TID = TID ;
+      //PD_TRACE_EXITRC ( SDB_RTNCODROPCS_DOONCATA, rc ) ;
       return rc;
    error:
       goto done;
@@ -3315,6 +3414,7 @@ namespace engine
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
       SINT64 contextID                 = -1;
 
+      // fill default-reply(List success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -3548,6 +3648,7 @@ namespace engine
             break;
          }
 
+         // get more
          rtnContextBuf buffObj ;
          rc = rtnGetMore( replyHeader.contextID, -1, buffObj, cb, pRtncb ) ;
 
@@ -3648,6 +3749,7 @@ namespace engine
       pmdKRCB *pKrcb                   = pmdGetKRCB();
       CoordCB *pCoordcb                = pKrcb->getCoordCB();
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
+      // fill default-reply(create group success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -3702,6 +3804,7 @@ namespace engine
       CHAR *pOrderBy = NULL;
       CHAR *pHint = NULL;
 
+      // fill default-reply(remove group success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -3746,6 +3849,7 @@ namespace engine
          goto error ;
       }
 
+      /// get group info, for cleanup.
       rc = rtnCoordGetGroupInfo( cb, groupName, TRUE, group ) ;
       if ( SDB_OK != rc )
       {
@@ -3753,6 +3857,7 @@ namespace engine
          goto error ;
       }
 
+      /// exec on catalog
       rc = executeOnCataGroup ( (CHAR*)forward, pRouteAgent, cb ) ;
       if ( rc )
       {
@@ -3762,6 +3867,7 @@ namespace engine
 
       if ( 0 == ossStrcmp( groupName, CATALOG_GROUPNAME ) )
       {
+         // clean catalog info
          sdbGetCoordCB()->getLock( EXCLUSIVE ) ;
          sdbGetCoordCB()->clearCatNodeAddrList() ;
          sdbGetCoordCB()->releaseLock( EXCLUSIVE ) ;
@@ -3775,6 +3881,7 @@ namespace engine
          }
       }
 
+      /// clean up
       {
       SINT32 ret = SDB_OK ;
       INT32 rrc = SDB_OK ;
@@ -3794,6 +3901,7 @@ namespace engine
                          << PMD_OPTION_SVCNAME << serviceName ) ;
          rc = rtnRemoteExec ( SDBSTOP, hostName.c_str() ,
                               &ret, &execObj ) ;
+         /// here we only return a err code. do not goto error.
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR,
@@ -3849,15 +3957,18 @@ namespace engine
 
       try
       {
+         // role and catalogaddr will be added if user doesn't provide
          BSONObj boInput( pQuery ) ;
          BSONObjBuilder bobNodeConf ;
          BSONObjIterator iter( boInput ) ;
          BOOLEAN hasCatalogAddrKey = FALSE ;
 
+         // loop through each input parameter
          while ( iter.more() )
          {
             BSONElement beField = iter.next();
             std::string strFieldName(beField.fieldName());
+            // make sure to skip hostname and group name
             if ( strFieldName == FIELD_NAME_HOST ||
                  strFieldName == PMD_OPTION_ROLE )
             {
@@ -3876,13 +3987,16 @@ namespace engine
                continue ;
             }
 
+            // append into beField
             bobNodeConf.append( beField );
 
+            // for the ones we need to add default value
             if ( PMD_OPTION_CATALOG_ADDR == strFieldName )
             {
                hasCatalogAddrKey = TRUE ;
             }
          }
+         // assign role if it doesn't include
          roleStr = utilDBRoleStr( role ) ;
          if ( *roleStr == 0 )
          {
@@ -3890,6 +4004,9 @@ namespace engine
          }
          bobNodeConf.append ( PMD_OPTION_ROLE, roleStr ) ;
 
+         // assign catalog address, make sure to include all catalog nodes
+         // that configured in the system ( for HA ), each system should be
+         // separated by "," and sit in a single key: PMD_OPTION_CATALOG_ADDR
          if ( !hasCatalogAddrKey )
          {
             MsgRouteID routeID ;
@@ -4031,6 +4148,7 @@ namespace engine
       CoordCB *pCoordcb                = pKrcb->getCoordCB();
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
 
+      // fill default-reply(create group success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -4085,6 +4203,7 @@ namespace engine
          BSONObj hint;
          BSONObjBuilder builder ;
          BSONObj newNodeInfo ;
+         /// we enforced remove node in rollback.
          try
          {
             BSONObjIterator itrObj( boNodeInfo ) ;
@@ -4156,7 +4275,9 @@ namespace engine
                                  FIELD_NAME_GROUPNAME ).valuestr(),
                                  CATALOG_GROUPNAME ) )
             {
+               // update catalog group
                rtnCoordGetCatGroupInfo( cb, TRUE, catGroupInfo ) ;
+               // notify all nodes
                rtnCataChangeNtyToAllNodes( cb ) ;
             }
             break ;
@@ -4164,6 +4285,7 @@ namespace engine
 
          PD_LOG( PDERROR, "Remote node execute(configure) failed(rc=%d)",
                  rc ) ;
+         // Rollback: delete the node-info on catalog-node
          INT32 rcDel = SDB_OK ;
          rcDel = msgBuildQueryMsg( &pBuffer, &bufferSize, COORD_CMD_REMOVENODE,
                                    flag, 0, numToSkip, numToReturn,
@@ -4225,6 +4347,7 @@ namespace engine
       CoordGroupInfoPtr group ;
       BSONObj rInfo ;
 
+      /// fill default-reply
       replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
       replyHeader.header.opCode = MSG_BS_QUERY_RES ;
       replyHeader.header.requestID = rHeader->requestID ;
@@ -4298,6 +4421,7 @@ namespace engine
          goto error ;
       }
 
+      /// remove data node on catalog
       rc = executeOnCataGroup ( (CHAR*)forward, pRouteAgent,
                                 cb, NULL, &groupLst ) ;
       if ( rc )
@@ -4306,6 +4430,7 @@ namespace engine
          goto error ;
       }
 
+      /// get group info from catalog
       rc = rtnCoordGetGroupInfo( cb, groupName.c_str(), TRUE, group ) ;
       if ( SDB_OK != rc )
       {
@@ -4313,6 +4438,8 @@ namespace engine
          goto error ;
       }
 
+      /// notify the other nodes to update groupinfo.
+      /// here we do not care whether they succeed.
       if ( COORD_GROUPID != group->getGroupID() )
       {
          _MsgClsGInfoUpdated updated ;
@@ -4329,6 +4456,7 @@ namespace engine
          }
       }
 
+      // remove node by cm
       {
          SINT32 retCode;
          INT32 rrc = SDB_OK ;
@@ -4379,6 +4507,7 @@ namespace engine
       CoordCB *pCoordcb                = pKrcb->getCoordCB();
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
 
+      // fill default-reply(create group success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -4833,6 +4962,7 @@ namespace engine
       CoordCB *pCoordcb                = pKrcb->getCoordCB();
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
 
+      // fill default-reply(active group success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -4944,6 +5074,7 @@ namespace engine
       CoordCB *pCoordcb                = pKrcb->getCoordCB();
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
 
+      // fill default-reply(active group success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -4974,9 +5105,11 @@ namespace engine
       CoordGroupList sendGroupLst;
       CoordGroupList hasRollBackGroups;
 
+      // rollback related
       CHAR *pDropMsg                   = NULL;
       INT32 bufferSize                 = 0;
 
+      // extract message
       rc = msgExtractQuery( pReceiveBuffer, &flag, &pCMDName,
                             &numToSkip, &numToReturn, &pQuery,
                             &pFieldSelector, &pOrderBy, &pHint );
@@ -4986,20 +5119,25 @@ namespace engine
       try
       {
          BSONObj boQuery(pQuery);
+         // get collection name
          BSONElement beCollectionName
                      = boQuery.getField( FIELD_NAME_COLLECTION );
+         // get index name
          BSONElement beIndex = boQuery.getField( FIELD_NAME_INDEX );
          BSONElement beIndexName ;
+         // make sure collection name exists
          PD_CHECK ( beCollectionName.type() == String,
                     SDB_INVALIDARG, error, PDERROR,
                     "create index failed, failed to get the field(%s)",
                     FIELD_NAME_COLLECTION ) ;
          strCollectionName = beCollectionName.valuestr() ;
 
+         // make sure index object exist
          PD_CHECK ( beIndex.type() == Object,
                     SDB_INVALIDARG, error, PDERROR,
                     "create index failed, failed to get the field(%s)",
                     FIELD_NAME_INDEX ) ;
+         // get embedded index name
          beIndexName = beIndex.embeddedObject().getField( IXM_FIELD_NAME_NAME );
          PD_CHECK ( beIndexName.type() == String,
                     SDB_INVALIDARG, error, PDERROR,
@@ -5021,6 +5159,8 @@ namespace engine
                     "failed to create index(%s), "
                     "get catalogue failed(rc=%d)",
                     strCollectionName, rc ) ;
+      // if the collection is sharded, we have to extract the index key and
+      // make sure sharding key is included if it's unique index
       if ( cataInfo->isSharded() )
       {
          try
@@ -5046,6 +5186,8 @@ namespace engine
             {
                isUnique = indexUnique.boolean () ;
             }
+            // now the index def is in indexObj, so we need to compare
+            // sharding key and indexKey if it's unique
             if ( isUnique )
             {
                BSONObj shardingKey ;
@@ -5085,6 +5227,7 @@ namespace engine
       pCreateReq->header.routeID.value = 0;
       pCreateReq->header.TID           = cb->getTID();
       pCreateReq->header.opCode        = MSG_BS_QUERY_REQ;
+      // run on data partition
       rc = executeOnDataGroup( (MsgHeader *)pCreateReq,
                                dataNodeGroupLst, sendGroupLst,
                                pRouteAgent, cb, TRUE );
@@ -5095,6 +5238,7 @@ namespace engine
             isNeedRefresh = TRUE;
             goto retry ;
          }
+         // if we failed on creating index operation, let's goto rollback call
          PD_CHECK ( SDB_OK == rc, rc, rollback, PDERROR,
                     "Failed to create index on data group, rc = %d", rc ) ;
       }
@@ -5107,6 +5251,9 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNCOCMDCTIND_EXE, rc ) ;
       return rc;
    rollback :
+      // if create index happened on some nodes, we have to rollback the
+      // operation
+      // first let's build a package
       tempRC = msgBuildDropIndexMsg( &pDropMsg, &bufferSize,
                                      strCollectionName,
                                      strIndexName, 0 );
@@ -5115,6 +5262,7 @@ namespace engine
                     tempRC ) ;
       isNeedRefresh = FALSE ;
    retry_rollback :
+      // let's get most current version again
       tempRC = rtnCoordGetCataInfo( cb, strCollectionName,
                                     isNeedRefresh, cataInfo );
       PD_RC_CHECK ( tempRC, PDERROR,
@@ -5122,6 +5270,7 @@ namespace engine
                     "get catalogue failed(rc=%d)",
                     strCollectionName, tempRC ) ;
 
+      // don't rollback for main-collection
       if ( cataInfo->isMainCL() )
       {
          PD_LOG( PDWARNING,
@@ -5129,15 +5278,19 @@ namespace engine
          goto error;
       }
 
+      // fill up some headers
       ((MsgOpQuery *)pDropMsg)->version              = cataInfo->getVersion();
       ((MsgOpQuery *)pDropMsg)->header.routeID.value = 0;
       ((MsgOpQuery *)pDropMsg)->header.TID           = cb->getTID();
+      // start rollback call
       tempRC = executeOnDataGroup( (MsgHeader *)pDropMsg,
                                     sendGroupLst,
                                     hasRollBackGroups,
                                     pRouteAgent, cb, TRUE );
       if ( tempRC != SDB_OK )
       {
+         // if our version is too old, let's retry rollback again with newest
+         // version
          if ( !isNeedRefresh && rtnCoordWriteRetryRC( tempRC ) )
          {
             isNeedRefresh = TRUE;
@@ -5164,6 +5317,7 @@ namespace engine
       CoordCB *pCoordcb                = pKrcb->getCoordCB();
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
 
+      // fill default-reply(active group success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -5278,6 +5432,7 @@ namespace engine
    {
       INT32 rc                         = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOCMDOPONNODE_EXE ) ;
+      // fill default-reply(active group success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -5619,6 +5774,7 @@ namespace engine
 
       collectionObj = BSON( FIELD_NAME_COLLECTION << clFullName ) ;
 
+      // send getcount to node
       rc = rtnCoordNodeQuery( CMD_ADMIN_PREFIX CMD_NAME_GET_COUNT,
                               dummy, dummy, dummy, collectionObj,
                               0, 1, tmpGroupList, cb, &pContext,
@@ -5635,6 +5791,7 @@ namespace engine
       }
       else
       {
+         // get count data
          BSONObj countObj ( buffObj.data() ) ;
          BSONElement beTotal = countObj.getField( FIELD_NAME_TOTAL );
          PD_CHECK( beTotal.isNumber(), SDB_INVALIDARG, error,
@@ -5696,6 +5853,7 @@ namespace engine
       BSONObj boKeyEnd ;
       BSONObj boDummy ;
       BSONObj boHint ;
+      // fill default-reply
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer ;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -5710,6 +5868,8 @@ namespace engine
       BSONObj boRecord ;
       FLOAT64 percent = 0.0 ;
 
+      // first round we perform prepare, so catalog node is able to do sanity
+      // check for collection name and nodes
       MsgOpQuery *pSplitReq            = (MsgOpQuery *)pReceiveBuffer ;
       pSplitReq->header.routeID.value  = 0 ;
       pSplitReq->header.TID            = cb->getTID () ;
@@ -5722,10 +5882,15 @@ namespace engine
       /******************************************************************
        *              PREPARE PHASE                                     *
        ******************************************************************/
+      // send request to catalog
       rc = executeOnCataGroup ( (CHAR*)pSplitReq, pRouteAgent,
                                 cb, NULL, &groupLst ) ;
       PD_RC_CHECK ( rc, PDERROR, "Split failed on catalog, rc = %d", rc ) ;
 
+      // here, in groupLst there should be one and only one group, for SOURCE
+      // send request to data-node to find the partitioning key
+      // Extract the SplitQuery Field and build a query request to send to data
+      // node
       rc = msgExtractQuery ( (CHAR*)pSplitReq, &flag, &pCollectionName,
                              &numToSkip, &numToReturn, &pQuery,
                              &pSelector, &pOrderBy, &pHint ) ;
@@ -5738,6 +5903,7 @@ namespace engine
           ***************************************************************/
          BSONObj boQuery ( pQuery ) ;
 
+         // get collection name and query
          BSONElement beName = boQuery.getField ( CAT_COLLECTION_NAME ) ;
          BSONElement beSplitQuery =
                boQuery.getField ( CAT_SPLITQUERY_NAME ) ;
@@ -5746,11 +5912,14 @@ namespace engine
          BSONElement beTarget = boQuery.getField ( CAT_TARGET_NAME ) ;
          BSONElement beAsync  = boQuery.getField ( FIELD_NAME_ASYNC ) ;
          percent = boQuery.getField( CAT_SPLITPERCENT_NAME ).numberDouble() ;
+         // collection name verify
          PD_CHECK ( !beName.eoo() && beName.type () == String,
                     SDB_INVALIDARG, error, PDERROR,
                     "Failed to process split prepare, unable to find "
                     "collection name field" ) ;
+         // now strName is the name of collection
          strName = beName.valuestr() ;
+         // get source group name
          PD_CHECK ( !beSource.eoo() && beSource.type() == String,
                     SDB_INVALIDARG, error, PDERROR,
                     "Unable to find source field" ) ;
@@ -5760,6 +5929,7 @@ namespace engine
                     beSource.valuestr() ) ;
          ossStrncpy ( szSource, beSource.valuestr(), sizeof(szSource) ) ;
 
+         // get target group name
          PD_CHECK ( !beTarget.eoo() && beTarget.type() == String,
                     SDB_INVALIDARG, error, PDERROR,
                     "Unable to find target field" ) ;
@@ -5769,6 +5939,7 @@ namespace engine
                     beTarget.valuestr() ) ;
          ossStrncpy ( szTarget, beTarget.valuestr(), sizeof(szTarget) ) ;
 
+         // async check
          if ( Bool == beAsync.type() )
          {
             async = beAsync.Bool() ? TRUE : FALSE ;
@@ -5781,6 +5952,7 @@ namespace engine
             goto error ;
          }
 
+         // make sure we have either split value or split query
          if ( !beSplitQuery.eoo() )
          {
             PD_CHECK ( beSplitQuery.type() == Object,
@@ -5801,10 +5973,13 @@ namespace engine
                       "Split percent value is error" ) ;
          }
 
+         // get sharding key, always get the newest version from catalog
          rc = rtnCoordGetCataInfo ( cb, strName, TRUE, cataInfo ) ;
          PD_RC_CHECK ( rc, PDERROR,
                        "Failed to get cata info for collection %s, rc = %d",
                        strName, rc ) ;
+         // sharding key must exist, we should NEVER hit this check because the
+         // check already done in catalog in PREPARE phase
          cataInfo->getShardingKey ( boShardingKey ) ;
          PD_CHECK ( !boShardingKey.isEmpty(), SDB_COLLECTION_NOTSHARD, error,
                     PDWARNING, "Collection must be sharded: %s", strName ) ;
@@ -5856,10 +6031,13 @@ namespace engine
       /************************************************************************
        *         SHARDING READY REQUEST                                       *
        ************************************************************************/
+      // now boKeyStart contains the key we want to split, let's construct a new
+      // request for split ready
       try
       {
          BSONObj boSend ;
          vector<BSONObj> boRecv ;
+         // construct the record that we are going to send to catalog
          boSend = BSON ( CAT_COLLECTION_NAME << strName <<
                          CAT_SOURCE_NAME << szSource <<
                          CAT_TARGET_NAME << szTarget <<
@@ -5890,6 +6068,7 @@ namespace engine
          }
          taskID = (UINT64)(boRecv.at(0).getField( CAT_TASKID_NAME ).numberLong()) ;
 
+         // construct split query req
          boSend = BSON( CAT_TASKID_NAME << (long long)taskID ) ;
          rc = msgBuildQueryMsg( &splitQueryBuffer, &splitQueryBufferSz,
                                 CMD_ADMIN_PREFIX CMD_NAME_SPLIT, 0,
@@ -5911,14 +6090,20 @@ namespace engine
       /************************************************************************
        *           SHARDING START REQUEST                                     *
        ************************************************************************/
+      // before sending to data node, we have to convert the request to QUERY
    retry :
       groupLst = groupList1 ;
+      // before sending to data node, we have to convert the request to QUERY
       pSplitReq->header.opCode = MSG_BS_QUERY_REQ ;
+      // make sure to keep request id same in request package and getCataInfo
+      // call
       rc = executeOnDataGroup( (MsgHeader *)splitReadyBuffer,
                                groupLst, groupLstTmp, pRouteAgent,
                                cb, TRUE );
       if ( rc )
       {
+         // if version is too old, let's get the most current version and try
+         // again
          if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == rc &&
               !isNeedRefresh )
          {
@@ -5930,11 +6115,14 @@ namespace engine
             pSplitReq->version = cataInfo->getVersion();
             goto retry ;
          }
+         // when we get here, something big happend. We have marked ready to
+         // split on catalog but data node refused to do so.
          PD_LOG ( PDERROR, "Failed to execute split on data node, rc = %d",
                   rc ) ;
          goto cancel ;
       }
 
+      // if sync, need to wait task finished
       if ( !async )
       {
          rtnCoordProcesserFactory *pFactory = pCoordcb->getProcesserFactory() ;
@@ -5973,6 +6161,7 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNCOCMDSP_EXE, rc ) ;
       return rc ;
    cancel :
+      // convert request to split cancel and use all other arguments
       pSplitQuery->header.opCode       = MSG_CAT_SPLIT_CANCEL_REQ ;
       pSplitQuery->version             = cataInfo->getVersion();
       {
@@ -6017,6 +6206,7 @@ namespace engine
       rtnContextBuf buffObj ;
       BSONObj obj ;
 
+      // check condition has invalid fileds
       if ( !condition.okForStorage() )
       {
          PD_LOG( PDERROR, "Condition[%s] has invalid field name",
@@ -6047,8 +6237,10 @@ namespace engine
          obj = condition ;
       }
 
+      // product split key
       {
          PD_LOG ( PDINFO, "Split found record %s", obj.toString().c_str() ) ;
+         // we need to compare with boShardingKey and extract the partition key
          ixmIndexKeyGen keyGen ( shardingKey ) ;
          BSONObjSet keys ;
          BSONObjSet::iterator keyIter ;
@@ -6056,6 +6248,7 @@ namespace engine
          PD_RC_CHECK ( rc, PDERROR, "Failed to extract keys\nkeyDef = %s\n"
                        "record = %s\nrc = %d", shardingKey.toString().c_str(),
                        obj.toString().c_str(), rc ) ;
+         // make sure there is one and only one element in the keys
          PD_CHECK ( keys.size() == 1, SDB_INVALID_SHARDINGKEY, error,
                     PDWARNING, "There must be a single key generate for "
                     "sharding\nkeyDef = %s\nrecord = %s\n",
@@ -6065,6 +6258,7 @@ namespace engine
          keyIter = keys.begin () ;
          record = (*keyIter).copy() ;
 
+         // validate key does not contains Undefined
          /*{
             BSONObjIterator iter ( record ) ;
             while ( iter.more () )
@@ -6106,6 +6300,7 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB_RTNCOCMDSP__GETBOUNDBYC ) ;
       INT32 rc = SDB_OK ;
+      /// coord send will clear group list.
       CoordGroupList grpTmp = groupList ;
       BSONObj shardingKey ;
       cataInfo->getShardingKey ( shardingKey ) ;
@@ -6157,6 +6352,7 @@ namespace engine
       PD_CHECK ( !shardingKey.isEmpty(), SDB_COLLECTION_NOTSHARD, error,
                  PDWARNING, "Collection must be sharded: %s", cl ) ;
 
+      // if split percent is 100.0%, get the group low bound
       if ( 100.0 - percent < OSS_EPSILON )
       {
          rc = cataInfo->getGroupLowBound( grpTmp.begin()->second,
@@ -6206,6 +6402,7 @@ namespace engine
          }
       }
 
+      /// upbound always be empty.
       upBound = BSONObj() ;
    done:
       PD_TRACE_EXITRC( SDB_RTNCOCMDSP__GETBOUNDBYP, rc ) ;
@@ -6227,6 +6424,7 @@ namespace engine
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent () ;
 
       MsgHeader *pSrc   = ( MsgHeader* )pReceiveBuffer ;
+      // fill default-reply
       replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
       replyHeader.header.opCode        = MSG_BS_QUERY_RES ;
       replyHeader.header.requestID     = pSrc->requestID ;
@@ -6306,6 +6504,7 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       MsgHeader *pSrc   = ( MsgHeader* )pReceiveBuffer ;
+      // fill default-reply
       replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
       replyHeader.header.opCode        = MSG_BS_QUERY_RES ;
       replyHeader.header.requestID     = pSrc->requestID ;
@@ -6372,6 +6571,7 @@ namespace engine
       BOOLEAN async                    = FALSE ;
 
       MsgHeader *pSrc   = ( MsgHeader* )pReceiveBuffer ;
+      // fill default-reply
       replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
       replyHeader.header.opCode        = MSG_BS_QUERY_RES ;
       replyHeader.header.requestID     = pSrc->requestID ;
@@ -6386,6 +6586,7 @@ namespace engine
       CoordGroupList groupLstSend ;
       INT32 rcTmp = SDB_OK ;
 
+      // extract msg
       CHAR *pQueryBuf = NULL ;
       rc = msgExtractQuery( pReceiveBuffer, NULL, NULL, NULL, NULL, &pQueryBuf,
                             NULL, NULL, NULL ) ;
@@ -6417,6 +6618,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Excute on catalog failed, rc: %d", rc ) ;
 
       pSrc->opCode                     = MSG_BS_QUERY_REQ ;
+      // notify to data node
       rcTmp = executeOnDataGroup( (MsgHeader*)pReceiveBuffer, groupLst,
                                   groupLstSend, pRouteAgent, cb, TRUE, NULL ) ;
       if ( rcTmp )
@@ -6424,6 +6626,7 @@ namespace engine
          PD_LOG( PDWARNING, "Failed to notify to data node, rc: %d", rcTmp ) ;
       }
 
+      // if sync
       if ( !async )
       {
          rtnCoordCommand *pCmd = pFactory->getCommandProcesser(
@@ -6464,6 +6667,7 @@ namespace engine
       CoordCB *pCoordcb                = pKrcb->getCoordCB();
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
 
+      // fill default-reply(execute success)
       MsgHeader*pHeader                = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -6494,6 +6698,7 @@ namespace engine
       CHAR *pHint = NULL;
       BSONObj boOrderBy;
       BSONObj boQuery;
+      // extract request-message
       rc = msgExtractQuery( pReceiveBuffer, &flag, &pCollectionName,
                         &numToSkip, &numToReturn, &pQuery, &pFieldSelector,
                         &pOrderBy, &pHint );
@@ -6506,6 +6711,7 @@ namespace engine
          boOrderBy = BSONObj( pOrderBy );
          boQuery = BSONObj( pQuery );
 
+         //get collection name
          BSONElement beCollectionName
                      = boHint.getField( FIELD_NAME_COLLECTION );
          PD_CHECK ( beCollectionName.type() == String,
@@ -6526,6 +6732,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR,
                   "query failed(rc=%d)", rc ) ;
 
+      // statistics the result
       rc = generateResult( pContext, pRouteAgent, cb );
       PD_RC_CHECK( rc, PDERROR, "Failed to execute statistics(rc=%d)", rc ) ;
 
@@ -6554,6 +6761,7 @@ namespace engine
       CoordIndexMap indexMap ;
       rtnContextBuf buffObj ;
 
+      // get index from all nodes
       do
       {
          rc = pContext->getMore( 1, buffObj, cb ) ;
@@ -6593,6 +6801,7 @@ namespace engine
             }
             else
             {
+               // check the index
                BSONObjIterator newIter( boIndexDef );
                BSONObj boOldDef;
                BSONElement beOldDef =
@@ -6732,6 +6941,7 @@ namespace engine
                                                    netMultiRouteAgent * pRouteAgent,
                                                    pmdEDUCB * cb )
    {
+      // don't merge data, do nothing
       return SDB_OK ;
    }
 
@@ -6804,21 +7014,26 @@ namespace engine
                    "error:%s", e.what() );
       }
 
+      // Create
       rc = rtnRemoteExec( SDBADD, pHostName, &retCode, &boNodeConfig,
                           &boNodeInfo ) ;
       rc = rc ? rc : retCode ;
       PD_RC_CHECK( rc, PDERROR, "remote node execute(configure) "
                    "failed(rc=%d)", rc ) ;
 
+      // Start
       rc = rtnRemoteExec( SDBSTART, pHostName, &retCode, &boLocalSvc ) ;
       rc = rc ? rc : retCode ;
+      // if start catalog failed, need to remove config
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Remote node execute(start) failed(rc=%d)", rc ) ;
+         // boBackup for remove node to backup node info
          rtnRemoteExec( SDBRM, pHostName, &retCode, &boNodeConfig, &boBackup ) ;
          goto error ;
       }
 
+      /// fillback catalog addr.
       {
          CoordVecNodeInfo cataList ;
          sdbGetCoordCB()->getLock( EXCLUSIVE ) ;
@@ -6840,6 +7055,7 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNCOCMDCTCAGP_EXE, rc ) ;
       return rc;
    error:
+      // clear the catalog-group info
       if ( rc != SDB_COORD_RECREATE_CATALOG )
       {
          sdbGetCoordCB()->getLock( EXCLUSIVE ) ;
@@ -6876,11 +7092,13 @@ namespace engine
          BSONObjBuilder bobNodeConf ;
          BSONObjIterator iter( boInput ) ;
 
+         // loop through each input parameter
          while ( iter.more() )
          {
             BSONElement beField = iter.next() ;
             std::string strFieldName( beField.fieldName() ) ;
 
+            // make sure to skip hostname, group name, and role
             if ( strFieldName == FIELD_NAME_HOST )
             {
                strCataHostName = beField.str();
@@ -6901,6 +7119,7 @@ namespace engine
                strSvcName = beField.str() ;
             }
 
+            // append into beField
             bobNodeConf.append( beField ) ;
          }
 
@@ -6920,11 +7139,16 @@ namespace engine
             strCataSvc = szPort ;
          }
 
+         // assign role
          bobNodeConf.append ( PMD_OPTION_ROLE, SDB_ROLE_CATALOG_STR ) ;
 
+         // assign catalog address, make sure to include all catalog nodes
+         // that configured in the system ( for HA ), each system should be
+         // separated by "," and sit in a single key: PMD_OPTION_CATALOG_ADDR
          sdbGetCoordCB()->getLock( EXCLUSIVE ) ;
          sdbGetCoordCB()->getCatNodeAddrList( cataNodeLst ) ;
 
+         // already exist catalog group
          if ( cataNodeLst.size() > 0 )
          {
             rc = SDB_COORD_RECREATE_CATALOG ;
@@ -7575,6 +7799,7 @@ namespace engine
                      "received unexpected error:%s",
                      e.what() );
       }
+      // nodesMatcher
       if ( !nodesMatcher.isEmpty() )
       {
          rc = appendObj( nodesMatcher, pOutputBuffer, bufSize, bufUsed );
@@ -7584,11 +7809,13 @@ namespace engine
          ++addObjNum;
       }
 
+      // aggregation
       rc = appendAggrObjs( pOutputBuffer, bufSize, addObjNum, bufUsed );
       PD_RC_CHECK( rc, PDERROR,
                    "failed to append aggregation operation objs(rc=%d)",
                    rc );
 
+      // matcher
       if ( !newMatcher.isEmpty() )
       {
          rc = appendObj( newMatcher, pOutputBuffer, bufSize, bufUsed );
@@ -7598,6 +7825,7 @@ namespace engine
          ++addObjNum;
       }
 
+      // orderBy
       if ( !orderBy.isEmpty() )
       {
          rc = appendObj( orderBy, pOutputBuffer, bufSize, bufUsed );
@@ -7607,6 +7835,7 @@ namespace engine
          ++addObjNum;
       }
 
+      // selector
       if ( !selector.isEmpty() )
       {
          rc = appendObj( selector, pOutputBuffer, bufSize, bufUsed );
@@ -8064,6 +8293,8 @@ namespace engine
       replyHeader.contextID = contextID ;
 
    done:
+      /// when -1 != contextID, session will be freed
+      /// in context destructor.
       if ( -1 == contextID )
       {
          SAFE_OSS_DELETE( session ) ;
@@ -8245,6 +8476,7 @@ namespace engine
       CoordCataInfoPtr cataInfo;
       std::string strMainCLName;
 
+      // fill default-reply(delete success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -8299,6 +8531,7 @@ namespace engine
          goto error ;
       }
 
+      // send request to catalog
       pLinkReq->header.opCode        = MSG_CAT_LINK_CL_REQ;
       rc = executeOnCataGroup ( (CHAR*)pLinkReq, pRouteAgent,
                                 cb, NULL, &groupLst ) ;
@@ -8311,6 +8544,7 @@ namespace engine
                 "failed to get catalog info(rc=%d)", rc );
       pLinkReq->version = cataInfo->getVersion();
 
+      //send request to data-node
       pLinkReq->header.opCode        = MSG_BS_QUERY_REQ;
       pLinkReq->header.routeID.value = 0;
       rc = executeOnDataGroup( pHeader, groupLst, sendGroupLst,
@@ -8347,6 +8581,7 @@ namespace engine
       CoordCB *pCoordcb                = pKrcb->getCoordCB();
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
 
+      // fill default-reply(delete success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -8445,6 +8680,7 @@ namespace engine
                    "failed to get group list(rc=%d)",
                    rc );
 
+      // send request to catalog
       pReqMsg->header.opCode = MSG_CAT_UNLINK_CL_REQ;
       rc = executeOnCataGroup ( (CHAR*)pReqMsg, pRouteAgent,
                                 cb, NULL, &groupLst ) ;
@@ -8493,6 +8729,7 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOCMDSETSESSATTR_EXE ) ;
+      // fill default-reply(delete success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_QUERY_RES;
@@ -9051,6 +9288,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BSONElement groups = condition.getField( FIELD_NAME_GROUPS ) ;
+      /// means all groups 
       if ( groups.eoo() )
       {
          GROUP_VEC gpLst ;
@@ -9081,9 +9319,12 @@ namespace engine
             }
          }
       }
+      /// only on this coord
       else if ( groups.isNull() )
       {
+         /// do nothing
       }
+      /// a data group specified
       else if ( String == groups.type() )
       {
          CoordGroupInfoPtr gpInfo ;
@@ -9112,6 +9353,7 @@ namespace engine
          }
          }
       }
+      /// some data groups specified
       else if ( Array == groups.type() )
       {
          BSONObjIterator itr( groups.embeddedObject() ) ;
@@ -9257,8 +9499,10 @@ namespace engine
          goto error ;
       }
 
+      /// invalidate local catalog cache
       sdbGetCoordCB()->invalidateCataInfo() ;
 
+      /// send msg to specified nodes
       reqHeader->TID = cb->getTID() ;
       rc = _executeOnMultiNodes( pReceiveBuffer,
                                  cb, nodes, uncompleted ) ;
@@ -9407,6 +9651,9 @@ retry:
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to execute command on data groups:%d", rc ) ;
+         /// do not goto error, try to add all context returned to coord context.
+         /// so that they can be released at the end of this function if we
+         /// get error.
       }
 
       for ( map<UINT64, SINT64>::const_iterator itr = contexts.begin();
@@ -9419,6 +9666,7 @@ retry:
          if ( SDB_OK != rcTmp )
          {
             PD_LOG( PDERROR, "failed to add su context:%d", rc ) ;
+            /// do not goto error.
          }
       }
 

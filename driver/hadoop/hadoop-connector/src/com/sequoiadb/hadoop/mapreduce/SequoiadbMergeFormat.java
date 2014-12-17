@@ -30,17 +30,21 @@ public class SequoiadbMergeFormat extends OutputFormat implements Configurable {
 	
 	@Override
 	public Configuration getConf() {
+		// TODO Auto-generated method stub
 		return this.conf;
 	}
 
 	@Override
 	public void setConf(Configuration configuration) {
+		// TODO Auto-generated method stub
 		this.conf = configuration;
 		this.collectionName = SequoiadbConfigUtil.getOutCollectionName(conf);
 		this.collectionSpaceName = SequoiadbConfigUtil
 				.getOutCollectionSpaceName(conf);
 		
 		
+		// Process coord url string;
+		// The string format is ip:port,ip:port,ip:port
 		String urlStr = SequoiadbConfigUtil.getOutputURL(conf);
 		if (urlStr == null) {
 			throw new IllegalArgumentException("The argument "
@@ -58,6 +62,7 @@ public class SequoiadbMergeFormat extends OutputFormat implements Configurable {
 	@Override
 	public void checkOutputSpecs(JobContext jobConf) throws IOException,
 			InterruptedException {
+		// TODO Auto-generated method stub
 		
 	}
 
@@ -73,14 +78,18 @@ public class SequoiadbMergeFormat extends OutputFormat implements Configurable {
 	public RecordWriter getRecordWriter(TaskAttemptContext arg0)
 			throws IOException, InterruptedException {
 		
+		// Find the local coord address from coord adress list.
+		// If cann't found, then random select a address.
 		InetAddress localAddr = null;
 		try {
 			localAddr = InetAddress.getLocalHost();
 			log.debug(localAddr.getHostAddress());
 		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
 			log.error(e.getMessage());
 		}
 
+		// Get all location address.
 		ArrayList<SdbConnAddr> localAddrList = new ArrayList<SdbConnAddr>();
 		for (int i = 0; i < sdbConnAddr.length; i++) {
 			if (sdbConnAddr[i].getHost().equals(localAddr.getHostAddress())
@@ -89,6 +98,7 @@ public class SequoiadbMergeFormat extends OutputFormat implements Configurable {
 			}
 		}
 
+		// If not any local address, and all address to localAddrList
 		if (localAddrList.isEmpty()) {
 			for (int i = 0; i < sdbConnAddr.length; i++) {
 				localAddrList.add(sdbConnAddr[i]);
@@ -96,7 +106,9 @@ public class SequoiadbMergeFormat extends OutputFormat implements Configurable {
 		}
 
 		int i = 0;
+		// if local address list size is more than one.
 		if (localAddrList.size() > 1) {
+			// Then genarate random number, for select any one coord
 			Random rand = new Random();
 			i = rand.nextInt(localAddrList.size());
 		}

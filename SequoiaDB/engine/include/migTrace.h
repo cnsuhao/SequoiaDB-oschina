@@ -1,6 +1,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! */
 #ifndef migTRACE_H__
 #define migTRACE_H__
+// Component: mig
 #define SDB__MIGLOADJSONPS__SENDMSG                        0x20000007c2L
 #define SDB__MIGLOADJSONPS__GETBLOCK                       0x20000007c3L
 #define SDB__MIGLOADJSONPS__POPFROMQUEUE                   0x20000007c4L

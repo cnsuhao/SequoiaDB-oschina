@@ -129,6 +129,7 @@ namespace engine
                                 pmdSyncClockEntryPoint,
                                 "SyncClockWorker" ),
 
+         // For the end
          ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_MAXIMUM, FALSE,
                                 NULL,
                                 "Unknow" )

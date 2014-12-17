@@ -278,6 +278,7 @@ const zend_function_entry sequoiadb_collection_functions[] = {
    PHP_ME ( SequoiaCL, drop             , NULL, ZEND_ACC_PUBLIC )
    PHP_ME ( SequoiaCL, find             , NULL, ZEND_ACC_PUBLIC )
    PHP_ME ( SequoiaCL, aggregate        , NULL, ZEND_ACC_PUBLIC )
+   //PHP_ME ( SequoiaCL, rename           , NULL, ZEND_ACC_PUBLIC )
    PHP_ME ( SequoiaCL, createIndex      , NULL, ZEND_ACC_PUBLIC )
    PHP_ME ( SequoiaCL, getIndex         , NULL, ZEND_ACC_PUBLIC )
    PHP_ME ( SequoiaCL, deleteIndex      , NULL, ZEND_ACC_PUBLIC )
@@ -295,6 +296,8 @@ const zend_function_entry sequoiadb_cursor_functions[] = {
    PHP_ME ( SequoiaCursor, __destruct     , NULL, ZEND_ACC_PUBLIC )
    PHP_ME ( SequoiaCursor, getNext        , NULL, ZEND_ACC_PUBLIC )
    PHP_ME ( SequoiaCursor, current        , NULL, ZEND_ACC_PUBLIC )
+   //PHP_ME ( SequoiaCursor, updateCurrent  , NULL, ZEND_ACC_PUBLIC )
+   //PHP_ME ( SequoiaCursor, deleteCurrent  , NULL, ZEND_ACC_PUBLIC )
    PHP_FE_END
 };
 
@@ -342,6 +345,7 @@ const zend_function_entry sequoia_group_functions[] = {
    PHP_ME ( sequoiaGroup, getSlave   , NULL, ZEND_ACC_PUBLIC )
    PHP_ME ( sequoiaGroup, getNode    , NULL, ZEND_ACC_PUBLIC )
    PHP_ME ( sequoiaGroup, createNode , NULL, ZEND_ACC_PUBLIC )
+ //  PHP_ME ( sequoiaGroup, activate   , NULL, ZEND_ACC_PUBLIC )
    PHP_ME ( sequoiaGroup, start      , NULL, ZEND_ACC_PUBLIC )
    PHP_ME ( sequoiaGroup, stop       , NULL, ZEND_ACC_PUBLIC )
    PHP_ME ( sequoiaGroup, isCatalog  , NULL, ZEND_ACC_PUBLIC )
@@ -445,6 +449,7 @@ zend_register_internal_class( &sequoiaGroup TSRMLS_CC ) ;
 zend_register_internal_class( &sequoiaNode TSRMLS_CC ) ;
 
 
+   //sdb
    zend_declare_property_null( pSequoiadbSdb,
                                ZEND_STRL("_connection"),
                                ZEND_ACC_PRIVATE TSRMLS_CC ) ;
@@ -456,39 +461,47 @@ zend_register_internal_class( &sequoiaNode TSRMLS_CC ) ;
                                ZEND_STRL("_error"),
                                0,
                                ZEND_ACC_PRIVATE TSRMLS_CC ) ;
+   //collection space
    zend_declare_property_null( pSequoiadbCollectionSpace,
                                ZEND_STRL("_collectionSpace"),
                                ZEND_ACC_PUBLIC TSRMLS_CC ) ;
    zend_declare_property_null( pSequoiadbCollectionSpace,
                                ZEND_STRL("_connection"),
                                ZEND_ACC_PRIVATE TSRMLS_CC ) ;
+   //collection
    zend_declare_property_null( pSequoiadbCollection,
                                ZEND_STRL("_collection"),
                                ZEND_ACC_PRIVATE TSRMLS_CC ) ;
    zend_declare_property_null( pSequoiadbCollection,
                                ZEND_STRL("_connection"),
                                ZEND_ACC_PRIVATE TSRMLS_CC ) ;
+   //domain
    zend_declare_property_null( pSequoiadbDomain,
                                ZEND_STRL("_domain"),
                                ZEND_ACC_PRIVATE TSRMLS_CC ) ;
    zend_declare_property_null( pSequoiadbDomain,
                                ZEND_STRL("_connection"),
                                ZEND_ACC_PRIVATE TSRMLS_CC ) ;
+   //cursor
    zend_declare_property_null( pSequoiadbCursor,
                                ZEND_STRL("_cursor"),
                                ZEND_ACC_PRIVATE TSRMLS_CC ) ;
    zend_declare_property_null( pSequoiadbCursor,
                                ZEND_STRL("_connection"),
                                ZEND_ACC_PRIVATE TSRMLS_CC ) ;
+   //oid
    zend_declare_property_null( pSequoiadbId,
                                ZEND_STRL("$oid"),
                                ZEND_ACC_PUBLIC TSRMLS_CC ) ;
+   //date
    zend_declare_property_null( pSequoiadbData,
                                ZEND_STRL("$date"),
                                ZEND_ACC_PUBLIC TSRMLS_CC ) ;
+   //timestamp
    zend_declare_property_null( pSequoiadbTimeStamp,
                                ZEND_STRL("$timestamp"),
                                ZEND_ACC_PUBLIC TSRMLS_CC ) ;
+   //regex
    zend_declare_property_null( pSequoiadbRegex,
                                ZEND_STRL("$regex"),
                                ZEND_ACC_PUBLIC TSRMLS_CC ) ;
@@ -496,10 +509,12 @@ zend_register_internal_class( &sequoiaNode TSRMLS_CC ) ;
                                ZEND_STRL("$options"),
                                ZEND_ACC_PUBLIC TSRMLS_CC ) ;
 
+   //int64
    zend_declare_property_null( pSequoiadbInt64,
                                ZEND_STRL("INT64"),
                                ZEND_ACC_PUBLIC TSRMLS_CC ) ;
 
+   //sdbReplicaGroup
    zend_declare_property_null( pSequoiadbGroup,
                                ZEND_STRL("_sdbReplicaGroup"),
                                ZEND_ACC_PUBLIC TSRMLS_CC ) ;
@@ -507,6 +522,7 @@ zend_register_internal_class( &sequoiaNode TSRMLS_CC ) ;
                                ZEND_STRL("_connection"),
                                ZEND_ACC_PUBLIC TSRMLS_CC ) ;
 
+   //sdbNode
    zend_declare_property_null( pSequoiadbReplicaNode,
                                ZEND_STRL("_sdbNode"),
                                ZEND_ACC_PUBLIC TSRMLS_CC ) ;
@@ -565,16 +581,20 @@ zend_register_internal_class( &sequoiaNode TSRMLS_CC ) ;
 
 PHP_MSHUTDOWN_FUNCTION(sequoiadb)
 {
+   //php_printf("aaa");
+   //zend_eval_string ( "session_destroy();", NULL, "sequoiadb" TSRMLS_CC );
    return SUCCESS;
 }
 
 PHP_RINIT_FUNCTION(sequoiadb)
 {
+   //php_printf("bbb");
    return SUCCESS;
 }
 
 PHP_RSHUTDOWN_FUNCTION(sequoiadb)
 {
+  //php_printf("ccc");
    return SUCCESS;
 }
 
@@ -610,6 +630,7 @@ PHP_METHOD ( SequoiaDB, __construct )
    CREATECLASS ( getThis(), "_connection", sdb, connection ) ;
    if ( connection )
    {
+      //SETCLASSFROMZVAL ( getThis(), "_connection", sdb, &connection ) ;
       if ( !(zend_parse_parameters ( ZEND_NUM_ARGS () TSRMLS_CC,
                                      "|sss",
                                      &hostName,
@@ -640,6 +661,7 @@ PHP_METHOD ( SequoiaDB, connect )
    INT32 rc = SDB_OK ;
    CHAR *error        = NULL ;
    sdb *connection    = NULL ;
+   //INT32 return_model = 0 ;
    CHAR *hostName     = NULL ;
    INT32 hostName_len = 0    ;
    CHAR *userName     = NULL ;
@@ -788,6 +810,7 @@ PHP_METHOD ( SequoiaDB, getSnapshot )
          RETURN_NULL() ;
       }
    }
+   // init and create a new SequoiaCS class
    MAKE_STD_ZVAL ( cursor_obj ) ;
    object_init_ex ( cursor_obj, pSequoiadbCursor ) ;
    CREATECLASS ( cursor_obj, "_cursor", sdbCursor, query ) ;
@@ -813,6 +836,7 @@ PHP_METHOD ( SequoiaDB, getSnapshot )
       RETURN_NULL() ;
    }
    SETZVAL ( cursor_obj, "_connection", getThis() ) ;
+   //SETCLASSFROMZVAL ( cursor_obj, "_cursor", sdbCursor, &query ) ;
    RETURN_ZVAL( cursor_obj, 1, 0 ) ;
 }
 
@@ -864,6 +888,7 @@ PHP_METHOD ( SequoiaDB, getList )
          RETURN_NULL() ;
       }
    }
+   // init and create a new SequoiaCS class
    MAKE_STD_ZVAL ( cursor_obj ) ;
    object_init_ex ( cursor_obj, pSequoiadbCursor ) ;
    CREATECLASS ( cursor_obj, "_cursor", sdbCursor, query ) ;
@@ -888,6 +913,7 @@ PHP_METHOD ( SequoiaDB, getList )
       RETURN_NULL() ;
    }
    SETZVAL ( cursor_obj, "_connection", getThis() ) ;
+   //SETCLASSFROMZVAL ( cursor_obj, "_cursor", sdbCursor, &query ) ;
    RETURN_ZVAL( cursor_obj, 1, 0 ) ;
 }
 
@@ -950,14 +976,17 @@ PHP_METHOD ( SequoiaDB, selectCS )
       SETERROR2 ( getThis(), SDB_PHP_DRIVER_INTERNAL_ERROR ) ;
       RETURN_NULL() ;
    }
+   // get sdb connection
    GETCLASSFROMZVAL ( getThis(), "_connection", sdb, connection ) ;
    if ( !connection )
    {
       SETERROR2 ( getThis(), SDB_PHP_DRIVER_INTERNAL_ERROR ) ;
       RETURN_NULL() ;
    }
+   // init and create a new SequoiaCS class
    MAKE_STD_ZVAL ( cs_obj ) ;
    object_init_ex ( cs_obj, pSequoiadbCollectionSpace ) ;
+   // create cs object
    CREATECLASS ( cs_obj, "_collectionSpace", sdbCollectionSpace, cs ) ;
    if ( !cs )
    {
@@ -996,6 +1025,7 @@ PHP_METHOD ( SequoiaDB, selectCS )
       RETURN_NULL() ;
    }
    SETZVAL ( cs_obj, "_connection", getThis() ) ;
+   //SETCLASSFROMZVAL ( cs_obj, "_collectionSpace", sdbCollectionSpace, &cs ) ;
    RETURN_ZVAL( cs_obj, 1, 0 ) ;
 }
 
@@ -1017,14 +1047,17 @@ PHP_METHOD ( SequoiaDB, selectGroup )
       SETERROR2 ( getThis(), SDB_PHP_DRIVER_INTERNAL_ERROR ) ;
       RETURN_NULL() ;
    }
+   // get sdb connection
    GETCLASSFROMZVAL ( getThis(), "_connection", sdb, connection ) ;
    if ( !connection )
    {
       SETERROR2 ( getThis(), SDB_PHP_DRIVER_INTERNAL_ERROR ) ;
       RETURN_NULL() ;
    }
+   // init and create a new SequoiaCS class
    MAKE_STD_ZVAL ( gr_obj ) ;
    object_init_ex ( gr_obj, pSequoiadbGroup ) ;
+   // create cs object
    CREATECLASS ( gr_obj, "_sdbReplicaGroup", sdbReplicaGroup, gr ) ;
    if ( !gr )
    {
@@ -1038,6 +1071,7 @@ PHP_METHOD ( SequoiaDB, selectGroup )
       RETURN_NULL() ;
    }
    SETZVAL ( gr_obj, "_connection", getThis() ) ;
+   //SETCLASSFROMZVAL ( gr_obj, "_sdbReplicaGroup", sdbReplicaGroup, &gr ) ;
    RETURN_ZVAL( gr_obj, 1, 0 ) ;
 }
 
@@ -1066,6 +1100,7 @@ PHP_METHOD ( SequoiaDB, execSQL )
       RETURN_NULL() ;
    }
 
+   // init and create a new SequoiaCS class
    MAKE_STD_ZVAL ( cursor_obj ) ;
    object_init_ex ( cursor_obj, pSequoiadbCursor ) ;
    CREATECLASS ( cursor_obj, "_cursor", sdbCursor, query ) ;
@@ -1081,6 +1116,7 @@ PHP_METHOD ( SequoiaDB, execSQL )
       RETURN_NULL() ;
    }
    SETZVAL ( cursor_obj, "_connection", getThis() ) ;
+   //SETCLASSFROMZVAL ( cursor_obj, "_cursor", sdbCursor, &query ) ;
    RETURN_ZVAL( cursor_obj, 1, 0 ) ;
 }
 
@@ -1130,6 +1166,7 @@ PHP_METHOD ( SequoiaDB, listCSs )
       RETURN_NULL() ;
    }
 
+   // init and create a new SequoiaCS class
    MAKE_STD_ZVAL ( cursor_obj ) ;
    object_init_ex ( cursor_obj, pSequoiadbCursor ) ;
    CREATECLASS ( cursor_obj, "_cursor", sdbCursor, query ) ;
@@ -1145,6 +1182,7 @@ PHP_METHOD ( SequoiaDB, listCSs )
       RETURN_NULL() ;
    }
    SETZVAL ( cursor_obj, "_connection", getThis() ) ;
+   //SETCLASSFROMZVAL ( cursor_obj, "_cursor", sdbCursor, &query ) ;
    RETURN_ZVAL( cursor_obj, 1, 0 ) ;
 }
 
@@ -1162,6 +1200,7 @@ PHP_METHOD ( SequoiaDB, listCollections )
       RETURN_NULL() ;
    }
 
+   // init and create a new SequoiaCS class
    MAKE_STD_ZVAL ( cursor_obj ) ;
    object_init_ex ( cursor_obj, pSequoiadbCursor ) ;
    CREATECLASS ( cursor_obj, "_cursor", sdbCursor, query ) ;
@@ -1177,6 +1216,7 @@ PHP_METHOD ( SequoiaDB, listCollections )
       RETURN_NULL() ;
    }
    SETZVAL ( cursor_obj, "_connection", getThis() ) ;
+   //SETCLASSFROMZVAL ( cursor_obj, "_cursor", sdbCursor, &query ) ;
    RETURN_ZVAL( cursor_obj, 1, 0 ) ;
 }
 
@@ -1251,6 +1291,7 @@ PHP_METHOD ( SequoiaDB, dropCollectionSpace )
       SETERROR2 ( getThis(), SDB_PHP_DRIVER_INTERNAL_ERROR ) ;
       RETURN_ARRAY_STRING2 ( getThis(), error, 0 ) ;
    }
+   // get sdb connection
    GETCLASSFROMZVAL ( getThis(), "_connection", sdb, connection ) ;
    if ( !connection )
    {
@@ -1284,12 +1325,14 @@ PHP_METHOD ( SequoiaDB, createDomain )
       SETERROR2 ( getThis(), SDB_PHP_DRIVER_INTERNAL_ERROR ) ;
       RETURN_NULL() ;
    }
+   // get sdb connection
    GETCLASSFROMZVAL ( getThis(), "_connection", sdb, connection ) ;
    if ( !connection )
    {
       SETERROR2 ( getThis(), SDB_PHP_DRIVER_INTERNAL_ERROR ) ;
       RETURN_NULL() ;
    }
+   // init and create a new SequoiaCS class
    MAKE_STD_ZVAL ( domain_obj ) ;
    object_init_ex ( domain_obj, pSequoiadbDomain ) ;
    CREATECLASS ( domain_obj, "_domain", sdbDomain, domain ) ;
@@ -1310,6 +1353,7 @@ PHP_METHOD ( SequoiaDB, createDomain )
       RETURN_NULL() ;
    }
    SETZVAL ( domain_obj, "_connection", getThis() ) ;
+   //SETCLASSFROMZVAL ( cs_obj, "_collectionSpace", sdbCollectionSpace, &cs ) ;
    RETURN_ZVAL( domain_obj, 1, 0 ) ;
 }
 
@@ -1330,6 +1374,7 @@ PHP_METHOD ( SequoiaDB, dropDomain )
       SETERROR2 ( getThis(), SDB_PHP_DRIVER_INTERNAL_ERROR ) ;
       RETURN_ARRAY_STRING2 ( getThis(), error, 0 ) ;
    }
+   // get sdb connection
    GETCLASSFROMZVAL ( getThis(), "_connection", sdb, connection ) ;
    if ( !connection )
    {
@@ -1368,6 +1413,7 @@ PHP_METHOD ( SequoiaDB, getDomain )
       RETURN_NULL() ;
    }
 
+   // init and create a new SequoiaCS class
    MAKE_STD_ZVAL ( domain_obj ) ;
    object_init_ex ( domain_obj, pSequoiadbDomain ) ;
    CREATECLASS ( domain_obj, "_domain", sdbDomain, domain ) ;
@@ -1383,6 +1429,7 @@ PHP_METHOD ( SequoiaDB, getDomain )
       RETURN_NULL() ;
    }
    SETZVAL ( domain_obj, "_connection", getThis() ) ;
+   //SETCLASSFROMZVAL ( cursor_obj, "_cursor", sdbCursor, &query ) ;
    RETURN_ZVAL( domain_obj, 1, 0 ) ;
 }
 
@@ -1418,6 +1465,7 @@ PHP_METHOD ( SequoiaDB, listDomains )
       SETERROR2 ( getThis(), SDB_PHP_DRIVER_INTERNAL_ERROR ) ;
       RETURN_NULL() ;
    }
+   // init and create a new SequoiaCS class
    MAKE_STD_ZVAL ( cursor_obj ) ;
    object_init_ex ( cursor_obj, pSequoiadbCursor ) ;
    CREATECLASS ( cursor_obj, "_cursor", sdbCursor, query ) ;
@@ -1443,6 +1491,7 @@ PHP_METHOD ( SequoiaDB, listDomains )
       RETURN_NULL() ;
    }
    SETZVAL ( cursor_obj, "_connection", getThis() ) ;
+   //SETCLASSFROMZVAL ( cursor_obj, "_cursor", sdbCursor, &query ) ;
    RETURN_ZVAL( cursor_obj, 1, 0 ) ;
 }
 
@@ -1450,12 +1499,18 @@ PHP_METHOD ( SequoiaDB, __destruct )
 {
    sdb *connection = NULL ;
    zval *num_val = NULL ;
+   // get sdb connection
    GETCLASSFROMZVAL ( getThis(), "_connection", sdb, connection ) ;
+   //GETZVAL ( getThis(), "_auto_disconnect", num_val ) ;
+   //INT32 auto_num = Z_LVAL_P ( num_val ) ;
+   // ( connection && auto_num )
+   //{
    if ( connection )
    {
       close ( connection ) ;
       delete connection ;
    }
+   //}
 }
 
 /* **************  SequoiaCS class  ****************/
@@ -1515,6 +1570,7 @@ PHP_METHOD ( SequoiaCS, selectCollection )
       SETERROR ( getThis(), SDB_INVALIDARG ) ;
       RETURN_NULL() ;
    }
+   // init and create a new SequoiaCS class
    MAKE_STD_ZVAL ( collection_obj ) ;
    object_init_ex ( collection_obj, pSequoiadbCollection ) ;
    CREATECLASS ( collection_obj, "_collection", sdbCollection, collection ) ;
@@ -1533,6 +1589,8 @@ PHP_METHOD ( SequoiaCS, selectCollection )
    MAKE_STD_ZVAL ( sdbobj ) ;
    GETZVAL ( getThis(), "_connection", sdbobj ) ;
    SETZVAL ( collection_obj, "_connection", sdbobj ) ;
+   //SETCLASSFROMZVAL ( collection_obj,
+   //                   "_collection", sdbCollection, &collection ) ;
    RETURN_ZVAL( collection_obj, 1, 0 ) ;
 }
 
@@ -1601,6 +1659,7 @@ PHP_METHOD ( SequoiaCS, getName )
 PHP_METHOD ( SequoiaCS, __destruct )
 {
    sdbCollectionSpace *cs = NULL ;
+   // get sdb connection
    GETCLASSFROMZVAL ( getThis(), "_collectionSpace", sdbCollectionSpace, cs ) ;
    if ( cs )
    {
@@ -1960,6 +2019,7 @@ PHP_METHOD ( SequoiaCL, find )
    MAKE_STD_ZVAL ( sdbobj ) ;
    GETZVAL ( getThis(), "_connection", sdbobj ) ;
    SETZVAL ( cursor_obj, "_connection", sdbobj ) ;
+   //SETCLASSFROMZVAL ( cursor_obj, "_cursor", sdbCursor, &query ) ;
    RETURN_ZVAL( cursor_obj, 1, 0 ) ;
 }
 
@@ -2014,6 +2074,7 @@ PHP_METHOD ( SequoiaCL, aggregate )
    MAKE_STD_ZVAL ( sdbobj ) ;
    GETZVAL ( getThis(), "_connection", sdbobj ) ;
    SETZVAL ( cursor_obj, "_connection", sdbobj ) ;
+   //SETCLASSFROMZVAL ( cursor_obj, "_cursor", sdbCursor, &query ) ;
    RETURN_ZVAL( cursor_obj, 1, 0 ) ;
 }
 
@@ -2105,6 +2166,7 @@ PHP_METHOD ( SequoiaCL, getIndex )
    MAKE_STD_ZVAL ( sdbobj ) ;
    GETZVAL ( getThis(), "_connection", sdbobj ) ;
    SETZVAL ( cursor_obj, "_connection", sdbobj ) ;
+   //SETCLASSFROMZVAL ( cursor_obj, "_cursor", sdbCursor, &query ) ;
    RETURN_ZVAL( cursor_obj, 1, 0 ) ;
 }
 
@@ -2221,6 +2283,7 @@ PHP_METHOD ( SequoiaCL, count )
 PHP_METHOD ( SequoiaCL, __destruct )
 {
    sdbCollection *collection = NULL ;
+   // get sdb connection
    GETCLASSFROMZVAL ( getThis(), "_collection", sdbCollection, collection ) ;
    if ( collection )
    {
@@ -2378,6 +2441,7 @@ PHP_METHOD ( SequoiaCursor, deleteCurrent )
 PHP_METHOD ( SequoiaCursor, __destruct )
 {
    sdbCursor *query = NULL ;
+   // get sdb connection
    GETCLASSFROMZVAL ( getThis(), "_cursor", sdbCursor, query ) ;
    if ( query )
    {
@@ -2436,6 +2500,7 @@ PHP_METHOD ( SequoiaDomain, listCSInDomain )
       RETURN_NULL() ;
    }
 
+   // init and create a new SequoiaCS class
    MAKE_STD_ZVAL ( cursor_obj ) ;
    object_init_ex ( cursor_obj, pSequoiadbCursor ) ;
    CREATECLASS ( cursor_obj, "_cursor", sdbCursor, query ) ;
@@ -2471,6 +2536,7 @@ PHP_METHOD ( SequoiaDomain, listCLInDomain )
       RETURN_NULL() ;
    }
 
+   // init and create a new SequoiaCS class
    MAKE_STD_ZVAL ( cursor_obj ) ;
    object_init_ex ( cursor_obj, pSequoiadbCursor ) ;
    CREATECLASS ( cursor_obj, "_cursor", sdbCursor, query ) ;
@@ -2724,6 +2790,7 @@ PHP_METHOD ( SequoiaINT64, __toString )
    }
    RETURN_EMPTY_STRING () ;
 }
+/////////////////// group ///////////////////////////
 
 PHP_METHOD ( sequoiaGroup, getNodeNum )
 {
@@ -2823,6 +2890,7 @@ PHP_METHOD ( sequoiaGroup, getMaster )
    
    MAKE_STD_ZVAL ( node_obj ) ;
    object_init_ex ( node_obj, pSequoiadbReplicaNode ) ;
+   // create cs object
    CREATECLASS ( node_obj, "_sdbNode", sdbNode, node ) ;
    if ( !node )
    {
@@ -2839,6 +2907,7 @@ PHP_METHOD ( sequoiaGroup, getMaster )
    MAKE_STD_ZVAL ( sdbobj ) ;
    GETZVAL ( getThis(), "_connection", sdbobj ) ;
    SETZVAL ( node_obj, "_connection", sdbobj ) ;
+   //SETCLASSFROMZVAL ( node_obj, "_sdbNode", sdbNode, &node ) ;
    RETURN_ZVAL( node_obj, 1, 0 ) ;
 }
 
@@ -2857,6 +2926,7 @@ PHP_METHOD ( sequoiaGroup, getSlave )
    
    MAKE_STD_ZVAL ( node_obj ) ;
    object_init_ex ( node_obj, pSequoiadbReplicaNode ) ;
+   // create cs object
    CREATECLASS ( node_obj, "_sdbNode", sdbNode, node ) ;
    if ( !node )
    {
@@ -2873,6 +2943,7 @@ PHP_METHOD ( sequoiaGroup, getSlave )
    MAKE_STD_ZVAL ( sdbobj ) ;
    GETZVAL ( getThis(), "_connection", sdbobj ) ;
    SETZVAL ( node_obj, "_connection", sdbobj ) ;
+   //SETCLASSFROMZVAL ( node_obj, "_sdbReplicaNode", sdbReplicaNode, &node ) ;
    RETURN_ZVAL( node_obj, 1, 0 ) ;
 }
 
@@ -2902,6 +2973,7 @@ PHP_METHOD ( sequoiaGroup, getNode )
 
    MAKE_STD_ZVAL ( node_obj ) ;
    object_init_ex ( node_obj, pSequoiadbReplicaNode ) ;
+   // create cs object
    CREATECLASS ( node_obj, "_sdbNode", sdbNode, node ) ;
    if ( !node )
    {
@@ -2918,6 +2990,7 @@ PHP_METHOD ( sequoiaGroup, getNode )
    MAKE_STD_ZVAL ( sdbobj ) ;
    GETZVAL ( getThis(), "_connection", sdbobj ) ;
    SETZVAL ( node_obj, "_connection", sdbobj ) ;
+   //SETCLASSFROMZVAL ( node_obj, "_sdbReplicaNode", sdbReplicaNode, &node ) ;
    RETURN_ZVAL( node_obj, 1, 0 ) ;
 }
 
@@ -3042,6 +3115,7 @@ PHP_METHOD ( sequoiaGroup, isCatalog )
 }
 
 
+//////////////////// node ///////////////////////////
 
 PHP_METHOD ( sequoiaNode, connect )
 {
@@ -3059,6 +3133,7 @@ PHP_METHOD ( sequoiaNode, connect )
    }
    MAKE_STD_ZVAL ( sdb_obj ) ;
    object_init_ex ( sdb_obj, pSequoiadbSdb ) ;
+   // create cs object
    CREATECLASS ( sdb_obj, "_connection", sdb, connection ) ;
    if ( !connection )
    {
@@ -3071,6 +3146,7 @@ PHP_METHOD ( sequoiaNode, connect )
    {
       RETURN_NULL() ;
    }
+   //SETCLASSFROMZVAL ( sdb_obj, "_connection", sdb, &connection ) ;
    RETURN_ZVAL( sdb_obj, 1, 0 ) ;
 }
 
@@ -3167,6 +3243,7 @@ PHP_METHOD ( sequoiaNode, stop )
    RETURN_ARRAY_STRING ( getThis(), error, 0 ) ; 
 }
 
+/////////////////////////////////////////////////////
 PHP_SEQUOIADB_API INT32 key_get_value ( zval *val, const CHAR *key TSRMLS_DC )
 {
    CHAR *buf = NULL ;
@@ -3871,6 +3948,7 @@ static BOOLEAN jsonConvertArray ( cJSON *cj,
                CHAR tempBuf[512] = {0} ;
                ossSnprintf ( tempBuf, 512, "%lld", cj->valuelongint ) ;
                SETSTRING ( Int64, "INT64", tempBuf ) ;
+               //add_property_string ( Int64, "INT64", , 1 ) ;
             }
             if ( isObj && cj->string )
                add_assoc_zval ( val, cj->string, Int64 ) ;

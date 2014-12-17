@@ -273,6 +273,7 @@ namespace engine
          }
       }
 
+      //On timer
       if ( event->_eventType== PMD_EDU_EVENT_TIMEOUT )
       {
          PMD_EVENT_MESSAGES *timeMsg = (PMD_EVENT_MESSAGES*)( event->_Data );

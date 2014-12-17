@@ -137,6 +137,7 @@ namespace engine
       }
       else if ( !fetchFromLocal )
       {
+         /// use a static bsonobj.
          rc = _fmp->write( BSON( FMP_CONTROL_FIELD <<
                                  FMP_CONTROL_STEP_FETCH ) ) ;
          if ( SDB_OK != rc )
@@ -181,6 +182,8 @@ namespace engine
        BSONObj cnMsg ;
        INT32 funcType = FMP_FUNC_TYPE_INVALID ;
 
+       /// 1. begin: {FMP_CONTROL_FIELD : FMP_CONTROL_STEP_BEGIN,
+       //             FMP_FUNC_TYPE : FMP_FUNC_TYPE_XX }
        {
        BSONObjBuilder builder ;
        BSONObj resMsg ;
@@ -218,6 +221,8 @@ namespace engine
        funcType = type.Int() ;
        }
 
+       /// 2. eval exsit func :{ funcobj }
+       /// do not add cn field coz we do not want to copy obj again.
        {
        BSONObj func ;
        BSONObj resMsg ;
@@ -262,6 +267,8 @@ namespace engine
        }
        }
 
+       /// 3.eval : { FMP_CONTROL_FIELD : FMP_CONTROL_STEP_EVAL,
+       //             funcobj.elements }
        {
        BSONObjBuilder builder ;
        BSONObj resMsg ;
@@ -284,11 +291,13 @@ namespace engine
        SPD_GET_RES( resMsg ) ;
        PD_LOG( PDDEBUG, "eval res:%s", resMsg.toString().c_str() ) ;
 
+       /// 4. prepare result
        _resmsg = resMsg ;
        {
        BSONObjBuilder builder ;
        BSONElement resType = _resmsg.getField( FMP_RES_TYPE ) ;
        SDB_ASSERT( NumberInt == resType.type(), "impossible" ) ;
+       /// if it is not a record set, fetch from local.
        _resType = resType.Int() ;
 
        if ( FMP_RES_TYPE_VOID != _resType &&
@@ -322,6 +331,7 @@ namespace engine
        }
        else if ( ele.eoo() )
        {
+          /// default is ok
        }
        else if ( NumberInt != ele.type() )
        {

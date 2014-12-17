@@ -64,6 +64,7 @@ namespace engine
                       MSG_ROUTE_SERVICE_TYPE type,
                       _MsgRouteID &id ) ;
 
+         /// return err when update an existing node.
          INT32 update( const _MsgRouteID &id,
                        const CHAR *host,
                        const CHAR *service,

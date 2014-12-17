@@ -74,6 +74,7 @@ namespace engine
 
    _dpsLogRecord::~_dpsLogRecord ()
    {
+//      clear() ;
    }
 
    _dpsLogRecord &_dpsLogRecord::operator=( const _dpsLogRecord &record )
@@ -155,6 +156,8 @@ namespace engine
       location = pData + sizeof( dpsLogRecordHeader ) ;
       loadSize = 0;
 
+      /// may be byte-aligned.the length of each field is
+      /// at least greater than 5.
       totalSize = _head._length
                   - sizeof( dpsLogRecordHeader )
                   - DPS_RECORD_ELE_HEADER_LEN ;
@@ -173,6 +176,7 @@ namespace engine
          }
          else if ( DPS_INVALID_TAG == tag )
          {
+            /// the length might be changed. DPS_INVALID_TAG is a stop flag.
             break ;
          }
          else if ( ( totalSize -
@@ -203,6 +207,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DPSLGRECD_FIND );
       _dpsLogRecord::iterator itr( this ) ;
 
+      /// rewrite this func when we have a big number of data.
+      /// now it is only 10 at most.
       for ( UINT32 i = 0; i < DPS_MERGE_BLOCK_MAX_DATA; i++ )
       {
          if ( DPS_INVALID_TAG == _dataHeader[i].tag)
@@ -216,6 +222,7 @@ namespace engine
          }
          else
          {
+            /// continue ;
          }
       }
       PD_TRACE_EXIT( SDB__DPSLGRECD_FIND) ;
@@ -257,6 +264,7 @@ namespace engine
       UINT32 len           = 0 ;
       UINT32 hexDumpOption = 0 ;
 
+      // for hex dump
       if ( DPS_DMP_OPT_HEX & options )
       {
          hexDumpOption |= OSS_HEXDUMP_INCLUDE_ADDR ;
@@ -267,6 +275,7 @@ namespace engine
 
          if ( 0 != _write )
          {
+            /// start ptr is not &_header.
             ossHexDumpBuffer ( _data[0]-sizeof(dpsLogRecordHeader)-
                                DPS_RECORD_ELE_HEADER_LEN,
                                _head._length, outBuf, outSize, NULL,
@@ -283,6 +292,7 @@ namespace engine
          ++len ;
       }
 
+      // for verbose dump
       if ( DPS_DMP_OPT_FORMATTED & options )
       {
          /* dump output looks like:
@@ -1068,6 +1078,7 @@ namespace engine
          }
          default:
          {
+            // something goes wrong here, but let's just continue
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  " Type   : %s"OSS_NEWLINE,
                                  "UNKNOWN" ) ;

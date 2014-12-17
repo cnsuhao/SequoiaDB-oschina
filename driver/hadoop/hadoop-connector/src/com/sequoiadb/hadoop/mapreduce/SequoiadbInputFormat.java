@@ -56,8 +56,10 @@ public class SequoiadbInputFormat extends
 			InputSplit inputSplit, TaskAttemptContext taskAttemptContext)
 			throws IOException, InterruptedException {
 		if (inputSplit instanceof SdbBlockSplit) {
+//			return new SequoiadbBlockReader(inputSplit,collectionSpaceName,collectionName);
 			return new SequoiadbBlockReader(inputSplit, this.conf);
 		} else if (inputSplit instanceof SdbIndexSplit) {
+//			return new SequoiadbIndexReader(inputSplit,collectionSpaceName,collectionName);
 			return new SequoiadbIndexReader(inputSplit, this.conf);
 		} else {
 			throw new IllegalArgumentException(
@@ -76,12 +78,15 @@ public class SequoiadbInputFormat extends
 
 	@Override
 	public Configuration getConf() {
+		// TODO Auto-generated method stub
 		return this.conf;
 	}
 
 	@Override
 	public void setConf(Configuration configuration) {
 		this.conf=configuration;
+//		this.collectionName=SequoiadbConfigUtil.getInCollectionName(conf);
+//		this.collectionSpaceName=SequoiadbConfigUtil.getInCollectionSpaceName(conf);
 	}
 
 }

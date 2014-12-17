@@ -45,6 +45,13 @@
 
 namespace engine
 {
+   // rebuild entire database, first we need to register rebuild, so that no
+   // body are able to access the database
+   // After that we have to iterate all storage units, and all collections, and
+   // perform offline reorg
+   // note the offline reorg request does NOT go through _rtnReorg::doit, so we
+   // won't check dmsCB->writable(). Thus we still able to perform
+   // rtnReorgOffline while db is in REBUILD state
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNREBUILDDB, "rtnRebuildDB" )
    INT32 rtnRebuildDB ( pmdEDUCB *cb )
@@ -62,6 +69,7 @@ namespace engine
 
       PD_LOG ( PDEVENT, "Start rebuilding database" ) ;
 
+      // 1) register rebuild, make sure no one else is able to change anything
       rc = dmsCB->registerRebuild () ;
       if ( rc )
       {
@@ -70,26 +78,37 @@ namespace engine
       }
       registeredRebuild = TRUE ;
 
+      // 2) get all collectionspaces
       dmsCB->dumpInfo ( csList, TRUE ) ;
 
       for ( it = csList.begin(); it != csList.end(); ++it )
       {
+         // 3) for each collection space, let's do reorg for all collections
          const CHAR *pCSName = (*it)._name ;
          std::set<monCollection> clList ;
          std::set<monCollection>::iterator itCollection ;
          dmsStorageUnitID suID ;
+         // make sure collectio spacea name is valid
          if ( ossStrlen ( pCSName ) > DMS_COLLECTION_SPACE_NAME_SZ )
          {
             PD_LOG ( PDERROR, "collection space name is not valid: %s",
                      pCSName ) ;
             continue ;
          }
+         // skip system collectionspace
          if ( ossStrncmp ( pCSName, SDB_DMSTEMP_NAME,
                            DMS_COLLECTION_SPACE_NAME_SZ ) == 0 )
          {
+            // skip SYSTEMP collectionspace
             continue ;
          }
          PD_LOG ( PDEVENT, "Start rebuilding collection space %s", pCSName ) ;
+         // lock collection space
+         // Note there could be nested S lock in the following rtnReorgOffline,
+         // thus we have to make sure no one should attempt to drop the
+         // collection space at the moment. Otherwise deadlock may happen.
+         // This is guaranteed by dmsCB->registerRebuild, so that no
+         // dropCollectionSpace command able to come into engine
          dmsStorageUnit *su = NULL;
          rc = dmsCB->nameToSUAndLock ( pCSName, suID, &su ) ;
          if ( rc != SDB_OK )
@@ -100,7 +119,9 @@ namespace engine
 
          do
          {
+            // get collection list for the given collectionspace
             su->dumpInfo ( clList ) ;
+            // loop for each collection
             for ( itCollection = clList.begin();
                   itCollection != clList.end();
                   ++itCollection )
@@ -110,6 +131,7 @@ namespace engine
                const CHAR *pCLNameTemp = NULL ;
                const CHAR *pCLName = (*itCollection)._name ;
 
+               // make sure collection name is valid
                if ( ( ossStrlen ( pCLName ) > DMS_COLLECTION_FULL_NAME_SZ ) ||
                     ( NULL == ( pCLNameTemp = ossStrrchr ( pCLName, '.' ))) )
                {
@@ -117,6 +139,8 @@ namespace engine
                            pCLName ) ;
                   continue ;
                }
+               // lock collection
+               // +1 to skip "."
                rc = su->data()->getMBContext( &mbContext, pCLNameTemp+1,
                                               EXCLUSIVE ) ;
                if ( rc )
@@ -125,14 +149,20 @@ namespace engine
                            pCLName, rc ) ;
                   continue ;
                }
+               // get collection status
                collectionFlag = mbContext->mb()->_flag ;
+               // unlock collection
                su->data()->releaseMBContext( mbContext ) ;
 
                PD_LOG ( PDEVENT, "Start rebuilding collection %s", pCLName ) ;
 
+               // test collection status
                if ( DMS_IS_MB_OFFLINE_REORG( collectionFlag ) ||
                     DMS_IS_MB_ONLINE_REORG ( collectionFlag ) )
                {
+                  // if the collection is already in reorg status, that means
+                  // either system crash during reorg, or last rebuild didn't
+                  // success, so let's perform reorg recover
                   rc = rtnReorgRecover ( pCLName, cb, dmsCB, rtnCB ) ;
                   if ( rc )
                   {
@@ -143,6 +173,7 @@ namespace engine
                }
                else
                {
+                  // perform offline reorg for the collection
                   rc = rtnReorgOffline ( pCLName, dummyObj, cb,
                                          dmsCB, rtnCB, TRUE ) ;
                   if ( rc )
@@ -157,6 +188,7 @@ namespace engine
             } // for
          } while ( 0 ) ;
 
+         // unlock the collection space
          dmsCB->suUnlock ( suID ) ;
          PD_LOG ( PDEVENT, "Complete rebuilding collection space %s", pCSName ) ;
       } // end for

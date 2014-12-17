@@ -1047,6 +1047,7 @@ BOOLEAN strSplit( const CHAR *strtemp, CHAR *left, CHAR *right, INT32 left_Size,
     }
     if ( pos != pos1 )
     {
+       //printf ("multiple :\n" ) ;
        delete[] pBuffer ;
        pBuffer = NULL ;
        return FALSE ;

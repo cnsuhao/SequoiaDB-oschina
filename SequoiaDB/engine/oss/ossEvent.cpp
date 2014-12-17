@@ -99,6 +99,7 @@ namespace engine
       boost::mutex::scoped_lock lock ( _mutex ) ;
       _signal = 1 ;
       _useData = data ;
+      //lock.unlock () ;
       _cond.notify_one () ;
 
       PD_TRACE_EXIT ( SDB__OSSEN_SIGNAL );
@@ -112,6 +113,7 @@ namespace engine
       boost::mutex::scoped_lock lock ( _mutex ) ;
       _signal = 1 ;
       _useData = data ;
+      //lock.unlock () ;
       _cond.notify_all () ;
 
       PD_TRACE_EXIT ( SDB__OSSEN_SIGALL );

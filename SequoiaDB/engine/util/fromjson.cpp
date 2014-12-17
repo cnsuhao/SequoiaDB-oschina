@@ -53,16 +53,21 @@ namespace bson
       PD_TRACE_ENTRY ( SDB_FROMJSON );
       CHAR *p          = NULL ;
 
+      // defensive code
       if ( !pStr )
       {
+         // we should never hit here
          SDB_ASSERT ( FALSE, "empty str from json str" ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
       if ( *pStr == '\0' )
       {
+         // special case handling for empty string, we will return empty bson
          BSONObj empty ;
          out = empty ;
+         // we may not need to getOwned () because BSON is using smart pointer
+         // out.getOwned () ;
          goto done ;
       }
       p = json2rawbson ( pStr ) ;
@@ -81,9 +86,12 @@ namespace bson
             rc = SDB_SYS ;
             goto error ;
          }
+         // we may not need to getOwned () because BSON is using smart pointer
+         // out.getOwned () ;
       }
       else
       {
+         // if json2rawbson returns NULL, that means we cannot parse json
          rc = SDB_INVALIDARG ;
       }
    done :

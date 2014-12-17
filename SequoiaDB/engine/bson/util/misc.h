@@ -70,6 +70,7 @@ namespace bson {
     }
 
     struct Date_t {
+        // TODO: make signed (and look for related TODO's)
         unsigned long long millis;
         Date_t(): millis(0) {}
         Date_t(unsigned long long m): millis(m) {}
@@ -82,6 +83,8 @@ namespace bson {
         }
     };
 
+    // Like strlen, but only scans up to n bytes.
+    // Returns -1 if no '0' found.
     inline int strnlen( const char *s, int n ) {
         for( int i = 0; i < n; ++i )
             if ( !s[ i ] )

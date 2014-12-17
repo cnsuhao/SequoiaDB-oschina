@@ -48,6 +48,7 @@ namespace engine
 {
    _dpsMergeBlock::_dpsMergeBlock():_isRow(FALSE)
    {
+  //    clear() ;
    }
 
    _dpsMergeBlock::~_dpsMergeBlock()
