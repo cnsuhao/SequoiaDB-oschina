@@ -29,7 +29,7 @@
 	
 	
 	<target name="compile" depends="copySrc,copyJar" >
-		<javac srcdir="${build.dir}/src" destdir="${build.dir}/classes" fork="yes">
+		<javac srcdir="${build.dir}/src" destdir="${build.dir}/classes" debug="on" fork="yes">
 			<compilerarg line="-encoding UTF-8"/>
 			<classpath>
 				<fileset dir="${build.dir}/lib" includes="*.jar"  />
@@ -45,14 +45,14 @@
 		</tstamp>
 		<echo message="${current.time}" />
 
-		<jar file="${jar.dir}/hadoop-connector${hadoop.version}.jar" basedir="${build.dir}/classes">
+		<jar file="${jar.dir}/hadoop-connector-${hadoop.version}.jar" basedir="${build.dir}/classes">
 			<manifest>
 				<attribute name="Version" value="1.0" />
 				<attribute name="Build-Timestamp" value="${current.time}" />
 			</manifest>
 		</jar>
 
-		<copy file="${jar.dir}/hadoop-connector${hadoop.version}.jar" tofile="${basedir}/hadoop-connector${hadoop.version}.jar" />
-		<delete file="${jar.dir}/hadoop-connector${hadoop.version}.jar" />
+		<copy file="${jar.dir}/hadoop-connector-${hadoop.version}.jar" tofile="${basedir}/hadoop-connector-${hadoop.version}.jar" />
+		<delete file="${jar.dir}/hadoop-connector-${hadoop.version}.jar" />
 	</target>
 </project>

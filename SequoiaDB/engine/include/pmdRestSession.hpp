@@ -223,23 +223,11 @@ namespace engine
    #define REST_CMD_NAME_INSERT        "insert"
    #define REST_CMD_NAME_UPDATE        "update"
    #define REST_CMD_NAME_DELETE        "delete"
-
-   #define REST_CMD_NAME_CREATE_CS     CMD_NAME_CREATE_COLLECTIONSPACE
-   #define REST_CMD_NAME_CREATE_CL     CMD_NAME_CREATE_COLLECTION
-   #define REST_CMD_NAME_DROP_CS       CMD_NAME_DROP_COLLECTIONSPACE
-   #define REST_CMD_NAME_DROP_CL       CMD_NAME_DROP_COLLECTION
-
-   #define REST_CMD_NAME_SPLIT         CMD_NAME_SPLIT
-
+   
    #define REST_KEY_NAME_ORDER         "Order"
-   #define REST_KEY_NAME_HINT          "Hint"
    #define REST_KEY_NAME_SELECTOR      "Selector"
    #define REST_KEY_NAME_MATCHER       "Matcher"
-   #define REST_KEY_NAME_SKIP          "Skip"
-   #define REST_KEY_NAME_RETURN_ROW    "ReturnRow"
    #define REST_KEY_NAME_FLAG          "Flag"
-   #define REST_KEY_NAME_OPTION        "Option"
-   #define REST_KEY_NAME_NAME          "Name"
    #define REST_KEY_NAME_INSERTOR      "Insertor"
    #define REST_KEY_NAME_UPDATOR       "Updator"
    #define REST_KEY_NAME_DELETOR       "Deletor"
@@ -273,6 +261,8 @@ namespace engine
          INT32       _convertSplit( restAdaptor *pAdaptor, MsgHeader **msg ) ;
          INT32       _convertListGroups( restAdaptor *pAdaptor,
                                          MsgHeader **msg ) ;
+         INT32       _convertAlterCollection( restAdaptor *pAdaptor,
+                                              MsgHeader **msg ) ;
 
       private:
          pmdRestSession    *_restSession ;
