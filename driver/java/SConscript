@@ -1,0 +1,17 @@
+import os
+import SCons.Tool.jar
+from os.path import join, dirname, abspath
+
+Import("javaEnv")
+Import("jarPath")
+
+javaEnv['JAVAC'] = javaEnv['JAVAHOME'] + os.sep + 'bin' + os.sep + 'javac'
+javaEnv['JAR'] = javaEnv['JAVAHOME'] + os.sep + 'bin' + os.sep + 'jar'
+javaEnv.Execute(Copy('.', '../../src/main/resources/errors.properties'))
+javaClasses = javaEnv.Java( '.', 'src/main/java' )
+#javaEnv.Jar('sequoiadb.jar', javaClasses + jarFiles )
+# Command("errors.properties", "src/main/resources/errors.properties",
+        # Copy("$TARGET","$SOURCE"))
+jarCommand = join ( jarPath, "jar -cvf $JARNAME -C $BUILDPATH ." )
+myfile = javaEnv.Command ( 'jar.out', [], jarCommand )
+javaEnv.AlwaysBuild ( myfile )

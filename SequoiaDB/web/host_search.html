@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>添加主机</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link href="css/sdbcss.css" rel="stylesheet" media="screen">
+</head>
+<body>
+<noscript>
+<div style="margin:100px auto 0 auto;width:800px;">
+   <div class="alert alert-danger">
+   	您的浏览器禁用JavaScript脚本，这会影响系统正常运行。<br />
+      请启用JavaScript，并且刷新或重新打开浏览器。
+   </div>
+</div>
+</noscript>
+<div class="htmlbody" id="htmlBody">
+   <div class="vertical-box" id="htmlVer">
+      <div class="vertical-body">
+         <div class="vertical-li" style="height:31px;">
+            <div class="nav-app-box" id="topNav">
+               <div class="nav-app-body">
+                  <div class="nav-app">
+                     <div class="nav-li" onclick="window.location.href='./index.html'">主页</div>
+                     <div class="nav-li">
+                     	<div>帮助<span class="caret caret-bottom"></span></div>
+                        <ul>
+                           <li>关于SMS系统</li>
+                        </ul>
+                     </div>
+                     <div class="nav-li" style="float:right;">
+                     	<div><img width="14" src="./images/smallicon/white/16x16/user.png">&nbsp;<span id="username"></span></div>
+                        <ul style="width:90px;">
+                           <li onClick="openChangePwdModal()">修改密码</li>
+                           <li onClick="logoutOM()">登出</li>
+                        </ul>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="vertical-li" style="height:34px;">
+            <ul class="tab-page" id="tab_box" style="padding-top:5px;font-weight:bold;"></ul>
+         </div>
+         <div class="vertical-li">
+         	<div class="transverse-box" id="bodyTran">
+            	<div class="transverse-body">
+               	<div class="transverse-col">
+                     <div class="panel" style="margin:10px;" id="leftPanel_1">
+                        <div class="panel-header">扫描主机</div>
+                        <div class="panel-body">
+                        	<div class="alert alert-info" style="margin-bottom:5px;padding:10px;">
+                           	提示：使用IP段或host段可以批量添加主机。详情请点击<a href="#" data-type="open-modal" data-target="explain">帮助</a>。
+                           </div>
+                           <table id="scanTable" class="empty-table">
+                           	<tr>
+                              	<td width="78">地址：</td>
+                                 <td><textarea class="form-control" rows="3"></textarea></td>
+                              </tr>
+                              <tr>
+                              	<td>用户名：</td>
+                                 <td><input class="form-control" type="text" value="root"></td>
+                              </tr>
+                              <tr>
+                              	<td>密码：</td>
+                                 <td><input class="form-control" type="password" value=""></td>
+                              </tr>
+                              <tr>
+                              	<td>SSH端口：</td>
+                                 <td><input class="form-control" type="text" value="22"></td>
+                              </tr>
+                              <tr>
+                              	<td>代理端口：</td>
+                                 <td><input class="form-control" type="text" value="11790"></td>
+                              </tr>
+                              <tr>
+                              	<td colspan="2" align="right"><button class="btn btn-primary" onClick="addHostList()">扫描</button></td>
+                              </tr>
+                           </table>
+                        </div>
+                     </div>
+                     <div class="panel" style="margin:10px;overflow:auto;display:none;" id="leftPanel_2">
+                        <div class="panel-body">
+                        	<div class="alert alert-info" style="padding:10px;margin-top:10px;">提示：输入IP或Host可以快速找到对应的主机。</div>
+                           <div style="margin:10px 0 10px 0;">
+                           	<input id="searchHostList" class="form-control" type="text" style="padding-left:30px;background-image:url(./images/smallicon/blacks/16x16/zoom.png);background-position:8px 50%; background-repeat:no-repeat;">
+                           </div>
+                           <div><ul id="hostSwitchList" class="tag-list"></ul></div>
+                        </div>
+                     </div>
+                  </div>
+                  <div class="transverse-col">
+                  	<div class="panel" style="margin:10px;" id="rightPanel_1">
+                        <div class="panel-header">主机列表</div>
+                        <div class="panel-body"></div>
+                     </div>
+                     <div class="panel" style="margin:10px;overflow:auto;display:none;position:relative;" id="rightPanel_2">
+                     	<div class="panel-header">详细信息 <button id="switchHostButton" class="btn btn-primary btn-lg">选择主机</button></div>
+                        <div class="panel-body">
+                        	<table id="hostParaTable" class="border-table" style="color:#595959;">
+                           	<tbody>
+                                 <tr>
+                                    <td width="110" style="border-right-width:0px;"><b>HostName</b></td>
+                                    <td></td>
+                                 </tr>
+                                 <tr>
+                                    <td><b>IP</b></td>
+                                    <td></td>
+                                 </tr>
+                                 <tr>
+                                    <td><b>OS</b></td>
+                                    <td></td>
+                                 </tr>
+                                 <tr>
+                                    <td><b>Memory</b></td>
+                                    <td>
+                                       <div id="memoryProgress" class="progress2">
+                                          <span class="reading"></span>
+                                          <span class="bar green" style="width:0%;"></span>
+                                       </div>
+                                    </td>
+                                 </tr>
+                                 <tr>
+                                    <td><b>Install Path</b></td>
+                                    <td>
+                                       <input class="form-control" type="text">
+                                    </td>
+                                 </tr>
+                              </tbody>
+                           </table>
+                        </div>
+                        <div class="panel-header">OM 代理</div>
+                        <div class="panel-body">
+                        	<table class="border-table" style="color:#595959;">
+                           	<tbody>
+                                 <tr>
+                                    <td width="110" style="border-right-width:0px;"><b>OM Version</b></td>
+                                    <td></td>
+                                 </tr>
+                                 <tr>
+                                    <td><b>OM Path</b></td>
+                                    <td></td>
+                                 </tr>
+                                 <tr>
+                                    <td><b>OM Port</b></td>
+                                    <td></td>
+                                 </tr>
+                              </tbody>
+                           </table>
+                        </div>
+                        <div class="panel-header">磁盘</div>
+                        <div class="panel-body"></div>
+                        <div class="panel-header">CPU</div>
+                        <div class="panel-body"></div>
+                        <div class="panel-header">网卡</div>
+                        <div class="panel-body"></div>
+                        <div class="panel-header">端口</div>
+                        <div class="panel-body"></div>
+                        <div class="panel-header">服务</div>
+                        <div class="panel-body"></div>
+                        <div class="panel-header">防火墙</div>
+                        <div class="panel-body"></div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="vertical-li" style="height:66px;">
+            <div class="foot" id="htmlFoot">
+               <div class="transverse-box" id="footTra" style="height:65px;">
+                  <div class="transverse-body">
+                     <div class="transverse-col" style="width:228px;height:65px;"><img src="images/logo.png"></div>
+                     <div class="transverse-col" style="height:65px;">
+                        <div class="alert alert-info" id="foot_alert_msg" style="margin:8px 20px;padding:12px;display:none;"></div>
+                     </div>
+                     <div class="transverse-col" style="width:200px;height:65px;">
+                     	<div style="padding-top:10px;">
+                     		<button id="__goBack" class="btn btn-primary">返回</button>&nbsp;<button id="__goOn" class="btn btn-primary">下一步</button>
+                        </div>
+                     </div>
+                  </div>
+                  <div class="clear-float"></div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+</div>
+<div id="explain" class="modal">
+	<div class="modal-title">
+   	<button class="close-buttun" data-type="close-modal" data-target="explain">&times;</button>帮助
+      <div class="clear-float"></div>
+   </div>
+   <div class="modal-body">
+		<p>请输入集群主机名称或IP地址，然后单击<b>扫描</b>。您还可以指定主机名称和IP地址范围：</p>
+      <table class="simple-table">
+      	<tbody>
+         	<tr>
+            	<td><b>使用此延展范围</b></td>
+               <td><b>要指定这些主机</b></td>
+            </tr>
+            <tr>
+            	<td>10.1.1.[1-4]</td>
+               <td>10.1.1.1, 10.1.1.2, 10.1.1.3, 10.1.1.4</td>
+            </tr>
+            <tr>
+            	<td>pc[1-4]host</td>
+               <td>pc1host, pc2host, pc3host, pc4host</td>
+            </tr>
+            <tr>
+            	<td>pc[098-101]host</td>
+               <td>pc098host, pc099host, pc100host, pc101host</td>
+            </tr>
+         </tbody>
+      </table>
+      <p>您可以添加多个地址和地址范围，但要注意主机名称和IP是必须唯一的。</p>
+      <p>扫描结果将包括所有扫描的地址，但只有运行SSH服务的主机的扫描才会被选择包含在集群中。如果是用户名、密码或SSH填写不正确，可以通过单击列表中需要修改的那一行进行修改。</p>
+      <p><b>注意：</b>如果您不知道所有主机的地址，可输入更大的地址范围。但是范围越大，扫描时间越长。</p>
+   </div>
+   <div class="modal-foot">
+      <button class="btn btn-primary" data-type="close-modal" data-target="explain">关闭</button>
+   </div>
+</div>
+<script src="js/heartcode-canvasloader.js"></script>
+<script src="js/jquery-1.11.1.min.js"></script>
+<script src="js/jquery.cookie.js"></script>
+<script src="js/jquery.md5.js"></script>
+<script src="js/json2.js"></script>
+<script src="js/sdbjs2.js"></script>
+<script src="js/include2.js"></script>
+<script src="js/deploy2.js"></script>
+<script src="js/private/host_search2.js"></script>
+</body>
+</html>

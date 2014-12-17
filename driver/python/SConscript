@@ -1,0 +1,113 @@
+Import("env")
+Import("path")
+Import("curPath")
+
+import sys
+import os
+
+driverFiles = [
+   "pysequoiadb/pysequoiadb.cpp"
+   ]
+
+clientFiles = [
+   path + "SequoiaDB/engine/client/clientcpp.cpp"
+      ]
+clientLibFiles = [
+   path + "SequoiaDB/engine/oss/oss.c",
+   path + "SequoiaDB/engine/oss/oss.cpp",
+   path + "SequoiaDB/engine/oss/ossUtil.c",
+   path + "SequoiaDB/engine/oss/ossUtil.cpp",
+   path + "SequoiaDB/engine/oss/ossMem.c",
+   path + "SequoiaDB/engine/oss/ossMem.cpp",
+   path + "SequoiaDB/engine/oss/ossVer.c",
+   path + "SequoiaDB/engine/oss/ossVer.cpp",
+   path + "SequoiaDB/engine/oss/ossSocket.cpp",
+   path + "SequoiaDB/engine/oss/ossPrimitiveFileOp.cpp",
+   path + "SequoiaDB/engine/pd/pd.cpp",
+   path + "SequoiaDB/engine/pd/pdTrace.cpp",
+   path + "SequoiaDB/engine/pd/pdFunctionList.cpp",
+   path + "SequoiaDB/engine/client/bson/numbers.c",
+   path + "SequoiaDB/engine/client/bson/bson.c",
+   path + "SequoiaDB/engine/client/bson/encoding.c",
+   path + "SequoiaDB/engine/client/common.c",
+   path + "SequoiaDB/engine/client/cJSON.c",
+   path + "SequoiaDB/engine/client/jstobs.c",
+   path + "SequoiaDB/engine/client/base64c.c",
+   path + "SequoiaDB/engine/util/fromjson.cpp",
+   path + "SequoiaDB/engine/util/json2rawbson.c",
+   path + "SequoiaDB/engine/util/utilStr.cpp",
+   path + "SequoiaDB/engine/bson/bsonobj.cpp",
+   path + "SequoiaDB/engine/bson/oid.cpp",
+   path + "SequoiaDB/engine/bson/md5.c",
+   path + "SequoiaDB/engine/bson/base64.cpp",
+   path + "SequoiaDB/engine/bson/nonce.cpp",
+   path + "SequoiaDB/engine/util/fromjson.hpp",
+   path + "SequoiaDB/engine/util/json2rawbson.h",
+   path + "SequoiaDB/engine/include/utilStr.hpp",
+   path + "SequoiaDB/engine/client/base64c.h"
+   ]
+
+clientLibFiles2 = [
+   path + "SequoiaDB/engine/client/bson/bson.h",
+   path + "SequoiaDB/engine/client/bson/encoding.h",
+   path + "SequoiaDB/engine/client/bson/numbers.c",
+   path + "SequoiaDB/engine/client/bson/bson.c",
+   path + "SequoiaDB/engine/client/bson/encoding.c"
+   ]
+
+env.Execute(Mkdir(curPath + "/build/temp"))
+env.Execute(Mkdir(curPath + "/build/temp/bson"))
+
+for file in clientFiles:
+   env.Execute(Copy(curPath + "/build/temp", file))
+for file in clientLibFiles:
+   env.Execute(Copy(curPath + "/build/temp", file))
+for file in clientLibFiles2:
+   env.Execute(Copy(curPath + "/build/temp/bson", file))
+
+curPath += "/build/temp/"
+srcFiles = [
+   curPath + "clientcpp.cpp",
+   curPath + "oss.cpp",
+   curPath + "ossUtil.cpp",
+   curPath + "ossMem.cpp",
+   curPath + "ossSocket.cpp",
+   curPath + "ossVer.cpp",
+   curPath + "ossPrimitiveFileOp.cpp",
+   curPath + "pd.cpp",
+   curPath + "pdTrace.cpp",
+   curPath + "pdFunctionList.cpp",
+   curPath + "bson/numbers.c",
+   curPath + "bson/bson.c",
+   curPath + "bson/encoding.c",
+   curPath + "common.c",
+   curPath + "cJSON.c",
+   curPath + "jstobs.c",
+   curPath + "base64c.c",
+   curPath + "fromjson.cpp",
+   curPath + "json2rawbson.c",
+   curPath + "utilStr.cpp",
+   curPath + "bsonobj.cpp",
+   curPath + "oid.cpp",
+   curPath + "md5.c",
+   curPath + "base64.cpp",
+   curPath + "nonce.cpp",
+]
+
+driver   = env.SharedLibrary("sdb",   [driverFiles, srcFiles])
+
+base = []
+base.append(env.Install("#/pysequoiadb", driver))
+
+if sys.platform == 'win32':
+   pass
+else:
+   act = []
+   act.append("mv ./pysequoiadb/libsdb.so ./pysequoiadb/sdb.so")
+   act.append("tar -zcvf pysequoiadb.tar.gz   \
+               ./bson ./pysequoiadb ./setup.py \
+               --exclude-vcs")
+
+   run = env.Command(target = None, source = base, action = act )
+   env.Depends(run, base)
+   env.AlwaysBuild(run)

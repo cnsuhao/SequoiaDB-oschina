@@ -1,0 +1,104 @@
+Import("env")
+Import("root_dir")
+Import("testBuild")
+Import("clienttestBuild")
+Import("phpedition")
+
+phpFiles = [
+      "ext/sequoiadb.cpp",
+      "ext/function_sdb.cpp",
+      ]
+testFiles = [
+      root_dir + "/test/test.cpp",
+      ]
+clienttestFiles = [
+      root_dir + "/test/clienttest.cpp"
+      ]
+clientFiles = [
+      root_dir + "/../../SequoiaDB/engine/client/clientcpp.cpp"
+      ]
+#for threadsafe build, we should add this into clientLibFiles
+clientThreadSafe = [
+      root_dir + "/../../SequoiaDB/engine/oss/ossLatch.cpp"
+      ]
+clientLibFiles = [
+      root_dir + "/../../SequoiaDB/engine/oss/oss.c",
+      root_dir + "/../../SequoiaDB/engine/oss/oss.cpp",
+      root_dir + "/../../SequoiaDB/engine/oss/ossUtil.c",
+      root_dir + "/../../SequoiaDB/engine/oss/ossUtil.cpp",
+      root_dir + "/../../SequoiaDB/engine/oss/ossSocket.cpp",
+      root_dir + "/../../SequoiaDB/engine/msg/msgMessage.cpp",
+      root_dir + "/../../SequoiaDB/engine/oss/ossMem.c",
+      root_dir + "/../../SequoiaDB/engine/oss/ossMem.cpp",
+      root_dir + "/../../SequoiaDB/engine/pd/pd.cpp",
+      root_dir + "/../../SequoiaDB/engine/pd/pdTrace.cpp",
+      root_dir + "/../../SequoiaDB/engine/pd/pdFunctionList.cpp",
+      root_dir + "/../../SequoiaDB/engine/pd/pdComponents.cpp",
+      root_dir + "/../../SequoiaDB/engine/oss/ossPrimitiveFileOp.cpp",
+      root_dir + "/../../SequoiaDB/engine/client/common.c",
+      root_dir + "/../../SequoiaDB/engine/client/cJSON.c",
+      root_dir + "/../../SequoiaDB/engine/client/jstobs.c",
+      root_dir + "/../../SequoiaDB/engine/client/base64c.c",
+      root_dir + "/../../SequoiaDB/engine/util/fromjson.cpp",
+      root_dir + "/../../SequoiaDB/engine/util/json2rawbson.c",
+      root_dir + "/../../SequoiaDB/engine/bson/bsonobj.cpp",
+      root_dir + "/../../SequoiaDB/engine/bson/oid.cpp",
+      root_dir + "/../../SequoiaDB/engine/bson/md5.c",
+      root_dir + "/../../SequoiaDB/engine/bson/base64.cpp",
+      root_dir + "/../../SequoiaDB/engine/bson/nonce.cpp",
+      root_dir + "/../../SequoiaDB/engine/util/fromjson.hpp",
+      root_dir + "/../../SequoiaDB/engine/util/json2rawbson.h",
+      root_dir + "/../../SequoiaDB/engine/include/utilStr.hpp",
+      root_dir + "/../../SequoiaDB/engine/util/utilStr.cpp",
+      root_dir + "/../../SequoiaDB/engine/client/base64c.h"
+      ]
+clientLibFiles2 = [
+      root_dir + "/../../SequoiaDB/engine/client/bson/numbers.c",
+      root_dir + "/../../SequoiaDB/engine/client/bson/bson.h",
+      root_dir + "/../../SequoiaDB/engine/client/bson/encoding.h",
+      root_dir + "/../../SequoiaDB/engine/client/bson/bson.c",
+      root_dir + "/../../SequoiaDB/engine/client/bson/encoding.c"
+      ]
+env.Execute(Mkdir(root_dir + "/ext/temp"))
+env.Execute(Mkdir(root_dir + "/ext/temp/bson"))
+for file in clientFiles:
+   env.Execute(Copy(root_dir + "/ext/temp", file))
+for file in clientLibFiles:
+   env.Execute(Copy(root_dir + "/ext/temp", file))
+for file in clientLibFiles2:
+   env.Execute(Copy(root_dir + "/ext/temp/bson", file))
+srcFile = [
+      root_dir + "/ext/temp/clientcpp.cpp",
+      root_dir + "/ext/temp/oss.cpp",
+      root_dir + "/ext/temp/ossUtil.cpp",
+      root_dir + "/ext/temp/ossSocket.cpp",
+      root_dir + "/ext/temp/msgMessage.cpp",
+      root_dir + "/ext/temp/ossMem.cpp",
+      root_dir + "/ext/temp/pd.cpp",
+      root_dir + "/ext/temp/pdTrace.cpp",
+      root_dir + "/ext/temp/pdFunctionList.cpp",
+      root_dir + "/ext/temp/pdComponents.cpp",
+      root_dir + "/ext/temp/ossPrimitiveFileOp.cpp",
+      root_dir + "/ext/temp/bson/numbers.c",
+      root_dir + "/ext/temp/bson/bson.c",
+      root_dir + "/ext/temp/bson/encoding.c",
+      root_dir + "/ext/temp/common.c",
+      root_dir + "/ext/temp/cJSON.c",
+      root_dir + "/ext/temp/jstobs.c",
+      root_dir + "/ext/temp/base64c.c",
+      root_dir + "/ext/temp/fromjson.cpp",
+      root_dir + "/ext/temp/json2rawbson.c",
+      root_dir + "/ext/temp/bsonobj.cpp",
+      root_dir + "/ext/temp/oid.cpp",
+      root_dir + "/ext/temp/md5.c",
+      root_dir + "/ext/temp/base64.cpp",
+      root_dir + "/ext/temp/nonce.cpp",
+      root_dir + "/ext/temp/utilStr.cpp"
+      ]
+if testBuild:
+    env.Program([testFiles])
+else:
+    if clienttestBuild :
+        env.Program([clienttestFiles])
+    else:
+        env.SharedLibrary('libsdbphp-' + phpedition,[phpFiles, srcFile ])

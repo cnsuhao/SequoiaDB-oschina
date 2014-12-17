@@ -1,0 +1,89 @@
+# -*- mode: python; -*-
+
+import os
+
+Import("fmpEnv")
+
+sptFiles = [
+      "spt/engine.cpp",
+      "spt/dbClasses.cpp",
+      "spt/sptConvertor.cpp",
+      "spt/sptConvertorHelper.cpp",
+      "spt/sptCommon.cpp"
+      ]
+
+ossFiles = [
+      "oss/oss.cpp",
+      "oss/ossErr.cpp",
+      "oss/ossUtil.cpp",
+      "oss/ossPrimitiveFileOp.cpp",
+      "oss/ossStackDump.cpp",
+      "oss/ossEDU.cpp",
+      "oss/ossProc.cpp",
+      "oss/ossNPipe.cpp",
+      "oss/ossPath.cpp",
+      "oss/ossVer.cpp",
+      "oss/ossMem.cpp",
+      "oss/ossLatch.cpp",
+      "oss/ossIO.cpp"
+      ]
+
+
+fmpFiles = [
+      "pmd/fmpVM.cpp",
+      "pmd/fmpJSVM.cpp",
+      "pmd/fmpController.cpp"
+      ]
+
+fmpMain = [
+      "pmd/fmpMain.cpp"
+      ]
+
+pdFiles = [
+      "pd/pd.cpp",
+      "pd/pdTrace.cpp",
+      "pd/pdComponents.cpp",
+      "pd/pdFunctionList.cpp"
+      ]
+
+utilFiles = [
+      "util/fromjson.cpp",
+      "util/json2rawbson.c",
+      "util/linenoise.cpp",
+      "util/utilLinenoiseWrapper.cpp",
+      "util/utilStr.cpp",
+      "util/utilParam.cpp",
+      "util/utilCommon.cpp",
+      "client/bson/numbers.c",
+      "client/bson/bson.c",
+      "client/bson/encoding.c",
+      "client/base64c.c",
+      "client/cJSON.c",
+      "client/jstobs.c",
+      "bson/md5.c"
+      ]
+
+clientCFiles = [
+      "client/client.c",
+      "client/common.c",
+      "client/network.c"
+      ]
+
+#Client Driver
+fmpEnv.StaticLibrary('clientc', clientCFiles)
+#Operating System Services
+fmpEnv.StaticLibrary('oss', ossFiles)
+#Problem Determination
+fmpEnv.StaticLibrary('pd', pdFiles)
+#Scripting
+fmpEnv.StaticLibrary('spt', sptFiles)
+#Utilities
+fmpEnv.StaticLibrary('util', utilFiles)
+#fmp
+fmpEnv.StaticLibrary('fmp', fmpFiles)
+
+#
+sdbfmp = fmpEnv.Program("sdbfmp", fmpMain,
+      LIBDEPS=["spt","oss","pd","util","clientc", "fmp"],
+      _LIBDEPS='$_LIBDEPS_OBJS' )
+fmpEnv.Install( '#/bin', sdbfmp )

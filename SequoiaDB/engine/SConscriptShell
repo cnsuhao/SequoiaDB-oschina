@@ -1,0 +1,218 @@
+# -*- mode: python; -*-
+
+import os
+
+Import("shellEnv")
+Import("ssllib_file")
+Import("ssllib_file1")
+Import("guess_os")
+Import("usesm")
+if usesm:
+    Import("smlib_file")
+sptFiles = [
+      "spt/engine.cpp",
+      "spt/dbClasses.cpp",
+      "spt/sptConvertor.cpp",
+      "spt/sptParseTroff.cpp",
+      "spt/sptConvertorHelper.cpp",
+	  "spt/sptUtil.cpp",
+      "spt/sptCommon.cpp"
+      ]
+
+spt2Files = [
+      "spt/sptContainer.cpp",
+      "spt/sptInvoker.cpp",
+      "spt/sptReturnVal.cpp",
+      "spt/sptScope.cpp",
+      "spt/sptSPArguments.cpp",
+      "spt/sptSPScope.cpp",
+      "spt/sptConvertor2.cpp",
+      "spt/sptBsonobj.cpp",
+      "spt/sptLibssh2Session.cpp",
+      "spt/sptSshSession.cpp",
+      "spt/usrdef/sptUsrSsh.cpp",
+      "spt/sptProperty.cpp",
+      "spt/sptGlobalFunc.cpp",
+      "spt/sptCmdRunner.cpp",
+      "spt/usrdef/sptUsrCmd.cpp",
+      "spt/usrdef/sptUsrFile.cpp",
+      "spt/usrdef/sptUsrSystem.cpp",
+      "spt/usrdef/sptUsrOma.cpp",
+      "spt/usrdef/sptUsrOmaAssit.cpp"
+      ]
+
+ossFiles = [
+      "oss/oss.cpp",
+      "oss/ossErr.cpp",
+      "oss/ossUtil.cpp",
+      "oss/ossIO.cpp",
+      "oss/ossPrimitiveFileOp.cpp",
+      "oss/ossStackDump.cpp",
+      "oss/ossEDU.cpp",
+      "oss/ossProc.cpp",
+      "oss/ossNPipe.cpp",
+      "oss/ossPath.cpp",
+      "oss/ossVer.cpp",
+      "oss/ossMem.cpp",
+      "oss/ossSocket.cpp",
+      "oss/ossEvent.cpp"
+      ]
+
+shellMain = [
+      "pmd/sdb.cpp",
+      ]
+
+shellBpMain = [
+      "pmd/sdbbp.cpp",
+      ]
+
+pdFiles = [
+      "pd/pd.cpp",
+      "pd/pdTrace.cpp",
+      "pd/pdComponents.cpp",
+      "pd/pdFunctionList.cpp"
+      ]
+
+utilFiles = [
+      "util/fromjson.cpp",
+      "util/json2rawbson.c",
+      "util/linenoise.cpp",
+      "util/utilStr.cpp",
+      "util/utilParam.cpp",
+      "util/utilLinenoiseWrapper.cpp",
+      "util/utilPipe.cpp",
+      "util/utilPath.cpp",
+      "util/utilCommon.cpp",
+      "util/utilNodeOpr.cpp",
+      "client/bson/numbers.c",
+      "client/bson/bson.c",
+      "client/bson/encoding.c",
+      "client/base64c.c",
+      "client/cJSON.c",
+      "client/jstobs.c",
+      "bson/md5.c"
+      ]
+
+util2Files = [
+     "bson/bsonobj.cpp",
+     "bson/oid.cpp",
+     "bson/base64.cpp",
+     "bson/nonce.cpp",
+     "bson/md5.c",
+     "util/utilBsongen.cpp"
+]
+
+clientCFiles = [
+      "client/client.c",
+      "client/common.c",
+      "client/network.c"
+      ]
+
+mdocmlFiles = [
+      "mdocml/parseMandocCpp.cpp",
+      "mdocml/eqn_html.c",
+      "mdocml/html.c",
+      "mdocml/man_html.c",
+      "mdocml/mdoc_html.c",
+      "mdocml/tbl_html.c",
+      "mdocml/mdoc_man.c",
+      "mdocml/eqn_term.c",
+      "mdocml/man_term.c",
+      "mdocml/mdoc_term.c",
+      "mdocml/term.c",
+      "mdocml/term_ascii.c",
+      "mdocml/term_ps.c",
+      "mdocml/tbl_term.c",
+      "mdocml/parseMandoc.c",
+      "mdocml/out.c",
+      "mdocml/tree.c",
+      "mdocml/compat_fgetln.c",
+      "mdocml/compat_getsubopt.c",
+      "mdocml/compat_strlcat.c",
+      "mdocml/compat_strlcpy.c",
+      "mdocml/man.c",
+      "mdocml/man_hash.c",
+      "mdocml/man_macro.c",
+      "mdocml/man_validate.c",
+      "mdocml/arch.c",
+      "mdocml/att.c",
+      "mdocml/lib.c",
+      "mdocml/mdoc.c",
+      "mdocml/mdoc_argv.c",
+      "mdocml/mdoc_hash.c",
+      "mdocml/mdoc_macro.c",
+      "mdocml/mdoc_validate.c",
+      "mdocml/st.c",
+      "mdocml/vol.c",
+      "mdocml/eqn.c",
+      "mdocml/roff.c",
+      "mdocml/tbl.c",
+      "mdocml/tbl_data.c",
+      "mdocml/tbl_layout.c",
+      "mdocml/tbl_opts.c",
+      "mdocml/chars.c",
+      "mdocml/mandoc.c",
+      "mdocml/msec.c",
+      "mdocml/read.c",
+      "mdocml/common.c"
+]
+
+ssh2Files = [
+      "ssh2/agent.c",
+      "ssh2/channel.c",
+      "ssh2/comp.c",
+      "ssh2/crypt.c",
+      "ssh2/global.c",
+      "ssh2/hostkey.c",
+      "ssh2/keepalive.c",
+      "ssh2/kex.c",
+      "ssh2/knownhost.c",
+      "ssh2/libgcrypt.c",
+      "ssh2/mac.c",
+      "ssh2/misc.c",
+      "ssh2/openssl.c",
+      "ssh2/packet.c",
+      "ssh2/pem.c",
+      "ssh2/publickey.c",
+      "ssh2/scp.c",
+      "ssh2/session.c",
+      "ssh2/sftp.c",
+      "ssh2/transport.c",
+      "ssh2/userauth.c",
+      "ssh2/version.c"
+      ]
+
+#Client Driver
+shellEnv.StaticLibrary('clientc', clientCFiles)
+#Operating System Services
+shellEnv.StaticLibrary('oss', ossFiles)
+#Problem Determination
+shellEnv.StaticLibrary('pd', pdFiles)
+#Scripting
+shellEnv.StaticLibrary('spt', sptFiles)
+shellEnv.StaticLibrary('spt2', spt2Files)
+shellEnv.StaticLibrary('ssh2', ssh2Files)
+#Utilities
+shellEnv.StaticLibrary('util', utilFiles)
+shellEnv.StaticLibrary('util2', util2Files)
+#Mdocml
+shellEnv.StaticLibrary('mdocml', mdocmlFiles)
+
+#Shell Executable
+sdb = shellEnv.Program("sdb", shellMain,
+      LIBDEPS=["spt","oss","pd","util","clientc", "mdocml", "ssh2", "util2", "spt2"],
+      _LIBDEPS='$_LIBDEPS_OBJS' )
+
+shellEnv.Install( '#/bin', sdb )
+
+#Shell Backend  Executable
+sdbbp = shellEnv.Program("sdbbp", shellBpMain,
+      LIBDEPS=["spt","oss","pd","util","clientc", "mdocml","ssh2", "util2", "spt2"],
+      _LIBDEPS='$_LIBDEPS_OBJS' )
+
+shellEnv.Install( '#/bin', sdbbp )
+if "win32" == guess_os:
+   if usesm:
+      shellEnv.Install( '#/bin', smlib_file)
+   shellEnv.Install( '#/bin', ssllib_file)
+   shellEnv.Install( '#/bin', ssllib_file1)

@@ -1,0 +1,40 @@
+import os
+
+Import("clientCEnv")
+
+clientCFiles = [
+      "client/client.c"
+      ]
+
+clientCLibFiles = [
+      clientCFiles,
+      "oss/oss.c",
+      "oss/ossUtil.c",
+      "oss/ossMem.c",
+      "client/common.c",
+      "client/network.c",
+      "client/bson/numbers.c",
+      "client/bson/bson.c",
+      "client/bson/encoding.c",
+      "client/base64c.c",
+      "client/cJSON.c",
+      "client/jstobs.c",
+      "bson/md5.c"
+      ]
+
+#Client Library
+clientCLib = clientCEnv.SharedLibrary('sdbc', clientCLibFiles)
+clientCLibStatic = clientCEnv.StaticLibrary('staticsdbc', clientCLibFiles)
+
+clientCEnv.Install( '#/client/lib', clientCLib )
+clientCEnv.Install( '#/client/lib', clientCLibStatic )
+clientCEnv.Install( '#/client/include', "client/client.h" )
+clientCEnv.Install( '#/client/include', "client/jstobs.h" )
+clientCEnv.Install( '#/client/include', "client/base64c.h" )
+clientCEnv.Install( '#/client/include/bson/', "client/bson/bson.h" )
+clientCEnv.Install( '#/client/include/bson/', "client/bson/encoding.h" )
+clientCEnv.Install( '#/client/include/', "include/core.h" )
+clientCEnv.Install( '#/client/include/', "include/ossErr.h" )
+clientCEnv.Install( '#/client/include/', "include/ossFeat.h" )
+clientCEnv.Install( '#/client/include/', "include/ossTypes.h" )
+clientCEnv.Install( '#/client/include/', "include/spd.h" )

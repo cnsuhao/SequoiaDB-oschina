@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Created-By: Hetiu
+Main-Class: org.apache.log4j.Logger
+class-Path: lib/log4j-1.2.17.jar

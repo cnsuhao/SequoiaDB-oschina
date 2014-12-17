@@ -1,0 +1,52 @@
+/* This list file is automatically generated,you shoud NOT modify this file anyway! */
+#ifndef msgTRACE_H__
+#define msgTRACE_H__
+#define SDB_MSGPASCATGRPRES                                0x4000000281L
+#define SDB_MSGPASCATGRPOBJ                                0x4000000282L
+#define SDB_GETSVCNAME                                     0x4000000283L
+#define SDB_GETSHDSVCNAME                                  0x4000000284L
+#define SDB_MSGCHKBUFF                                     0x4000000285L
+#define SDB_MSGBLDUPMSG                                    0x4000000286L
+#define SDB_MSGEXTRACTUP                                   0x4000000287L
+#define SDB_MSGBLDINSERTMSG                                0x4000000288L
+#define SDB_MSGBLDINSERTMSG2                               0x4000000289L
+#define SDB_MSGAPDINSERTMSG                                0x400000028aL
+#define SDB_MSGEXTRACTINSERT                               0x400000028bL
+#define SDB_MSGBLDQRYMSG                                   0x400000028cL
+#define SDB_MSGEXTRACTQUERY                                0x400000028dL
+#define SDB_MSGBLDGETMOREMSG                               0x400000028eL
+#define SDB_MSGEXTRACTGETMORE                              0x400000028fL
+#define SDB_MSGFILLGETMOREMSG                              0x4000000290L
+#define SDB_MSGBLDDELMSG                                   0x4000000291L
+#define SDB_MSGEXTRACTDEL                                  0x4000000292L
+#define SDB_MSGBLDKILLCONTXMSG                             0x4000000293L
+#define SDB_MSGEXTRACTKILLCONTX                            0x4000000294L
+#define SDB_MSGBLDMSGMSG                                   0x4000000295L
+#define SDB_MSGEXTRACTMSG                                  0x4000000296L
+#define SDB_MSGBLDREPLYMSG                                 0x4000000297L
+#define SDB_MSGBLDREPLYMSG2                                0x4000000298L
+#define SDB_MSGEXTRACTREPLY                                0x4000000299L
+#define SDB_MSGBLDDISCONNMSG                               0x400000029aL
+#define SDB_MSGBLDREPLYMSGHD                               0x400000029bL
+#define SDB_MSGBLDDISCONNMSG2                              0x400000029cL
+#define SDB_MSGBLDQRYCATREQMSG                             0x400000029dL
+#define SDB_MSGBLDQRYSPCREQMSG                             0x400000029eL
+#define SDB_EXTRACTRC                                      0x400000029fL
+#define SDB_MSGBLDCMREQ                                    0x40000002a0L
+#define SDB_MSGEXTRACTCMREQ                                0x40000002a1L
+#define SDB_MSGBLDDROPINXMSG                               0x40000002a2L
+#define SDB_MSGEXTRACTSQL                                  0x40000002a3L
+#define SDB_MSGBUILDSYSINFOREQUEST                         0x40000002a4L
+#define SDB_MSGEXTRACTSYSINFOREQUEST                       0x40000002a5L
+#define SDB_MSGBUILDSYSINFOREPLY                           0x40000002a6L
+#define SDB_MSGEXTRACTSYSINFOREPLY                         0x40000002a7L
+#define SDB_MSGEXTRACTAGGRREQ                              0x40000002a8L
+#define SDB_MSGEXTRACTLOBREQ                               0x40000002a9L
+#define SDB_MSGEXTRACTOPENLOBREQ                           0x40000002aaL
+#define SDB_MSGEXTRACTWRITELOBREQ                          0x40000002abL
+#define SDB_MSGEXTRACTREADLOBREQ                           0x40000002acL
+#define SDB_MSGEXTRACTCLOSELOBREQ                          0x40000002adL
+#define SDB_MSGEXTRACTREMOVELOBREQ                         0x40000002aeL
+#define SDB_MSGEXTRACTREREADRESULT                         0x40000002afL
+#define SDB_EXTRACTAUTHMSG                                 0x40000002b0L
+#endif

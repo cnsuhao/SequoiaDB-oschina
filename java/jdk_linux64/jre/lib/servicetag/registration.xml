@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<registration_data version="1.0">
+   <environment>
+      <hostname>vmsvr1-rhel-x64</hostname>
+      <hostId>a8c02314</hostId>
+      <osName>Linux</osName>
+      <osVersion>2.6.32-131.0.15.el6.x86_64</osVersion>
+      <osArchitecture>amd64</osArchitecture>
+      <systemModel>x86_64</systemModel>
+      <systemManufacturer/>
+      <cpuManufacturer>GenuineIntel</cpuManufacturer>
+      <serialNumber/>
+   </environment>
+   <registry urn="urn:st:f61a8873-45e2-471c-adfd-b670737b580e" version="1.0">
+      <service_tag>
+         <instance_urn>urn:st:239b6b05-7858-4207-80f0-bb710c288a9b</instance_urn>
+         <product_name>Java SE 6 Development Kit</product_name>
+         <product_version>1.6.0_43</product_version>
+         <product_urn>urn:uuid:b58ef9a8-5ae8-11db-a023-080020a9ed93</product_urn>
+         <product_parent_urn>urn:uuid:fdc90b21-018d-4cab-b866-612c7c119ed3</product_parent_urn>
+         <product_parent>Java Platform Standard Edition 6 (Java SE 6)</product_parent>
+         <product_defined_inst_id>id=1.6.0_43-b01 amd64,dir=/home/sequoiadb/jdk1.6.0_43/jre</product_defined_inst_id>
+         <product_vendor>Sun Microsystems</product_vendor>
+         <platform_arch>amd64</platform_arch>
+         <timestamp>2013-03-14 02:42:24 GMT</timestamp>
+         <container>global</container>
+         <source>jdk-6u43-fcs-bin-b01-linux-amd64-01_mar_2013.bin</source>
+         <installer_uid>-1</installer_uid>
+      </service_tag>
+   </registry>
+</registration_data>

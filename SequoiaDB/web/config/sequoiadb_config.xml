@@ -1,0 +1,223 @@
+<Property type="array">
+	<FILLER>
+		<Name>dbpath</Name>
+		<WebName>数据路径</WebName>
+		<Type>path</Type>
+		<Default>/opt/sequoiadb/database/standalone</Default>
+		<Valid></Valid>
+		<Display>text box</Display>
+		<Edit>true</Edit>
+		<Desc>数据存储路径</Desc>
+		<Level>0</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>false</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>svcname</Name>
+		<WebName>服务名</WebName>
+		<Type>port</Type>
+		<Default>11810</Default>
+		<Valid></Valid>
+		<Display>edit box</Display>
+		<Edit>true</Edit>
+		<Desc>本地服务端口</Desc>
+		<Level>0</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>false</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>diaglevel</Name>
+		<WebName>诊断日志打印级别</WebName>
+		<Type>int</Type>
+		<Default>3</Default>
+		<Valid>0,1,2,3,4,5</Valid>
+		<Display>select box</Display>
+		<Edit>true</Edit>
+		<Desc>指定诊断日志打印级别。SequoiaDB 中诊断日志从0~5分别代表：SEVERE，ERROR，EVENT，WARNING，INFO，DEBUG</Desc>
+		<Level>0</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>role</Name>
+		<WebName>role</WebName>
+		<Type>string</Type>
+		<Default>standalone</Default>
+		<Valid>standalone,catalog,coord,data</Valid>
+		<Display>hidden</Display>
+		<Edit>true</Edit>
+		<Desc></Desc>
+		<Level>0</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>logfilesz</Name>
+		<WebName>日志文件大小</WebName>
+		<Type>int</Type>
+		<Default>64</Default>
+		<Valid>64-2048</Valid>
+		<Display>edit box</Display>
+		<Edit>true</Edit>
+		<Desc>指定日志文件大小，合法输入为64（MB）~ 2048（MB）</Desc>
+		<Level>0</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>logfilenum</Name>
+		<WebName>同步日志文件数量</WebName>
+		<Type>int</Type>
+		<Default>20</Default>
+		<Valid>1-11800</Valid>
+		<Display>edit box</Display>
+		<Edit>true</Edit>
+		<Desc>指定同步日志文件的数量，合法输入为 1 - 11800</Desc>
+		<Level>0</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>transactionon</Name>
+		<WebName>事务</WebName>
+		<Type>bool</Type>
+		<Default>false</Default>
+		<Valid>true,false</Valid>
+		<Display>select box</Display>
+		<Edit>true</Edit>
+		<Desc>是否打开事务</Desc>
+		<Level>0</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>preferedinstance</Name>
+		<WebName>实例模式</WebName>
+		<Type>string</Type>
+		<Default>A</Default>
+		<Valid>M,S,A,1,2,3,4,5,6,7</Valid>
+		<Display>select box</Display>
+		<Edit>true</Edit>
+		<Desc>指定执行读请求时优先选择的实例。 M -- 可读写实例； S -- 只读实例； A -- 任意实例； 1~7 -- 第 n 个实例</Desc>
+		<Level>0</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>numpagecleaners</Name>
+		<WebName>脏页清除器数量</WebName>
+		<Type>int</Type>
+		<Default>1</Default>
+		<Valid>0-50</Valid>
+		<Display>edit box</Display>
+		<Edit>true</Edit>
+		<Desc>数据库启动时需要开启的脏页清除器数量，0：不启动任何脏页清除器</Desc>
+		<Level>0</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>pagecleaninterval</Name>
+		<WebName>脏页清除最小间隔</WebName>
+		<Type>int</Type>
+		<Default>1000</Default>
+		<Valid>1000-</Valid>
+		<Display>edit box</Display>
+		<Edit>true</Edit>
+		<Desc>对每个集合空间的进行脏页清除的最小时间间隔。单位：毫秒，默认：10000，最小：1000</Desc>
+		<Level>0</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>numpreload</Name>
+		<WebName>页面预加载代理数据</WebName>
+		<Type>int</Type>
+		<Default>0</Default>
+		<Valid>0-100</Valid>
+		<Display>edit box</Display>
+		<Edit>true</Edit>
+		<Desc>页面预加载代理数据，默认值为0，取值范围：[0,100]</Desc>
+		<Level>1</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>maxprefpool</Name>
+		<WebName>数据预取代理池最大数量</WebName>
+		<Type>int</Type>
+		<Default>200</Default>
+		<Valid>0-1000</Valid>
+		<Display>edit box</Display>
+		<Edit>true</Edit>
+		<Desc>数据预取代理池最大数量，默认值：200，取值范围：[0,1000]</Desc>
+		<Level>1</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>maxreplsync</Name>
+		<WebName>日志同步最大并发数量</WebName>
+		<Type>int</Type>
+		<Default>10</Default>
+		<Valid>0-200</Valid>
+		<Display>edit box</Display>
+		<Edit>true</Edit>
+		<Desc>日志同步最大并发数量，默认值：10，取值范围：[0,200]，0表示不启用日志并发同步</Desc>
+		<Level>1</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>logbuffsize</Name>
+		<WebName>复制日志内存页面数</WebName>
+		<Type>int</Type>
+		<Default>1024</Default>
+		<Valid>512-1024000</Valid>
+		<Display>edit box</Display>
+		<Edit>true</Edit>
+		<Desc>复制日志内存页面数，默认值：1024，取值范围：[512,1024000]，但日志总内存大小不能超过日志总文件大小；每个页面大小为64KB</Desc>
+		<Level>1</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>sortbuf</Name>
+		<WebName>排序缓存大小</WebName>
+		<Type>int</Type>
+		<Default>512</Default>
+		<Valid>128-</Valid>
+		<Display>edit box</Display>
+		<Edit>true</Edit>
+		<Desc>排序缓存大小（MB），默认值512，最小值128</Desc>
+		<Level>1</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>hjbuf</Name>
+		<WebName>哈希连接缓存大小</WebName>
+		<Type>int</Type>
+		<Default>128</Default>
+		<Valid>64-</Valid>
+		<Display>edit box</Display>
+		<Edit>true</Edit>
+		<Desc>哈希连接缓存大小（MB），默认值128，最小值64</Desc>
+		<Level>1</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>syncstrategy</Name>
+		<WebName>副本组之间数据同步控制策略</WebName>
+		<Type>string</Type>
+		<Default>none</Default>
+		<Valid>none,keepnormal,keepall</Valid>
+		<Display>select box</Display>
+		<Edit>true</Edit>
+		<Desc>副本组之间数据同步控制策略，取值：none，keepnormal，keepall，默认为 keepnormal</Desc>
+		<Level>1</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+</Property>

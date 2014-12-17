@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>主机列表</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link href="css/sdbcss.css" rel="stylesheet" media="screen">
+</head>
+<body>
+<noscript>
+<div style="margin:100px auto 0 auto;width:800px;">
+   <div class="alert alert-danger">
+   	您的浏览器禁用JavaScript脚本，这会影响系统正常运行。<br />
+      请启用JavaScript，并且刷新或重新打开浏览器。
+   </div>
+</div>
+</noscript>
+<div class="htmlbody" id="htmlBody">
+   <div class="vertical-box" id="htmlVer">
+      <div class="vertical-body">
+         <div class="vertical-li" style="height:31px;">
+            <div class="nav-app-box" id="topNav">
+               <div class="nav-app-body">
+                  <div class="nav-app">
+                     <div class="nav-li" onclick="window.location.href='./index.html'">主页</div>
+                     <div class="nav-li">
+                     	<div>帮助<span class="caret caret-bottom"></span></div>
+                        <ul>
+                           <li>关于SMS系统</li>
+                        </ul>
+                     </div>
+                     <div class="nav-li" style="float:right;">
+                     	<div><img width="14" src="./images/smallicon/white/16x16/user.png">&nbsp;<span id="username"></span></div>
+                        <ul style="width:90px;">
+                           <li onClick="openChangePwdModal()">修改密码</li>
+                           <li onClick="logoutOM()">登出</li>
+                        </ul>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="vertical-li" style="height:34px;">
+            <ul class="tab-page" id="tab_box" style="padding-top:5px;font-weight:bold;">
+            	<li class="active"><img class="icon" src="./images/smallicon/blacks/16x16/align_just.png"> 状态</li>
+            </ul>
+         </div>
+         <div class="vertical-li">
+         	<div style="padding:10px;">
+               <div class="panel" id="hostListPanel" style="background:#FBFBFB;">
+                  <div class="panel-header"></div>
+                  <div class="panel-body">
+                  	<div>
+                        <table class="noborder-table">
+                        	<tr>
+                           	<td width="90">
+                              	<div class="dropdown" id="hostChoiseDropDown">
+                                    <button class="btn btn-default" data-type="switch-dropDown" data-target="hostChoiseDropDown">
+                                       选择操作<span class="caret caret-bottom"></span>
+                                    </button>
+                                    <div class="clear-float"></div>
+                                 </div>
+                              </td>
+                              <td width="120">
+                              	<div class="dropdown" id="hostOperationDropDown">
+                                    <button class="btn btn-default" data-type="switch-dropDown" data-target="hostOperationDropDown">
+                                       已选定操作<span class="caret caret-bottom"></span>
+                                    </button>
+                                    <div class="clear-float"></div>
+                                 </div>
+                              </td>
+                              <td>
+                                 <button class="btn btn-default" onClick="gotoHostSearch()">
+                                    <img class="icon" src="./images/smallicon/blacks/16x16/comp.png"> 添加主机
+                                 </button>
+                              </td>
+                           </tr>
+                        </table>
+                     </div>
+                     <div style="padding:5px;"></div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="vertical-li" style="height:66px;">
+            <div class="foot" id="htmlFoot">
+               <div class="transverse-box" id="footTra" style="height:65px;">
+                  <div class="transverse-body">
+                     <div class="transverse-col" style="width:228px;height:65px;"><img src="images/logo.png"></div>
+                     <div class="transverse-col" style="height:65px;">
+                        <div class="alert alert-info" id="foot_alert_msg" style="margin:8px 20px;padding:12px;display:none;"></div>
+                     </div>
+                     <div class="transverse-col" style="width:200px;height:65px;"></div>
+                  </div>
+                  <div class="clear-float"></div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+</div>
+<ul class="dropdown-menu" id="hostChoiseDropDown_menu">
+   <li class="event" onClick="checkAllHost()">全选</li>
+   <li class="event" onClick="inverseCheckAllHost()">反选</li>
+</ul>
+<ul class="dropdown-menu" id="hostOperationDropDown_menu">
+   <li class="event" onClick="openRemoveHostModal()">删除主机</li>
+</ul>
+<div id="removeHostModal" class="modal">
+	<div class="modal-title">
+   	<button class="close-buttun" data-type="close-modal" data-target="removeHostModal">&times;</button><span>删除主机</span>
+      <div class="clear-float"></div>
+   </div>
+   <div class="modal-body">
+   	<div class="alert alert-warning">警告：该操作是不可恢复操作，并且无法删除已经安装业务的主机。</div>
+   </div>
+   <div class="modal-foot">
+      <button class="btn btn-primary" onClick="removeHost()">确定</button>&nbsp;<button class="btn btn-primary" data-type="close-modal" data-target="removeHostModal">关闭</button>
+   </div>
+</div>
+<div id="removeHostResultModal" class="modal">
+	<div class="modal-title">
+   	<button class="close-buttun" onClick="gotoPage('hostlist.html')">&times;</button><span>删除主机结果</span>
+      <div class="clear-float"></div>
+   </div>
+   <div class="modal-body">
+   	
+   </div>
+   <div class="modal-foot">
+      <button class="btn btn-primary" onClick="gotoPage('hostlist.html')">关闭</button>
+   </div>
+</div>
+<script src="js/heartcode-canvasloader.js"></script>
+<script src="js/jquery-1.11.1.min.js"></script>
+<script src="js/jquery.cookie.js"></script>
+<script src="js/jquery.md5.js"></script>
+<script src="js/json2.js"></script>
+<script src="js/sdbjs2.js"></script>
+<script src="js/include2.js"></script>
+<script src="js/private/hostlist2.js"></script>
+</body>
+</html>

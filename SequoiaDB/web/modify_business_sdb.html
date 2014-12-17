@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>配置业务信息</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<link href="css/sdbcss.css" rel="stylesheet" media="screen">
+</head>
+<body>
+<noscript>
+<div style="margin:100px auto 0 auto;width:800px;">
+   <div class="alert alert-danger">
+   	您的浏览器禁用JavaScript脚本，这会影响系统正常运行。<br />
+      请启用JavaScript，并且刷新或重新打开浏览器。
+   </div>
+</div>
+</noscript>
+<div class="htmlbody" id="htmlBody">
+   <div class="vertical-box" id="htmlVer">
+      <div class="vertical-body">
+         <div class="vertical-li" style="height:31px;">
+            <div class="nav-app-box" id="topNav">
+               <div class="nav-app-body">
+                  <div class="nav-app">
+                     <div class="nav-li" onclick="window.location.href='./index.html'">主页</div>
+                     <div class="nav-li">
+                     	<div>帮助<span class="caret caret-bottom"></span></div>
+                        <ul>
+                           <li>关于SMS系统</li>
+                        </ul>
+                     </div>
+                     <div class="nav-li" style="float:right;">
+                     	<div><img width="14" src="./images/smallicon/white/16x16/user.png">&nbsp;<span id="username"></span></div>
+                        <ul style="width:90px;">
+                           <li onClick="openChangePwdModal()">修改密码</li>
+                           <li onClick="logoutOM()">登出</li>
+                        </ul>
+                     </div>
+                  </div>
+               </div>
+            </div>
+         </div>
+         <div class="vertical-li" style="height:34px;">
+            <ul class="tab-page" id="tab_box" style="padding-top:5px;font-weight:bold;"></ul>
+         </div>
+         <div class="vertical-li">
+         	<div class="transverse-box" style="display:none;" id="distributionBox">
+            	<div class="transverse-body">
+               	<div class="transverse-col">
+                     <div class="panel" style="margin:10px;overflow:auto;" id="leftPanel">
+                        <div class="panel-body">
+                        	<div class="alert alert-info" style="padding:10px;margin-top:10px;">提示：配置业务信息使用说明，请点击<a href="#" data-type="open-modal" data-target="explain">帮助</a>。</div>
+                           <div style="margin-top:10px"><ul id="groupSwitchList" class="tag-list"></ul></div>
+                        </div>
+                     </div>
+                  </div>
+                  <div class="transverse-col">
+                  	<div class="panel" style="margin:10px;" id="rightPanel">
+                        <div class="panel-header">
+                        	<table>
+                           	<tr>
+                              	<td width="90">
+                                    <div class="dropdown" id="nodeChoiseDropDown">
+                                       <button class="btn btn-default" data-type="switch-dropDown" data-target="nodeChoiseDropDown">
+                                          选择操作<span class="caret caret-bottom"></span>
+                                       </button>
+                                       <div class="clear-float"></div>
+                                    </div>
+                                 </td>
+                                 <td>
+                                    <div class="dropdown" id="nodeOperationDropDown">
+                                       <button class="btn btn-default" data-type="switch-dropDown" data-target="nodeOperationDropDown">
+                                          已选定操作<span class="caret caret-bottom"></span>
+                                       </button>
+                                       <div class="clear-float"></div>
+                                    </div>
+                                 </td>
+                              </tr>
+                           </table>
+                        </div>
+                        <div class="panel-body">
+                        	
+                        </div>
+                     </div>
+                  </div>
+               </div>
+            </div>
+            <div id="standaloneBox" style="padding:10px 0 10px 0;display:none;">
+            	<div class="modal" style="margin:0 auto 0 auto;display:block;position:static;">
+               	<div class="modal-title">节点配置&nbsp;<button id="advaOptionsButton" class="btn btn-primary" onClick="switchAdvaOptionsStandalone(this)">高级选项</button></div>
+                  <div class="modal-body"></div>
+               </div>
+            </div>
+         </div>
+         <div class="vertical-li" style="height:66px;">
+            <div class="foot" id="htmlFoot">
+               <div class="transverse-box" id="footTra" style="height:65px;">
+                  <div class="transverse-body">
+                     <div class="transverse-col" style="width:228px;height:65px;"><img src="images/logo.png"></div>
+                     <div class="transverse-col" style="height:65px;">
+                        <div class="alert alert-info" id="foot_alert_msg" style="margin:8px 20px;padding:12px;display:none;"></div>
+                     </div>
+                     <div class="transverse-col" style="width:200px;height:65px;">
+                     	<div style="padding-top:10px;">
+                     		<button id="__goBack" class="btn btn-primary">返回</button>&nbsp;<button id="__goOn" class="btn btn-primary">下一步</button>
+                        </div>
+                     </div>
+                  </div>
+                  <div class="clear-float"></div>
+               </div>
+            </div>
+         </div>
+      </div>
+   </div>
+</div>
+<ul class="dropdown-menu" id="nodeChoiseDropDown_menu">
+   <li class="event" onClick="checkAllNode()">全选</li>
+   <li class="event" onClick="inverseCheckAllNode()">反选</li>
+</ul>
+<ul class="dropdown-menu" id="nodeOperationDropDown_menu">
+   <li class="event" onClick="openNodeConfigModal(-1)">修改节点配置</li>
+</ul>
+<div id="explain" class="modal">
+	<div class="modal-title">
+   	<button class="close-buttun" data-type="close-modal" data-target="explain">&times;</button>帮助
+      <div class="clear-float"></div>
+   </div>
+   <div class="modal-body">
+		<p>关于<b>[已选定操作]-[修改节点配置]</b>。您可以使用特殊规则来<b>批量修改</b>节点的<b>服务名</b>和<b>数据路径</b>：</p>
+      <table class="simple-table" style="line-height:25px;">
+         <tr>
+            <td colspan="2">服务名规则</td>
+            <td>规则：服务名[+步进] 或 服务名[-步进]。</td>
+         </tr>
+         <tr>
+            <td width="70">规则</td>
+            <td width="90">例子</td>
+            <td><b>描述</b></td>
+         </tr>
+         <tr>
+            <td>普通方式</td>
+            <td>11810</td>
+            <td>设置服务名为：11810, 但要注意同一主机下的节点是不可以有相同的服务名。假设有3个节点：pcHost1:11810, pcHost2:11810, pcHost3:11810</td>
+         </tr>
+         <tr>
+            <td>递增方式</td>
+            <td>11810[+10]</td>
+            <td>设置<b>已选定节点</b>的服务名从11810(包含11810)起始，每一个都递增10。假设有3个节点：pcHost1:11810, pcHost2:11820, pcHost3:11830</td>
+         </tr>
+         <tr>
+            <td>递减方式</td>
+            <td>11810[-10]</td>
+            <td>设置<b>已选定节点</b>的服务名从11810(包含11810)起始，每一个都递减10。假设有3个节点：pcHost1:11810, pcHost2:11800, pcHost3:11790</td>
+         </tr>
+      </table>
+      <p></p>
+      <table class="simple-table" style="line-height:25px;">
+         <tr>
+            <td width="185">数据路径规则</td>
+            <td>规则：可以在路径中任意添加这几个特殊命令，<b>[role]</b> -- 角色, <b>[svcname]</b> -- 服务名, <b>[groupname]</b> -- 分区组名, <b>[hostname]</b> -- 主机名</td>
+         </tr>
+         <tr>
+            <td>例子</td>
+            <td>描述</td>
+         </tr>
+         <tr>
+            <td>/opt/sequoiadb/[role]/[svcname]/[groupname]/[hostname]</td>
+            <td>假设<b>已选定节点</b>配置为：角色：data, 服务名：11810, 分区组：DATAGROUP1, 主机： pcHost1，最终设置的数据路径：/opt/sequoiadb/data/11810/DATAGROUP1/pcHost1， <b>注意：</b> 协调节点和编目节点是没有分区组名的, 因此 [groupname] 是空字符串</td>
+         </tr>
+      </table>
+   </div>
+   <div class="modal-foot">
+      <button class="btn btn-primary" data-type="close-modal" data-target="explain">关闭</button>
+   </div>
+</div>
+<div id="nodeConfigModal" class="modal">
+	<div class="modal-title">
+   	<button class="close-buttun" data-type="close-modal" data-target="nodeConfigModal">&times;</button><span>配置</span>
+      <div class="clear-float"></div>
+   </div>
+   <div class="modal-body">
+   	<div id="configError" style="margin-top:10px;color:#F00;"></div>
+   </div>
+   <div class="modal-foot">
+      <button id="advaOptionsButton" class="btn btn-primary" onClick="switchAdvaOptions(this)">高级选项</button>&nbsp;<button class="btn btn-primary" id="saveConfigButton">确定</button>&nbsp;<button class="btn btn-primary" data-type="close-modal" data-target="nodeConfigModal">关闭</button>
+   </div>
+</div>
+<div id="addGroupModal" class="modal">
+	<div class="modal-title">
+   	<button class="close-buttun" data-type="close-modal" data-target="addGroupModal">&times;</button><span>添加分区组</span>
+      <div class="clear-float"></div>
+   </div>
+   <div class="modal-body">
+   	<table class="noborder-table">
+      	<tr>
+         	<td width="100">分区组名：</td>
+         	<td><input class="form-control" type="text"></td>
+         </tr>
+      </table>
+   	<div id="addGroupError" style="margin-top:10px;color:#F00;"></div>
+   </div>
+   <div class="modal-foot">
+      <button class="btn btn-primary" onClick="addGroup()">确定</button>&nbsp;<button class="btn btn-primary" data-type="close-modal" data-target="addGroupModal">关闭</button>
+   </div>
+</div>
+<div id="removeGroupModal" class="modal">
+	<div class="modal-title">
+   	<button class="close-buttun" data-type="close-modal" data-target="removeGroupModal">&times;</button><span>删除分区组</span>
+      <div class="clear-float"></div>
+   </div>
+   <div class="modal-body">
+   	<div class="alert alert-warning">警告：该操作是不可恢复操作，该分区组下所有的节点都将会删除。</div>
+   </div>
+   <div class="modal-foot">
+      <button class="btn btn-primary" onClick="removeGroup()">确定</button>&nbsp;<button class="btn btn-primary" data-type="close-modal" data-target="removeGroupModal">关闭</button>
+   </div>
+</div>
+<div id="addNodeModal" class="modal">
+	<div class="modal-title">
+   	<button class="close-buttun" data-type="close-modal" data-target="addNodeModal">&times;</button><span>添加节点</span>
+      <div class="clear-float"></div>
+   </div>
+   <div class="modal-body">
+      <table class="noborder-table">
+      	<tr>
+         	<td width="100">主机名：</td>
+            <td><select class="form-control" id="addHostSelect"></select></td>
+         </tr>
+         <tr>
+         	<td>配置：</td>
+            <td>
+            	<select class="form-control">
+               	<option value="1">默认配置</option>
+                  <option value="2">复制其他节点配置</option>
+               </select>
+            </td>
+         </tr>
+         <tr>
+         	<td>复制节点：</td>
+            <td><select class="form-control" id="addNodeSelect"></select></td>
+         </tr>
+      </table>
+   </div>
+   <div class="modal-foot">
+      <button class="btn btn-primary" onClick="addNodeConfig()">确定</button>&nbsp;<button class="btn btn-primary" data-type="close-modal" data-target="addNodeModal">关闭</button>
+   </div>
+</div>
+<div id="removeNodeModal" class="modal">
+	<div class="modal-title">
+   	<button class="close-buttun" data-type="close-modal" data-target="removeNodeModal">&times;</button><span>删除节点</span>
+      <div class="clear-float"></div>
+   </div>
+   <div class="modal-body">
+   	<div class="alert alert-warning" style="margin-bottom:10px;">警告：该操作是不可恢复操作。</div>
+      <table class="noborder-table">
+      	<tr>
+         	<td width="100">节点名：</td>
+            <td><select class="form-control" id="removeNodeSelect"></select></td>
+         </tr>
+      </table>
+   </div>
+   <div class="modal-foot">
+      <button class="btn btn-primary" onClick="removeNode()">确定</button>&nbsp;<button class="btn btn-primary" data-type="close-modal" data-target="removeNodeModal">关闭</button>
+   </div>
+</div>
+<script src="js/heartcode-canvasloader.js"></script>
+<script src="js/jquery-1.11.1.min.js"></script>
+<script src="js/jquery.cookie.js"></script>
+<script src="js/jquery.md5.js"></script>
+<script src="js/json2.js"></script>
+<script src="js/sdbjs2.js"></script>
+<script src="js/include2.js"></script>
+<script src="js/deploy2.js"></script>
+<script src="js/private/modify_business_sdb2.js"></script>
+</body>
+</html>
