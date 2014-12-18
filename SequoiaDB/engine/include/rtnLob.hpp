@@ -39,7 +39,6 @@
 
 namespace engine
 {
-/// interfaces for stream
 INT32 rtnOpenLob( const BSONObj &lob,
                   SINT32 flags,
                   BOOLEAN isLocal,
@@ -73,7 +72,6 @@ INT32 rtnGetLobMetaData( SINT64 contextID,
                          pmdEDUCB *cb,
                          BSONObj &meta ) ;
 
-/// interfaces for non-stream
 INT32 rtnCreateLob( const CHAR *fullName,
                     const bson::OID &oid,
                     pmdEDUCB *cb,

@@ -144,8 +144,6 @@ INT32 _fmpController::_runLoop()
       ele = obj.getField( FMP_CONTROL_FIELD ) ;
       if ( ele.eoo() )
       {
-         /// we considered it be download.
-         /// so func is no need to be copy in spdCB.
          step = FMP_CONTROL_STEP_DOWNLOAD ;
       }
       else if ( NumberInt != ele.type() )
@@ -163,7 +161,6 @@ INT32 _fmpController::_runLoop()
       if ( FMP_CONTROL_STEP_QUIT == step )
       {
          _clear() ;
-         /// should not do anything after send ok msg.
          rc = _writeMsg( OK_RES ) ;
          if ( SDB_OK != rc )
          {
@@ -185,7 +182,6 @@ INT32 _fmpController::_runLoop()
       }
       else
       {
-         /// do noting.
       }
 
       if ( !FMP_VALID_STEP(step) )
@@ -330,7 +326,6 @@ INT32 _fmpController::_handleOneLoop( const BSONObj &obj,
       {
          PD_LOG( PDWARNING, "Failed to init global db: %s",
                  res.toString( FALSE, TRUE ).c_str() ) ;
-         // continue run
       }
 
       rc = _vm->eval( obj, res ) ;
@@ -483,7 +478,6 @@ INT32 _fmpController::_writeMsg( const BSONObj &msg )
    SINT64 written = 0 ;
    BOOLEAN writeHead = TRUE ;
 
-   /// to distinguish our own msg or printf.
    SINT64 objsize = sizeof( magicNumber ) ;
    const CHAR *buf = (const CHAR*)magicNumber ;
 

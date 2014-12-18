@@ -53,10 +53,6 @@ namespace engine
    void ossSetTrapExceptionPath ( const CHAR *path ) ;
    const CHAR* ossGetTrapExceptionPath () ;
 
-   //
-   // class oss_edu_data
-   //    edu specific data for oss component
-   //
    struct _oss_edu_data
    {
    public :
@@ -67,8 +63,6 @@ namespace engine
       SINT32 _nestedDepth ;
    #if defined (_LINUX)
       OSS_SIGFUNCPTR ossEDUNestedSignalHandler ;
-      // This long jump buffer is used to handle nested signal
-      // and it is used by ossEDUNestedSignalHandler
    #endif
    #if defined (_LINUX)
       sigjmp_buf ossNestedSignalHanderJmpBuf ;

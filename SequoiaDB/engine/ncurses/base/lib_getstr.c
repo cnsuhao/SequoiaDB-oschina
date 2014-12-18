@@ -67,8 +67,6 @@ WipeOut(WINDOW *win, int y, int x, char *first, char *last, bool echoed)
     }
     return last;
 }
-//modified by ruanyibang
-//interrupt by esc
 #define BUTTON_ESC 27
 NCURSES_EXPORT(int)
 wgetnstr_events(WINDOW *win,

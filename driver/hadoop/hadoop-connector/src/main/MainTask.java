@@ -4,27 +4,19 @@ import java.io.IOException;
 
 import org.apache.hadoop.conf.*;
 import org.apache.hadoop.fs.Path;
-//import org.apache.hadoop.io.NullWritable;
 
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
-//import org.apache.hadoop.mapreduce.Reducer.Context;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.bson.BSONObject;
 
 
-//import com.sequoiadb.base.Sequoiadb;
-//import com.sequoiadb.hadoop.io.BSONWritable;
 import com.sequoiadb.hadoop.mapreduce.SequoiadbInputFormat;
-//import com.sequoiadb.hadoop.mapreduce.SequoiadbOutputFormat;
-//import com.sequoiadb.hadoop.util.SdbConnAddr;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapred.TextOutputFormat;
-//import org.apache.hadoop.mapred.OutputCollector;
 
-// implements Configurable
 public class MainTask {
 	private String key;
 	
@@ -58,7 +50,6 @@ public class MainTask {
 		@Override
 		protected void reduce(Text key, Iterable<IntWritable> values,Context context)
 				throws IOException, InterruptedException {
-			//System.out.println(nullWritable);
 			
 			int sum =0;
 			/*

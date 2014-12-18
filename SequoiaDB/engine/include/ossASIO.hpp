@@ -51,9 +51,6 @@
 using namespace boost ;
 using namespace boost::asio ;
 using namespace boost::asio::ip ;
-// the caller is taking message as input, and may or may not allocate reply
-// buffer. The caller will free reply when it's not NULL and not same as message
-// pointer.
 typedef INT32 (*ossAsioProcessFunction) ( CHAR *message,
                                           CHAR **reply,
                                           tcp::socket *sock ) ;

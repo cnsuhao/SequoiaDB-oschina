@@ -53,7 +53,6 @@ public:
 public:
    virtual INT32 init( const BSONObj &param ) ;
 
-//   virtual INT32 compile( const BSONElement &func, const CHAR * ) = 0 ;
 
    virtual INT32 eval( const BSONObj &func,
                        BSONObj &res ) = 0 ;

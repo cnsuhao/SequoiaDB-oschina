@@ -56,18 +56,14 @@ public class SequoioadbUpdateWritable implements Writable{
 		
 		byte [] l = new byte[4];
 		try {
-			// Read the query BSON length from the start of the record
 			in.readFully(l);
 			int dataLen = Bits.readInt(l);
 			byte [] data = new byte[dataLen + 4];
-			//Copy the length to data buffer
 			System.arraycopy(l, 0, data, 0, 4);
 			in.readFully(data, 4, dataLen-4);
-			//decode querey bson object
 			dec.decode(data,  cb);
 			this.query = (BSONObject) cb.get();
 			
-			// Read the modifier BSON length from the start of the record
 			in.readFully(l);
 			dataLen = Bits.readInt(l);
 			data = new byte[dataLen + 4];
@@ -86,7 +82,6 @@ public class SequoioadbUpdateWritable implements Writable{
 		
 	}
 
-	//Write Object ouput stream, for pass to reducer.
 	@Override
 	public void write(DataOutput out) throws IOException {
 		BSONEncoder enc = new BasicBSONEncoder();

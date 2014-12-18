@@ -47,7 +47,6 @@ using namespace boost::property_tree;
 
 namespace engine
 {
-   // *****************omAuthCommand *****************************
    omAuthCommand::omAuthCommand( restAdaptor *pRestAdaptor, 
                                  pmdRestSession *pRestSession )
    {
@@ -154,8 +153,6 @@ namespace engine
       BSONObjBuilder resBuilder ;
       BSONObj bsonRes ;
       BSONObj bsonAuth ;
-//      md5::md5digest digest ;
-//      string realPasswd ;
 
       _restAdaptor->getQuery( _restSession, OM_REST_FIELD_LOGIN_NAME, 
                               &pUserName ) ;
@@ -173,13 +170,8 @@ namespace engine
          goto error ;
       }
 
-//      _decryptPasswd( pPasswd, pTime, realPasswd ) ;
-//      md5::md5( ( const void * )realPasswd.c_str(), realPasswd.length(), 
-//                digest) ;
       authBuilder.append( SDB_AUTH_USER, pUserName ) ;
       authBuilder.append( SDB_AUTH_PASSWD, pPasswd ) ;
-      //21232f297a57a5a743894a0e4a801fc3
-//      authBuilder.append( SDB_AUTH_PASSWD, md5::digestToString( digest ) ) ;
       bsonAuth = authBuilder.obj() ;
       rc = sdbGetOMManager()->authenticate( bsonAuth, _cb ) ;
       if ( SDB_OK != rc )
@@ -226,7 +218,6 @@ namespace engine
       goto done ;
    }
 
-   // ********************onLogoutCommand********************************
    omLogoutCommand::omLogoutCommand( restAdaptor *pRestAdaptor, 
                                      pmdRestSession *pRestSession )
                    :omAuthCommand( pRestAdaptor, pRestSession )
@@ -252,7 +243,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   // *****************omChangePasswdCommand *****************************
    omChangePasswdCommand::omChangePasswdCommand( restAdaptor *pRestAdaptor, 
                                                  pmdRestSession *pRestSession )
                          :omAuthCommand( pRestAdaptor, pRestSession )
@@ -324,11 +314,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       string user ;
       string oldPasswd ;
-//      string oldDecryptPasswd ;
-//      md5::md5digest oldDigest ;
       string newPasswd ;
-//      string newDecryptPasswd ;
-//      md5::md5digest newDigest ;
       string time ;
 
       BSONObj bsonAuth ;
@@ -352,9 +338,6 @@ namespace engine
          goto error ;
       }
 
-//      _decryptPasswd( oldPasswd, time, oldDecryptPasswd ) ;
-//      md5::md5( ( const void * )oldDecryptPasswd.c_str(), 
-//                oldDecryptPasswd.length(), oldDigest) ;
       bsonAuth = BSON( SDB_AUTH_USER << user 
                       << SDB_AUTH_PASSWD << oldPasswd ) ;
       rc = sdbGetOMManager()->authenticate( bsonAuth, _cb ) ;
@@ -374,9 +357,6 @@ namespace engine
          goto error ;
       }
 
-//      _decryptPasswd( newPasswd, time, newDecryptPasswd ) ;
-//      md5::md5( ( const void * )newDecryptPasswd.c_str(), 
-//                newDecryptPasswd.length(), newDigest) ;
       rc = sdbGetOMManager()->authUpdatePasswd( user, oldPasswd, newPasswd,
                                                 _cb ) ;
       if ( SDB_OK != rc )
@@ -399,7 +379,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omCheckSessionCommand *****************************
    omCheckSessionCommand::omCheckSessionCommand( restAdaptor *pRestAdaptor, 
                                                  pmdRestSession *pRestSession )
                          :omAuthCommand( pRestAdaptor, pRestSession )
@@ -436,7 +415,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   // *****************omCreateClusterCommand *****************************
    omCreateClusterCommand::omCreateClusterCommand( restAdaptor *pRestAdaptor, 
                                                  pmdRestSession *pRestSession )
                           :omCheckSessionCommand( pRestAdaptor, 
@@ -528,7 +506,6 @@ namespace engine
          goto error ;
       }
 
-      // duplicate check depends on the unique index of table(OM_CS_DEPLOY_CL_CLUSTERIDX1)
       bsonCluster = BSON( OM_CLUSTER_FIELD_NAME << clusterName
                           << OM_CLUSTER_FIELD_DESC << desc
                           << OM_CLUSTER_FIELD_SDBUSER << sdbUser
@@ -565,7 +542,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omQueryClusterCommand *****************************
    omQueryClusterCommand::omQueryClusterCommand( restAdaptor *pRestAdaptor, 
                                                  pmdRestSession *pRestSession )
                          : omCreateClusterCommand( pRestAdaptor, pRestSession )
@@ -656,7 +632,6 @@ namespace engine
       goto done ;
    }
 
-   // ***************** omScanHostCommand *****************************
    omScanHostCommand::omScanHostCommand( restAdaptor *pRestAdaptor, 
                                          pmdRestSession *pRestSession, 
                                          const string &localAgentHost, 
@@ -707,8 +682,6 @@ namespace engine
       return ;
    }
 
-   // generate the bson array(result) for the list of hosts(hostInfoList), 
-   // with array's keyname is (arrayKeyName)
    void omScanHostCommand::_generateArray( list<BSONObj> &hostInfoList, 
                                            const string &arrayKeyName, 
                                            BSONObj &result )
@@ -759,7 +732,6 @@ namespace engine
       goto done ;
    }
 
-   // move the exist host to the hostResult
    void omScanHostCommand::_filterExistHost( list<omScanHostInfo> &hostInfoList, 
                                              list<BSONObj> &hostResult )
    {
@@ -812,7 +784,6 @@ namespace engine
             PD_LOG( PDERROR, "Failed to retreive record, rc = %d", rc ) ;
          }
 
-         // notice: if rc != SDB_OK, contextID is deleted in rtnGetMore
          return false ;
       }
 
@@ -850,7 +821,6 @@ namespace engine
             PD_LOG( PDERROR, "Failed to retreive record, rc = %d", rc ) ;
          }
 
-         // notice: if rc != SDB_OK, contextID is deleted in rtnGetMore
          return false ;
       }
 
@@ -1182,7 +1152,6 @@ namespace engine
          goto done ;
       }
 
-      // build request to agent
       _generateHostList( hostInfoList, bsonRequest ) ;
       rc = msgBuildQueryMsg( &pContent, &contentSize, 
                              CMD_ADMIN_PREFIX OM_SCAN_HOST_REQ, 
@@ -1196,7 +1165,6 @@ namespace engine
          goto error ;
       }
 
-      // send request to agent
       om   = sdbGetOMManager() ;
       remoteSession = om->getRSManager()->addSession( _cb, 
                                                       OM_WAIT_SCAN_RES_INTERVAL,
@@ -1259,7 +1227,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omCheckHostCommand *****************************
    omCheckHostCommand::omCheckHostCommand( restAdaptor *pRestAdaptor, 
                                            pmdRestSession *pRestSession,
                                            const string &localAgentHost, 
@@ -1312,7 +1279,6 @@ namespace engine
       _eraseFromListByHost( hostInfoList, hostName ) ;
    }
 
-   // check ping and ssh
    INT32 omCheckHostCommand::_doBasicCheck( list<omScanHostInfo> &hostInfoList, 
                                             list<BSONObj> &hostResult )
    {
@@ -1340,7 +1306,6 @@ namespace engine
          goto error ;
       }
 
-      // create remote session
       om            = sdbGetOMManager() ;
       remoteSession = om->getRSManager()->addSession( _cb, 
                                                       OM_BASICCHECK_INTERVAL,
@@ -1354,7 +1319,6 @@ namespace engine
          goto error ;
       }
 
-      // send message to agent
       pMsg = (MsgHeader *)pContent ;
       rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
       if ( SDB_OK != rc )
@@ -1366,7 +1330,6 @@ namespace engine
          goto error ;
       }
 
-      // receiving for agent's response
       rc = _receiveFromAgent( remoteSession, flag, result ) ;
       if ( SDB_OK != rc )
       {
@@ -1410,7 +1373,6 @@ namespace engine
                PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
                goto error ;
             }
-            // remove the basic check failure host to the hostResult 
             tmpRc = rcElement.Int() ;
             if ( SDB_OK != tmpRc )
             {
@@ -1477,7 +1439,6 @@ namespace engine
          goto error ;
       }
 
-      // create remote session
       om            = sdbGetOMManager() ;
       remoteSession = om->getRSManager()->addSession( _cb, 
                                                       OM_INSTALL_AGET_INTERVAL,
@@ -1491,7 +1452,6 @@ namespace engine
          goto error ;
       }
 
-      // send message to agent
       pMsg = (MsgHeader *)pContent ;
       rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
       if ( SDB_OK != rc )
@@ -1503,7 +1463,6 @@ namespace engine
          goto error ;
       }
 
-      // receiving for agent's response
       rc = _receiveFromAgent( remoteSession, flag, result ) ;
       if ( SDB_OK != rc )
       {
@@ -1554,7 +1513,6 @@ namespace engine
       goto done ;
    }
 
-   // create the requet for all the hosts in hostInfoList
    INT32 omCheckHostCommand::_addCheckHostReq( omManager *om,
                                            pmdRemoteSession *remoteSession,
                                            list<omScanHostInfo> &hostInfoList ) 
@@ -1661,8 +1619,6 @@ namespace engine
          INT32 innerRC = ele.Int() ;
          if ( innerRC != SDB_OK )
          {
-            // if innerRC is not SDB_OK, this means host info is not avaliable.
-            // so we should not check this host's content
             goto done ;
          }
       }
@@ -1697,7 +1653,6 @@ namespace engine
          ip       = info.ip ;
       }
 
-      //sdbGetOMManager()->getHostInfoByID( id, hostName, service ) ;
       BSONObj result = BSON( OM_BSON_FIELD_HOST_IP << ip
                              << OM_BSON_FIELD_HOST_NAME << hostName
                              << OM_REST_RES_RETCODE << flag 
@@ -1719,7 +1674,6 @@ namespace engine
       INT32 sucNum   = 0 ; 
       INT32 totalNum = 0 ;
 
-      // create remote session
       om            = sdbGetOMManager() ;
       remoteSession = om->getRSManager()->addSession( _cb, 
                                                       OM_CHECK_HOST_INTERVAL,
@@ -1817,7 +1771,6 @@ namespace engine
 
          _updateDiskInfo( result ) ;
          hostResult.push_back( result ) ;
-         //TODO: get /etc/hosts, and check 
          _eraseFromList( hostInfoList, result ) ;
       }
 
@@ -1897,7 +1850,6 @@ namespace engine
       INT32 totalNum                  = 0 ;
       VEC_SUB_SESSIONPTR subSessionVec ;
 
-      // create remote session
       om            = sdbGetOMManager() ;
       remoteSession = om->getRSManager()->addSession( _cb, 
                                                 OM_WAIT_AGENT_EXIT_RES_INTERVAL,
@@ -2012,7 +1964,6 @@ namespace engine
          goto error ;
       }
 
-      // create remote session
       om            = sdbGetOMManager() ;
       remoteSession = om->getRSManager()->addSession( _cb, 
                                                 OM_WAIT_AGENT_UNISTALL_INTERVAL,
@@ -2025,7 +1976,6 @@ namespace engine
          goto error ;
       }
 
-      // send message to agent
       pMsg = (MsgHeader *)pContent ;
       rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
       if ( SDB_OK != rc )
@@ -2045,7 +1995,6 @@ namespace engine
       goto done ;
    }
 
-   // check os/cpu/network etc (and get those infomations )
    INT32 omCheckHostCommand::_doCheck( list<omScanHostInfo> &hostInfoList, 
                                        list<BSONObj> &hostResult )
    {
@@ -2223,7 +2172,6 @@ namespace engine
          goto error ;
       }
 
-      // move the exist host to hostResult
       _filterExistHost( hostInfoList, hostResult ) ;
       if ( hostInfoList.size() == 0 )
       {
@@ -2231,7 +2179,6 @@ namespace engine
          goto done ;
       }
 
-      // move the check failed host to the hostResult
       PD_LOG( PDEVENT, "start to do BasicCheck" ) ;
       rc = _doBasicCheck( hostInfoList, hostResult ) ;
       if ( SDB_OK != rc )
@@ -2257,7 +2204,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omAddHostCommand *****************************
    omAddHostCommand::omAddHostCommand( restAdaptor *pRestAdaptor, 
                                        pmdRestSession *pRestSession,
                                        const string &localAgentHost, 
@@ -2552,7 +2498,6 @@ namespace engine
       goto done ;
    }
 
-// ***************************“Ï≤ΩÃÌº”host*************************************
    INT32 omAddHostCommand::_generateAddHostConf( const string &clusterName,
                                                  list<BSONObj> &hostInfoList, 
                                                  BSONObj &conf )
@@ -2643,7 +2588,6 @@ namespace engine
          goto error ;
       }
 
-      // create remote session
       remoteSession = om->getRSManager()->addSession( _cb, 
                                                       OM_WAIT_SCAN_RES_INTERVAL,
                                                       NULL ) ;
@@ -2656,7 +2600,6 @@ namespace engine
          goto error ;
       }
 
-      // send message to agent
       pMsg = (MsgHeader *)pContent ;
       rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
       if ( SDB_OK != rc )
@@ -2668,7 +2611,6 @@ namespace engine
          goto error ;
       }
 
-      // receiving for agent's response
       rc = _receiveFromAgent( remoteSession, flag, result ) ;
       if ( SDB_OK != rc )
       {
@@ -2736,7 +2678,6 @@ namespace engine
       goto done ;
    }
 
-// *************************************************************************
 
 
    INT32 omAddHostCommand::_addHost( const string &clusterName, 
@@ -2772,7 +2713,6 @@ namespace engine
          goto error ;
       }
 
-      // create remote session
       om            = sdbGetOMManager() ;
       remoteSession = om->getRSManager()->addSession( _cb, 
                                                       OM_WAIT_SCAN_RES_INTERVAL,
@@ -2786,7 +2726,6 @@ namespace engine
          goto error ;
       }
 
-      // send message to agent
       pMsg = (MsgHeader *)pContent ;
       rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
       if ( SDB_OK != rc )
@@ -2798,7 +2737,6 @@ namespace engine
          goto error ;
       }
 
-      // receiving for agent's response
       rc = _receiveFromAgent( remoteSession, flag, result ) ;
       if ( SDB_OK != rc )
       {
@@ -2824,7 +2762,6 @@ namespace engine
          PD_LOG( PDERROR, "%s:type=%d", _errorDetail.c_str(), element.type() ) ;
          goto error ;
       }
-      //TODO: transation is not available anymore
       transationID = result.getIntField( OM_REST_RES_RETCODE ) ;
 
    done:
@@ -2945,7 +2882,6 @@ namespace engine
          goto error ;
       }
 
-      // create remote session
       om            = sdbGetOMManager() ;
       remoteSession = om->getRSManager()->addSession( _cb, 
                                                       OM_WAIT_SCAN_RES_INTERVAL,
@@ -2958,7 +2894,6 @@ namespace engine
          goto error ;
       }
 
-      // send message to agent
       pMsg = (MsgHeader *)pContent ;
       rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
       if ( SDB_OK != rc )
@@ -3026,7 +2961,6 @@ namespace engine
          goto error ;
       }
 
-      //TODO: change to async mod
       rc = _addHost( clusterName, hostInfoList, transactionID ) ;
       if ( SDB_OK != rc )
       {
@@ -3044,15 +2978,7 @@ namespace engine
          goto error ;
       }
 
-//      rc = _addHost2( clusterName, hostInfoList, taskID ) ;
-//      if ( SDB_OK != rc )
-//      {
-//         PD_LOG( PDERROR, "fail to add host:rc=%d", rc ) ;
-//         _sendErrorRes2Web( rc, _errorDetail ) ;
-//         goto error ;
-//      }
 
-//      bsonBuilder.append( OM_BSON_TASKID, (long long)taskID ) ;
 
       sdbGetOMManager()->updateClusterVersion( clusterName ) ;
       bsonBuilder.append( OM_REST_RES_RETCODE, SDB_OK ) ;
@@ -3065,7 +2991,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omListHostCommand *****************************
    omListHostCommand::omListHostCommand( restAdaptor *pRestAdaptor, 
                                          pmdRestSession *pRestSession )
                      :omCreateClusterCommand( pRestAdaptor, pRestSession )
@@ -3252,7 +3177,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omQueryHostCommand *****************************
    omQueryHostCommand::omQueryHostCommand( restAdaptor *pRestAdaptor, 
                                            pmdRestSession *pRestSession )
                       :omListHostCommand( pRestAdaptor, pRestSession )
@@ -3305,7 +3229,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omQueryBusinessTypeCommand *****************************
    omQueryBusinessTypeCommand::omQueryBusinessTypeCommand( 
                                                 restAdaptor *pRestAdaptor, 
                                                 pmdRestSession *pRestSession, 
@@ -3366,7 +3289,6 @@ namespace engine
          goto done ;
       }
 
-      // in this case pt.size() == 1
       {
          ptree::iterator ite = pt.begin() ;
          string key          = ite->first ;
@@ -3426,7 +3348,6 @@ namespace engine
          }
          else
          {
-            // obj
             BSONObj obj ;
             _recurseParseObj( child, obj ) ;
             builder.append(key, obj ) ;
@@ -3488,7 +3409,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omQueryBusinessTemplateCommand *****************************
    omQueryBusinessTemplateCommand::omQueryBusinessTemplateCommand( 
                                                    restAdaptor *pRestAdaptor, 
                                                    pmdRestSession *pRestSession, 
@@ -3604,7 +3524,6 @@ namespace engine
       goto done ;
    }
 
-   // *********************omConfigBusinessCommand**************************
    omConfigBusinessCommand::omConfigBusinessCommand(  
                                                   restAdaptor *pRestAdaptor, 
                                                   pmdRestSession *pRestSession, 
@@ -3800,7 +3719,6 @@ namespace engine
       condBuilder.append( OM_CONFIGURE_FIELD_HOSTNAME, hostName ) ;
       BSONObj condition = condBuilder.obj() ;
 
-      // query table
       rc = rtnQuery( OM_CS_DEPLOY_CL_CONFIGURE, selector, condition, order, 
                      hint, 0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
@@ -3926,7 +3844,6 @@ namespace engine
       deployMod    = "" ;
       clusterName  = "" ;
 
-      // query table
       rc = rtnQuery( OM_CS_DEPLOY_CL_BUSINESS, selector, condition, order, 
                      hint, 0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
@@ -4028,7 +3945,6 @@ namespace engine
                   goto error ;
                }
 
-               // {"HostName":"host1", ...}
                oneHost  = ele.embeddedObject() ;
                hostName = oneHost.getStringField( OM_BSON_FIELD_HOST_NAME ) ;
                builder.append( OM_HOST_FIELD_NAME, hostName ) ;
@@ -4041,7 +3957,6 @@ namespace engine
       }
 
       condition = condBuilder.obj() ;
-      // query table
       rc = rtnQuery( OM_CS_DEPLOY_CL_HOST, selector, condition, order, hint, 0, 
                      _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
@@ -4225,7 +4140,6 @@ namespace engine
          PD_LOG( PDERROR, "_fillTemplateInfo failed:rc=%d", rc ) ;
          goto error ;
       }
-      // after fullFillTemplate, bsonTemplate add more details:
       /*{
            "ClusterName":"c1","BusinessType":"sequoiadb", "BusinessName":"b1",
            "ClusterType": "standalone", 
@@ -4426,7 +4340,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************CheckBusinessConfigReq *****************************
    omInstallBusinessReq::omInstallBusinessReq( restAdaptor *pRestAdaptor, 
                                                pmdRestSession *pRestSession, 
                                                const CHAR *pRootPath, 
@@ -4705,7 +4618,6 @@ namespace engine
          goto error ;
       }
 
-      // create remote session
       remoteSession = om->getRSManager()->addSession( _cb, 
                                                       OM_WAIT_SCAN_RES_INTERVAL,
                                                       NULL ) ;
@@ -4718,7 +4630,6 @@ namespace engine
          goto error ;
       }
 
-      // send message to agent
       pMsg = (MsgHeader *)pContent ;
       rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
       if ( SDB_OK != rc )
@@ -4730,7 +4641,6 @@ namespace engine
          goto error ;
       }
 
-      // receiving for agent's response
       rc = _receiveFromAgent( remoteSession, flag, result ) ;
       if ( SDB_OK != rc )
       {
@@ -5026,7 +4936,6 @@ namespace engine
       goto done ;
    }
 
-   // **************omQueryInstallProgress*************************
    omQueryInstallProgress::omQueryInstallProgress( restAdaptor *pRestAdaptor, 
                                                   pmdRestSession *pRestSession )
                           :omCreateClusterCommand( pRestAdaptor, pRestSession )
@@ -5098,7 +5007,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omListTaskCommand *****************************
    omListTaskCommand::omListTaskCommand( restAdaptor *pRestAdaptor, 
                                          pmdRestSession *pRestSession )
                      :omAuthCommand( pRestAdaptor, pRestSession )
@@ -5200,7 +5108,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omQueryTaskCommand *****************************
    omQueryTaskCommand::omQueryTaskCommand( restAdaptor *pRestAdaptor, 
                                            pmdRestSession *pRestSession )
                       :omAuthCommand( pRestAdaptor, pRestSession ) 
@@ -5307,7 +5214,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omListNodeCommand *****************************
    omListNodeCommand::omListNodeCommand( restAdaptor *pRestAdaptor,
                                          pmdRestSession *pRestSession )
                      :omAuthCommand( pRestAdaptor, pRestSession ) 
@@ -5443,7 +5349,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omQueryNodeConfCommand *****************************
    omQueryNodeConfCommand::omQueryNodeConfCommand( restAdaptor *pRestAdaptor, 
                                                   pmdRestSession *pRestSession )
                           :omAuthCommand( pRestAdaptor, pRestSession )
@@ -5593,7 +5498,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omListBusinessCommand *****************************
    omListBusinessCommand::omListBusinessCommand( restAdaptor *pRestAdaptor, 
                                                  pmdRestSession *pRestSession )
                          :omAuthCommand( pRestAdaptor, pRestSession )
@@ -5780,7 +5684,6 @@ namespace engine
       return ;
    }
 
-   // *****************omQueryBusinessCommand *****************************
    omQueryBusinessCommand::omQueryBusinessCommand( restAdaptor *pRestAdaptor, 
                                                   pmdRestSession *pRestSession )
                           :omAuthCommand( pRestAdaptor, pRestSession )
@@ -5843,7 +5746,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omStartBusinessCommand *****************************
    omStartBusinessCommand::omStartBusinessCommand( restAdaptor *pRestAdaptor, 
                                                    pmdRestSession *pRestSession,
                                                    string localAgentHost, 
@@ -5981,7 +5883,6 @@ namespace engine
             BSONObj tmp = ele.embeddedObject() ;
             BSONObjBuilder builder ;
             builder.appendElements( tmp ) ;
-            //MSG_ROUTE_CAT_SERVICE
             string svcName = tmp.getStringField( OM_CONF_DETAIL_SVCNAME ) ;
             INT32 iSvcName = ossAtoi( svcName.c_str() ) ;
             INT32 iCatName = iSvcName + MSG_ROUTE_CAT_SERVICE ;
@@ -6079,7 +5980,6 @@ namespace engine
       return rc ;
    }
 
-   // *****************omStopBusinessCommand *****************************
    omStopBusinessCommand::omStopBusinessCommand( restAdaptor *pRestAdaptor, 
                                                  pmdRestSession *pRestSession,
                                                  string localAgentHost, 
@@ -6099,7 +5999,6 @@ namespace engine
       return rc ;
    }
 
-   // *****************omRemoveClusterCommand *****************************
    omRemoveClusterCommand::omRemoveClusterCommand( restAdaptor *pRestAdaptor, 
                                                   pmdRestSession *pRestSession )
                           :omAuthCommand( pRestAdaptor, pRestSession )
@@ -6290,7 +6189,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omRemoveHostCommand *****************************
    omRemoveHostCommand::omRemoveHostCommand( restAdaptor *pRestAdaptor, 
                                              pmdRestSession *pRestSession,
                                              string localAgentHost, 
@@ -6425,7 +6323,6 @@ namespace engine
          goto error ;
       }
 
-      // send request to agent
       om   = sdbGetOMManager() ;
       remoteSession = om->getRSManager()->addSession( _cb, 
                                                       OM_MSG_TIMEOUT_TWO_HOUR,
@@ -6576,7 +6473,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omRemoveBusinessCommand *****************************
    omRemoveBusinessCommand::omRemoveBusinessCommand( restAdaptor *pRestAdaptor, 
                                                    pmdRestSession *pRestSession,
                                                    string localAgentHost, 
@@ -6646,7 +6542,6 @@ namespace engine
          goto error ;
       }
 
-      // send request to agent
       om   = sdbGetOMManager() ;
       remoteSession = om->getRSManager()->addSession( _cb, 
                                                       OM_MSG_TIMEOUT_TWO_HOUR,
@@ -6786,7 +6681,6 @@ namespace engine
 
       if ( !isExistNode )
       {
-         // node is not exist. just finish the task now
          rc = taskManager->finishTask( taskID ) ;
          if ( SDB_OK != rc )
          {
@@ -6808,7 +6702,6 @@ namespace engine
                                                     BSONObj &nodeInfos, 
                                                     BSONObj &request )
    {
-      //TODO: now we do not send SDBUser and SDBPasswd to agent
       INT32 rc = SDB_OK ;
       BSONObjBuilder builder ;
       builder.appendElements( nodeInfos ) ;
@@ -6924,7 +6817,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omGetFileCommand *****************************
    omQueryHostStatusCommand::omQueryHostStatusCommand( 
                                                    restAdaptor *pRestAdaptor, 
                                                    pmdRestSession *pRestSession,
@@ -7225,7 +7117,6 @@ namespace engine
       INT32 sucNum   = 0 ; 
       INT32 totalNum = 0 ;
 
-      // create remote session
       om            = sdbGetOMManager() ;
       remoteSession = om->getRSManager()->addSession( _cb, 
                                                       OM_CHECK_HOST_INTERVAL,
@@ -7585,7 +7476,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omGetFileCommand *****************************
    omPredictCapacity::omPredictCapacity( restAdaptor *pRestAdaptor, 
                                          pmdRestSession *pRestSession )
                      : omAuthCommand( pRestAdaptor, pRestSession )
@@ -7933,7 +7823,6 @@ namespace engine
       goto done ;
    }
 
-   // *****************omGetFileCommand *****************************
    omGetFileCommand::omGetFileCommand( restAdaptor *pRestAdaptor, 
                                        pmdRestSession *pRestSession, 
                                        const CHAR *pRootPath,
@@ -8060,7 +7949,6 @@ namespace engine
          { OSS_FILE_SEP,    OSS_FILE_SEP OM_REST_INDEX_HTML }
       } ;
 
-      // only html file, other file is all public now(from jiawen)
       static char *fileAuthorityPublic[] = {
          OSS_FILE_SEP OM_REST_LOGIN_HTML ,
       } ;

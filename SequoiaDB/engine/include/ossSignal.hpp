@@ -46,7 +46,6 @@
    #include <sys/ucontext.h>
    #include <sys/resource.h>
    #include <pthread.h>
-   // stack dump signal for linux: 23
    #define OSS_STACK_DUMP_SIGNAL SIGURG
    #define OSS_STACK_DUMP_SIGNAL_INTERNAL SIGUSR1
 

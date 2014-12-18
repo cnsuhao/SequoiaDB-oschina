@@ -28,23 +28,13 @@ import com.sequoiadb.exception.BaseException;
  */
 public class SequoiadbOption
 {
-	// max connction count, if maxConnectionNum == 0,
-	// it means the datasource doesn't work
 	private int maxConnectionNum = 500;
-	// while maxConnectionNum != 0, increase 10 connection to pool
     private int deltaIncCount = 10 ;
-    // initialize 10 connection in pool
 	private int initConnectionNum = 10;
 	private int maxIdeNum = 10;
-	// when busy queue is full, request can't get connection,
-	// they will wait 5s and wake up
 	private int timeout = 5 * 1000;
-	// clean the abandon connection period
     private int recheckCyclePeriod = 1 * 60 * 1000;
-    // check and get back the useful coord address period 
     private int recaptureConnPeriod = 10 * 60 * 1000;
-    // when the last service time of a connection longer than this,
-    // we will abandon it.
     private int abandonTime = 10 * 60 * 1000;
 
     

@@ -68,32 +68,23 @@ namespace engine
    class _pmdEDUMgr : public SDBObject
    {
    private :
-      // control blocks are cleared in class destructor
-      // control blocks are allocated in createNewEDU
-      // PMD_EDU_CREATING/PMD_EDU_RUNNING/PMD_EDU_WAITING
       std::map<EDUID, pmdEDUCB*> _runQueue ;
       std::map<EDUID, pmdEDUCB*> _idleQueue ;
       std::map<UINT32, EDUID> _tid_eduid_map ;
       std::vector < io_service *> _ioserviceList ;
 
       ossSpinSLatch _mutex ;
-      // increamental-only EDU id
-      // 64 bit is big enough for most
       EDUID _EDUID ;
 
-      // list of system EDUs
       std::map<UINT32, EDUID> _mapSystemEDUS;
-      // no new requests are allowed
       BOOLEAN _isQuiesced ;
 
       BOOLEAN _isDestroyed ;
-      // for read operation
    #ifdef EDUMGR_SLOCK
    #undef EDUMGR_SLOCK
    #endif
    #define EDUMGR_SLOCK ossScopedLock _lock ( &_mutex, SHARED ) ;
 
-      // for write operation
    #ifdef EDUMGR_XLOCK
    #undef EDUMGR_XLOCK
    #endif
@@ -108,7 +99,6 @@ namespace engine
 
       void reset () ;
 
-      // get total number of threads in the manager
       UINT32 size ()
       {
          EDUMGR_SLOCK
@@ -402,12 +392,6 @@ namespace engine
       pmdEDUCB *getEDU () ;
       pmdEDUCB *getEDUByID ( EDUID eduID ) ;
       void setEDU ( UINT32 tid, EDUID eduid ) ;
-      // this function should be called in causious. This function does NOT
-      // guarantee to return whenever the EDU state change to expected value.
-      // However this function loop for every waitPeriod milliseconds until the
-      // EDU is detected to be staying in the expected status in next round.
-      // That means, if the EDU changed to expected status and then change to
-      // other value quick, this function may not able to detect such change
       INT32 waitUntil ( EDUID eduID, EDU_STATUS status,
                         UINT32 waitPeriod = PMD_EDU_WAIT_PERIOD,
                         UINT32 waitRound = PMD_EDU_WAIT_ROUND ) ;

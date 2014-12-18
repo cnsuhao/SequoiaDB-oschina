@@ -171,22 +171,17 @@ public abstract class AbstractIoBuffer extends IoBuffer {
             throw new IllegalStateException("Derived buffers and their parent can't be expanded.");
         }
 
-        // Allocate a new buffer and transfer all settings to it.
         if (newCapacity > capacity()) {
-            // Expand:
-            //// Save the state.
             int pos = position();
             int limit = limit();
             ByteOrder bo = order();
 
-            //// Reallocate.
             ByteBuffer oldBuf = buf();
             ByteBuffer newBuf = getAllocator().allocateNioBuffer(newCapacity, isDirect());
             oldBuf.clear();
             newBuf.put(oldBuf);
             buf(newBuf);
 
-            //// Restore the state.
             buf().limit(limit);
             if (mark >= 0) {
                 buf().position(mark);
@@ -280,12 +275,10 @@ public abstract class AbstractIoBuffer extends IoBuffer {
             newCapacity = end;
         }
         if (newCapacity > capacity()) {
-            // The buffer needs expansion.
             capacity(newCapacity);
         }
 
         if (end > limit()) {
-            // We call limit() directly to prevent StackOverflowError
             buf().limit(end);
         }
         return this;
@@ -323,11 +316,8 @@ public abstract class AbstractIoBuffer extends IoBuffer {
             return this;
         }
 
-        // Shrink and compact:
-        //// Save the state.
         ByteOrder bo = order();
 
-        //// Reallocate.
         ByteBuffer oldBuf = buf();
         ByteBuffer newBuf = getAllocator().allocateNioBuffer(newCapacity, isDirect());
         oldBuf.position(0);
@@ -335,7 +325,6 @@ public abstract class AbstractIoBuffer extends IoBuffer {
         newBuf.put(oldBuf);
         buf(newBuf);
 
-        //// Restore the state.
         buf().position(position);
         buf().limit(limit);
         buf().order(bo);
@@ -664,23 +653,18 @@ public abstract class AbstractIoBuffer extends IoBuffer {
                 return this;
             }
 
-            // Shrink and compact:
-            //// Save the state.
             ByteOrder bo = order();
 
-            //// Sanity check.
             if (remaining > newCapacity) {
                 throw new IllegalStateException("The amount of the remaining bytes is greater than "
                         + "the new capacity.");
             }
 
-            //// Reallocate.
             ByteBuffer oldBuf = buf();
             ByteBuffer newBuf = getAllocator().allocateNioBuffer(newCapacity, isDirect());
             newBuf.put(oldBuf);
             buf(newBuf);
 
-            //// Restore the state.
             buf().order(bo);
         } else {
             buf().compact();
@@ -1426,9 +1410,7 @@ public abstract class AbstractIoBuffer extends IoBuffer {
      */
     private int getMediumInt(byte b1, byte b2, byte b3) {
         int ret = b1 << 16 & 0xff0000 | b2 << 8 & 0xff00 | b3 & 0xff;
-        // Check to see if the medium int is negative (high bit in b1 set)
         if ((b1 & 0x80) == 0x80) {
-            // Make the the whole int negative
             ret |= 0xff000000;
         }
         return ret;
@@ -1663,7 +1645,6 @@ public abstract class AbstractIoBuffer extends IoBuffer {
             }
 
             if (cr.isError()) {
-                // Revert the buffer back to the previous state.
                 limit(oldLimit);
                 position(oldPos);
                 cr.throwException();
@@ -1762,7 +1743,6 @@ public abstract class AbstractIoBuffer extends IoBuffer {
             }
 
             if (cr.isError()) {
-                // Revert the buffer back to the previous state.
                 limit(oldLimit);
                 position(oldPos);
                 cr.throwException();
@@ -2110,7 +2090,6 @@ public abstract class AbstractIoBuffer extends IoBuffer {
             cr.throwException();
         }
 
-        // Write the length field
         fill(padValue, padding - (position() - oldPos & padMask));
         int length = position() - oldPos;
         switch (prefixLength) {
@@ -2221,7 +2200,6 @@ public abstract class AbstractIoBuffer extends IoBuffer {
             throw new BufferDataException(e);
         }
 
-        // Fill the length field
         int newPos = position();
         position(oldPos);
         putInt(newPos - oldPos - 4);

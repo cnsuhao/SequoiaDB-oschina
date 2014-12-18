@@ -48,7 +48,6 @@ namespace fs = boost::filesystem ;
 
 #if defined (_WINDOWS)
 
-// append .exe if it doesn't have one
 // PD_TRACE_DECLARE_FUNCTION ( SDB_GETEXECNM, "getExecutableName" )
 static INT32 getExecutableName ( const CHAR * exeName ,
                                  CHAR * buf ,
@@ -133,9 +132,6 @@ INT32 ossLocateExecutable ( const CHAR * refPath ,
    separator = ossStrrchr ( refPath , OSS_PATH_SEP_CHAR ) ;
    if ( ! separator )
    {
-      // refPath is resolved using system's PATH variable.
-      // Addtionally, on Windows, it may be in the current working diretory.
-      // so we can just copy newExeName to buf.
       if ( exeLen >= bufSize )
       {
          rc = SDB_INVALIDSIZE ;

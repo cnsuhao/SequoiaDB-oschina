@@ -119,7 +119,6 @@ namespace engine
          BOOLEAN                 _isLoad ;
 
          PMD_CFG_DATA_TYPE       _dataType ;
-         //
          BSONObj                 _dataObj ;
          BSONObjBuilder          _dataBuilder ;
          po::variables_map       *_pVMFile ;

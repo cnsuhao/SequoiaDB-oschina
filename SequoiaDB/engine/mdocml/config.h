@@ -4,11 +4,6 @@
 #include <stdio.h>
 
 #define VERSION "1.12.3"
-//#define HAVE_STRPTIME
-//#define HAVE_GETSUBOPT
-//#define HAVE_STRLCAT
-//#define HAVE_MMAP
-//#define HAVE_STRLCPY
 
 #include <sys/types.h>
 

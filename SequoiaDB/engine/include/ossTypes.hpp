@@ -38,15 +38,6 @@
 
 #include "ossTypes.h"
 
-// Round a number up to the next multiple of X ( power of 2 ) bytes.
-//
-// UINT32_64 ( either 32bit or 64bit integer, which is large enough to contain
-// a pointer ) is used for all alignment calculations.
-//
-// i [in]
-//   The value to round up
-// X [in]
-//   The alignment amount. It MUST be a power of 2.
 OSS_INLINE UINT32 ossAlignX( UINT32 i, UINT32_64 X  )
 {
    return ( ( i + ( X - 1 ) ) & ( ~( ( UINT32 ) ( X - 1 ) ) ) ) ;
@@ -58,11 +49,6 @@ OSS_INLINE UINT64 ossAlignX( UINT64 i, UINT32_64   X )
    return ( ( i + ( X - 1 ) ) & ( ~( ( UINT64 ) ( X - 1 ) ) ) ) ;
 }
 
-// Round up a char * address number up to the next multiple of X ( power of 2 )
-// pAddr [ in ]
-//   The address number to round up
-// X [in]
-//   The alignment amount, MUST be a power of 2
 OSS_INLINE char * ossAlignX( char * pAddr, UINT32_64 X )
 {
    return ( ( char * ) ossAlignX( ( UINT32_64 ) pAddr, X ) ) ;

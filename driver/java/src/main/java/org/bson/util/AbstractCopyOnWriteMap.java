@@ -48,13 +48,8 @@ abstract class AbstractCopyOnWriteMap<K, V, M extends Map<K, V>> implements Conc
     @GuardedBy("lock")
     private volatile M delegate;
 
-    // import edu.umd.cs.findbugs.annotations.@SuppressWarnings
     private final transient Lock lock = new ReentrantLock();
 
-    // private final transient EntrySet entrySet = new EntrySet();
-    // private final transient KeySet keySet = new KeySet();
-    // private final transient Values values = new Values();
-    // private final View.Type viewType;
     private final View<K, V> view;
 
     /**
@@ -79,9 +74,6 @@ abstract class AbstractCopyOnWriteMap<K, V, M extends Map<K, V>> implements Conc
     @GuardedBy("lock")
     abstract <N extends Map<? extends K, ? extends V>> M copy(N map);
 
-    //
-    // mutable operations
-    //
 
     public final void clear() {
         lock.lock();
@@ -95,7 +87,6 @@ abstract class AbstractCopyOnWriteMap<K, V, M extends Map<K, V>> implements Conc
     public final V remove(final Object key) {
         lock.lock();
         try {
-            // short circuit if key doesn't exist
             if (!delegate.containsKey(key)) {
                 return null;
             }
@@ -214,9 +205,6 @@ abstract class AbstractCopyOnWriteMap<K, V, M extends Map<K, V>> implements Conc
         delegate = map;
     }
 
-    //
-    // Collection views
-    //
 
     public final Set<Map.Entry<K, V>> entrySet() {
         return view.entrySet();
@@ -230,9 +218,6 @@ abstract class AbstractCopyOnWriteMap<K, V, M extends Map<K, V>> implements Conc
         return view.values();
     }
 
-    //
-    // delegate operations
-    //
 
     public final boolean containsKey(final Object key) {
         return delegate.containsKey(key);
@@ -273,9 +258,6 @@ abstract class AbstractCopyOnWriteMap<K, V, M extends Map<K, V>> implements Conc
         return delegate.toString();
     }
 
-    //
-    // inner classes
-    //
 
     private class KeySet extends CollectionView<K> implements Set<K> {
 
@@ -284,9 +266,6 @@ abstract class AbstractCopyOnWriteMap<K, V, M extends Map<K, V>> implements Conc
             return delegate.keySet();
         }
 
-        //
-        // mutable operations
-        //
 
         public void clear() {
             lock.lock();
@@ -484,9 +463,6 @@ abstract class AbstractCopyOnWriteMap<K, V, M extends Map<K, V>> implements Conc
 
         abstract Collection<E> getDelegate();
 
-        //
-        // delegate operations
-        //
 
         public final boolean contains(final Object o) {
             return getDelegate().contains(o);
@@ -531,9 +507,6 @@ abstract class AbstractCopyOnWriteMap<K, V, M extends Map<K, V>> implements Conc
             return getDelegate().toString();
         }
 
-        //
-        // unsupported operations
-        //
 
         public final boolean add(final E o) {
             throw new UnsupportedOperationException();

@@ -30,8 +30,6 @@
  */
 
 
-// This Header File is automatically generated, you MUST NOT modify this file anyway!
-// On the contrary, you can modify the xml file "sequoiadb/misc/autogen/rclist.xml" if necessary!
 
 #ifndef OSSERR_H_
 #define OSSERR_H_
@@ -323,4 +321,5 @@ const CHAR* getErrDesp ( INT32 errCode );
 #define SDB_OMA_TASK_FAIL               -271  /**< Task failed */
 #define SDB_LOB_NOT_OPEN                -272  /**< Lob does not open */
 #define SDB_LOB_HAS_OPEN                -273  /**< Lob has been open */
+#define SDBCM_NODE_IS_IN_RESTORING      -274  /**< Node is in restoring */
 #endif /* OSSERR_HPP_ */

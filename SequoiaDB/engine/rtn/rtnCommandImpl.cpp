@@ -81,16 +81,6 @@ namespace engine
     *    collectionspace + oldname + newname
     ***********************************************/
 
-   // get total number of records for a given query.
-   // there are two scenarios
-   // 1) users provided query condition
-   // 2) users didn't specify any condition
-   // for condition (1), we convert it into a normal query and count the total
-   // number of records we read. In this case it will go through the regular
-   // codepath for rtnQuery + rtnGetMore by using tbscan or ixscan
-   // for condition (2), we directly call DMS countCollection function, this
-   // will bypass fetching records by records. Instead it will read each extent
-   // and get the _recCount in extent header for quick count
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETCOUNT, "rtnGetCount" )
    INT32 rtnGetCount ( const CHAR *pCollection,
                        const BSONObj &matcher,
@@ -127,11 +117,8 @@ namespace engine
                          0, -1, dmsCB, rtnCB, queryContextID ) ;
          if ( rc )
          {
-            // any error will clean up queryContext
             if ( SDB_DMS_EOC == rc )
             {
-               // if we hit end of collection, let's clear the rc
-               // in this case, totalCount = 0
                rc = SDB_OK ;
             }
             else
@@ -150,7 +137,6 @@ namespace engine
                rc = rtnGetMore ( queryContextID, -1, buffObj, cb, rtnCB ) ;
                if ( rc )
                {
-                  // any error will clean up query context
                   if ( SDB_DMS_EOC == rc )
                   {
                      rc = SDB_OK ;
@@ -165,8 +151,6 @@ namespace engine
                }
                else
                {
-                  // since rtnGetMore only takes 32 bit count, so let's pass
-                  // count and add into totalCount every round
                   totalCount += buffObj.recordNum() ;
                }
             }
@@ -174,7 +158,6 @@ namespace engine
       }
       else
       {
-         // use quick extent header count
          rc = su->countCollection ( pCollectionShortName, totalCount, cb ) ;
          if ( rc )
          {
@@ -472,7 +455,6 @@ namespace engine
          step = keyNodeCount / segmentCount ;
          mod  = keyNodeCount % segmentCount ;
 
-         // push start
          idxBlocks.push_back( rtnUniqueKeyNameObj( startObj ) ) ;
          idxRIDs.push_back( dmsRecordID() ) ;
          prevObj = startObj ;
@@ -523,7 +505,6 @@ namespace engine
             }
          }
 
-         // push end
          idxBlocks.push_back( rtnUniqueKeyNameObj( endObj ) ) ;
          idxRIDs.push_back( dmsRecordID() ) ;
       }
@@ -585,7 +566,6 @@ namespace engine
       rtnAccessPlanManager *apm = NULL ;
       optAccessPlan *plan = NULL ;
 
-      // This prevents other sessions drop the collectionspace during accessing
       rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s",
@@ -597,7 +577,6 @@ namespace engine
       apm = su->getAPM() ;
       SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
-      // plan is released in context destructor
       rc = apm->getPlan ( match,
                           orderby, // orderBy
                           hint, // hint
@@ -675,7 +654,6 @@ namespace engine
       SDB_ASSERT ( rtnCB, "runtimeCB can't be NULL" ) ;
       rtnContextDump *context = NULL ;
 
-      // create cursors
       rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
                                contextID, cb ) ;
       if ( rc )
@@ -688,13 +666,11 @@ namespace engine
                           orderBy.isEmpty() ? numToSkip : 0 ) ;
       PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
 
-      // sample timetamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          context->getMonCB()->recordStartTimestamp() ;
       }
 
-      // do each commands, $get
       switch ( command )
       {
          case CMD_GET_INDEXES :
@@ -725,14 +701,11 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNGETCOMMANDENTRY, rc ) ;
       return rc ;
    error :
-      // delete the context when something goes wrong
       rtnCB->contextDelete ( contextID, cb ) ;
       contextID = -1 ;
       goto done ;
    }
 
-   // list all collections in the database
-   // for each collection, apply selector and matcher
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLISTCOMMANDENTRY, "rtnListCommandEntry" )
    INT32 rtnListCommandEntry ( RTN_COMMAND_TYPE command,
                                const BSONObj &selector,
@@ -755,7 +728,6 @@ namespace engine
       SDB_ASSERT ( rtnCB, "runtimeCB can't be NULL" ) ;
       rtnContextDump *context = NULL ;
 
-      // create cursors
       rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
                                contextID, cb ) ;
       if ( rc )
@@ -768,13 +740,11 @@ namespace engine
                           orderBy.isEmpty() ? numToSkip : 0 ) ;
       PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
 
-      // sample timetamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          context->getMonCB()->recordStartTimestamp() ;
       }
 
-      // do each commands, $list
       switch ( command )
       {
       case CMD_LIST_CONTEXTS:
@@ -820,14 +790,11 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNLISTCOMMANDENTRY, rc ) ;
       return rc ;
    error :
-      // delete the context when something goes wrong
       rtnCB->contextDelete ( contextID, cb ) ;
       contextID = -1 ;
       goto done ;
    }
 
-   // list all collections in the database
-   // for each collection, apply selector and matcher
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNSNAPCOMMANDENTRY, "rtnSnapCommandEntry" )
    INT32 rtnSnapCommandEntry ( RTN_COMMAND_TYPE command,
                                const BSONObj &selector,
@@ -849,7 +816,6 @@ namespace engine
       SDB_ASSERT ( rtnCB, "runtimeCB can't be NULL" ) ;
       rtnContextDump *context = NULL ;
 
-      // create cursors
       rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
                                contextID, cb ) ;
       if ( rc )
@@ -862,13 +828,11 @@ namespace engine
                           orderBy.isEmpty() ? numToSkip : 0 ) ;
       PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
 
-      // sample timetamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          context->getMonCB()->recordStartTimestamp() ;
       }
 
-      // do each commands, $snapshot
       switch ( command )
       {
       case CMD_SNAPSHOT_CONTEXTS:
@@ -961,8 +925,6 @@ namespace engine
       }
 
    done :
-      // for snap reset, we don't return resultset, so we don't send SDB_DMS_EOC
-      // back
       if ( CMD_SNAPSHOT_RESET == command &&
            SDB_DMS_EOC == rc )
       {
@@ -971,7 +933,6 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNSNAPCOMMANDENTRY, rc ) ;
       return rc ;
    error :
-      // delete the context when something goes wrong
       rtnCB->contextDelete ( contextID, cb ) ;
       contextID = -1 ;
       goto done ;
@@ -993,7 +954,6 @@ namespace engine
       dmsStorageUnit *su   = NULL ;
       BOOLEAN writable     = FALSE ;
 
-      // make sure the collectionspace length is not out of range
       UINT32 length = ossStrlen ( pCollectionSpace ) ;
       if ( length <= 0 || length > DMS_SU_NAME_SZ )
       {
@@ -1002,7 +962,6 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // validate collection space name
       rc = dmsCheckCSName ( pCollectionSpace, sysCall ) ;
       if ( rc )
       {
@@ -1015,20 +974,16 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
 
-      // let's see if the CS already exist or not
       rc = dmsCB->nameToSUAndLock ( pCollectionSpace, suID, &su ) ;
       if ( rc != SDB_DMS_CS_NOTEXIST )
       {
-         // make sure assign su to NULL so that we won't delete it at exit
          su = NULL ;
-         // collectionspace already exist
          PD_LOG ( PDERROR, "Collection space %s is already exist",
                   pCollectionSpace ) ;
          rc = SDB_DMS_CS_EXIST ;
          goto error ;
       }
 
-      // only for standalone
       if ( SDB_ROLE_STANDALONE == pmdGetKRCB()->getDBRole() )
       {
          rc = rtnLoadCollectionSpace ( pCollectionSpace,
@@ -1044,7 +999,6 @@ namespace engine
          }
       }
 
-      // new storage unit, will insert into dmsCB->addCollectionSpace
       su = SDB_OSS_NEW dmsStorageUnit ( pCollectionSpace, 1, pageSize,
                                         lobPageSize ) ;
       if ( !su )
@@ -1144,7 +1098,6 @@ namespace engine
          ossStrncpy ( temp, pCollection, sizeof(temp) ) ;
          SDB_ASSERT ( pCollectionShortName > pCollection, "Collection pointer "
                       "is not part of full collection name" ) ;
-         // set '.' to '\0'
          temp [ pCollectionShortName - pCollection - 1 ] = '\0' ;
          if ( SDB_OK == rtnCreateCollectionSpaceCommand ( temp, cb,
                                                           dmsCB, dpsCB,
@@ -1152,7 +1105,6 @@ namespace engine
                                                           DMS_DEFAULT_LOB_PAGE_SZ,
                                                           sysCall ) )
          {
-            //restore '\0' to '.'
             rc = rtnResolveCollectionNameAndLock ( pCollection, dmsCB,
                                                    &su, &pCollectionShortName,
                                                    suID ) ;
@@ -1258,8 +1210,6 @@ namespace engine
                              cb, dpsCB, isSys ) ;
       if ( rc )
       {
-         // SDB_IXM_EXIST may happen when user mistakenly type index name with
-         // same name, so we display INFO instead of ERROR
          PD_LOG ( PDERROR, "Failed to create index %s: %s, rc: %d",
                   pCollection, indexObj.toString().c_str(), rc ) ;
          goto error ;
@@ -1385,12 +1335,10 @@ namespace engine
                                     BOOLEAN   sysCall )
    {
       INT32 rc = SDB_OK ;
-      // PD_TRACE_ENTRY ( SDB_RTNDROPCSP1 ) ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
       SINT64 contextID = -1 ;
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
-      // make sure the collectionspace length is not out of range
       UINT32 length = ossStrlen ( pCollectionSpace ) ;
       if ( length <= 0 || length > DMS_SU_NAME_SZ )
       {
@@ -1400,8 +1348,6 @@ namespace engine
          goto error ;
       }
 
-      // let's find out whether the collection space is held by this
-      // EDU. If so we have to get rid of those contexts
       if ( NULL != cb )
       {
          std::set<SINT64> contextList ;
@@ -1413,21 +1359,14 @@ namespace engine
             contextID = *it ;
             ++it ;
 
-            // get each context
             rtnContext *ctx = rtnCB->contextFind ( contextID ) ;
-            // if context doesn't exist or has not dmsStorageUnit
             if ( !ctx || NULL == ctx->getSU() )
             {
                continue ;
             }
-            // for the contexts has valid su, let's get SU name
-            // note since everyone must wait for lock before deleting su, since this
-            // session is holding SU, that means no other sessions are allowed to remove
-            // su and the moment, that means it's safe to directly call ctx->_su->CSName
             if ( ossStrncmp ( ctx->getSU()->CSName(),
                               pCollectionSpace, DMS_SU_NAME_SZ ) == 0 )
             {
-               // if the su is held by myself, i have to kill the context from global
                rtnCB->contextDelete( contextID, cb ) ;
             }
          }
@@ -1442,7 +1381,6 @@ namespace engine
       }
 
    done :
-      // PD_TRACE_EXITRC ( SDB_RTNDROPCSP1, rc ) ;
       return rc ;
    error :
       goto done ;
@@ -1456,7 +1394,6 @@ namespace engine
                                           BOOLEAN   sysCall )
    {
       INT32 rc = SDB_OK ;
-      // PD_TRACE_ENTRY ( SDB_RTNDROPCSP1CANCEL ) ;
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" );
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" );
       UINT32 length = ossStrlen ( pCollectionSpace ) ;
@@ -1472,7 +1409,6 @@ namespace engine
                   "failed to cancel remove cs(name:%s, rc=%d)",
                   pCollectionSpace, rc );
    done:
-      // PD_TRACE_EXITRC ( SDB_RTNDROPCSP1CANCEL, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1486,7 +1422,6 @@ namespace engine
                                     BOOLEAN   sysCall )
    {
       INT32 rc = SDB_OK ;
-      // PD_TRACE_ENTRY ( SDB_RTNDROPCSP2 ) ;
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" );
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" );
       UINT32 length = ossStrlen ( pCollectionSpace ) ;
@@ -1502,7 +1437,6 @@ namespace engine
                   "failed to drop cs(name:%s, rc=%d)",
                   pCollectionSpace, rc );
    done:
-      // PD_TRACE_EXITRC ( SDB_RTNDROPCSP2, rc ) ;
       return rc ;
    error:
       goto done ;

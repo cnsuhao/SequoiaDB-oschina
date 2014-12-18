@@ -67,14 +67,11 @@ TEST(sqlTest, select)
    sqlBsonBuilder builder ;
    SQL_SELECT_GRAMMAR select ;
    tree_parse_info<> info =  ast_parse(sql, select, space_p ) ;
-//   cout << "hit:" << info.match << "stop:" << info.stop << endl ;
    sqlDumpAst( info.trees ) ;
    builder.buildSelector( info.trees, obj ) ;
-//   cout << obj.toString() << endl ;
    info =  ast_parse("select a,b, c from table", select, space_p ) ;
     sqlDumpAst( info.trees ) ;
    builder.buildSelector( info.trees, obj ) ;
-//   cout << obj.toString() << endl ;
 }
 */
 

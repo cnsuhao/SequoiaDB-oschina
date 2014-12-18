@@ -1,39 +1,3 @@
-// Copyright (c) 2005, Google Inc.
-// All rights reserved.
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are
-// met:
-//
-//     * Redistributions of source code must retain the above copyright
-// notice, this list of conditions and the following disclaimer.
-//     * Redistributions in binary form must reproduce the above
-// copyright notice, this list of conditions and the following disclaimer
-// in the documentation and/or other materials provided with the
-// distribution.
-//     * Neither the name of Google Inc. nor the names of its
-// contributors may be used to endorse or promote products derived from
-// this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-//
-// Author: Sanjay Ghemawat
-//
-// A string like object that points into another piece of memory.
-// Useful for providing an interface that allows clients to easily
-// pass in either a "const char*" or a "string".
-//
-// Arghh!  I wish C++ literals were automatically of type "string".
 
 #ifndef _PCRE_STRINGPIECE_H
 #define _PCRE_STRINGPIECE_H
@@ -64,9 +28,6 @@ class PCRECPP_EXP_DEFN StringPiece {
   int           length_;
 
  public:
-  // We provide non-explicit singleton constructors so users can pass
-  // in a "const char*" or a "string" wherever a "StringPiece" is
-  // expected.
   StringPiece()
     : ptr_(NULL), length_(0) { }
   StringPiece(const char* str)
@@ -79,12 +40,6 @@ class PCRECPP_EXP_DEFN StringPiece {
   StringPiece(const char* offset, int len)
     : ptr_(offset), length_(len) { }
 
-  // data() may return a pointer to a buffer with embedded NULs, and the
-  // returned buffer may or may not be null terminated.  Therefore it is
-  // typically a mistake to pass data() to a routine that expects a NUL
-  // terminated string.  Use "as_string().c_str()" if you really need to do
-  // this.  Or better yet, change your routine so it does not rely on NUL
-  // termination.
   const char* data() const { return ptr_; }
   int size() const { return length_; }
   bool empty() const { return length_ == 0; }
@@ -147,7 +102,6 @@ class PCRECPP_EXP_DEFN StringPiece {
     target->assign(ptr_, length_);
   }
 
-  // Does "this" start with "x"
   bool starts_with(const StringPiece& x) const {
     return ((length_ >= x.length_) && (memcmp(ptr_, x.ptr_, x.length_) == 0));
   }
@@ -155,15 +109,8 @@ class PCRECPP_EXP_DEFN StringPiece {
 
 }   // namespace pcrecpp
 
-// ------------------------------------------------------------------
-// Functions used to create STL containers that use StringPiece
-//  Remember that a StringPiece's lifetime had better be less than
-//  that of the underlying string or char*.  If it is not, then you
-//  cannot safely store a StringPiece into an STL container
-// ------------------------------------------------------------------
 
 #ifdef HAVE_TYPE_TRAITS
-// This makes vector<StringPiece> really fast for some STL implementations
 template<> struct __type_traits<pcrecpp::StringPiece> {
   typedef __true_type    has_trivial_default_constructor;
   typedef __true_type    has_trivial_copy_constructor;
@@ -173,7 +120,6 @@ template<> struct __type_traits<pcrecpp::StringPiece> {
 };
 #endif
 
-// allow StringPiece to be logged
 std::ostream& operator<<(std::ostream& o, const pcrecpp::StringPiece& piece);
 
 #endif /* _PCRE_STRINGPIECE_H */

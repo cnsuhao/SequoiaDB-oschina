@@ -38,17 +38,13 @@
 #ifndef CONSISTENCY_INSPECT_HPP__
 #define CONSISTENCY_INSPECT_HPP__
 
-// system
 #include <iostream>
-// local project
 #include "pmdOptionsMgr.hpp"
 #include "dms.hpp"
 #include "client.hpp"
-// third party
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
 
-// macro for debug
 #ifdef _DEBUG
    #define OUTPUT_FUNCTION( str, funcName ) \
       std::cout << str << funcName << std::endl
@@ -65,7 +61,6 @@
       }                                   \
    }while( FALSE )
 
-// macros
 #define CI_INSPECT_ERROR         0x10001000
 #define CI_INSPECT_CL_NOT_FOUND  0x10001001
 
@@ -84,10 +79,8 @@
 #define CI_FILE_NAME       "inspect.bin"
 #define CI_TMP_FILE        "inspect.bin.tmp.%d"
 #define CI_FILE_REPORT     ".report"
-// action option
 #define CI_ACTION_INSPECT  "inspect"
 #define CI_ACTION_REPORT   "report"
-// view option
 #define CI_VIEW_GROUP      "group"
 #define CI_VIEW_CL         "collection"
 
@@ -112,21 +105,16 @@
 
 #define TAIL_PADDING_SIZE ( CI_TAIL_SIZE - sizeof(INT32) * 2 )
 
-// the length of ciGroupHeader
 #define CI_GROUP_HEADER_SIZE ( ( CI_GROUPNAME_SIZE + 1 ) + \
                                  sizeof( INT32 )         + \
                                  sizeof( UINT32 ) * 2 )
-// the length of ciClHeader
 #define CI_CL_HEADER_SIZE ( ( CI_CL_FULLNAME_SIZE + 1 ) * 2 + sizeof( UINT32 ) )
 
-// the length of ciNode
 #define CI_NODE_SIZE ( ( CI_HOSTNAME_SIZE + 1 )    + \
                        ( CI_SERVICENAME_SIZE + 1 ) + \
                          sizeof( INT32 ) * 3 )
-// max node count of group
 #define MAX_NODE_COUNT 7
 
-// option for ciState
 #define LSHIFT(x) ( 1 << x )
 #define ALL_THE_SAME_BIT 7
 
@@ -460,11 +448,6 @@ typedef _ciTail ciTail ;
 
 struct _ciState
 {
-   //    0   1   1   0   1   1   0   0             bits of state
-   //    1   2   3   4   5   7   7   -             index if node 
-   //  if 8th of state is 1, means that all node has current record, and every
-   //  cursor should get next record. or the min bson( of "oid" ) need get next
-   //  record.
    CHAR _state ;
    void set( INT32 index )
    {
@@ -485,8 +468,6 @@ struct _ciState
 } ;
 typedef _ciState ciState ;
 
-//////////////////////////////////////////////////////////////////////////
-// sdbCi
 #define CONSISTENCY_INSPECT_HELP      "help"
 #define CONSISTENCY_INSPECT_VER       "version"
 #define CONSISTENCY_INSPECT_ACTION    "action"

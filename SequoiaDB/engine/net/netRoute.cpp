@@ -71,7 +71,6 @@ namespace engine
       }
       else
       {
-         /// set des len with local value.
          clsStrcpy( itr->second._host, host, hostLen ) ;
          clsStrcpy( ((itr->second._service)[id.columns.serviceID]).c_str(),
                     service, svcLen ) ;

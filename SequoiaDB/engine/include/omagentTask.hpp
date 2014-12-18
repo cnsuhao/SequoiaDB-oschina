@@ -109,8 +109,6 @@ namespace engine
       protected:
          UINT64                               _taskID ;
          OMA_TASK_STATUS                      _status ;
-//         ossSpinSLatch                        _taskLatch ;
-//         ossSpinSLatch                        _jobLatch ;
          map< string, OMA_JOB_STATUS >        _jobStatus ;
    } ;
    typedef _omaTask omaTask ;
@@ -164,11 +162,9 @@ namespace engine
       public:
          INT32 init( BSONObj &addHostRawInfo,
                      vector<AddHostInfo> addHostInfo ) ;
-         // start job
          INT32 doit() ;
          
       public:
-         // respond query of add host progress
          virtual INT32 queryProgress( BSONObj &progress ) ;
 
       public:
@@ -197,11 +193,8 @@ namespace engine
          void _collectProgressInfo() ;
 
       private:
-         // add host raw info
          BSONObj                      _addHostRawInfo ;
-         // add host info
          vector<AddHostInfo>          _addHostInfo ;
-         // rollback host info
          vector<AddHostInfo>          _rollbackInfo ;
 
          ossSpinSLatch                _taskLatch ;
@@ -243,9 +236,7 @@ namespace engine
                      vector<BSONObj> catalog,
                      vector<BSONObj> data,
                      BSONObj &otherInfo ) ;
-         // start job
          INT32 doit() ;
-         // respond query of install status
          virtual INT32 queryProgress( BSONObj &progress ) ;
 
       public:
@@ -295,17 +286,14 @@ namespace engine
          INT32 _installCoord() ;
          INT32 _installData() ;
 
-         // install info
          vector<BSONObj>                      _standalone ;
          vector<BSONObj>                      _catalog ;
          vector<BSONObj>                      _coord ;
          map< string, vector<BSONObj> >       _mapGroups ;
-         // install result
          InstallResult                        _standaloneResult ;
          InstallResult                        _catalogResult ;
          InstallResult                        _coordResult ;
          map< string, InstallResult >         _mapGroupsResult ;
-         // virtual coord info
          string                               _vCoordSvcName ;
 
          ossSpinSLatch                        _taskLatch ;
@@ -353,9 +341,7 @@ namespace engine
                      map<string, BSONObj> catalog,
                      map<string, BSONObj> data,
                      BSONObj &otherInfo ) ;
-         // start job
          INT32 doit() ;
-         // respond query of remove task status
          virtual INT32 queryProgress( BSONObj &progress ) ;
 
       public:
@@ -389,17 +375,14 @@ namespace engine
          INT32 _uninstallCoord() ;
          INT32 _uninstallData() ;
 
-         // uninstall info
          map<string, BSONObj>                 _standalone ;
          map<string, BSONObj>                 _catalog ;
          map<string, BSONObj>                 _coord ;
          map<string, BSONObj>                 _data ;
-         // uninstall result
          UninstallResult                      _standaloneResult ;
          UninstallResult                      _catalogResult ;
          UninstallResult                      _coordResult ;
          map< string, UninstallResult >       _mapDataResult ;
-         // virtual coord info
          BSONObj                              _cataAddrInfo ;
          string                               _vCoordSvcName ;
          string                               _taskName ;

@@ -52,9 +52,6 @@ namespace engine
 
    INT32 rtnKeyCompare ( const BSONElement &l, const BSONElement &r );
 
-   // bound of a field, say {c1:5}
-   // bound doesn't include upper/lower information, it only have the
-   // BSONElement indicating the boundary and whether if it's inclusive
    class rtnKeyBoundary : public SDBObject
    {
    public :
@@ -79,7 +76,6 @@ namespace engine
       RTN_SSK_VALUE_POS_GT,
    } ;
 
-   // return TRUE if the pos is at edge
    OSS_INLINE BOOLEAN rtnSSKPosAtEdge ( RTN_SSK_VALUE_POS pos )
    {
       return pos == RTN_SSK_VALUE_POS_LET ||
@@ -103,13 +99,11 @@ namespace engine
              pos == RTN_SSK_RANGE_POS_RET ;
    }
 
-   // range of a start/stop key
    class rtnStartStopKey : public SDBObject
    {
    public :
       rtnKeyBoundary _startKey ;
       rtnKeyBoundary _stopKey ;
-      // equality = 1 means this is == key, otherwise it's ranged query key
       mutable INT32 _equality ;
       BOOLEAN isValid () const
       {
@@ -138,36 +132,19 @@ namespace engine
          _equality = 1 ;
       }
       string toString() const ;
-      // convert rtnStartStopKey to bson element
-      // { "a": { <start key BSONElement>, "i": true },
-      //   "o": { <stop key BSONElement } }
-      // Note if the key is inclusive, we'll have "i", otherwise "i" will not be
-      // displayed
       BSONObj toBson () const ;
-      // convert from BSONObj, return TRUE if success, otherwise return FALSE
-      // for bad object
       BOOLEAN fromBson ( BSONObj &ob ) ;
-      // reset to min/max key
       void reset () ;
-      // RTN_SSK_VALUE_POS_LT: ele is less than startKey
-      // RTN_SSK_VALUE_POS_LET: ele is equal to startKey
-      // RTN_SSK_VALUE_POS_WITHIN: ele is greater than startKey and less than
-      // stopKey
-      // RTN_SSK_VALUE_POS_GET: ele is equal to stopKey
-      // RTN_SSK_VALUE_POS_GT: ele is greater than stopKey
       RTN_SSK_VALUE_POS compare ( BSONElement &ele, INT32 dir ) const ;
 
       RTN_SSK_RANGE_POS compare ( rtnStartStopKey &key, INT32 dir ) const ;
    } ;
 
-   // if we want to find the max bound of start keys, we want to return the one
-   // list of start/stop key that doesn't intersect with each other on one field
    class rtnPredicate : public SDBObject
    {
    private:
       BOOLEAN _isInitialized ;
       vector<BSONObj> _objData ;
-      // this is used when creating new bsonobject in the class
       BSONObj addObj ( const BSONObj &o )
       {
          _objData.push_back(o) ;
@@ -186,11 +163,8 @@ namespace engine
       {
          _startStopKeys.clear() ;
       }
-      // intersection operation for two keysets
       const rtnPredicate &operator&= (const rtnPredicate &right) ;
-      // union operation for two keysets
       const rtnPredicate &operator|= (const rtnPredicate &right) ;
-      // exclude operation for two keysets
       const rtnPredicate &operator-= (const rtnPredicate &right) ;
       const rtnPredicate &operator= (const rtnPredicate &right) ;
       BOOLEAN operator<= ( const rtnPredicate &r ) const ;
@@ -199,8 +173,6 @@ namespace engine
       {
          return _isInitialized ;
       }
-      // return the start key from the lowest range
-      // eoo means invalid
       BSONElement min() const
       {
          if ( !isEmpty() )
@@ -209,8 +181,6 @@ namespace engine
          }
          return BSONElement() ;
       }
-      // return the stop key from the largest range
-      // eoo means invalid
       BSONElement max() const
       {
          if ( !isEmpty() )
@@ -219,7 +189,6 @@ namespace engine
          }
          return BSONElement() ;
       }
-      // return the inclusiveness from the startkey from the lowest range
       BOOLEAN minInclusive() const
       {
          if ( !isEmpty() )
@@ -228,7 +197,6 @@ namespace engine
          }
          return FALSE ;
       }
-      // return the inclusiveness from the stopkey from the largest range
       BOOLEAN maxInclusive() const
       {
          if ( !isEmpty() )
@@ -246,8 +214,6 @@ namespace engine
       {
          return _startStopKeys.empty() ;
       }
-      // isGeneric = TRUE means the predicate will match everything in the
-      // collection, which means the predicate doesn't do any filtering
       BOOLEAN isGeneric() const
       {
          return !isEmpty() && _startStopKeys.size() == 1 &&
@@ -259,8 +225,6 @@ namespace engine
       string toString() const ;
    } ;
 
-   // This set is created when receiving a query. It contains user search
-   // condition predicates from user input for all fields
    class _rtnPredicateSet : public SDBObject
    {
    public:
@@ -283,13 +247,6 @@ namespace engine
 
    class _ixmIndexCB ;
    class _rtnPredicateListIterator ;
-   // This list is created when optimizer confirming to use a specific index, it
-   // will be created by using rtnPredicateSet ( which defined by the input
-   // query ) and ixmIndexCB ( which defined by the index ). This List will be
-   // created using the input query based on the index definition, including a
-   // list by the order of index def, which represents the matching condition
-   // for the given index
-   // each index key on disk will be sent to matchesKey function to match
    class _rtnPredicateList : public SDBObject
    {
    public:
@@ -329,7 +286,6 @@ namespace engine
       LESS,
       GREATER
    } ;
-   // this class is used to iterate an ordered predicate list
    class _rtnPredicateListIterator : public SDBObject
    {
    private :
@@ -338,8 +294,6 @@ namespace engine
       vector <BOOLEAN> _inc ;
       vector <INT32>   _currentKey ;
       vector <INT32>   _prevKey ;
-      // this variable is passed to ixm. When this variable is TRUE, it means we
-      // are going to jump over the current key
       BOOLEAN _after ;
    public :
       _rtnPredicateListIterator ( const rtnPredicateList &predList ) ;

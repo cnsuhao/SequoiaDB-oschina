@@ -173,8 +173,6 @@ public class TypeToken<T> {
       return isAssignableFrom(t, (ParameterizedType) toGenericComponentType,
           new HashMap<String, Type>());
     }
-    // No generic defined on "to"; therefore, return true and let other
-    // checks determine assignability
     return true;
   }
 
@@ -193,14 +191,12 @@ public class TypeToken<T> {
       return true;
     }
 
-    // First figure out the class and any type information.
     Class<?> clazz = $Gson$Types.getRawType(from);
     ParameterizedType ptype = null;
     if (from instanceof ParameterizedType) {
       ptype = (ParameterizedType) from;
     }
 
-    // Load up parameterized variable info if it was parameterized.
     if (ptype != null) {
       Type[] tArgs = ptype.getActualTypeArguments();
       TypeVariable<?>[] tParams = clazz.getTypeParameters();
@@ -214,7 +210,6 @@ public class TypeToken<T> {
         typeVarMap.put(var.getName(), arg);
       }
 
-      // check if they are equivalent under our current mapping.
       if (typeEquals(ptype, to, typeVarMap)) {
         return true;
       }
@@ -226,7 +221,6 @@ public class TypeToken<T> {
       }
     }
 
-    // Interfaces didn't work, try the superclass.
     Type sType = clazz.getGenericSuperclass();
     return isAssignableFrom(sType, to, new HashMap<String, Type>(typeVarMap));
   }
@@ -253,7 +247,6 @@ public class TypeToken<T> {
   private static AssertionError buildUnexpectedTypeError(
       Type token, Class<?>... expected) {
 
-    // Build exception message
     StringBuilder exceptionMessage =
         new StringBuilder("Unexpected type. Expected one of: ");
     for (Class<?> clazz : expected) {

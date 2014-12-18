@@ -21,12 +21,10 @@ public abstract class SequoiaBoltBase extends BaseRichBolt {
 	private static final long serialVersionUID = 8636365605902629088L;
 	private static Logger LOG = Logger.getLogger(SequoiaBoltBase.class);
 
-	// Bolt runtime object
 	protected Map map;
 	protected TopologyContext topologyContext;
 	protected OutputCollector outputCollector;
 
-	// Constructor arguments
 	protected String host;
 	protected int port;
 	protected String userName;
@@ -35,7 +33,6 @@ public abstract class SequoiaBoltBase extends BaseRichBolt {
 	protected String collectionName;
 	protected StormSequoiaObjectGrabber mapper;
 	
-	// Sequoiadb objects
 	protected Sequoiadb sdb;
 	protected CollectionSpace space;
 	protected DBCollection collection;
@@ -77,21 +74,17 @@ public abstract class SequoiaBoltBase extends BaseRichBolt {
 
 	@Override
 	public void prepare(Map map, TopologyContext context, OutputCollector collector) {
-		// Save all the objects from storm
 		this.map = map;
 		this.topologyContext = context;
 		this.outputCollector = collector;
 		
-		//Attempt to open a db connection
 		try {
 			Sequoiadb sdb = new Sequoiadb(host, port, userName, password);
-			//Open the db space
 			space = sdb.getCollectionSpace(dbName);
 			
 			collection = space.getCollection(collectionName);
 		} catch (BaseException e) {
 			LOG.error("Failed to get Collection:" + e);
-			//die fast
 			throw new RuntimeException(e);
 		}
 	}

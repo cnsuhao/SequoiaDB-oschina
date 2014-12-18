@@ -1,4 +1,3 @@
-// UTF8Encoding.java
 
 
 /**
@@ -45,7 +44,6 @@ POSSIBILITY OF SUCH DAMAGE.
 *-------------------------------------------------------------------------
 */
 
-//package org.postgresql.core;
 package org.bson.io;
 
 import java.io.IOException;
@@ -60,7 +58,6 @@ class UTF8Encoding {
 
     private char[] decoderArray = new char[1024];
     
-    // helper for decode
     private final static void checkByte(int ch, int pos, int len) throws IOException {
         if ((ch & 0xc0) != 0x80)
             throw new IOException(MessageFormat.format("Illegal UTF-8 sequence: byte {0} of {1} byte sequence is not 10xxxxxx: {2}",
@@ -128,21 +125,16 @@ class UTF8Encoding {
             {
                 int ch = data[in++] & 0xff;
                 
-                // Convert UTF-8 to 21-bit codepoint.
                 if (ch < 0x80) {
-                    // 0xxxxxxx -- length 1.
                 } else if (ch < 0xc0) {
-                    // 10xxxxxx -- illegal!
                     throw new IOException(MessageFormat.format("Illegal UTF-8 sequence: initial byte is {0}: {1}",
                                                 new Object[] { "10xxxxxx", new Integer(ch) }));
                 } else if (ch < 0xe0) { 
-                    // 110xxxxx 10xxxxxx
                     ch = ((ch & 0x1f) << 6);
                     checkByte(data[in], 2, 2);
                     ch = ch | (data[in++] & 0x3f);
                     checkMinimal(ch, MIN_2_BYTES);
                 } else if (ch < 0xf0) {
-                    // 1110xxxx 10xxxxxx 10xxxxxx
                     ch = ((ch & 0x0f) << 12);
                     checkByte(data[in], 2, 3);
                     ch = ch | ((data[in++] & 0x3f) << 6);
@@ -150,7 +142,6 @@ class UTF8Encoding {
                     ch = ch | (data[in++] & 0x3f);
                     checkMinimal(ch, MIN_3_BYTES);
                 } else if (ch < 0xf8) {
-                    // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
                     ch = ((ch & 0x07) << 18);
                     checkByte(data[in], 2, 4);
                     ch = ch | ((data[in++] & 0x3f) << 12);
@@ -168,22 +159,15 @@ class UTF8Encoding {
                     throw new IOException(MessageFormat.format("Illegal UTF-8 sequence: final value is out of range: {0}",
                                                 new Integer(ch)));
 
-                // Convert 21-bit codepoint to Java chars:
-                //   0..ffff are represented directly as a single char
-                //   10000..10ffff are represented as a "surrogate pair" of two chars
-                // See: http://java.sun.com/developer/technicalArticles/Intl/Supplementary/
                 
                 if (ch > 0xffff) {
-                    // Use a surrogate pair to represent it.
                     ch -= 0x10000;  // ch is now 0..fffff (20 bits)
                     cdata[out++] = (char) (0xd800 + (ch >> 10));   // top 10 bits
                     cdata[out++] = (char) (0xdc00 + (ch & 0x3ff)); // bottom 10 bits
                 } else if (ch >= 0xd800 && ch < 0xe000) {
-                    // Not allowed to encode the surrogate range directly.
                     throw new IOException(MessageFormat.format("Illegal UTF-8 sequence: final value is a surrogate value: {0}",
                                                 new Integer(ch)));
                 } else {
-                    // Normal case.
                     cdata[out++] = (char) ch;
                 }
             }
@@ -193,7 +177,6 @@ class UTF8Encoding {
             throw new IOException("Illegal UTF-8 sequence: multibyte sequence was truncated");
         }
 
-        // Check if we ran past the end without seeing an exception.
         if (in > end)
             throw new IOException("Illegal UTF-8 sequence: multibyte sequence was truncated");
 

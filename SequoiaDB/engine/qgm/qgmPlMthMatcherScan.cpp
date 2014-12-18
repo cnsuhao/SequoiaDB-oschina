@@ -79,7 +79,6 @@ namespace engine
       }
       else
       {
-         /// do nothing.
       }
 
    done:

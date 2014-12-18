@@ -51,10 +51,7 @@ import com.sequoiadb.util.SDBMessageHelper;
  */
 public class Sequoiadb {
 	private ServerAddress serverAddress;
-	// private CollectionSpace currentCollectionSpace;
 	private IConnection connection;
-	// private ConcurrentMap<String, CollectionSpace> collectionSpaces = new
-	// ConcurrentHashMap<String, CollectionSpace>();
 	private String userName;
 	private String password;
 	boolean endianConvert;
@@ -146,11 +143,9 @@ public class Sequoiadb {
 	 */
 	public Sequoiadb(String username, String password) throws BaseException
 	{
-		// connect used default address
 		serverAddress = new ServerAddress();
 		ConfigOptions opts = new ConfigOptions();
 		initConnection(opts);
-		// authentication
 		this.userName = username;
 		this.password = password;
 		auth();
@@ -173,7 +168,6 @@ public class Sequoiadb {
 		/*
 		try
 		{
-			// connect
 			serverAddress = new ServerAddress(connString);
 			ConfigOptions opts = new ConfigOptions();
 			initConnection(opts);
@@ -182,7 +176,6 @@ public class Sequoiadb {
 		{
 			throw new BaseException("SDB_NETWORK", connString);
 		}
-		// authentication
 		this.userName = username;
 		this.password = password;
 		auth();
@@ -211,7 +204,6 @@ public class Sequoiadb {
 			opts = new ConfigOptions();
 		try
 		{
-			// connect
 			serverAddress = new ServerAddress(connString);
 			initConnection(opts);
 		}
@@ -219,7 +211,6 @@ public class Sequoiadb {
 		{
 			throw new BaseException("SDB_NETWORK", connString, e);
 		}
-		// authentication
 		this.userName = username;
 		this.password = password;
 		auth();
@@ -257,7 +248,6 @@ public class Sequoiadb {
 			String str = connStrings.get(count);
 			try
 			{
-				// connect
 				try
 				{
 					serverAddress = new ServerAddress(str);
@@ -267,7 +257,6 @@ public class Sequoiadb {
 				{
 					throw new BaseException("SDB_NETWORK", str);
 				}
-				// authentication
 				this.userName = username;
 				this.password = password;
 				auth();
@@ -300,14 +289,12 @@ public class Sequoiadb {
     {
 		/*
 		try {
-			// connect
 			serverAddress = new ServerAddress(addr, port);
 			ConfigOptions opts = new ConfigOptions();
 			initConnection(opts);
 		} catch (UnknownHostException e) {
 			throw new BaseException("SDB_NETWORK", addr, port);
 		}
-		// authentication
 		this.userName = username;
 		this.password = password;
 		auth();
@@ -336,7 +323,6 @@ public class Sequoiadb {
 			opts = new ConfigOptions();
 		try
 		{
-			// connect
 			serverAddress = new ServerAddress(addr, port);
 			initConnection(opts);
 		}
@@ -344,7 +330,6 @@ public class Sequoiadb {
 		{
 			throw new BaseException("SDB_NETWORK", addr, port, e);
 		}
-		// authentication
 		this.userName = username;
 		this.password = password;
 		auth();
@@ -447,8 +432,6 @@ public class Sequoiadb {
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	public boolean isValid() throws BaseException{
-		// client not connect to database or client 
-		// disconnect from database
 		if ( connection == null || connection.isClosed() )
 			return false;
 		try{
@@ -973,11 +956,9 @@ public class Sequoiadb {
 	 */
 	public void crtJSProcedure ( String code ) throws BaseException
 	{
-		// check the argument
 		if ( null == code || code.equals("") ){
 			throw new BaseException("SDB_INVALIDARG", code);
 		}
-		// build code type bson
 		BSONObject newobj = new BasicBSONObject();
 		Code codeObj = new Code( code );
 		newobj.put(SequoiadbConstants.FIELD_NAME_FUNC, codeObj);
@@ -1000,11 +981,9 @@ public class Sequoiadb {
 	 */
 	public void rmProcedure ( String name ) throws BaseException
 	{
-		// check the argument
 		if ( null == name || name.equals("") ) {
 			throw new BaseException("SDB_INVALIDARG", name);
 		}
-		// append the name to a bson
 		BSONObject newobj = new BasicBSONObject();
 		newobj.put( SequoiadbConstants.FIELD_NAME_FUNC, name );
 		
@@ -1041,12 +1020,10 @@ public class Sequoiadb {
 	 */
 	public Sequoiadb.SptEvalResult evalJS ( String code ) throws BaseException
 	{
-		// check the argument
 		if ( code == null || code.equals("") ){
 			throw new BaseException("SDB_INVALIDARG");
 		}
 		SptEvalResult evalResult = new Sequoiadb.SptEvalResult();
-		// build code type bson
 		BSONObject newObj = new BasicBSONObject();
 		Code codeObj = new Code( code );
 		newObj.put(SequoiadbConstants.FIELD_NAME_FUNC, codeObj);
@@ -1055,21 +1032,16 @@ public class Sequoiadb {
 		SDBMessage rtn = adminCommandEval(SequoiadbConstants.CMD_NAME_EVAL,
 				                      0,0,0,-1,newObj,
 				                      null,null,null);
-		// get error code
 		int flags = rtn.getFlags();
-		// if something wrong with the eval operation, not throws exception here 
 		if (flags != 0) {
-			// get error message
 			List<BSONObject> objList = rtn.getObjectList();
 			if (objList.size() > 0){
 				evalResult.errmsg = rtn.getObjectList().get(0);
 			}
 			return evalResult;
 		}else{
-			// get the return type of eval result
 			long typeValue = rtn.getNumReturned();
 			evalResult.returnType = Sequoiadb.SptReturnType.getTypeByValue((int)typeValue);
-			// set the return cursor
 			evalResult.cursor = new DBCursor(rtn, this);
 			return evalResult;
 		}
@@ -1133,7 +1105,6 @@ public class Sequoiadb {
 	public DBCursor listBackup ( BSONObject options, BSONObject matcher,
 			                     BSONObject selector, BSONObject orderBy) throws BaseException
 	{
-		// check the optional argument
 		if ( null != options ){
 			for ( String key : options.keySet() ){
 				if ( key.equals(SequoiadbConstants.FIELD_NAME_GROUPNAME)
@@ -1178,7 +1149,6 @@ public class Sequoiadb {
 	 */
 	public void removeBackup ( BSONObject options ) throws BaseException
 	{
-		// check the optional argument
 		if ( null != options ){
 			for ( String key : options.keySet() ){
 				if ( key.equals(SequoiadbConstants.FIELD_NAME_GROUPNAME)
@@ -1222,7 +1192,6 @@ public class Sequoiadb {
 			throw new BaseException(flags, matcher,
                                     selector, orderBy, hint);
 		}
-		// return the result by cursor
 		DBCursor cursor = null;
 		cursor = new DBCursor(rtn, this);
 		return cursor;
@@ -1236,10 +1205,8 @@ public class Sequoiadb {
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	public void waitTasks ( long[] taskIDs ) throws BaseException {
-		// check argument
 		if ( taskIDs == null || taskIDs.length == 0)
 			throw new BaseException("SDB_INVALIDARG", taskIDs);
-		// append argument:{ "TaskID": { "$in": [ 1, 2, 3 ] } }
 		BSONObject newObj = new BasicBSONObject();
 		BSONObject subObj = new BasicBSONObject();
 		BSONObject list = new BasicBSONList();
@@ -1267,14 +1234,11 @@ public class Sequoiadb {
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	public void cancelTask ( long taskID, boolean isAsync ) throws BaseException {
-		// check argument
 		if ( taskID <= 0)
 			throw new BaseException("SDB_INVALIDARG", taskID, isAsync);
-		// append argument
 		BSONObject newObj = new BasicBSONObject();
 		newObj.put(SequoiadbConstants.FIELD_NAME_TASKID, taskID);
 		newObj.put(SequoiadbConstants.FIELD_NAME_ASYNC, isAsync);
-		// run command
 		SDBMessage rtn = adminCommand(SequoiadbConstants.CMD_NAME_CANCEL_TASK,
 				                      0, 0, 0, -1, newObj,
 				                      null, null, null);
@@ -1328,11 +1292,9 @@ public class Sequoiadb {
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	public void setSessionAttr( BSONObject options ) throws BaseException {
-		// check argument
 		if ( null == options || 
 		     !options.containsField(SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE) )
 			throw new BaseException( "SDB_INVALIDARG", options );
-		// build obj
 		BSONObject newObj = new BasicBSONObject();
 		Object value = options.get( SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE );
 		int v = PreferInstanceType.INS_SLAVE.getCode();
@@ -1353,7 +1315,6 @@ public class Sequoiadb {
 			throw new BaseException( "SDB_INVALIDARG", options );
 		}
 		newObj.put( SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE, v );
-		// command
 		SDBMessage rtn = adminCommand( SequoiadbConstants.CMD_NAME_SETSESS_ATTR,
 				                       0, 0, 0, -1, newObj,
 				                       null, null, null);
@@ -1435,7 +1396,6 @@ public class Sequoiadb {
 		{
 		   newObj.put(SequoiadbConstants.FIELD_NAME_OPTIONS, options);
 		}
-		// command
 		SDBMessage rtn = adminCommand( SequoiadbConstants.CMD_NAME_CREATE_DOMAIN,
 				                       0, 0, 0, -1, newObj,
 				                       null, null, null);
@@ -1459,7 +1419,6 @@ public class Sequoiadb {
 		
 		BSONObject newObj = new BasicBSONObject();
 		newObj.put(SequoiadbConstants.FIELD_NAME_NAME, domainName);
-		// command
 		SDBMessage rtn = adminCommand( SequoiadbConstants.CMD_NAME_DROP_DOMAIN,
 				                       0, 0, 0, -1, newObj,
 				                       null, null, null);
@@ -1757,7 +1716,6 @@ public class Sequoiadb {
 	}
 
 	void releaseResource(){
-		// let the receive buffer shrink to default value
 		connection.shrinkBuffer();
 	}
 	
@@ -1772,8 +1730,6 @@ public class Sequoiadb {
 			long skipNum, long returnNum, BSONObject query,
 			BSONObject selector, BSONObject order, BSONObject hint)
 			throws BaseException {
-		// Admin command request
-		// int reqId = 0;
 		BSONObject dummyObj = new BasicBSONObject();
 		SDBMessage sdbMessage = new SDBMessage();
 
@@ -1802,8 +1758,6 @@ public class Sequoiadb {
 		sdbMessage.setPadding((short) 0);
 		sdbMessage.setFlags(flag);
 		sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
-		// sdbMessage.setResponseTo(reqId);
-		// reqId++;
 		sdbMessage.setRequestID(reqID);
 		sdbMessage.setSkipRowsCount(skipNum);
 		sdbMessage.setReturnRowsCount(returnNum);
@@ -1822,8 +1776,6 @@ public class Sequoiadb {
 			long skipNum, long returnNum, BSONObject query,
 			BSONObject selector, BSONObject order, BSONObject hint)
 			throws BaseException {
-		// Admin command request
-		// int reqId = 0;
 		BSONObject dummyObj = new BasicBSONObject();
 		SDBMessage sdbMessage = new SDBMessage();
 
@@ -1852,8 +1804,6 @@ public class Sequoiadb {
 		sdbMessage.setPadding((short) 0);
 		sdbMessage.setFlags(flag);
 		sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
-		// sdbMessage.setResponseTo(reqId);
-		// reqId++;
 		sdbMessage.setRequestID(reqID);
 		sdbMessage.setSkipRowsCount(skipNum);
 		sdbMessage.setReturnRowsCount(returnNum);

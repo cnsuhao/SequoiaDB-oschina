@@ -80,13 +80,11 @@ namespace engine
    {
       PMDDMN_SHM_CMD_INVALID     = 0,
 
-      // daemon command:
       PMDDMN_SHM_CMD_DMN_BEGIN   = 1,
       PMDDMN_SHM_CMD_DMN_QUIT    = 2,
 
       PMDDMN_SHM_CMD_DMN_END     = 0x00FF,
 
-      // children command:
       PMDDMN_SHM_CMD_CHL_BEGIN   = 0x0100,
       PMDDMN_SHM_CMD_CHL_QUIT    = 0x0200,
 

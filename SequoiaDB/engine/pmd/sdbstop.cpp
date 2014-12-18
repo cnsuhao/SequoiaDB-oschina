@@ -62,7 +62,6 @@ namespace engine
        ( PMD_COMMANDS_STRING( PMD_OPTION_ROLE, ",r" ), po::value<string>(), "role type: coord/data/catalog/om" ) \
        ( PMD_COMMANDS_STRING(PMD_OPTION_SVCNAME, ",p"), po::value<string>(), "service name, separated by comma (',')" )
 
-   // initialize options
    void init ( po::options_description &desc )
    {
       PMD_ADD_PARAM_OPTIONS_BEGIN ( desc )
@@ -107,7 +106,6 @@ namespace engine
       if ( vm.count ( PMD_OPTION_SVCNAME ) )
       {
          string svcname = vm[PMD_OPTION_SVCNAME].as<string>() ;
-         // break service names using ';'
          rc = utilSplitStr( svcname, listServices, ", \t" ) ;
          if ( rc )
          {
@@ -173,7 +171,6 @@ namespace engine
       po::options_description desc ( "Command options" ) ;
       init ( desc ) ;
 
-      // validate arguments
       rc = resolveArgument ( desc, argc, argv, listServices, typeFilter,
                              roleFilter ) ;
       if ( rc )
@@ -192,12 +189,10 @@ namespace engine
 
       if ( listServices.size() > 0 )
       {
-         // if used -p, list all nodes
          typeFilter = -1 ;
          roleFilter = -1 ;
       }
 
-      // list all nodes
       utilListNodes( listNodes, typeFilter, NULL, OSS_INVALID_PID,
                      roleFilter ) ;
 
@@ -205,7 +200,6 @@ namespace engine
       {
          utilNodeInfo &info = listNodes[ i ] ;
 
-         // can't stop oma
          if ( SDB_TYPE_OMA == info._type )
          {
             continue ;

@@ -74,7 +74,6 @@ namespace engine
    #define TEST_MEM_HEADSZ                sizeof(memHeader)
    #define TEST_BUFFSIZE                  (1024*1024*1024)
 
-   // global define
    string g_corefile ;
    string g_outputfile ;
 
@@ -137,7 +136,6 @@ namespace engine
          goto error ;
       }
 
-      // read args
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          std::cout << desc << std::endl ;
@@ -153,7 +151,6 @@ namespace engine
          g_outputfile = vm[TEST_OUTPUT].as<string>() ;
       }
 
-      // check
       if ( g_corefile.empty() )
       {
          std::cerr << "Core file is not configed" << std::endl ;
@@ -180,7 +177,6 @@ namespace engine
       }
       g_openCoreFile = TRUE ;
 
-      // buff
       g_pBuff = new ( std::nothrow ) CHAR[TEST_BUFFSIZE] ;
       if( !g_pBuff )
       {
@@ -189,7 +185,6 @@ namespace engine
          goto error ;
       }
 
-      // output
       if ( !g_outputfile.empty() )
       {
          rc = ossOpen( g_outputfile.c_str(), OSS_CREATE|OSS_READWRITE,

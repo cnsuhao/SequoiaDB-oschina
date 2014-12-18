@@ -49,9 +49,6 @@ namespace engine
    class _qgmPlFilter : public _qgmPlan
    {
    public:
-      /// not the same to qgmPlScan, selector and condition
-      /// should include alias.
-      /// eg: element in selector is T.a:alias
       _qgmPlFilter( const qgmOPFieldVec &selector,
                     _qgmConditionNode *condition,
                     INT64 numSkip,

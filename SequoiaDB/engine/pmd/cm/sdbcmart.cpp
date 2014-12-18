@@ -131,7 +131,6 @@ namespace engine
          COMMANDS_HIDE_OPTIONS
       PMD_ADD_PARAM_OPTIONS_END
 
-      // validate arguments
       rc = utilReadCommandLine( argc, argv, all, vm, FALSE ) ;
       if ( rc )
       {
@@ -139,17 +138,14 @@ namespace engine
          displayArg ( desc ) ;
          goto done ;
       }
-      /// read cmd first
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          displayArg( desc ) ;
-         //rc = SDB_PMD_HELP_ONLY ;
          goto done ;
       }
       if ( vm.count( PMD_OPTION_VERSION ) )
       {
          ossPrintVersion( "Sdb CM Start version" ) ;
-         //rc = SDB_PMD_VERSION_ONLY ;
          goto done ;
       }
 #if defined( _WINDOWS )
@@ -159,7 +155,6 @@ namespace engine
       }
 #endif //_WINDOWS
 
-      // check user info before create dir or files
       if ( !vm.count( PMD_OPTION_CURUSER ) )
       {
          UTIL_CHECK_AND_CHG_USER() ;
@@ -174,7 +169,6 @@ namespace engine
       }
       ossStrncat( progName, OSS_FILE_SEP, 1 ) ;
 
-      // build dialog info
       rc = utilBuildFullPath( progName, SDBCM_LOG_PATH,
                               OSS_MAX_PATHSIZE, dialogFile ) ;
       if ( rc )
@@ -182,7 +176,6 @@ namespace engine
          ossPrintf( "Failed to build dialog path: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
-      // make sure the dir exist
       rc = ossMkdir( dialogFile, OSS_CREATE|OSS_READWRITE ) ;
       if ( rc && SDB_FE != rc )
       {
@@ -197,7 +190,6 @@ namespace engine
          ossPrintf( "Failed to build dialog file: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
-      // enable pd log
       sdbEnablePD( dialogFile ) ;
       setPDLevel( PDINFO ) ;
 
@@ -210,11 +202,9 @@ namespace engine
          argvs.push_back(argv[i]) ;
       }
 
-      // first to check whether the process exist
       ossEnumProcesses( procs, PMDDMN_EXE_NAME, TRUE, TRUE ) ;
       if ( procs.size() > 0 )
       {
-         // find it
          ossPrintf( "Success: sdbcmd is already started (%d)"OSS_NEWLINE,
                     (*procs.begin())._pid ) ;
       }

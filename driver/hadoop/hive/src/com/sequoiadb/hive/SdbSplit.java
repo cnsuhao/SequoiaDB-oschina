@@ -102,7 +102,6 @@ public class SdbSplit extends FileSplit implements InputSplit {
 
 		final Path[] tablePaths = FileInputFormat.getInputPaths(conf);
 
-		// ///////////////////////////////
 		Sequoiadb sdb = null;
 		BaseException lastException = null;
 
@@ -110,7 +109,6 @@ public class SdbSplit extends FileSplit implements InputSplit {
 		for (SdbConnAddr addr : sdbAddrList) {
 			try {
 				sdb = new Sequoiadb(addr.getHost(), addr.getPort(), null, null);
-				// Save current coord address.
 				curCoordAddr = addr;
 				break;
 			} catch (BaseException e) {

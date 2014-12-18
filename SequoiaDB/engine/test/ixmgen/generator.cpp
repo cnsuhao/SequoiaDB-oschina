@@ -48,7 +48,6 @@ extern void getBSONRaw( const CHAR *js, CHAR **raw ) ;
 
 TEST(generator, test1)
 {
-//   const CHAR *js = "{a:[{c:[{d:{e:[1,2]}}, {d:\"abc\"}]}, {c:[{d:{e:[5,6]}}, {d:{e:[7,8]}}]}], b:10}" ;
    {
    const CHAR *js = "{no:1,name:\"A\",age:2,array1:[{array2:[{array3:[{array4:[\"array5\",\"temp4\"]},\"temp3\"]},\"temp2\"]},\"temp1\"]}"; 
    CHAR *raw = NULL ;

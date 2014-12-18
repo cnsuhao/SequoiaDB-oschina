@@ -196,15 +196,11 @@ namespace engine
 
       void postEvent ( pmdEDUEvent const &data )
       {
-         // no need latch since _queue is already latched
          _queue.push ( data ) ;
       }
 
       BOOLEAN waitEvent ( pmdEDUEvent &data, INT64 millsec )
       {
-         // no need latch since _queue is already latched
-         // if millsec not 0, that means we want timeout
-         // otherwise it's infinite wait
 
          BOOLEAN waitMsg   = FALSE ;
          _writingDB        = FALSE ;
@@ -352,7 +348,6 @@ namespace engine
       UINT64 getCurRequestID() const { return _curRequestID ; }
       UINT64 incCurRequestID() { return ++_curRequestID ; }
 
-      // transaction related
       void  setTransID( DPS_TRANS_ID transID ) { _curTransID = transID ; }
       DPS_TRANS_ID getTransID() const { return _curTransID ; }
       void  setRelatedTransLSN( DPS_LSN_OFFSET relatedLSN )
@@ -412,7 +407,6 @@ namespace engine
       string         _userName ;
       string         _passWord ;
 
-      // buffer related
       CHAR           *_pCompressBuff ;
       INT32          _compressBuffLen ;
       CHAR           *_pUncompressBuff ;
@@ -423,7 +417,6 @@ namespace engine
       INT64          _totalCatchSize ;
       INT64          _totalMemSize ;
 
-      // thread specific error message buffer, aka SQLCA
       CHAR              *_pErrorBuff ;
    #if defined ( _WINDOWS )
       HANDLE            _threadHdl ;
@@ -447,7 +440,6 @@ namespace engine
       std::set<SINT64>        _contextList ;
       ossQueue<pmdEDUEvent>   _bpEventQueue ;
 
-      // coord related variables
       CoordSession            *_pCoordSession;
 
       UINT64                  _beginLsn ;
@@ -456,7 +448,6 @@ namespace engine
 
       UINT64                  _curRequestID ;
 
-      // transaction related variables
       DPS_LSN_OFFSET          _relatedTransLSN ;
       DPS_LSN_OFFSET          _curTransLSN ;
       DPS_TRANS_ID            _curTransID ;
@@ -464,7 +455,6 @@ namespace engine
       DpsTransNodeMap         *_pTransNodeMap ;
       INT32                   _transRC ;
 
-      /// aligned memory.
       void                    *_alignedMem ;
       UINT32                   _alignedMemSize ;
    #endif // SDB_ENGINE
@@ -474,10 +464,8 @@ namespace engine
 
    _pmdEDUCB *pmdGetThreadEDUCB () ;
 
-   // this function must be called by the thread that want to create EDUCB
    _pmdEDUCB *pmdCreateThreadEDUCB ( _pmdEDUMgr *mgr, EDU_TYPES type ) ;
 
-   // this function must be called by the thread that want to delete EDUCB
    void pmdDeleteThreadEDUCB () ;
 
    _pmdEDUCB *pmdDeclareEDUCB ( _pmdEDUCB *p ) ;
@@ -494,7 +482,6 @@ namespace engine
    INT32 pmdEDUEntryPoint ( EDU_TYPES type, pmdEDUCB *cb, void *arg ) ;
    INT32 pmdEDUEntryPointWrapper ( EDU_TYPES type, pmdEDUCB *cb, void *arg ) ;
 
-   // array assignment later, can't inherit from SDBObject
    struct _eduEntryInfo
    {
       EDU_TYPES         type ;

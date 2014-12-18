@@ -149,7 +149,6 @@ namespace engine
          sendtimeout.tv_sec = 1 ;
          sendtimeout.tv_usec = 0 ;
          SOCKET nativeSock = _sock.native() ;
-         /// duplicate set?
          res = setsockopt( nativeSock, SOL_SOCKET, SO_KEEPALIVE,
                      ( void *)&keepAlive, sizeof(keepAlive) ) ;
          if ( SDB_OK != res )
@@ -222,7 +221,6 @@ namespace engine
          _sock.open( tcp::v4()) ;
 
          _sock.connect( endpoint, ec ) ;
-         /// may return ok when we in a local area network.
          if ( ec )
          {
             if ( boost::asio::error::would_block ==
@@ -332,7 +330,6 @@ namespace engine
                                     shared_from_this(),
                                     boost::asio::placeholders::error ) ) ;
          }
-         // for MsgSysInfoRequest msg(12bytes)
          else if ( FALSE == _hasRecvMsg )
          {
             async_read( _sock, buffer(&_header, sizeof(MsgSysInfoRequest)),
@@ -475,10 +472,8 @@ namespace engine
 
       if ( NET_EVENT_HANDLER_STATE_HEADER == _state )
       {
-         /// error header
          if ( ( UINT32 )MSG_SYSTEM_INFO_LEN == (UINT32)_header.messageLength )
          {
-            // sys info request
             if ( SDB_OK != _allocateBuf( sizeof(MsgSysInfoRequest) ))
             {
                goto error_close ;
@@ -506,7 +501,6 @@ namespace engine
             if ( FALSE == _hasRecvMsg )
             {
                _hasRecvMsg = TRUE ;
-               // need to recv the last header msg
                _state = NET_EVENT_HANDLER_STATE_HEADER_LAST ;
                asyncRead() ;
                _state = NET_EVENT_HANDLER_STATE_HEADER ;
@@ -521,7 +515,6 @@ namespace engine
                     _header.TID, _header.routeID.columns.groupID,
                     _header.routeID.columns.nodeID,
                     remoteAddr().c_str(), remotePort() ) ;
-            /// add to route table
             if ( MSG_INVALID_ROUTEID == _id.value )
             {
                if ( MSG_INVALID_ROUTEID != _header.routeID.value )
@@ -531,7 +524,6 @@ namespace engine
                }
             }
          }
-         /// msg has only header
          if ( (UINT32)sizeof(_MsgHeader) == (UINT32)_header.messageLength )
          {
             if ( SDB_OK != _allocateBuf( sizeof(_MsgHeader) ))

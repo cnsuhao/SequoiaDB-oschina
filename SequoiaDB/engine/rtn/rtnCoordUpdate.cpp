@@ -53,7 +53,6 @@ namespace engine
                                   BSONObj **ppErrorObj )
    {
       INT32 rc = SDB_OK;
-      //PD_TRACE_ENTRY ( SDB_RTNCOUPDATE_EXECUTE ) ;
       pmdKRCB *pKrcb                   = pmdGetKRCB();
       CoordCB *pCoordcb                = pKrcb->getCoordCB();
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
@@ -64,7 +63,6 @@ namespace engine
       INT64 updateNum = 0;
       BSONObj newUpdator ;
 
-      // fill default-reply(update success)
       MsgHeader*pHeader                = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_DELETE_RES;
@@ -139,7 +137,6 @@ namespace engine
             rc = kickShardingKeyForSubCL( subCLList, newUpdator,
                                           newSubCLUpdator,
                                           hasShardingKey, cb ) ;
-            //rc = checkModifierForSubCL( subCLList, pUpdator, cb );
             PD_RC_CHECK( rc, PDERROR,
                          "Failed to kick the sharding-key field "
                          "for sub-collection(rc=%d)",
@@ -235,7 +232,6 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "Update failed(rc=%d)", rc ) ;
 
-      // upsert
       if ( flag & FLG_UPDATE_UPSERT && 0 == updateNum )
       {
          mthModifier modifier;
@@ -276,7 +272,6 @@ namespace engine
       {
          replyHeader.contextID = updateNum;
       }
-      //PD_TRACE_EXITRC ( SDB_RTNCOUPDATE_EXECUTE, rc ) ;
       return rc;
    error:
       if ( rc && cb->isTransaction() )
@@ -335,7 +330,6 @@ namespace engine
                                         CoordGroupList &sendGroupLst,
                                         CoordGroupList &groupLst )
    {
-      // TODO: parse selectorObj and select data-node
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOUPDATE_GETNODEGROUPS ) ;
       cataInfo->getGroupByMatcher( selectObj, groupLst );
@@ -345,7 +339,6 @@ namespace engine
       }
       else
       {
-         //don't resend to the node which reply ok
          CoordGroupList::iterator iter = sendGroupLst.begin();
          while( iter != sendGroupLst.end() )
          {
@@ -459,7 +452,6 @@ namespace engine
                                                      pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK;
-      //PD_TRACE_ENTRY ( SDB_RTNCOUPDATE_CKIFINSHKEY ) ;
       isInclude = FALSE;
       try
       {
@@ -484,7 +476,6 @@ namespace engine
          goto error;
       }
       done :
-         //PD_TRACE_EXITRC ( SDB_RTNCOUPDATE_CKIFINSHKEY, rc ) ;
          return rc;
       error :
          goto done;
@@ -613,7 +604,6 @@ namespace engine
                      ++pField;
                   }
 
-                  // shardingkey_fieldName == updator_fieldName
                   if ( *pKey == *pField
                      || ( '\0' == *pKey && '.' == *pField )
                      || ( '\0' == *pField && '.' == *pKey ) )

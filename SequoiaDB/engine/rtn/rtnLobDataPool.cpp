@@ -71,7 +71,6 @@ namespace engine
       BOOLEAN matched = FALSE ;
       if ( _pool.empty() )
       {
-         /// do nothing.
       }
       else if ( offset == _currentTuple.offset )
       {

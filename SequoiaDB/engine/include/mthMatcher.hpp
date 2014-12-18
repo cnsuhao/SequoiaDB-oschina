@@ -96,9 +96,6 @@ namespace engine
    class _mthMatcher : public SDBObject
    {
    private:
-      // use a special match element for regular expression, since RE comparison
-      // is TOO expensive compare with other checks, so we always need to check
-      // all other match elements before checking REs
       class _REMatchElement : public SDBObject
       {
       private :
@@ -125,7 +122,6 @@ namespace engine
             }
             if(regex)
             {
-               //check if the regex contains metacharacters
                while(*regex)
                {
                   CHAR c = *(regex++);
@@ -185,23 +181,17 @@ namespace engine
          }
       } ;
       typedef class _REMatchElement REMatchElement ;
-      // only seen by _mthMatcher
       class _MatchElement : public SDBObject
       {
       public :
          BSONElement _toMatch ;
          BSONObj::MatchType _op ;
-         // this one stores array input ONLY
          set<BSONElement, element_lt> _myset ;
-         // this one stores array input for regex
          vector<REMatchElement> _myregex ;
-         // for type compare
          BSONType _type ;
-         // for mod operator
          INT32 _mod ;
          INT32 _modm ;
 
-         // for opELEM_MATCH
          _mthMatcher *_subMatcher ;
 
          _MatchElement ( const BSONElement &e, BSONObj::MatchType op ) ;
@@ -238,7 +228,6 @@ namespace engine
          }
       } ;
       typedef class _MatchElement MatchElement ;
-      //it is "and" "or" "not" struct
       class _LogicMatchElement : public SDBObject
       {
       public :
@@ -262,23 +251,13 @@ namespace engine
          }
       } ;
       typedef class _LogicMatchElement LogicMatchElement ;
-      // the query pattern, e.g. {name:"tao wang"} for searching name="tao wang"
-      // or {age:{$gt:25}} for searching age greater than 25
       BSONObj _matchPattern ;
       BOOLEAN _initialized ;
       BOOLEAN _matchesAll ;
-      //vector<MatchElement> _matchElements ;
-      //vector<REMatchElement> _matchREElements ;
       rtnPredicateSet _predicateSet ;
       LogicMatchElement *_rlme;
-      // this is for dynamic build element, since BSONObjBuilder will hold the
-      // memory for BSONObj, we should delete those memory only when the class
-      // is destroyed, so we need this list to hold those BSONObjBuilder
       vector<BSONObjBuilder*> _builderList ;
 
-      /// we can convert all the fields in pattern into predicates.
-      /// eg: {a:1, b:1} --> [a:1] and [b:1] it is totally converted.
-      /// {$or:[{a:1},{b:1}]} -> none predicate.
       BOOLEAN _totallyConverted ;
 
       INT32 _createLME ( LogicMatchElement *lme,
@@ -288,11 +267,8 @@ namespace engine
                         ) ;
       enum _MTH_MATCHER_FIELD_TYPE
       {
-         // is not field
          MTH_MATCHER_FIELD_NOT = 0,
-         //{ "aa" : { "$field" : "bb" } }
          MTH_MATCHER_FIELD_EQU,
-         //{ "aa" : { "$xx" : { "$field" : "bb" } } }
          MTH_MATCHER_FIELD_OTH
       } ;
       INT32 _parseElement ( const BSONElement &ele,

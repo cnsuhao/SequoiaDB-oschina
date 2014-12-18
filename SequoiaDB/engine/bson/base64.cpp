@@ -1,4 +1,3 @@
-// util/base64.cpp
 
 
 /*    Copyright 2009 10gen Inc.
@@ -30,10 +29,8 @@ namespace base64 {
             int left = size - i;
             const unsigned char * start = (const unsigned char*)data + i;
 
-            // byte 0
             ss << alphabet.e(start[0]>>2);
 
-            // byte 1
             unsigned char temp = ( start[0] << 4 );
             if ( left == 1 ) {
                 ss << alphabet.e(temp);
@@ -42,7 +39,6 @@ namespace base64 {
             temp |= ( ( start[1] >> 4 ) & 0xF );
             ss << alphabet.e(temp);
 
-            // byte 2
             temp = ( start[1] & 0xF ) << 2;
             if ( left == 2 ) {
                 ss << alphabet.e(temp);
@@ -51,7 +47,6 @@ namespace base64 {
             temp |= ( ( start[2] >> 6 ) & 0x3 );
             ss << alphabet.e(temp);
 
-            // byte 3
             ss << alphabet.e(start[2] & 0x3f);
         }
 

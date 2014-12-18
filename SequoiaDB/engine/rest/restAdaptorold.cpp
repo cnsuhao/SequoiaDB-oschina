@@ -45,11 +45,9 @@ namespace engine
 {
    _restAdaptoro::_restAdaptoro ()
    {
-      //int CRLF is \r\n
       CRLF[0] = 0x0D ;
       CRLF[1] = 0x0A ;
       CRLF[2] = 0 ;
-      // init CRLF2 is \r\n\r\n
       CRLF2[0] = 0x0D ;
       CRLF2[1] = 0x0A ;
       CRLF2[2] = 0x0D ;
@@ -59,12 +57,6 @@ namespace engine
    _restAdaptoro::~_restAdaptoro ()
    {
    }
-   // translate HTTP request to msgRequest
-   // Input: socket
-   // Output: ppReceiveBuffer for msg request buffer,
-   // receiveBufferSize for the size of buffer,
-   // needFetch for wether the request need to fetch data ( like query, snapshot
-   // etc )
    PD_TRACE_DECLARE_FUNCTION ( SDB__RESTADP_GETREQ, "_restAdaptor::getRequest" )
    INT32 _restAdaptoro::getRequest ( ossSocket &sock, CHAR **ppReceiveBuffer,
                                     INT32 *receiveBufferSize,
@@ -73,25 +65,20 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RESTADP_GETREQ );
       INT32 buffLen = REST_ADAPTOR_RECV_BUFF_SIZE ;
-      // malloc receive memory
       CHAR *buffer = (CHAR *)SDB_OSS_MALLOC ( buffLen ) ;
       if ( !buffer )
       {
          PD_LOG ( PDERROR, "Failed to malloc memory" ) ;
          goto error ;
       }
-      // initialization
       ossMemset ( buffer, 0, buffLen ) ;
-      // receiving the http header
       rc = _receive ( sock, buffer, buffLen, REST_SOCKET_DFT_TIMEOUT ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to call receive" ) ;
          goto error ;
       }
-      // init needFetch
       needFetch = FALSE ;
-      // http convert msg
       rc = _httpConvertMsg ( sock, buffer,
                              ppReceiveBuffer,
                              receiveBufferSize,
@@ -112,15 +99,6 @@ namespace engine
       goto done ;
    }
 
-   // send http reply
-   // note that for a single request, there could be multiple reply to send, so
-   // we need to further design whether we can send multiple replies piece by
-   // piece of wait until all result arrives and send in one shot
-   // Input: replyHeader for reply header ( including the number of records in
-   // buffer )
-   // pExtraBuffer for the actual result, usually it's one or more bson objects
-   // extraSize for the buffer size
-   // sock is the socket
    PD_TRACE_DECLARE_FUNCTION ( SDB__RESTADP_SNDREP, "_restAdaptor::sendReply" )
    INT32 _restAdaptoro::sendReply ( MsgOpReply &replyHeader,
                                    const CHAR *pExtraBuffer,
@@ -137,7 +115,6 @@ namespace engine
       if ( !isSendHeader )
       {
          isSendHeader = TRUE ;
-         // formatting http header
          len = ossSnprintf ( httpHeader, REST_ADAPTOR_RECV_HEAD_SIZE,
                              "HTTP/1.1 200 OK%s\
 Content-Type: text/html;charset=utf-8%s\
@@ -149,7 +126,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
             PD_LOG ( PDERROR, "Failed to formatting" ) ;
             goto error ;
          }
-         // send the http header
          rc = sock.send ( httpHeader, len, sentLen,
                           REST_SOCKET_DFT_TIMEOUT ) ;
          if ( rc )
@@ -167,7 +143,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
                PD_LOG ( PDERROR, "Failed to formatting" ) ;
                goto error ;
             }
-            // send the http header
             rc = sock.send ( httpHeader, len, sentLen,
                              REST_SOCKET_DFT_TIMEOUT ) ;
             if ( rc )
@@ -177,28 +152,20 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
             }
          }
       }
-      // if buffer no empty
       if ( pExtraBuffer )
       {
-         // buffer offset
          INT32 _offset  = 0 ;
-         // buffer's note convert to bson
          BSONObj bson ;
-         // json str point
          CHAR *pNote = NULL ;
          for ( INT32 i = 0; i < replyHeader.numReturned; ++i )
          {
-            // buffer + offset = note, note convert to bson
             bson = BSONObj ( pExtraBuffer + _offset ) ;
-            // bson convert to json string
             str = string ( bson.toString ( FALSE, FALSE ) ) ;
-            // pNote is json string point
             pNote = (CHAR *)str.c_str () ;
             if ( replyHeader.flags != 0 )
             {
                if ( SDB_DMS_EOC == replyHeader.flags )
                {
-                  //formatting http end flag
                   len = ossSnprintf ( httpHeader,
                                       REST_ADAPTOR_RECV_HEAD_SIZE,
                                       "0%s", CRLF2 ) ;
@@ -218,9 +185,7 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
                }
                else
                {
-                  // json string size
                   len = ossStrlen ( pNote ) ;
-                  // json string size
                   len = ossSnprintf ( httpHeader,
                                       REST_ADAPTOR_RECV_HEAD_SIZE,
                                       "%X%s%s%s0%s",
@@ -242,12 +207,9 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
                   }
                }
             }
-            // it is a note
             else
             {
-               // json string size
                len = ossStrlen ( pNote ) ;
-               // formatting http body
                len = ossSnprintf ( httpBody,
                                    REST_ADAPTOR_RECV_BODY_SIZE,
                                    "%X%s%s%s", len, CRLF, pNote, CRLF ) ;
@@ -261,7 +223,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
             }
             _offset += ossRoundUpToMultipleX ( *(INT32*)&pExtraBuffer[_offset],
                                                4 ) ;
-            // offset can not more than buffer size
             if ( _offset > extraSize )
             {
                goto done ;
@@ -282,20 +243,15 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
       INT32 rc = SDB_OK ;
       INT32 receivedLen = 0 ;
       PD_TRACE_ENTRY ( SDB__RESTADP__RECV );
-      // receive buffer
       CHAR *readBuf = buffer ;
-      // the single received size
       INT32 tempLen = 0 ;
-      // received sum size
       INT32 bufferLen = len ;
-      // current received length
       len = 0 ;
 
       while ( len < bufferLen )
       {
          tempLen = (len + REST_ADAPTOR_RECV_BUFF_SIZE) > bufferLen ?
                    bufferLen - len : REST_ADAPTOR_RECV_BUFF_SIZE ;
-         // receiving
          rc = sock.recv ( buffer + len,
                           tempLen,
                           receivedLen,
@@ -306,7 +262,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
             PD_LOG ( PDERROR, "Failed to call ossSocket recv" ) ;
             goto error ;
          }
-         // if receive "\r\n\r\n",we will continue to receive
          if ( ossStrstr ( readBuf + len - (len?REST_ADAPTOR_NUMBER_3:0),
                           CRLF2 ) )
          {
@@ -322,7 +277,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
       goto done ;
    }
 
-   // http convert message
    PD_TRACE_DECLARE_FUNCTION ( SDB__RESTADP__HTTPCVMSG, "_restAdaptor::_httpConvertMsg" )
    INT32 _restAdaptoro::_httpConvertMsg ( ossSocket &sock,
                                          CHAR *pBuffer,
@@ -332,30 +286,23 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RESTADP__HTTPCVMSG );
-      // this is post get put delete flag
       INT32 operators = 0 ;
       INT32 len      = 0 ;
 
-      //index buffer
       CHAR indexBuf[REST_ADAPTOR_INDEX_SIZE] = {0} ;
-      // collection full name
       CHAR csName[REST_ADAPTOR_NAME_SIZE] = {0} ;
-      // collection space name
       CHAR *pCsName = csName ;
-      // collection name
       CHAR *pClName = csName ;
 
       CHAR *pParameterBuf = NULL ;
       CHAR *pLenTemp = NULL ;
 
-      // if the buffer no end tag,as http error
       if ( !ossStrstr ( pBuffer, CRLF2 ) )
       {
          rc = SDB_REST_EHS ;
          PD_LOG ( PDERROR, "Error http structure" ) ;
          goto error ;
       }
-      //post
       if ( pBuffer[0] == 'P' && pBuffer[1] == 'O' &&
            pBuffer[2] == 'S' && pBuffer[3] == 'T' &&
            ( pBuffer[4] == REST_ADAPTOR_RECV_SPACE ||
@@ -364,7 +311,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
          operators = REST_ADAPTOR_RECV_POST ;
          pBuffer += REST_ADAPTOR_STR_POST_LEN ;
       }
-      //get
       else if ( pBuffer[0] == 'G' && pBuffer[1] == 'E' &&
                 pBuffer[2] == 'T' &&
                 ( pBuffer[3] == REST_ADAPTOR_RECV_SPACE ||
@@ -373,7 +319,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
          operators = REST_ADAPTOR_RECV_GET ;
          pBuffer += REST_ADAPTOR_STR_GET_LEN ;
       }
-      //error http struct
       else
       {
          rc = SDB_REST_EHS ;
@@ -381,12 +326,10 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
          goto error ;
       }
       pBuffer = _skip ( pBuffer ) ;
-      // buffer[0] is '/'
       while ( REST_ADAPTOR_STR_SLASH == pBuffer[0] )
       {
          ++pBuffer ;
          len = 0 ;
-         // "snapshot"
          if ( !ossStrncmp ( pBuffer, REST_ADAPTOR_STR_SNAPSHOT,
                             REST_ADAPTOR_STR_SNAPSHOT_LEN ) &&
          ( pBuffer[REST_ADAPTOR_STR_SNAPSHOT_LEN] == REST_ADAPTOR_STR_SLASH ||
@@ -403,7 +346,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
             }
             goto done ;
          }
-         // "create"
          else if ( !ossStrncmp ( pBuffer, REST_ADAPTOR_STR_CREATE,
                                  REST_ADAPTOR_STR_CREATE_LEN ) &&
            ( pBuffer[REST_ADAPTOR_STR_CREATE_LEN] == REST_ADAPTOR_STR_SLASH ||
@@ -427,7 +369,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
             }
             goto done ;
          }
-         // "drop"
          else if ( !ossStrncmp ( pBuffer, REST_ADAPTOR_STR_DROP,
                                  REST_ADAPTOR_STR_DROP_LEN ) &&
              ( pBuffer[REST_ADAPTOR_STR_DROP_LEN] == REST_ADAPTOR_STR_SLASH ||
@@ -451,7 +392,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
             }
             goto done ;
          }
-         // "session"
          else if ( !ossStrncmp ( pBuffer, REST_ADAPTOR_STR_SESSION,
                                  REST_ADAPTOR_STR_SESSION_LEN ) &&
            ( pBuffer[REST_ADAPTOR_STR_SESSION_LEN] == REST_ADAPTOR_STR_SLASH ||
@@ -471,7 +411,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
             }
             goto done ;
          }
-         // "context"
          else if ( !ossStrncmp ( pBuffer, REST_ADAPTOR_STR_CONTEXT,
                                  REST_ADAPTOR_STR_CONTEXT_LEN ) &&
            ( pBuffer[REST_ADAPTOR_STR_CONTEXT_LEN] == REST_ADAPTOR_STR_SLASH ||
@@ -491,7 +430,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
             }
             goto done ;
          }
-         // "query"
          else if ( !ossStrncmp ( pBuffer, REST_ADAPTOR_STR_QUERY,
                                  REST_ADAPTOR_STR_QUERY_LEN ) &&
             ( pBuffer[REST_ADAPTOR_STR_QUERY_LEN] == REST_ADAPTOR_STR_SLASH ||
@@ -516,7 +454,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
             }
             goto done ;
          }//if
-         // update
          else if ( !ossStrncmp ( pBuffer, REST_ADAPTOR_STR_UPDATE,
                                  REST_ADAPTOR_STR_UPDATE_LEN ) &&
            ( pBuffer[REST_ADAPTOR_STR_UPDATE_LEN] == REST_ADAPTOR_STR_SLASH ||
@@ -540,7 +477,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
             }
             goto done ;
          }
-         // insert
          else if ( !ossStrncmp ( pBuffer, REST_ADAPTOR_STR_INSERT,
                                  REST_ADAPTOR_STR_INSERT_LEN ) &&
            ( pBuffer[REST_ADAPTOR_STR_INSERT_LEN] == REST_ADAPTOR_STR_SLASH ||
@@ -564,7 +500,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
             }
             goto done ;
          }
-         // delete
          else if ( !ossStrncmp ( pBuffer, REST_ADAPTOR_STR_DELETE,
                                  REST_ADAPTOR_STR_DELETE_LEN ) &&
            ( pBuffer[REST_ADAPTOR_STR_DELETE_LEN] == REST_ADAPTOR_STR_SLASH ||
@@ -588,7 +523,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
             }
             goto done ;
          }
-         // count
          else if ( !ossStrncmp ( pBuffer, REST_ADAPTOR_STR_COUNT,
                                  REST_ADAPTOR_STR_COUNT_LEN ) &&
             ( pBuffer[REST_ADAPTOR_STR_COUNT_LEN] == REST_ADAPTOR_STR_SLASH ||
@@ -620,8 +554,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
             {
                break ;
             }
-            // if not command, than is collection space name or
-            // collection name
             if ( !pCsName[0] )
             {
                pLenTemp = _strEndTag ( pBuffer ) ;
@@ -700,8 +632,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
                   goto error ;
                }
             }
-            // if not command or not collection space name or
-            // not collection name, than is error
             else
             {
                rc = SDB_REST_EHS ;
@@ -762,7 +692,6 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
 
    CHAR *_restAdaptoro::_skip( CHAR *in )
    {
-      // skip space and table
       while ( in && *in &&
               ( (UINT32)*in == REST_ADAPTOR_RECV_SPACE ||
               (UINT32)*in == REST_ADAPTOR_RECV_TABLE ) )
@@ -781,10 +710,8 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RESTADP__SKIP2PM );
-      // POST
       if ( REST_ADAPTOR_RECV_POST == operators )
       {
-         // get the post body
          rc = _getPostBody ( sock, &buffer, temp, isMalloc ) ;
          if ( rc )
          {
@@ -792,10 +719,8 @@ Connection: close%s", CRLF, CRLF, CRLF, CRLF2 ) ;
             goto error ;
          }
       }
-      // GET
       else if ( REST_ADAPTOR_RECV_GET == operators )
       {
-         // temp point to get parameter
          if ( REST_ADAPTOR_STR_QUESTION == (*temp)[0] )
          {
             *temp = _skip ( *temp + 1 ) ;
@@ -846,7 +771,6 @@ error :
       INT32 bodyLen = 0 ;
       CHAR *bodyTemp = NULL ;
 
-      // "Content-Length"
       *temp = ossStrstr ( *buffer, REST_ADAPTOR_STR_CONLEN ) ;
       if ( !*temp )
       {
@@ -856,7 +780,6 @@ error :
       }
       *temp += REST_ADAPTOR_STR_CONLEN_LEN ;
       *temp = _skip ( *temp ) ;
-      // ':'
       if ( REST_ADAPTOR_STR_COLON != *temp[0] )
       {
          rc = SDB_REST_EHS ;
@@ -864,9 +787,7 @@ error :
          goto error ;
       }
       *temp = _skip ( *temp + 1 ) ;
-      // get the post body length
       postLength = ossAtoi ( *temp ) ;
-      // '\r\n\r\n'
       *temp = ossStrstr ( *buffer, CRLF2 ) ;
       if ( !*temp )
       {
@@ -875,11 +796,9 @@ error :
          goto error ;
       }
       *temp += REST_ADAPTOR_NUMBER_4 ;
-      // get the body length in the header
       len = ossStrlen ( *temp ) ;
       if ( postLength > len )
       {
-         // caller is responsible to free memory
          bodyTemp = (CHAR *)SDB_OSS_MALLOC ( postLength ) ;
          if ( !bodyTemp )
          {
@@ -888,14 +807,11 @@ error :
             PD_LOG ( PDERROR, "error http struct" ) ;
             goto error ;
          }
-         // copy post body in the header
          if ( len > 0 )
          {
             ossStrncpy ( bodyTemp, *temp, len ) ;
          }
          bodyLen = postLength -len ;
-         // receiving residual part
-         // PS : here is not allowed to time out
          rc = _receive ( sock,
                          bodyTemp + len,
                          bodyLen,
@@ -906,7 +822,6 @@ error :
             PD_LOG ( PDERROR, "failed to call _receive" ) ;
             goto error ;
          }
-         // post length with the actual reception is not the same length
          if ( bodyLen != postLength - len )
          {
             SDB_OSS_FREE ( bodyTemp ) ;
@@ -915,16 +830,13 @@ error :
             goto error ;
          }
          *temp = bodyTemp ;
-         // isMalloc is memory allocation marker
          isMalloc = TRUE ;
       }
       else if ( postLength == len )
       {
-         //not to do anything
       }
       else
       {
-         // post length less than body in the hearder
          rc = SDB_REST_EHS ;
          PD_LOG ( PDERROR, "error http struct" ) ;
          goto error ;
@@ -944,7 +856,6 @@ error :
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RESTADP__GETPM );
       CHAR *lenTemp = NULL ;
-      // '='
       if ( REST_ADAPTOR_STR_EQUALSIGN != *temp[0] )
       {
          rc = SDB_REST_EHS ;
@@ -953,7 +864,6 @@ error :
       }
       *temp = _skip ( *temp + 1 ) ;
       *parameter = *temp ;
-      // '&'
       lenTemp = ossStrchr ( *temp, REST_ADAPTOR_STR_AMPERSAND ) ;
       if ( !lenTemp )
       {
@@ -974,7 +884,6 @@ error :
          }//(space)
       }//'&'
 
-      // disconnect the memory
       lenTemp[0] = 0 ;
       *temp = lenTemp + 1 ;
       if ( !ossIsUTF8 ( *parameter ) )
@@ -1129,7 +1038,6 @@ error :
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RESTADP__SNAPCMD );
-      // command buffer, for example "snapshot"
       CHAR command[REST_ADAPTOR_MSG_COMMAND] = {0} ;
       ossStrcpy ( command, "$snapshot database" ) ;
       rc = _runCommand ( ppReceiveBuffer, receiveBufferSize, command ) ;
@@ -1166,7 +1074,6 @@ error :
       BOOLEAN isMalloc = FALSE ;
       CHAR command[REST_ADAPTOR_MSG_COMMAND] = {0} ;
       CHAR Strings[REST_ADAPTOR_MSG_COMMAND] = {0} ;
-      // jump to parameter
       rc = _skipToParameter ( sock,
                               pBuffer,
                               &pParameterBuf,
@@ -1177,16 +1084,13 @@ error :
          PD_LOG ( PDERROR, "Faile to call _skipToParameter" ) ;
          goto error ;
       }
-      // if post,we will allocation memory
       pTemporary = pParameterBuf ;
       while ( 0 != pTemporary[0] )
       {
-         // "csname"
          if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_CSNAME,
                              REST_ADAPTOR_STR_CSNAME_LEN ) )
          {
             pTemporary = _skip ( pTemporary + REST_ADAPTOR_STR_CSNAME_LEN ) ;
-            // get the parameter
             rc = _getParameter ( &pTemporary, &pCsName, operators ) ;
             if ( rc )
             {
@@ -1194,7 +1098,6 @@ error :
                goto error ;
             }
          }
-         // "clname"
          else if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_CLNAME,
                                  REST_ADAPTOR_STR_CLNAME_LEN ) )
          {
@@ -1206,7 +1109,6 @@ error :
                goto error ;
             }
          }
-         // "key"
          else if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_KEY,
                                  REST_ADAPTOR_STR_KEY_LEN ) )
          {
@@ -1218,7 +1120,6 @@ error :
                goto error ;
             }
          }
-         // "indexname"
          else if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_INDEXNAME,
                                  REST_ADAPTOR_STR_INDEXNAME_LEN ) )
          {
@@ -1230,7 +1131,6 @@ error :
                goto error ;
             }
          }
-         // "unique"
          else if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_UNIQUE,
                                  REST_ADAPTOR_STR_UNIQUE_LEN ) )
          {
@@ -1244,8 +1144,6 @@ error :
          }
          else
          {
-            // if not we need parameter,so we will skip this part
-            // temp find '&'
             pLenTemp = ossStrchr ( pTemporary,
                                    REST_ADAPTOR_STR_AMPERSAND ) ;
             if ( !pLenTemp )
@@ -1261,7 +1159,6 @@ error :
             pTemporary = pLenTemp ;
          }//if
       }//for
-      // create collection space
       if ( pCsName && !csFullName[0] && !pKey && !pIndexName && !pUnique )
       {
          ossStrcpy ( command, "$create collectionspace" ) ;
@@ -1338,7 +1235,6 @@ index:{key:%s,name:\"%s\",unique:false}}",
          goto error ;
       }
    done :
-      // _skipToParameter may allocates memory
       if ( isMalloc )
       {
          SDB_OSS_FREE ( pParameterBuf ) ;
@@ -1384,7 +1280,6 @@ index:{key:%s,name:\"%s\",unique:false}}",
 
       while ( 0 != pTemporary[0] )
       {
-         // "csname"
          if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_CSNAME,
                             REST_ADAPTOR_STR_CSNAME_LEN ) )
          {
@@ -1396,7 +1291,6 @@ index:{key:%s,name:\"%s\",unique:false}}",
                goto error ;
             }
          }
-         // "clname"
          else if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_CLNAME,
                                  REST_ADAPTOR_STR_CLNAME_LEN ) )
          {
@@ -1408,7 +1302,6 @@ index:{key:%s,name:\"%s\",unique:false}}",
                goto error ;
             }
          }
-         // "indexname"
          else if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_INDEXNAME,
                                  REST_ADAPTOR_STR_INDEXNAME_LEN ) )
          {
@@ -1422,8 +1315,6 @@ index:{key:%s,name:\"%s\",unique:false}}",
          }
          else
          {
-            // if not we need parameter,so we will skip this part
-            // temp find '&'
             pLenTemp = ossStrchr ( pTemporary,
                                    REST_ADAPTOR_STR_AMPERSAND ) ;
             if ( !pLenTemp )
@@ -1520,11 +1411,9 @@ index:{\"\":\"%s\"}}",
       INT32 len = 0 ;
       CHAR command[REST_ADAPTOR_MSG_COMMAND] = {0} ;
       CHAR Strings[REST_ADAPTOR_MSG_COMMAND] = {0} ;
-      // session/
       if ( REST_ADAPTOR_STR_SLASH == pParameterBuf[0] )
       {
          ++pParameterBuf ;
-         // session/(space|table)
          if ( REST_ADAPTOR_RECV_SPACE == pParameterBuf[0] ||
               REST_ADAPTOR_RECV_TABLE == pParameterBuf[0] )
          {
@@ -1536,7 +1425,6 @@ index:{\"\":\"%s\"}}",
                goto error ;
             }
          }
-         // session/xxxxx
          else
          {
             pLenTemp = _strEndTag ( pParameterBuf ) ;
@@ -1559,7 +1447,6 @@ index:{\"\":\"%s\"}}",
             }
          }
       }
-      // sessionxxxxx
       else
       {
          if ( REST_ADAPTOR_RECV_SPACE == pParameterBuf[0] ||
@@ -1598,11 +1485,9 @@ index:{\"\":\"%s\"}}",
       INT32 len = 0 ;
       CHAR command[REST_ADAPTOR_MSG_COMMAND] = {0} ;
       CHAR Strings[REST_ADAPTOR_MSG_COMMAND] = {0} ;
-      // context/
       if ( REST_ADAPTOR_STR_SLASH == pParameterBuf[0] )
       {
          ++pParameterBuf ;
-         // context/(space|table)
          if ( REST_ADAPTOR_RECV_SPACE == pParameterBuf[0] ||
               REST_ADAPTOR_RECV_TABLE == pParameterBuf[0] )
          {
@@ -1614,7 +1499,6 @@ index:{\"\":\"%s\"}}",
                goto error ;
             }
          }
-         // context/xxxxx
          else
          {
             pLenTemp = _strEndTag ( pParameterBuf ) ;
@@ -1637,7 +1521,6 @@ index:{\"\":\"%s\"}}",
             }
          }
       }
-      // contextxxxxx
       else
       {
          if ( REST_ADAPTOR_RECV_SPACE == pParameterBuf[0] ||
@@ -1710,7 +1593,6 @@ index:{\"\":\"%s\"}}",
       pTemporary = pParameterBuf ;
       while ( 0 != pTemporary[0] )
       {
-         // "condition"
          if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_CONDITION,
                             REST_ADAPTOR_STR_CONDITION_LEN ) )
          {
@@ -1722,7 +1604,6 @@ index:{\"\":\"%s\"}}",
                goto error ;
             }
          }
-         // "selector"
          else if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_SELECTOR,
                                  REST_ADAPTOR_STR_SELECTOR_LEN ) )
          {
@@ -1734,7 +1615,6 @@ index:{\"\":\"%s\"}}",
                goto error ;
             }
          }
-         // "orderby"
          else if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_ORDERBY,
                                  REST_ADAPTOR_STR_ORDERBY_LEN ) )
          {
@@ -1746,7 +1626,6 @@ index:{\"\":\"%s\"}}",
                goto error ;
             }
          }
-         // "hint"
          else if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_HINT,
                                  REST_ADAPTOR_STR_HINT_LEN ) )
          {
@@ -1758,7 +1637,6 @@ index:{\"\":\"%s\"}}",
                goto error ;
             }
          }
-         // "skiprows"
          else if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_SKIPROWS,
                                  REST_ADAPTOR_STR_SKIPROWS_LEN ) )
          {
@@ -1770,7 +1648,6 @@ index:{\"\":\"%s\"}}",
                goto error ;
             }
          }
-         // "limit"
          else if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_LIMIT,
                                  REST_ADAPTOR_STR_LIMIT_LEN ) )
          {
@@ -1784,8 +1661,6 @@ index:{\"\":\"%s\"}}",
          }
          else
          {
-            // if not we need parameter,so we will skip this part
-            // temp find '&'
             pLenTemp = ossStrchr ( pTemporary,
                                    REST_ADAPTOR_STR_AMPERSAND ) ;
             if ( !pLenTemp )
@@ -1959,7 +1834,6 @@ index:{\"\":\"%s\"}}",
       pTemporary = pParameterBuf ;
       while ( 0 != pTemporary[0] )
       {
-         // "condition"
          if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_CONDITION,
                             REST_ADAPTOR_STR_CONDITION_LEN ) )
          {
@@ -1971,7 +1845,6 @@ index:{\"\":\"%s\"}}",
                goto error ;
             }
          }
-         // "rule"
          else if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_RULE,
                                  REST_ADAPTOR_STR_RULE_LEN ) )
          {
@@ -1983,7 +1856,6 @@ index:{\"\":\"%s\"}}",
                goto error ;
             }
          }
-         // "hint"
          else if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_HINT,
                                  REST_ADAPTOR_STR_HINT_LEN ) )
          {
@@ -1997,8 +1869,6 @@ index:{\"\":\"%s\"}}",
          }
          else
          {
-            // if not we need parameter,so we will skip this part
-            // temp find '&'
             pLenTemp = ossStrchr ( pTemporary,
                                    REST_ADAPTOR_STR_AMPERSAND ) ;
             if ( !pLenTemp )
@@ -2144,7 +2014,6 @@ index:{\"\":\"%s\"}}",
       pTemporary = pParameterBuf ;
       while ( 0 != pTemporary[0] )
       {
-         // "record"
          if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_RECORD,
                             REST_ADAPTOR_STR_RECORD_LEN ) )
          {
@@ -2158,8 +2027,6 @@ index:{\"\":\"%s\"}}",
          }
          else
          {
-            // if not we need parameter,so we will skip this part
-            // temp find '&'
             pLenTemp = ossStrchr ( pTemporary,
                                    REST_ADAPTOR_STR_AMPERSAND ) ;
             if ( !pLenTemp )
@@ -2270,7 +2137,6 @@ index:{\"\":\"%s\"}}",
       pTemporary = pParameterBuf ;
       while ( 0 != pTemporary[0] )
       {
-         // "condition"
          if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_CONDITION,
                             REST_ADAPTOR_STR_CONDITION_LEN ) )
          {
@@ -2282,7 +2148,6 @@ index:{\"\":\"%s\"}}",
                goto error ;
             }
          }
-         // "hint"
          else if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_HINT,
                                  REST_ADAPTOR_STR_HINT_LEN ) )
          {
@@ -2296,8 +2161,6 @@ index:{\"\":\"%s\"}}",
          }
          else
          {
-            // if not we need parameter,so we will skip this part
-            // temp find '&'
             pLenTemp = ossStrchr ( pTemporary,
                                    REST_ADAPTOR_STR_AMPERSAND ) ;
             if ( !pLenTemp )
@@ -2417,7 +2280,6 @@ index:{\"\":\"%s\"}}",
       pTemporary = pParameterBuf ;
       while ( 0 != pTemporary[0] )
       {
-         // "condition"
          if ( !ossStrncmp ( pTemporary, REST_ADAPTOR_STR_CONDITION,
                             REST_ADAPTOR_STR_CONDITION_LEN ) )
          {
@@ -2431,8 +2293,6 @@ index:{\"\":\"%s\"}}",
          }
          else
          {
-            // if not we need parameter,so we will skip this part
-            // temp find '&'
             pLenTemp = ossStrchr ( pTemporary,
                                    REST_ADAPTOR_STR_AMPERSAND ) ;
             if ( !pLenTemp )
@@ -2503,7 +2363,6 @@ index:{\"\":\"%s\"}}",
 
       CHAR Strings[REST_ADAPTOR_MSG_COMMAND] = {0} ;
       CHAR command[REST_ADAPTOR_MSG_COMMAND] = {0} ;
-      // query collection space
       if ( !pCsName[0] && !pClName[0] && !indexBuf[0] )
       {
          needFetch = TRUE ;
@@ -2517,7 +2376,6 @@ index:{\"\":\"%s\"}}",
             goto error ;
          }
       }
-      // query collection
       else if ( pCsName[0] && !pClName[0] && !indexBuf[0] )
       {
          needFetch = TRUE ;
@@ -2537,7 +2395,6 @@ index:{\"\":\"%s\"}}",
             goto error ;
          }
       }
-      // query notes
       else if ( pCsName[0] && pClName[0] && !indexBuf[0] )
       {
          needFetch = TRUE ;

@@ -195,7 +195,6 @@ namespace engine
          ++iterGroup;
       }
 
-      // TODO:process the primary-change
    retry:
       isNeedRetry = FALSE;
       rc = rtnCoordSendRequestToNodeGroups( (CHAR *)(&msgReq), newTransGroupLst,
@@ -351,7 +350,6 @@ namespace engine
                   "failed to get sub-collection info(rc=%d)",
                   rc );
 
-      // build transaction session
       if ( cb->isTransaction() )
       {
          CoordGroupList groupLst;
@@ -394,8 +392,6 @@ namespace engine
          PD_LOG( PDWARNING, "failed to get reply(rcTmp=%d)", rcTmp );
          if ( SDB_APP_INTERRUPT == rcTmp || SDB_OK == rc )
          {
-            // if it is interrupt, go to error
-            // the session will be released while process interrupt
             rc = rcTmp;
          }
       }
@@ -477,7 +473,6 @@ namespace engine
       INT32 rcTmp = SDB_OK ;
       REPLY_QUE replyQue ;
 
-      // fill default-reply
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer ;
       replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
       replyHeader.header.opCode        = MSG_BS_MSG_RES ;
@@ -488,7 +483,6 @@ namespace engine
       replyHeader.flags                = SDB_OK ;
       replyHeader.numReturned          = 0 ;
       replyHeader.startFrom            = 0 ;
-      // set tid
       pHeader->TID = cb->getTID() ;
 
       CoordGroupList groupLst ;
@@ -497,14 +491,11 @@ namespace engine
       REQUESTID_MAP successNodes ;
       ROUTE_RC_MAP failedNodes ;
 
-      // run msg
       rtnMsg( (MsgOpMsg *)pReceiveBuffer ) ;
 
-      // list all groups
       rc = rtnCoordGetAllGroupList( cb, groupLst, NULL, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get all group list, rc: %d", rc ) ;
 
-      // get nodes
       rc = rtnCoordGetGroupNodes( cb, BSONObj(), NODE_SEL_ALL,
                                   groupLst, sendNodes ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get nodes, rc: %d", rc ) ;
@@ -515,7 +506,6 @@ namespace engine
          goto error ;
       }
 
-      // send msg
       rtnCoordSendRequestToNodes( pReceiveBuffer, sendNodes, 
                                   pRouteAgent, cb, successNodes,
                                   failedNodes ) ;

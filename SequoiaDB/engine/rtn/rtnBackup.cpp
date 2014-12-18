@@ -78,7 +78,6 @@ namespace engine
       BOOLEAN enableDateDir   = FALSE ;
       const CHAR *prefix      = NULL ;
 
-      // option config
       rc = rtnGetBooleanElement( option, FIELD_NAME_ISSUBDIR, isSubDir ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
@@ -119,7 +118,6 @@ namespace engine
          maxDataFileSize = BAR_DFT_DATAFILE_SIZE ;
       }
 
-      // make path
       if ( isSubDir && path )
       {
          bkpath = rtnFullPathName( pmdGetOptionCB()->getBkupPath(), path ) ;
@@ -191,7 +189,6 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_DETAIL, rc ) ;
 
-      // option config
       rc = rtnGetBooleanElement( hint, FIELD_NAME_ISSUBDIR, isSubDir ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
@@ -208,7 +205,6 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_PREFIX, rc ) ;
 
-      // make path
       if ( isSubDir && pPath )
       {
          bkpath = rtnFullPathName( pmdGetOptionCB()->getBkupPath(), pPath ) ;
@@ -225,7 +221,6 @@ namespace engine
       rc = bkMgr.init( bkpath.c_str(), backupName, prefix ) ;
       PD_RC_CHECK( rc, PDWARNING, "Init backup manager failed, rc: %d", rc ) ;
 
-      // list
       rc = bkMgr.list( vecBackup, detail ) ;
       PD_RC_CHECK( rc, PDWARNING, "List backup failed, rc: %d", rc ) ;
 
@@ -256,7 +251,6 @@ namespace engine
 
       barBackupMgr bkMgr( krcb->getGroupName() ) ;
 
-      // option config
       rc = rtnGetBooleanElement( option, FIELD_NAME_ISSUBDIR, isSubDir ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
       {
@@ -273,7 +267,6 @@ namespace engine
       PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_PREFIX, rc ) ;
 
-      // make path
       if ( isSubDir && path )
       {
          bkpath = rtnFullPathName( pmdGetOptionCB()->getBkupPath(), path ) ;

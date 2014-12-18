@@ -88,13 +88,9 @@ namespace engine
       }
 
    private:
-      /// property name in parent.
-      /// if this field is assigned,
-      /// return value will be set into parent object as a property.
       sptProperty _property ;
       const void *_classDef ;
 
-      /// properties of return val.
       SPT_PROPERTIES _properties ;
    } ;
 

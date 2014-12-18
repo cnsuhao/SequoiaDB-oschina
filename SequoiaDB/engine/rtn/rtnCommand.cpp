@@ -46,7 +46,6 @@
 #include "rtnContextListLob.hpp"
 
 #if defined (_DEBUG)
-// for qgmDebugQuery function
 #endif
 
 using namespace bson ;
@@ -211,7 +210,6 @@ namespace engine
       }
       else
       {
-         //split next node first
          newCmdInfo = SDB_OSS_NEW _cmdBuilderInfo ;
          newCmdInfo->cmdName = pCmdInfo->cmdName.substr( sameNum ) ;
          newCmdInfo->createFunc = pCmdInfo->createFunc ;
@@ -221,7 +219,6 @@ namespace engine
 
          pCmdInfo->next = newCmdInfo ;
 
-         //change cur node
          pCmdInfo->cmdName = pCmdInfo->cmdName.substr ( 0, sameNum ) ;
          pCmdInfo->nameSize = sameNum ;
 
@@ -344,7 +341,6 @@ namespace engine
    {
    }
 
-   //Command list:
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCreateGroup)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnRemoveGroup)
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnCreateNode)
@@ -520,7 +516,6 @@ namespace engine
                   "creation, rc = %d", FIELD_NAME_NAME, rc ) ;
          goto error ;
       }
-      // ensure sharding key
       rc = rtnGetBooleanElement( matcher, FIELD_NAME_ENSURE_SHDINDEX,
                                  enSureIndex ) ;
       if ( SDB_FIELD_NOT_EXIST == rc )
@@ -530,7 +525,6 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "Field[%s] value is error in obj[%s]",
                    FIELD_NAME_ENSURE_SHDINDEX, matcher.toString().c_str() ) ;
-      // if we want to create sharding key index, let's do it
       if ( enSureIndex )
       {
          rc = rtnGetObjElement ( matcher, FIELD_NAME_SHARDINGKEY,
@@ -543,7 +537,6 @@ namespace engine
                       FIELD_NAME_SHARDINGKEY,
                       matcher.toString().c_str() ) ;
       }
-      // check the attribute, we don't care the return code
       rtnGetBooleanElement ( matcher, FIELD_NAME_COMPRESSED,
                              isCompressed ) ;
       if ( isCompressed )
@@ -1167,7 +1160,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to open context[%lld], rc: %d",
                    *pContextID, rc ) ;
 
-      // sample timetamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          context->getMonCB()->recordStartTimestamp() ;
@@ -1342,7 +1334,6 @@ namespace engine
       rc = dmsCB->writable ( cb ) ;
       if ( rc )
       {
-         // do not call writeDown if writable fail
          goto not_locked ;
       }
       rc = rtnCollectionSpaceLock ( _csName, pDmsCB, FALSE, &su, suID ) ;
@@ -1960,7 +1951,6 @@ namespace engine
             BSONObjIterator it ( eleComp.embeddedObject() ) ;
             if ( !it.more () )
             {
-               // if there's no element, that means we need mask everything
                for( INT32 i = 0; i < _pdTraceComponentNum; ++i )
                {
                   _mask |= one << i ;
@@ -2001,8 +1991,6 @@ namespace engine
                      if( 0 == ossStrcmp( funcName, eleStr ) )
                      {
                         _funcCode.push_back ( i ) ;
-                        // do NOT break since we may have functions with
-                        // duplicate names
                      } // if( 0 == ossStrcmp( funcName, eleStr ) )
                   } // for( UINT64 i = 0; i < pdGetTraceFunctionListNum(); i++ )
                } // if( ele.type() == String )
@@ -2091,10 +2079,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__RTNTRACERESUME_DOIT ) ;
       pdTraceCB *pdTraceCB = sdbGetPDTraceCB() ;
       pdTraceCB->removeAllBreakPoint () ;
-      // sleep for a second so that break point removal information is broadcast
-      // to all CPUs
-      // Note this is not performance sensitive code, so it's safe to sleep for
-      // 1 second
       ossSleepsecs(1) ;
       pdTraceCB->resumePausedEDUs () ;
       PD_TRACE_EXITRC ( SDB__RTNTRACERESUME_DOIT, rc ) ;
@@ -2219,7 +2203,6 @@ namespace engine
       rtnContextDump *context = NULL ;
 
       *pContextID = -1 ;
-      // create cursors
       rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
                                *pContextID, cb ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to create new context, rc = %d", rc ) ;
@@ -2318,7 +2301,6 @@ namespace engine
       try
       {
          BSONObj obj( pMatcherBuff ) ;
-         //file name
          tempEle = obj.getField ( FIELD_NAME_FILENAME ) ;
          if ( tempEle.eoo() )
          {
@@ -2335,7 +2317,6 @@ namespace engine
          tempValue = tempEle.valuestr() ;
          ossStrncpy ( _fileName, tempValue, tempEle.valuestrsize() ) ;
 
-         //cs name
          tempEle = obj.getField ( FIELD_NAME_COLLECTIONSPACE ) ;
          if ( tempEle.eoo() )
          {
@@ -2352,7 +2333,6 @@ namespace engine
          tempValue = tempEle.valuestr() ;
          ossStrncpy ( _csName, tempValue, tempEle.valuestrsize() ) ;
 
-         //cl name
          tempEle = obj.getField ( FIELD_NAME_COLLECTION ) ;
          if ( tempEle.eoo() )
          {
@@ -2369,7 +2349,6 @@ namespace engine
          tempValue = tempEle.valuestr() ;
          ossStrncpy ( _clName, tempValue, tempEle.valuestrsize() ) ;
 
-         //fields
          tempEle = obj.getField ( FIELD_NAME_FIELDS ) ;
          if ( !tempEle.eoo() )
          {
@@ -2394,7 +2373,6 @@ namespace engine
                          tempValue, fieldsSize ) ;
          }
 
-         //character
          tempEle = obj.getField ( FIELD_NAME_CHARACTER ) ;
          if ( !tempEle.eoo() )
          {
@@ -2420,7 +2398,6 @@ namespace engine
             }
          }
 
-         // asynchronous
          tempEle = obj.getField ( FIELD_NAME_ASYNCHRONOUS ) ;
          if ( !tempEle.eoo() )
          {
@@ -2433,7 +2410,6 @@ namespace engine
             isAsynchronous = tempEle.boolean() ;
          }
 
-         // headerline
          tempEle = obj.getField ( FIELD_NAME_HEADERLINE ) ;
          if ( !tempEle.eoo() )
          {
@@ -2446,7 +2422,6 @@ namespace engine
             headerline = tempEle.boolean() ;
          }
 
-         // thread number
          tempEle = obj.getField ( FIELD_NAME_THREADNUM ) ;
          if ( !tempEle.eoo() )
          {
@@ -2459,7 +2434,6 @@ namespace engine
             threadNum = (UINT32)tempEle.Int() ;
          }
 
-         // bucket number
          tempEle = obj.getField ( FIELD_NAME_BUCKETNUM ) ;
          if ( !tempEle.eoo() )
          {
@@ -2472,7 +2446,6 @@ namespace engine
             bucketNum = (UINT32)tempEle.Int() ;
          }
 
-         // buffer size
          tempEle = obj.getField ( FIELD_NAME_PARSEBUFFERSIZE ) ;
          if ( !tempEle.eoo() )
          {
@@ -2485,7 +2458,6 @@ namespace engine
             bufferSize = (UINT32)tempEle.Int() ;
          }
 
-         // type
          tempEle = obj.getField ( FIELD_NAME_LTYPE ) ;
          if ( tempEle.eoo() )
          {

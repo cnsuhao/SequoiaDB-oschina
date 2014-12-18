@@ -228,7 +228,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN locked = FALSE ;
 
-      // if om node has already exist, can't create another
       if ( 0 == ossStrcmp( _roleStr.c_str(), SDB_ROLE_OM_STR ) )
       {
          sdbGetOMAgentOptions()->lock( EXCLUSIVE ) ;
@@ -245,15 +244,12 @@ namespace engine
 
       rc = sdbGetOMAgentMgr()->getNodeMgr()->addANode( _config.objdata(),
                                                        dummy.objdata() ) ;
-      // if create om, need to add om address to config, and then
-      // save config
       if ( SDB_OK == rc &&
            0 == ossStrcmp( _roleStr.c_str(), SDB_ROLE_OM_STR ) )
       {
          sdbGetOMAgentOptions()->addOMAddr( pmdGetKRCB()->getHostName(),
                                             _svcName.c_str() ) ;
          sdbGetOMAgentOptions()->save() ;
-         // notify change
          sdbGetOMAgentMgr()->onConfigChange() ;
       }
 
@@ -300,14 +296,12 @@ namespace engine
       rc = sdbGetOMAgentMgr()->getNodeMgr()->rmANode( _config.objdata(),
                                                       dummy.objdata(),
                                                       _roleStr.c_str() ) ;
-      // if remove om node, need to rm the node from config, and the save
       if ( SDB_OK == rc &&
            0 == ossStrcmp( _roleStr.c_str(), SDB_ROLE_OM_STR ) )
       {
          sdbGetOMAgentOptions()->delOMAddr( pmdGetKRCB()->getHostName(),
                                             _svcName.c_str() ) ;
          sdbGetOMAgentOptions()->save() ;
-         // notify change
          sdbGetOMAgentMgr()->onConfigChange() ;
       }
 

@@ -4,7 +4,10 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -17,6 +20,7 @@ import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.BasicBSONList;
+import org.bson.util.JSON;
 
 import com.sequoiadb.base.DBCollection;
 import com.sequoiadb.base.DBCursor;
@@ -52,20 +56,17 @@ public class SdbSplitFactory {
 	 * @exception
 	 * @since 1.0.0
 	 */
-//	public static List<InputSplit> getSplits(JobContext jobContext,
-//			String collectionSpaceName, String collectionName) {
 	public static List<InputSplit> getSplits(JobContext jobContext) {
-		System.out.println(jobContext.getClass().getName());
 
 		Configuration conf = jobContext.getConfiguration();
 
 		String urls = SequoiadbConfigUtil.getInputURL(conf);
-		System.out.println(urls);
 		SdbConnAddr[] sdbConnAddrs = SequoiadbConfigUtil.getAddrList(urls);
-
+		String preferedInstance=SequoiadbConfigUtil.getPreferenceInstance(conf);
 		String collectionName = SequoiadbConfigUtil.getInCollectionName(conf);
 		String collectionSpaceName = SequoiadbConfigUtil.getInCollectionSpaceName(conf);
-		
+		String queryStr = SequoiadbConfigUtil.getQueryString(conf);
+		String selectorStr = SequoiadbConfigUtil.getSelectorString(conf);
 		log.debug("test sdbConnAddrs whether it can connect or not ");
 		Sequoiadb sdb = null;
 		BaseException lastException = null;
@@ -74,7 +75,7 @@ public class SdbSplitFactory {
 			try {
 				sdb = new Sequoiadb(sdbConnAddrs[i].getHost(),
 						sdbConnAddrs[i].getPort(), null, null);
-				sdb.setSessionAttr(new BasicBSONObject("PreferedInstanc","S"));
+				sdb.setSessionAttr(new BasicBSONObject("PreferedInstance",preferedInstance));
 				break;
 			} catch (BaseException e) {
 				lastException = e;
@@ -84,31 +85,83 @@ public class SdbSplitFactory {
 			throw lastException;
 		}
 
-		log.debug("start get data blocks");
+		log.info("start get data blocks");
 
 		if (collectionSpaceName == null || collectionName == null) {
 			throw new IllegalArgumentException(
 					"collectionSpaceName and collectionName must have value");
 		}
-		DBCollection collection = null;
-		try {
-			collection = sdb.getCollectionSpace(collectionSpaceName)
-					.getCollection(collectionName);
-		} catch (Exception e) {
-			throw new Error("can't get DBCollection ,may be something wrong ");
+		
+		if(!sdb.isCollectionSpaceExist(collectionSpaceName)){
+			throw new IllegalArgumentException(
+					"collectionSpaceName not exist");
 		}
+		
+		if(!sdb.getCollectionSpace(collectionSpaceName).isCollectionExist(collectionName)){
+			throw new IllegalArgumentException(
+					"collectionName not exist");
+		}
+		DBCollection collection = sdb.getCollectionSpace(collectionSpaceName).getCollection(collectionName);
+    	BSONObject queryBson = null;
+    	BSONObject selectorBson = null;
+    	BSONObject orderbyBson = null;	
+    	if ( queryStr != null){  
+    		try {
+    			queryBson = (BSONObject) JSON.parse( queryStr );
+			} catch (Exception e) {
+				throw new IllegalArgumentException(
+						"sequoiadb.query.json is wrong");
+			}
+    	}
+    	if ( selectorStr != null){ 
+    		try {
+    			selectorBson = (BSONObject) JSON.parse( selectorStr );
+    			selectorBson.put("_id", null);
+			} catch (Exception e) {
+				throw new IllegalArgumentException(
+						"sequoiadb.selector.json is wrong");
+			}
+    	}
+    	log.info("explain");
+    	DBCursor explainCurl=collection.explain(queryBson, selectorBson, null, null, 0, 0, 0,new BasicBSONObject("Run",false));
+    	Set<String> subCls=new HashSet<String>();
+    	while(explainCurl.hasNext()){
+    		BSONObject explainBson=explainCurl.getNext();
+    		try{
+    			List<BSONObject> list=(List<BSONObject>) explainBson.get("SubCollections");
+        		for(int i=0;i<list.size();i++)
+        		{
+        			subCls.add((String)list.get(i).get("Name"));
+        		}
+    		}catch(Exception e){
+    			subCls.add(collectionSpaceName+"."+collectionName);
+    		}	
 
+    	}
+    	log.info("input split");
+    	List<InputSplit> splits = new ArrayList<InputSplit>();
+    	Iterator<String> clName=subCls.iterator();
+    	while(clName.hasNext()){
+    		String temp=clName.next();
+    		String[] items=temp.split("\\.");
+    		collection = sdb.getCollectionSpace(items[0]).getCollection(items[1]);
+    		collect(collection,splits);
+    	}   	
+
+		log.debug("inputsplit  size is"+splits.size());		
+		return splits;
+	}
+	
+	private static void collect(DBCollection collection,List<InputSplit> splits){	
 		DBCursor cursor = collection.getQueryMeta(null, null, null, 0, -1, 0);
-		List<InputSplit> splits = new ArrayList<InputSplit>();
 		while (cursor.hasNext()) {
 			BSONObject obj = cursor.getNext();
-			log.info(" record:" + obj.toString());
+			log.info("meta record:" + obj.toString());
 
 			String hostname = (String) obj.get("HostName");
 			int port = Integer.parseInt((String) obj.get("ServiceName"));
 			String scanType = (String) obj.get("ScanType");
 
-			// TODO
 			if ("ixscan".equals(scanType)) {
 				String indexName = (String) obj.get("IndexName");
 				int indexLID = (Integer) obj.get("IndexLID");
@@ -142,7 +195,6 @@ public class SdbSplitFactory {
 			}
 
 		}
-		return splits;
 	}
-
 }
+

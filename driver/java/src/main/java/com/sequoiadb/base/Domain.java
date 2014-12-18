@@ -85,11 +85,9 @@ public class Domain {
 	public void alterDomain(BSONObject options) throws BaseException {
 		if (null == options)
 			throw new BaseException("SDB_INVALIDARG", options);
-		// append argument
 		BSONObject newObj = new BasicBSONObject();
 		newObj.put(SequoiadbConstants.FIELD_NAME_NAME, this.name);
 		newObj.put(SequoiadbConstants.FIELD_NAME_OPTIONS, options);
-		// run command
 		SDBMessage rtn = this.sequoiadb.adminCommand(SequoiadbConstants.CMD_NAME_ALTER_DOMAIN,
 				                      0, 0, 0, -1, newObj,
 				                      null, null, null);
@@ -120,12 +118,10 @@ public class Domain {
 	}
 	
 	private DBCursor listCSCL(int type) throws BaseException {
-		// append argument
 		BSONObject matcher = new BasicBSONObject();
 		BSONObject selector = new BasicBSONObject();
 		matcher.put(SequoiadbConstants.FIELD_NAME_DOMAIN, this.name);
 		selector.put(SequoiadbConstants.FIELD_NAME_NAME, null);
-		// get cs or cl in current domain 
 		DBCursor cursor = this.sequoiadb.getList(type, matcher, selector, null);
 		return cursor;
 	}

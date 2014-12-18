@@ -3,7 +3,6 @@
 
 #include "util.hpp"
 
-///< sdb client
 __METHOD_DECLARE(sdb_create_client) ;
 __METHOD_DECLARE(sdb_release_client) ;
 __METHOD_DECLARE(sdb_connect) ;
@@ -46,7 +45,6 @@ __METHOD_DECLARE(sdb_close_all_cursors) ;
 __METHOD_DECLARE(sdb_is_valid) ;
 __METHOD_DECLARE(sdb_get_version) ;
 
-///< collection space
 __METHOD_DECLARE(create_cs) ;
 __METHOD_DECLARE(release_cs) ;
 __METHOD_DECLARE(cs_get_collection) ;
@@ -55,7 +53,6 @@ __METHOD_DECLARE(cs_create_collection_use_opt) ;
 __METHOD_DECLARE(cs_drop_collection) ;
 __METHOD_DECLARE(cs_get_collection_space_name) ;
 
-///< collection
 __METHOD_DECLARE(create_cl) ;
 __METHOD_DECLARE(release_cl) ;
 __METHOD_DECLARE(cl_get_count) ;
@@ -84,14 +81,12 @@ __METHOD_DECLARE(cl_get_lob) ;
 __METHOD_DECLARE(cl_remove_lob) ;
 __METHOD_DECLARE(cl_list_lobs) ;
 
-///< cursor
 __METHOD_DECLARE(create_cursor) ;
 __METHOD_DECLARE(release_cursor) ;
 __METHOD_DECLARE(cr_next) ;
 __METHOD_DECLARE(cr_current) ;
 __METHOD_DECLARE(cr_close) ;
 
-///< group
 __METHOD_DECLARE(create_group) ;
 __METHOD_DECLARE(release_group) ;
 __METHOD_DECLARE(gp_get_nodenum) ;
@@ -106,7 +101,6 @@ __METHOD_DECLARE(gp_start) ;
 __METHOD_DECLARE(gp_stop) ;
 __METHOD_DECLARE(gp_is_catalog) ;
 
-///< node
 __METHOD_DECLARE(create_node) ;
 __METHOD_DECLARE(release_node) ;
 __METHOD_DECLARE(nd_connect) ;
@@ -117,7 +111,6 @@ __METHOD_DECLARE(nd_get_nodename) ;
 __METHOD_DECLARE(nd_stop) ;
 __METHOD_DECLARE(nd_start) ;
 
-///< lob
 __METHOD_DECLARE(create_lob) ;
 __METHOD_DECLARE(release_lob) ;
 __METHOD_DECLARE(lob_close) ;

@@ -103,7 +103,6 @@ namespace engine
             continue ;
          }
 
-         // dec idle
          bpscb->_idlePrefAgentNum.dec() ;
          contextID = request._context->contextID() ;
          rc = request._context->prefetch( eduCB(), request._prefID ) ;

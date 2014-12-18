@@ -82,7 +82,6 @@ namespace engine
 
       _isOn = pmdGetOptionCB()->transactionOn() ;
 
-      // register event handle
       IControlBlock *pClsCB = pmdGetKRCB()->getCBByType( SDB_CB_CLS ) ;
       IEventHolder *pHolder = NULL ;
       if ( pClsCB && pClsCB->queryInterface( SDB_IF_EVT_HOLDER ) )
@@ -91,28 +90,15 @@ namespace engine
          pHolder->regEventHandler( this ) ;
       }
 
-      // if enabled dps
       if ( pmdGetKRCB()->isCBValue( SDB_CB_DPS ) )
       {
          UINT64 logFileSize = pmdGetOptionCB()->getReplLogFileSz() ;
          UINT32 logFileNum = pmdGetOptionCB()->getReplLogFileNum() ;
          _logFileTotalSize = logFileSize * logFileNum ;
 
-         // (1).the max-size of operation-log(update) is 2*DMS_RECORD_MAX_SZ,
-         // (2).the max-size of unavailable space in cross-file is 
-         // 2*DMS_RECORD_MAX_SZ*logFileNum,
-         // the available size is: availableSize =
-         // _logFileTotalSize - (1) - (2) ;
-         // the availableSize can used for operation-log and rollback-log,
-         // so the size of operation-log is:
-         // _maxUsedSize = availableSize / 2;
          _maxUsedSize = ( _logFileTotalSize - 2 * DMS_RECORD_MAX_SZ *
                           logFileNum ) / 2 ;
 
-         // if the logFileSize is 32M, the caculation method is:
-         // if the transaction-operation-log  caused X(MB) of log-file,
-         // the rollback-log will caused up to 2X( 1X for normal rollback-log
-         // and 1X for cross-file-space )
          UINT64 temp = _logFileTotalSize / 3 ;
          if ( _maxUsedSize < temp )
          {
@@ -133,7 +119,6 @@ namespace engine
          }
          setIsNeedSyncTrans( FALSE ) ;
 
-         // if have trans info, need log
          if ( getTransMap()->size() > 0 )
          {
             PD_LOG( PDEVENT, "Restored trnas info, have %d trans not "
@@ -160,7 +145,6 @@ namespace engine
 
    INT32 dpsTransCB::fini ()
    {
-      // unregister event handle
       IControlBlock *pClsCB = pmdGetKRCB()->getCBByType( SDB_CB_CLS ) ;
       IEventHolder *pHolder = NULL ;
       if ( pClsCB && pClsCB->queryInterface( SDB_IF_EVT_HOLDER ) )
@@ -196,7 +180,6 @@ namespace engine
    void dpsTransCB::onPrimaryChange( BOOLEAN primary,
                                      SDB_EVENT_OCCUR_TYPE occurType )
    {
-      // change to primary, start trans rollback
       if ( primary )
       {
          if ( SDB_EVT_OCCUR_BEFORE == occurType )
@@ -209,7 +192,6 @@ namespace engine
             startRollbackTask() ;
          }
       }
-      // change to secondary, stop trans rollback
       else
       {
          if ( SDB_EVT_OCCUR_AFTER == occurType )
@@ -307,7 +289,6 @@ namespace engine
       if ( pmdGetKRCB()->isCBValue( SDB_CB_CLS ) &&
            pmdIsPrimary() )
       {
-         // in primary, transaction-info save in EDUCB
          goto done ;
       }
       else
@@ -317,7 +298,6 @@ namespace engine
 
          if ( DPS_INVALID_LSN_OFFSET == lsnOffset )
          {
-            // invalid-lsn means the transaction is complete
             _TransMap.erase( transID ) ;
          }
          else
@@ -338,7 +318,6 @@ namespace engine
       ossScopedLock _lock( &_MapMutex );
       if ( _TransMap.find( transID ) == _TransMap.end() )
       {
-         // it is means transaction is synchronous by log if transID is exist
          _TransMap[ transID ] = lsnOffset;
       }
    }
@@ -416,8 +395,6 @@ namespace engine
             if ( DPS_INVALID_LSN_OFFSET == lsnOffset ||
                  !itr.valid() )
             {
-               // In the old version, commit log have not pre trans lsn and
-               // first trans lsn. So, we can't rollback trans info
                ret = FALSE ;
                goto done ;
             }
@@ -438,15 +415,12 @@ namespace engine
             itr = record.find( DPS_LOG_PUBLIC_RELATED_TRANS ) ;
             if ( !itr.valid() )
             {
-               // In the old version, rollback log have not related trans lsn,
-               // so, we can't rollback trans info correctly
                ret = FALSE ;
                goto done ;
             }
             relatedLsn = *( ( DPS_LSN_OFFSET*)itr.value() ) ;
             if ( DPS_INVALID_LSN_OFFSET == lsnOffset )
             {
-               // In the last rollback trans lsn, pre trans lsn is invalid
                addBeginLsn( relatedLsn, transID ) ;
             }
             lsnOffset = relatedLsn ;

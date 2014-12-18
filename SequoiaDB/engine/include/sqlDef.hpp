@@ -43,10 +43,8 @@
 #include <boost/spirit/include/classic_ast.hpp>
 #include <boost/spirit/include/classic_core.hpp>
 
-/// safe to share grammar across threads.
 #define BOOST_SPIRIT_THREADSAFE
 
-/// set the start limit
 #define BOOST_SPIRIT_GRAMMAR_STARTRULE_TYPE_LIMIT 20
 
 using namespace boost ;
@@ -69,7 +67,6 @@ typedef SQL_CONTAINER::const_iterator SQL_CON_ITR ;
 
    struct _sqlGrammarID
    {
-      /// syntax keyword.
       const static INT32 SQL = 0 ;
       const static INT32 SELECT = 1 ;
       const static INT32 INSERT = 2 ;
@@ -105,7 +102,6 @@ typedef SQL_CONTAINER::const_iterator SQL_CON_ITR ;
       const static INT32 COMMIT = 32 ;
       const static INT32 AS = 33 ;
 
-      /// expression keyword.
       const static INT32 ET = 1000 ;
       const static INT32 NE = 1001 ;
       const static INT32 LT = 1002 ;

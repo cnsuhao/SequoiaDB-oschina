@@ -139,7 +139,6 @@ namespace engine
             goto error ;
          }
       }
-      // add to map
       _taskMap[ taskID ] = pTask ;
    done:
       PD_TRACE_EXITRC ( SDB__CLSTKMGR_ADDTK, rc ) ;
@@ -314,7 +313,6 @@ namespace engine
       _status = CLS_TASK_STATUS_READY ;
       _taskType = CLS_TASK_SPLIT ;
       _percent  = 0.0 ;
-      //_lockEnd = FALSE ;
    }
 
    _clsSplitTask::~_clsSplitTask ()
@@ -339,7 +337,6 @@ namespace engine
                                clsCatalogSet &cataSet )
    {
       INT32 rc = SDB_OK ;
-      //_lockEnd = FALSE ;
 
       _clFullName    = clFullName ;
       _sourceID      = sourceID ;
@@ -356,7 +353,6 @@ namespace engine
          _shardingType = CAT_SHARDING_TYPE_HASH ;
       }
 
-      // calc the end key
       BSONObj groupUpBound ;
       BSONObj allUpbound ;
       rc = cataSet.getGroupUpBound( sourceID, groupUpBound ) ;
@@ -365,11 +361,9 @@ namespace engine
       rc = cataSet.getGroupUpBound( 0, allUpbound ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get all up bound, rc: %d", rc ) ;
 
-      // bKey can't empty
       PD_CHECK( !_splitKeyObj.isEmpty(), SDB_INVALIDARG, error, PDERROR,
                 "Split begin key can't be empty" ) ;
 
-      // check begin valid
       if ( cataSet.isHashSharding() )
       {
          PD_CHECK( bKey.firstElement().numberInt() <
@@ -389,7 +383,6 @@ namespace engine
                    bKey.toString().c_str() ) ;
       }
 
-      // calc eKey
       if ( _splitEndKeyObj.isEmpty() )
       {
          _splitEndKeyObj = groupUpBound.getOwned() ;
@@ -400,7 +393,6 @@ namespace engine
          _splitEndKeyObj = BSONObj() ;
       }
 
-      // make sure eKey > bKey
       if ( !_splitEndKeyObj.isEmpty() )
       {
          if ( cataSet.isHashSharding() )
@@ -638,7 +630,6 @@ namespace engine
          goto error ;
       }
 
-      // calc all partition number
       pos = cataSet.getFirstItem() ;
       while ( NULL != ( cataItem = cataSet.getNextItem( pos ) ) )
       {
@@ -663,7 +654,6 @@ namespace engine
                 cataSet.toCataInfoBson().toString().c_str(), groupID,
                 splitNum, totalNum, percent ) ;
 
-      // find the begin key
       splitNum = totalNum - splitNum ;
       pos = cataSet.getFirstItem() ;
       while ( NULL != ( cataItem = cataSet.getNextItem( pos ) ) )
@@ -766,7 +756,6 @@ namespace engine
                ret = TRUE ;
                goto done ;
             }
-            // lock end
             /*else if ( _lockEnd && beginResult < 0 )
             {
                ret = TRUE ;

@@ -1,4 +1,3 @@
-// bsontypes.h
 
 /*    Copyright 2009 10gen Inc.
  *

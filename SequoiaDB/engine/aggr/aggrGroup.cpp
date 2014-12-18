@@ -64,7 +64,6 @@ namespace engine
                "failed to parse the parameter:%s(type=%d, expectType=%d)",
                elem.fieldName(), elem.type(), Object );
 
-      // 1.parse the fields
       try
       {
          obj = elem.embeddedObject();
@@ -79,12 +78,10 @@ namespace engine
             const CHAR *pFieldName = beField.fieldName();
             if ( 0 == ossStrcmp( pFieldName, FIELD_NAME_GROUPBY_ID ))
             {
-               // process groupby field(_id)
                rc = parseGroupbyField( beField, pSelect->_groupby, pTable, pCLName );
             }
             else
             {
-               // process normal field(selector)
                rc = parseSelectorField( beField, pCLName, pSelect->_selector,
                                        pTable, hasFunc );
             }
@@ -104,7 +101,6 @@ namespace engine
                   e.what() );
       }
 
-      // 2.build the node
       pSelect->_limit = -1;
       pSelect->_skip = 0;
       pSelect->_type = QGM_OPTI_TYPE_SELECT;
@@ -234,11 +230,9 @@ namespace engine
       CHAR *pFuncBuf = NULL;
       try
       {
-         // add select fields(note: alias, _id)
          PD_CHECK( beField.type() == Object, SDB_INVALIDARG, error, PDERROR,
                   "failed to parse selector field, field type must be object!" );
 
-         // parse field
          const CHAR *pAlias = beField.fieldName();
          BSONObj funcObj;
          funcObj = beField.embeddedObject();
@@ -248,7 +242,6 @@ namespace engine
 
          hasFunc = TRUE;
 
-         // build selector
          qgmField slValAttr;
          qgmField slValRelegation;
 
@@ -337,7 +330,6 @@ namespace engine
             paramLen += ossStrlen( &(pParam[1]) );
          }
 
-         // funcName + '(' + 'param' + ')' + '\0'
          funcSize = nameLen + paramLen + 3;
          pFuncBuf = ( CHAR * )SDB_OSS_MALLOC( funcSize );
          PD_CHECK( pFuncBuf != NULL, SDB_OOM, error, PDERROR,

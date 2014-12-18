@@ -78,7 +78,6 @@ namespace engine
       BOOLEAN  isSubsessionConnected( const MsgRouteID &routeID );
       void     addRequest( const UINT64 reqID, const MsgRouteID &routeID );
       void     delRequest( const UINT64 reqID );
-      //void     delRequest( const MsgRouteID &routeID );
       void     clearRequest();
       BOOLEAN  isValidResponse( const UINT64 reqID );
       BOOLEAN  isValidResponse( const MsgRouteID &routeID, const UINT64 reqID );

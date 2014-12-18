@@ -68,7 +68,6 @@ namespace engine
       QGM_OPTI_TYPE_MTHMCHFILTER,
       QGM_OPTI_TYPE_SPLIT,
 
-      // must be the last
       QGM_OPTI_NODE_MAX
    } ;
 

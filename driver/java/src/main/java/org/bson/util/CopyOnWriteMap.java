@@ -184,9 +184,6 @@ abstract class CopyOnWriteMap<K, V> extends AbstractCopyOnWriteMap<K, V, Map<K, 
         return builder.addAll(map).newLinkedMap();
     }
 
-    //
-    // constructors
-    //
 
     /**
      * Create a new {@link CopyOnWriteMap} with the supplied {@link Map} to
@@ -235,9 +232,6 @@ abstract class CopyOnWriteMap<K, V> extends AbstractCopyOnWriteMap<K, V, Map<K, 
     @GuardedBy("internal-lock")
     protected abstract <N extends Map<? extends K, ? extends V>> Map<K, V> copy(N map);
 
-    //
-    // inner classes
-    //
 
     /**
      * Uses {@link HashMap} instances as its internal storage.

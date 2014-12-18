@@ -27,8 +27,6 @@
  */
 
 
-// This Header File is automatically generated, you MUST NOT modify this file anyway!
-// On the contrary, you can modify the xml file "sequoiadb/misc/rcgen/rclist.xml" if necessary!
 
 #include "ossErr.h"
 
@@ -310,7 +308,8 @@ const CHAR* getErrDesp ( INT32 errCode )
                    "Data is not in UTF-8 format",
                    "Task failed",
                    "Lob does not open",
-                   "Lob has been open"
+                   "Lob has been open",
+                   "Node is in restoring"
     };
     if ( code < 0 || (UINT32)code >= (sizeof ( errDesp ) / sizeof ( CHAR* )) )
         return "unknown error";

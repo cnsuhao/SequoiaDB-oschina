@@ -335,7 +335,6 @@ void RCGen::genWeb ()
    {
       string first = codelist[i].first ;
       string second = codelist[i].second ;
-      // replace all "$" to "\$" for web
       first = replace_all ( first, "$", "\\$" ) ;
       second = replace_all ( second, "$", "\\$" ) ;
       fout << setw(6) << -(i+1) << " => \"" << first << ": " << second << "\"" ;

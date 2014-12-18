@@ -190,8 +190,6 @@ namespace engine
       return builder.obj() ;
    }
 
-   // reallocate buffer and check
-   // upper limit for this allocation is 2GB
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNREALLOCBUFF, "rtnReallocBuffer" )
    INT32 rtnReallocBuffer ( CHAR **ppBuffer, INT32 *bufferSize,
                             INT32 newLength, INT32 alignmentSize )
@@ -223,7 +221,6 @@ namespace engine
       goto done ;
    }
 
-   // 1) file name must be <collectionspace>.<sequence>.<ext>
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNVERIFYCSFN, "rtnVerifyCollectionSpaceFileName" )
    BOOLEAN rtnVerifyCollectionSpaceFileName ( const CHAR *pFileName,
                                               CHAR *pSUName,
@@ -244,7 +241,6 @@ namespace engine
          goto done ;
       }
 
-      // ext check
       if ( extFilter && 0 != ossStrcmp( pDotr + 1, extFilter ) )
       {
          goto done ;
@@ -252,7 +248,6 @@ namespace engine
 
       {
          sequence = 0 ;
-         // check sequence
          const CHAR *pSeqPos = pDot + 1 ;
          while ( pSeqPos < pDotr )
          {
@@ -274,7 +269,6 @@ namespace engine
          goto done ;
       }
 
-      // copy su name
       if ( pSUName )
       {
          ossStrncpy ( pSUName, pFileName, size ) ;
@@ -289,7 +283,6 @@ namespace engine
       return ret ;
    }
 
-   // load a single collection name from given path
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOADCS, "rtnLoadCollectionSpace" )
    INT32 rtnLoadCollectionSpace ( const CHAR *pCSName,
                                   const CHAR *dataPath,
@@ -321,7 +314,6 @@ namespace engine
             {
                if ( fs::is_regular_file( dir_iter->status() ) )
                {
-                  // 1) file name must be <collectionspace>.<sequence>.<data>
                   const std::string fileName =
                      dir_iter->path().filename().string() ;
                   const CHAR *pFileName = fileName.c_str() ;
@@ -346,10 +338,6 @@ namespace engine
                            rc = SDB_OOM ;
                            goto error ;
                         }
-                        // open the storage unit without attempt to create new
-                        // container, if we can't open the container, maybe
-                        // it's just invalid, let's continue open other storage
-                        // units without this one
                         rc = storageUnit->open ( dataPath, indexPath, lobPath, FALSE ) ;
                         if ( rc )
                         {
@@ -413,7 +401,6 @@ namespace engine
       goto done ;
    }
 
-   // Load all collection spaces from database path
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNLOADCSS, "rtnLoadCollectionSpaces" )
    INT32 rtnLoadCollectionSpaces ( const CHAR *dataPath,
                                    const CHAR *indexPath,
@@ -442,7 +429,6 @@ namespace engine
             {
                if ( fs::is_regular_file(dir_iter->status()))
                {
-                  // 1) file name must be <collectionspace>.<sequence>.<data>
                   const std::string fileName =
                         dir_iter->path().filename().string() ;
                   const CHAR *pFileName = fileName.c_str() ;
@@ -458,10 +444,6 @@ namespace engine
                                 "Failed to allocate dmsStorageUnit for %s",
                                 dir_iter->path().string().c_str() ) ;
 
-                     // open the storage unit without attempt to create new
-                     // container, if we can't open the container, maybe it's
-                     // just invalid, let's continue open other storage units
-                     // without this one
                      rc = storageUnit->open ( dataPath,
                                               indexPath,
                                               lobPath,
@@ -538,7 +520,6 @@ namespace engine
       BOOLEAN writable = FALSE ;
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
-      // make sure the collectionspace length is not out of range
       UINT32 length = ossStrlen ( pCollectionSpace ) ;
       if ( length <= 0 || length > DMS_SU_NAME_SZ )
       {
@@ -552,8 +533,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE ;
 
-      // let's find out whether the collection space is held by this
-      // EDU. If so we have to get rid of those contexts
       if ( NULL != cb )
       {
          std::set<SINT64> contextList ;
@@ -565,9 +544,7 @@ namespace engine
             contextID = *it ;
             ++it ;
 
-            // get each context
             rtnContext *ctx = rtnCB->contextFind ( contextID ) ;
-            // if context doesn't exist or has not dmsStorageUnit
             if ( !ctx || NULL == ctx->getSU() )
             {
                continue ;
@@ -575,8 +552,6 @@ namespace engine
             if ( ossStrncmp ( ctx->getSU()->CSName(),
                               pCollectionSpace, DMS_SU_NAME_SZ ) == 0 )
             {
-               // if the su is held by myself, i have to kill the context 
-               // from global
                rtnCB->contextDelete( contextID, cb ) ;
             }
          }
@@ -629,7 +604,6 @@ namespace engine
 
       std::set<_monCollectionSpace> csList ;
 
-      //dump all collectionspace
       dmsCB->dumpInfo( csList, TRUE ) ;
       std::set<_monCollectionSpace>::const_iterator it = csList.begin() ;
       while ( it != csList.end() )
@@ -704,16 +678,6 @@ namespace engine
       }
       else if ( SDB_DMS_CS_NOTEXIST == rc && loadFile )
       {
-         // comment out following part because there's problem to load
-         // collection space after database is activated
-         // thread 1:
-         // close file handle    ->        remove file
-         // thread 2:
-         //   ....            create same cs  ....
-         // if thread 2 happened in the middle of two steps from step 1, there's
-         // very small timing hole, which makes some inconsistence
-         // for now let's prevent automatically loading a collection space
-         // without explicitly creating it
          PD_LOG ( PDWARNING, "Collection Space %s does not exist in dms,"
                   " load from disk", pCollectionSpaceName ) ;
 
@@ -764,11 +728,8 @@ namespace engine
       }
       ossStrncpy ( strCollectionFullName, pCollectionFullName,
                    sizeof(strCollectionFullName) ) ;
-      // find the "." in the middle of collection name
       pDot = (CHAR*)ossStrchr ( strCollectionFullName, '.' ) ;
       pDot1 = (CHAR*)ossStrrchr ( strCollectionFullName, '.' ) ;
-      // if dot doesn't exist, or there are more than 1 dot, we print invalid
-      // format error message
       if ( !pDot || (pDot !=pDot1) || strCollectionFullName == pDot )
       {
          PD_LOG_MSG ( PDERROR, "Invalid format for collection name: %s,"
@@ -778,14 +739,9 @@ namespace engine
          goto error ;
       }
 
-      // now let's set pDot to 0, so strCollectionFullName will be
-      // collectionspace only
       *pDot = 0 ;
       if (ppCollectionName)
       {
-         // now pDot+1 is pointing to the starting of collection, so we get the
-         // difference between pDot+1 and strCollectionFullName, and plus
-         // pCollectionFullName to get the pointer in the original string
          *ppCollectionName = pDot + 1 -&strCollectionFullName[0] +
                              pCollectionFullName ;
       }
@@ -819,8 +775,6 @@ namespace engine
          {
             PD_LOG ( PDWARNING, "Context %lld is not owned by current session",
                      pContextIDs[i] ) ;
-            // if the context doesn't owned by the current session, let's show
-            // warning message and jump to next context
             continue ;
          }
          rtnCB->contextDelete ( pContextIDs[i], cb ) ;
@@ -939,7 +893,6 @@ namespace engine
 
       if ( pCommand )
       {
-         // the space data check
          SDB_ROLE role = pmdGetKRCB()->getDBRole() ;
          if ( !(dbRoleToSpaceNode ( role ) & pCommand->spaceNode()) )
          {
@@ -978,7 +931,6 @@ namespace engine
             }
          }
 
-         //sync
          if ( cb )
          {
             if ( SDB_OK == rc && pCommand->writable() && dpsCB )
@@ -1045,7 +997,6 @@ namespace engine
       mthMatcher *matcher        = NULL ;
       rtnIXScanner * scanner     = NULL ;
 
-      // first shared lock to get metadata
       rc = mbContext->mbLock( SHARED ) ;
       if ( rc )
       {
@@ -1055,7 +1006,6 @@ namespace engine
       }
 
       {
-         // for index scan, we maintain context by runtime instead of by DMS
          ixmIndexCB indexCB ( plan->getIndexCBExtent(), su->index(), NULL ) ;
          if ( !indexCB.isInitialized() )
          {
@@ -1072,16 +1022,13 @@ namespace engine
             goto error ;
          }
  
-         // get the predicate list
          predList = plan->getPredList() ;
          SDB_ASSERT ( predList, "predList can't be NULL" ) ;
-         // get the matcher from plan instead of manually loading it
          if ( plan->getMatcher().isInitialized() &&
               FALSE == plan->getMatcher().isMatchesAll() )
          {
             matcher = &plan->getMatcher() ;
          }
-         // allocate scanner, delete at end of the function
          scanner = SDB_OSS_NEW rtnIXScanner ( &indexCB, predList, su, cb ) ;
          if ( !scanner )
          {

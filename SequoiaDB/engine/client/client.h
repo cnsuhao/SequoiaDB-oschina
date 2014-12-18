@@ -1173,7 +1173,6 @@ SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
       INT32 i = 0 ;
       const INT32 num = 10 ;
       bson* obj[num] ;
-      // create bson poiter array
       for ( i = 0; i < num; i++ )
       {
          obj[i] = bson_create();
@@ -1184,11 +1183,9 @@ SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
          if ( rc != 0 )
             printf ( "something wrong.\n" ) ;
       }
-      // bulk insert
       rc = sdbBulkInsert ( cl, 0, obj, num ) ;
       if ( rc )
          printf ( "something wrong, rc = %d.\n", rc ) ;
-      // free memory
       for ( i = 0; i < num; i++ )
       {
          bson_dispose ( obj[i] ) ;
@@ -1525,7 +1522,6 @@ SDB_EXPORT void sdbReleaseDomain ( sdbDomainHandle cHandle ) ;
       INT32 i = 0 ;
       const INT32 num = 10 ;
       bson* obj[num] ;
-      // create bson poiter array
       for ( i = 0; i < num; i++ )
       {
          obj[i] = bson_create();
@@ -1536,11 +1532,9 @@ SDB_EXPORT void sdbReleaseDomain ( sdbDomainHandle cHandle ) ;
          if ( rc != 0 )
             printf ( "something wrong.\n" ) ;
       }
-      // TODO:
       rc = sdbAggregate ( cl, obj, num, &cursor ) ;
       if ( rc )
          printf ( "something wrong, rc = %d.\n", rc ) ;
-      // free memory
       for ( i = 0; i < num; i++ )
       {
          bson_dispose ( obj[i] ) ;

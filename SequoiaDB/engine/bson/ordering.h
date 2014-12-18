@@ -1,4 +1,3 @@
-// ordering.h
 
 /*    Copyright 2009 10gen Inc.
  *
@@ -37,7 +36,6 @@ namespace bson {
             return ((1 << i) & bits) ? -1 : 1;
         }
 
-        // for woCompare...
         unsigned descending(unsigned mask) const { return bits & mask; }
 
         operator string() const {

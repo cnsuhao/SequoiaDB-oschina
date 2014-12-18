@@ -2,7 +2,6 @@
 #include "ossUtil.hpp"
 #include "ossVer.hpp"
 #include "client.hpp"
-///< implement client
 
 using namespace sdbclient;
 
@@ -1116,7 +1115,6 @@ __METHOD_IMP(sdb_get_version)
    return MAKE_RETURN_INT_INT_INT_STRING( version, sub_version, release, build ) ;
 }
 
-///< implement collection space
 __METHOD_IMP(create_cs)
 {
    sdbCollectionSpace *cs = NULL ;
@@ -1283,7 +1281,6 @@ done :
    return MAKE_RETURN_INT_PYSTRING( rc, cs_name ) ;
 }
 
-///< implement collection
 __METHOD_IMP(create_cl) 
 {
    sdbCollection *cl = NULL;
@@ -2128,7 +2125,6 @@ done:
    return MAKE_RETURN_INT( rc ) ;
 }
 
-///< implement cursor
 __METHOD_IMP(create_cursor)
 {
    sdbCursor *cursor = NULL;
@@ -2240,7 +2236,6 @@ error :
    goto done ;
 }
 
-///< implement group
 typedef sdbReplicaGroup Group ;
 __METHOD_IMP(create_group)
 {
@@ -2608,7 +2603,6 @@ error :
    goto done ;
 }
 
-/// implement node
 __METHOD_IMP(create_node)
 {
    sdbNode *node = NULL;

@@ -61,7 +61,6 @@ void init_accept(_replEleMotion &motion)
    _replCongressman::acceptMotion(motion);
 }
 
-///prepare->preparepending->propose->proposepending->leader->continuepending->prepare->preparepding
 TEST(replCongressmanTest, base_1)
 {
    _replCongressman proposer ;

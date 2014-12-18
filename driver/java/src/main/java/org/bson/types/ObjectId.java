@@ -1,4 +1,3 @@
-// ObjectId.java
 
 /**
  *      Copyright (C) 2008 10gen Inc.
@@ -218,7 +217,6 @@ public class ObjectId implements Comparable<ObjectId> , java.io.Serializable {
     public byte[] toByteArray(){
         byte b[] = new byte[12];
         ByteBuffer bb = ByteBuffer.wrap( b );
-        // by default BB is big endian like we need
         bb.putInt( _time );
         bb.putInt( _machine );
         bb.putInt( _inc );
@@ -349,7 +347,6 @@ public class ObjectId implements Comparable<ObjectId> , java.io.Serializable {
     static {
 
         try {
-            // build a 2-byte machine piece based on NICs info
             int machinePiece;
             {
                 try {
@@ -361,15 +358,12 @@ public class ObjectId implements Comparable<ObjectId> , java.io.Serializable {
                     }
                     machinePiece = sb.toString().hashCode() << 16;
                 } catch (Throwable e) {
-                    // exception sometimes happens with IBM JVM, use random
                     LOGGER.log(Level.WARNING, e.getMessage(), e);
                     machinePiece = (new Random().nextInt()) << 16;
                 }
                 LOGGER.fine( "machine piece post: " + Integer.toHexString( machinePiece ) );
             }
 
-            // add a 2 byte process piece. It must represent not only the JVM but the class loader.
-            // Since static var belong to class loader there could be collisions otherwise
             final int processPiece;
             {
                 int processId = new java.util.Random().nextInt();

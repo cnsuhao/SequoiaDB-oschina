@@ -91,8 +91,6 @@ public final class JsonPrimitive extends JsonElement {
 
   void setValue(Object primitive) {
     if (primitive instanceof Character) {
-      // convert characters to strings since in JSON, characters are represented as a single
-      // character string
       char c = ((Character) primitive).charValue();
       this.value = String.valueOf(c);
     } else {
@@ -131,7 +129,6 @@ public final class JsonPrimitive extends JsonElement {
     if (isBoolean()) {
       return getAsBooleanWrapper().booleanValue();
     } else {
-      // Check to see if the value as a String is "true" in any case.
       return Boolean.parseBoolean(getAsString());
     }
   }
@@ -288,7 +285,6 @@ public final class JsonPrimitive extends JsonElement {
     if (value == null) {
       return 31;
     }
-    // Using recommended hashing algorithm from Effective Java for longs and doubles
     if (isIntegral(this)) {
       long value = getAsNumber().longValue();
       return (int) (value ^ (value >>> 32));
@@ -317,8 +313,6 @@ public final class JsonPrimitive extends JsonElement {
     }
     if (value instanceof Number && other.value instanceof Number) {
       double a = getAsNumber().doubleValue();
-      // Java standard types other than double return true for two NaN. So, need
-      // special handling for double.
       double b = other.getAsNumber().doubleValue();
       return a == b || (Double.isNaN(a) && Double.isNaN(b));
     }

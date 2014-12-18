@@ -102,7 +102,6 @@ namespace engine
       {
          tmp = str + read ;
 
-         /// ignore all space
          if ( ' ' == *tmp || '\t' == *tmp )
          {
             ++read ;
@@ -364,7 +363,6 @@ namespace engine
       }
       else
       {
-         /// do noting.
       }
 
       return t ;

@@ -25,13 +25,11 @@ public class SdbIndexSplit  extends InputSplit{
 	
 	@Override
 	public long getLength() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
 		return 0;
 	}
 
 	@Override
 	public String[] getLocations() throws IOException, InterruptedException {
-		// TODO Auto-generated method stub
 		return null;
 	}
 

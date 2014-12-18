@@ -259,7 +259,6 @@ namespace engine
          INT32       _prepareTask () ;
          INT32       _addTaskInnerSession ( const CHAR *objdata ) ;
 
-      //msg and event function
       protected:
          INT32 _onCatRegisterRes ( NET_HANDLE handle, MsgHeader* msg ) ;
          INT32 _onCatQueryTaskRes ( NET_HANDLE handle, MsgHeader* msg ) ;

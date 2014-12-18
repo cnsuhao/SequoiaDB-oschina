@@ -72,11 +72,8 @@ namespace engine
       CHAR tempName[15] = {0} ;
       UINT16 collectionID = DMS_INVALID_MBID ;
 
-      // exclusive lock temp cb. this function should be called during process
-      // initialization, so it shouldn't be called in parallel by agents
       DMSTEMPCB_XLOCK
 
-      // first to load collection space
       rc = rtnCollectionSpaceLock( SDB_DMSTEMP_NAME, _dmsCB, TRUE,
                                    &_su, suID ) ;
       if ( SDB_OK == rc )
@@ -84,7 +81,6 @@ namespace engine
          _dmsCB->suUnlock( suID ) ;
          suID = DMS_INVALID_CS ;
          _su = NULL ;
-         // remove the temp collection space
          _dmsCB->dropCollectionSpace( SDB_DMSTEMP_NAME, NULL, NULL ) ;
       }
       else if ( SDB_DMS_CS_NOTEXIST != rc )
@@ -92,7 +88,6 @@ namespace engine
          PD_LOG( PDERROR, "Lock temp collection space failed, rc: %d", rc ) ;
       }
 
-      // create new systemp collection space
       rc = rtnCreateCollectionSpaceCommand ( SDB_DMSTEMP_NAME, NULL, _dmsCB,
                                              NULL, DMS_PAGE_SIZE_MAX,
                                              DMS_DO_NOT_CREATE_LOB, TRUE,
@@ -113,8 +108,6 @@ namespace engine
          goto error ;
       }
 
-      // now we should either have existing SYSTEMP or a new one, let's
-      // initialize 4096 temp tables
       for ( INT16 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
          ossSnprintf ( tempName, sizeof(tempName), DMS_TEMP_NAME_PATTERN,
@@ -149,10 +142,6 @@ namespace engine
       goto done ;
    }
 
-   // release a temp id, this function will first make sure the given tempID
-   // exist in occupiedCollections (shared latch), and then will truncate the
-   // collection+index (no latch), and remove the entry and add it
-   // back to freeCollection (exclusive latch).
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSTMPCB_RELEASE, "_dmsTempCB::release" )
    INT32 _dmsTempCB::release ( dmsMBContext *&context )
    {
@@ -175,7 +164,6 @@ namespace engine
       }
       _mutex.release() ;
 
-      // release mb context
       _su->data()->releaseMBContext( context ) ;
 
       PD_TRACE_EXITRC ( SDB__DMSTMPCB_RELEASE, rc );

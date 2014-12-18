@@ -61,11 +61,9 @@ error :
 
 INT32 getProgramPath( CHAR *pOutputPath )
 {
-//   PD_TRACE_ENTRY ( SDB_ENGINEPATH );
    INT32 rc = SDB_OK ;
    CHAR *t = OSS_FILE_SEP ;
    const CHAR *p = NULL ;
-   // check
    if ( !pOutputPath )
    {
       rc = SDB_INVALIDARG ;
@@ -76,30 +74,24 @@ INT32 getProgramPath( CHAR *pOutputPath )
       pOutputPath[0] = '\0' ;
       goto done ;
    }
-   // find '\\' or '/'
    p = ossStrrchr ( progName, t[0] ) ;
-   // if we can find it
    if ( p )
    {
       INT32 pathLen = p - progName + 1 ;
-      // let's move to the next character after '\\' or '/'
       if ( pathLen > OSS_MAX_PATHSIZE + 1 )
       {
          pOutputPath[0] = '\0' ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // copy everything before '\\' or '/' to output
       ossMemcpy ( pOutputPath, progName, pathLen ) ;
       pOutputPath[pathLen] = '\0' ;
    }
    else
    {
-      // if we can't find path spliter
        pOutputPath[0] = '\0' ;
    }
 done :
-//   PD_TRACE_EXIT ( SDB_ENGINEPATH );
    return rc ;
 error :
    goto done ;
@@ -110,40 +102,32 @@ error :
 /*
 INT32 getProgramPath( const CHAR *pInputPath, const CHAR *pOutputPath )
 {
-//   PD_TRACE_ENTRY ( SDB_ENGINEPATH );
    INT32 rc = SDB_OK ;
    CHAR *t = OSS_FILE_SEP_CHAR ;
    const CHAR *p = NULL ;
-   // check
    if ( pInputPath || pOutputPath )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-   // find '\\' or '/'
    p = ossStrrchr ( pInputPath, t[0] ) ;
-   // if we can find it
    if ( p )
    {
       INT32 pathLen = p - pInputPath + 1 ;
-      // let's move to the next character after '\\' or '/'
       if ( pathLen > OSS_MAX_PATHSIZE + 1 )
       {
          pOutputPath[0] = 0 ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // copy everything before '\\' or '/' to output
       ossMemcpy ( pOutputPath, pInputPath, pathLen ) ;
       pOutputPath[pathLen] = 0 ;
    }
    else
    {
-      // if we can't find path spliter
        pOutputPath[0] = 0 ;
    }
 done :
-//   PD_TRACE_EXIT ( SDB_ENGINEPATH );
    return rc ;
 error :
    goto done ;

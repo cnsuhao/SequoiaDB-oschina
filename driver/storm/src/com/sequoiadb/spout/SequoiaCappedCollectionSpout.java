@@ -34,15 +34,11 @@ public class SequoiaCappedCollectionSpout extends SequoiaSpoutBase implements
 	protected void processNextTuple() {
 		BSONObject object = queue.poll();
 		
-		//if we have an object, Let's process it, map and emit it
 		if (object != null ) {
-			//Map the object to a tuple
 			List<Object> tuples = this.mapper.map(object);
 			
-			//Fetch the object Id
 			ObjectId objectId = (ObjectId) object.get("_id");
 			
-			//Emit the tuple collection
 			collector.emit(tuples, objectId);
 		}
 	}

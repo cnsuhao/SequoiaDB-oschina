@@ -101,7 +101,6 @@ namespace engine
       mthModifier modifier ;
       vector<INT64> dollarList ;
 
-      // updator is modifier
       if ( updator.isEmpty() )
       {
          PD_LOG ( PDERROR, "modifier can't be empty" ) ;
@@ -123,7 +122,6 @@ namespace engine
          goto error ;
       }
 
-      // writeable judge
       rc = dmsCB->writable( cb ) ;
       if ( rc )
       {
@@ -141,7 +139,6 @@ namespace engine
          goto error ;
       }
 
-      // get mb context
       rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
                    "rc: %d", pCollectionName, rc ) ;
@@ -149,7 +146,6 @@ namespace engine
       apm = su->getAPM() ;
       SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
-      // plan is released when exiting the function
       rc = apm->getPlan ( selector,
                           emptyObj, // orderBy
                           hint, // hint
@@ -181,7 +177,6 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get dms scanner, rc: %d", rc ) ;
 
-      // update
       {
          dmsRecordID recordID ;
          ossValuePtr recordDataPtr = 0 ;
@@ -208,14 +203,10 @@ namespace engine
          }
       }
 
-      // if we didn't update anything, let's attempt to insert if we are doing
-      // upsert
       if ( ( 0 == numUpdatedRecords ) && ( FLG_UPDATE_UPSERT & flags ) )
       {
-         //BSONObj source = plan->getMatcher().getMatchPattern () ;
          BSONObj source ;
          BSONObj target ;
-         // upsertor means generate a new record from empty source
          rc = modifier.modify ( source, target ) ;
          if ( rc )
          {

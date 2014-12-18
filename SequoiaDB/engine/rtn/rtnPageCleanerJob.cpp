@@ -89,46 +89,25 @@ namespace engine
 
       while ( !PMD_IS_DB_DOWN && !cb->isForced() )
       {
-         // set EDU to wait status
          eduMgr->waitEDU ( cb->getID() ) ;
          cleanSUID = DMS_INVALID_SUID ;
-         // dispatch the first storage unit in clean pending list
-         // 1) suLock to lock the collection space, so that no one is able to
-         // drop the cs during the time
          su = dmsCB->dispatchPageCleanSU ( &cleanSUID ) ;
-         // if returns null, then sleep and wait
          if ( !su || DMS_INVALID_SUID == cleanSUID )
          {
-            // wait any event may happen across this agent for _periodTime
-            // milliseconds, if any events received ( such like termination ),
-            // we just ignore the event and go back to loop
             cb->waitEvent ( event, _periodTime ) ;
             continue ;
          }
          eduMgr->activateEDU( cb->getID() ) ;
-         // otherwise perform clean and reset the time
-         // mark su's page cleaner is working, so that cs can't be destroyed
-         // before page cleaner stop
          su->data()->lockPageCleaner() ;
          su->index()->lockPageCleaner() ;
-         // unlock the cs
          dmsCB->suUnlock ( cleanSUID, SHARED ) ;
-         // flush dirty pages
          su->data()->flushDirtySegments() ;
-         // unlock page cleaner, so that the object can be destroyed
          su->data()->unlockPageCleaner () ;
-         // flush dirty pages for index
          su->index()->flushDirtySegments() ;
-         // unlock page cleaners
          su->index()->unlockPageCleaner () ;
-         // if we can't lock the su, let's try to join the su back to list
          rc = dmsCB->joinPageCleanSU ( cleanSUID ) ;
-         // joinPageCleanSU may fail with SDB_DMS_CS_NOTEXIST, and it's fully
-         // expected
          if ( rc && SDB_DMS_CS_NOTEXIST != rc )
          {
-            // we don't need to do anything if any other error happen, just log
-            // it
             PD_LOG ( PDERROR,
                      "Failed to join su ( %d ) back to history list, rc = %d",
                      cleanSUID, rc ) ;
@@ -145,7 +124,6 @@ namespace engine
       INT32 rc                = SDB_OK ;
       rtnPageCleanerJob *pJob = NULL ;
       PD_TRACE_ENTRY ( SDB_STARTPAGECLEANERJOB ) ;
-      // object will be freed in job manager destructor
       pJob = SDB_OSS_NEW rtnPageCleanerJob ( periodTime ) ;
       if ( !pJob )
       {
@@ -153,8 +131,6 @@ namespace engine
          PD_LOG ( PDERROR, "Failed to allocate memory for page cleaners" ) ;
          goto error ;
       }
-      // if startJob failed, it will free the memory in the function
-      // so we don't need to free memory when startJob failed
       rc = rtnGetJobMgr()->startJob ( pJob, RTN_JOB_MUTEX_NONE, pEDUID ) ;
       if ( rc )
       {

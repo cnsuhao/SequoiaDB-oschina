@@ -77,9 +77,6 @@ public class Helper {
 			return rtnList;
 		}
 
-		//byte[] firstPart = Arrays.copyOfRange(inByteArray, 0, length);
-		//byte[] seconPart = Arrays.copyOfRange(inByteArray, length,
-		//		inByteArray.length);
 
         byte[] firstPart = new byte[length];
         System.arraycopy(inByteArray, 0, firstPart, 0, length);

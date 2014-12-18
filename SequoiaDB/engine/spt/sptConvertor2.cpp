@@ -139,7 +139,6 @@ BOOLEAN sptConvertor2::_addSpecialObj( JSObject *obj,
    }
 
    {
-   /// get the first ele
    jsid id = properties->vector[0] ;
    jsval fieldName ;
    std::string name ;
@@ -159,7 +158,6 @@ BOOLEAN sptConvertor2::_addSpecialObj( JSObject *obj,
       goto error ;
    }
 
-   /// start with '$'
    if ( SPT_CONVERTOR_SPE_OBJSTART != name.at(0) )
    {
       goto error ;
@@ -425,7 +423,6 @@ INT32 sptConvertor2::_appendToBson( const std::string &name,
    {
       case JSTYPE_VOID :
       {
-         /// do nothing. 
          break ;
       }
       case JSTYPE_NULL :
@@ -512,7 +509,6 @@ INT32 sptConvertor2::_appendToBson( const std::string &name,
             }
             else
             {
-               /// do noting
             }
          }
          break ;
@@ -566,7 +562,6 @@ INT32 sptConvertor2::toString( JSContext *cx,
                               std::string &str )
 {
    INT32 rc = SDB_OK ;
-   //CHAR *utf8 = NULL ;
    SDB_ASSERT( NULL != cx, "impossible" ) ;
    size_t len = 0 ;
    JSString *jsStr = JS_ValueToString( cx, val ) ;
@@ -607,10 +602,6 @@ INT32 sptConvertor2::toString( JSContext *cx,
       }
    }
 done:
-//   if ( NULL != utf8 )
-//   {
-//      SDB_OSS_FREE( utf8 ) ;
-//   }
    return rc ;
 }
 

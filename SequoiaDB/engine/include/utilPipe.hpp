@@ -33,7 +33,6 @@
 
 *******************************************************************************/
 
-// this file is only intened to be included by sdb.cpp and sdbbp.cpp
 #ifndef UTILPIPE_HPP__
 #define UTILPIPE_HPP__
 

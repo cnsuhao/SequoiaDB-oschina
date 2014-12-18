@@ -60,14 +60,12 @@ namespace engine
       UINT16 _flag ;
       UINT32 _logicID ;
 
-      // stat info
       UINT64 _totalRecords ;
       UINT32 _totalDataPages ;
       UINT32 _totalIndexPages ;
       UINT32 _totalLobPages ;
       UINT64 _totalDataFreeSpace ;
       UINT64 _totalIndexFreeSpace ;
-      // end
 
       OSS_INLINE BOOLEAN operator<(const _detailedInfo &r) const
       {
@@ -92,7 +90,6 @@ namespace engine
       }
    } ;
    typedef class _detailedInfo detailedInfo ;
-   // for list collections
    class _monCollection : public SDBObject
    {
    public :
@@ -279,7 +276,6 @@ namespace engine
       OSS_INLINE BOOLEAN operator<(const _monStorageUnit &r) const
       {
          SINT32 rc = ossStrncmp( _name, r._name, sizeof(_name))<0 ;
-         // if two storage unit got same name, let's check sequence
          if ( !rc )
             return _sequence < r._sequence ;
          return rc ;
@@ -287,7 +283,6 @@ namespace engine
    } ;
    typedef class _monStorageUnit monStorageUnit ;
 
-   // for indexes
    class _monIndex : public SDBObject
    {
    public:

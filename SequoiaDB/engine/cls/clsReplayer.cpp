@@ -212,9 +212,7 @@ namespace engine
       }
       else
       {
-         // wait bucket all complete
          pBucket->waitQueEmpty() ;
-         // judge lsn valid
          if ( !pBucket->_expectLSN.invalid() &&
               0 != pBucket->_expectLSN.compareOffset( recordHeader->_lsn ) )
          {
@@ -224,7 +222,6 @@ namespace engine
             goto error ;
          }
          rc = replay( recordHeader, eduCB ) ;
-         // re-calc complete lsn
          if ( SDB_OK == rc && !pBucket->_expectLSN.invalid() )
          {
             pBucket->_expectLSN.offset += recordHeader->_length ;
@@ -251,8 +248,6 @@ namespace engine
       goto done ;
    }
 
-   // for all UPDATE/DELETE, make sure we use hint = {"":"$id"}, so that we can
-   // bypass expensive optimizer to improve performance
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREP_REPLAY, "_clsReplayer::replay" )
    INT32 _clsReplayer::replay( dpsLogRecordHeader *recordHeader,
                                pmdEDUCB *eduCB, BOOLEAN incCount )
@@ -307,7 +302,6 @@ namespace engine
             {
                goto error ;
             }
-            /// possibly get a empty modifier
             if ( !modifier.isEmpty() )
             {
                rc = rtnUpdate( fullname, match, modifier,
@@ -441,8 +435,6 @@ namespace engine
          }
          case LOG_TYPE_IX_CRT :
          {
-            /// rebuild the index can be very time-consuming.
-            /// we create a sub thread to handle it.
             startIndexJob ( RTN_JOB_CREATE_INDEX, recordHeader, _dpsCB ) ;
             break ;
          }
@@ -768,7 +760,6 @@ namespace engine
          }
          case LOG_TYPE_CS_DELETE :
          {
-            /// cant not rollback, return fail.
             rc = SDB_CLS_REPLAY_LOG_FAILED ;
             goto error ;
          }
@@ -794,7 +785,6 @@ namespace engine
          }
          case LOG_TYPE_CL_DELETE :
          {
-            /// cant not rollback, return fail.
             rc = SDB_CLS_REPLAY_LOG_FAILED ;
             goto error ;
          }
@@ -845,7 +835,6 @@ namespace engine
          }
          case LOG_TYPE_CL_TRUNC :
          {
-            /// cant not rollback, return fail.
             rc = SDB_CLS_REPLAY_LOG_FAILED ;
             goto error ;
          }
@@ -956,7 +945,6 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         /// reuse error code.
          rc = SDB_CLS_REPLAY_LOG_FAILED ;
          PD_LOG( PDERROR, "unexpected exception: %s", e.what() ) ;
          goto error ;
@@ -1099,9 +1087,6 @@ namespace engine
          {
             rc = SDB_OK ;
          }*/
-         // if use RTN_JOB_MUTEX_STOP_RET, when create index have complete,
-         // drop index should not drop really, so it's error, need to use
-         // RTN_JOB_MUTEX_STOP_CONT
          rc = rtnGetJobMgr()->startJob( indexJob, RTN_JOB_MUTEX_STOP_CONT, NULL ) ;
       }
       else

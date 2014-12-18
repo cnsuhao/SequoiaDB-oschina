@@ -154,7 +154,6 @@ INT32 _linenoiseCmdBuilder::delCmd( const CHAR * cmd )
 
    if ( !node || sameNum != node->nameSize || !node->leaf )
    {
-      // not found
       rc = SDB_OK ;
       goto done ;
    }
@@ -258,7 +257,6 @@ INT32 _linenoiseCmdBuilder::_insert( _linenoiseCmd * node, const CHAR * cmd )
    }
    else
    {
-      //split next node first
       newNode = SDB_OSS_NEW _linenoiseCmd ;
       newNode->cmdName = node->cmdName.substr( sameNum ) ;
       newNode->nameSize = node->nameSize - sameNum ;
@@ -273,7 +271,6 @@ INT32 _linenoiseCmdBuilder::_insert( _linenoiseCmd * node, const CHAR * cmd )
       node->next = newNode ;
       newNode->parent = node ;
 
-      //change cur node
       node->cmdName = node->cmdName.substr ( 0, sameNum ) ;
       node->nameSize = sameNum ;
 
@@ -325,7 +322,6 @@ UINT32 _linenoiseCmdBuilder::getCompletions( const CHAR * cmd,
       UINT32 prefixLen = ossStrlen( cmd ) - sameNum ;
       std::string prefix = std::string(cmd).substr( 0, prefixLen ) ;
 
-      // the cmd is not full the same the node name
       if ( *cmd && sameNum != node->nameSize )
       {
          std::string fillStr = prefix + node->cmdName ;
@@ -471,7 +467,6 @@ done :
    return count ;
 }
 
-/// Tool functions
 
 linenoiseCmdBuilder* getLinenoiseCmdBuilder()
 {
@@ -509,10 +504,8 @@ BOOLEAN canContinueNextLine ( const CHAR * str )
       while ( ( ch = *str ) != '\0' )
       {
          ++strlen ;
-         // we won't check the "()\[]\{}" in '' or ""
          if ( ( ch == '\"' ) && flag2 == FALSE )
          {
-             // skip "\"", because "\"" can use as content
              if ( str != mark )
              {
                  if ( *(--str) != '\\' )
@@ -528,7 +521,6 @@ BOOLEAN canContinueNextLine ( const CHAR * str )
          }
          if ( ( ch == '\'' ) && flag1 == FALSE )
          {
-             // skip "\'", because "\'" can use as content
              if ( str != mark )
              {
                  if ( *(--str) != '\\' )
@@ -607,7 +599,6 @@ BOOLEAN historyClear ( void )
    INT32 i = 0 ;
    const CHAR *firstHistory = NULL ;
    PD_TRACE_ENTRY ( SDB_HISTORYCLEAR );
-   // clear the history used for completions
    for ( i=0; i<history_len; i++ )
    {
          firstHistory = linenoiseHistoryGet( i ) ;
@@ -616,19 +607,12 @@ BOOLEAN historyClear ( void )
                g_lnBuilder.delCmd( firstHistory ) ;
          }
    }
-   // clear the history in linenoise
    linenoiseHistoryClear() ;
    ret = TRUE ;
    PD_TRACE_EXITRC ( SDB_HISTORYCLEAR, ret );
    return ret ;
 }
 
-// Return false if the use presses Ctrl+c when typing first line, that means
-// "has NO next command". *cmd is guaranteed to be NULL.
-//
-// Otherwise return true regardless of error occuring.
-// You should test whether *cmd is null or an empty string on this case.
-// And free *cmd if not null.
 // PD_TRACE_DECLARE_FUNCTION ( SDB_GETNXTCMD, "getNextCommand" )
 BOOLEAN getNextCommand ( const CHAR *prompt, CHAR ** cmd,
                          BOOLEAN continueEnable )
@@ -649,16 +633,11 @@ BOOLEAN getNextCommand ( const CHAR *prompt, CHAR ** cmd,
       string input = "" ;
       while ( TRUE )
       {
-         // line is guarenteed by linenoise library that it doesn't contain
-         // trailing \n or \r. It is freed after added to input or at end of
-         // this function.
          line = linenoise ( firstline ? prompt : "... " ) ;
          if ( line )
          {
             firstline = FALSE ;
             input += line ;
-            // line is allocated by linenoise, so we have to free using C
-            // function
             free ( line ) ;
             line = NULL ;
             if ( continueEnable && canContinueNextLine ( input.c_str() ) )
@@ -711,8 +690,6 @@ BOOLEAN getNextCommand ( const CHAR *prompt, CHAR ** cmd,
       *cmd = NULL ;
    }
 
-   // line is allocated by linenoise, so we have to free using C
-   // function
    if ( line )
    {
       free ( line ) ;
@@ -722,7 +699,6 @@ BOOLEAN getNextCommand ( const CHAR *prompt, CHAR ** cmd,
    return ret ;
 }
 
-// initialize the history
 // PD_TRACE_DECLARE_FUNCTION ( SDB_HISTORYINIT, "historyInit" )
 BOOLEAN historyInit ( void )
 {

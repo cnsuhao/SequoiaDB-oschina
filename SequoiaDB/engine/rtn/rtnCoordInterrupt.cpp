@@ -65,7 +65,6 @@ namespace engine
       pmdKRCB *pKrcb = pmdGetKRCB();
       SDB_RTNCB *pRtncb = pKrcb->getRTNCB();
 
-      // send interrut message to all sub-session
       CoordSession *pSession = cb->getCoordSession();
       if ( pSession )
       {
@@ -74,7 +73,6 @@ namespace engine
          SendInterrupt( cb, routeSet );
       }
 
-      // delete all opened contexts when received the interrupt message
       {
          SINT64 contextID = -1 ;
          while ( -1 != (contextID = cb->contextPeek() ))

@@ -333,13 +333,11 @@ namespace engine
          goto exit ;
       }
 
-      // if we want to find a specific collection
       if ( collectionName )
       {
          if ( ossStrncmp ( mb->_collectionName, collectionName,
                            DMS_COLLECTION_NAME_SZ ) != 0 )
          {
-            // if it doesn't match our expectation
             goto exit ;
          }
       }
@@ -408,7 +406,6 @@ namespace engine
                              mb->_totalRecords, mb->_totalDataPages,
                              mb->_totalDataFreeSpace, mb->_totalIndexPages,
                              mb->_totalIndexFreeSpace ) ;
-         // Delete list
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Deleted list :"OSS_NEWLINE ) ;
          tmpInt = 16 ;
@@ -437,7 +434,6 @@ namespace engine
                                 mb->_deleteList[i]._offset ) ;
          }
 
-         // index list
          len += ossSnprintf( outBuf + len, outSize - len,
                              " Index extent:"OSS_NEWLINE ) ;
 
@@ -519,7 +515,6 @@ namespace engine
                               " Meta Extent Header :"OSS_NEWLINE ) ;
          len += dumpExtentHeader ( inBuf, inSize, outBuf + len,
                                    outSize - len ) ;
-         // make sure the extent is valid and in use
          if ( DMS_EXTENT_FLAG_FREED == mbEx->_header._flag )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
@@ -619,7 +614,6 @@ namespace engine
                               " Data Extent Header:"OSS_NEWLINE ) ;
          len += dumpExtentHeader ( inBuf, inSize, outBuf + len,
                                    outSize - len ) ;
-         // make sure the extent is valid and in use
          if ( DMS_EXTENT_FLAG_FREED == extent->_flag )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
@@ -629,7 +623,6 @@ namespace engine
 
          if( dumpRecord )
          {
-            // start dump all records
             dmsOffset nextRecord = extent->_firstRecordOffset ;
             INT32 recordCount = 0 ;
 
@@ -900,7 +893,6 @@ namespace engine
       nextRecord = record->_nextOffset ;
       if ( isDel )
       {
-         // dump nothing for deleted record, and set nextRecord to invalid
          nextRecord = DMS_INVALID_OFFSET ;
          goto exit ;
       }
@@ -919,7 +911,6 @@ namespace engine
       }
       else
       {
-         // for normal and ovfto types, let's dump data
          try
          {
             ossValuePtr recordPtr = 0 ;
@@ -974,7 +965,6 @@ namespace engine
          goto exit ;
       }
 
-      // get all child extents
       for ( INT32 i = 0 ; i < extentHead->_totalKeyNodeNum ; ++i )
       {
          UINT32 keyOffset = sizeof(ixmExtentHead) + sizeof(ixmKeyNode)*i ;
@@ -997,7 +987,6 @@ namespace engine
       {
          childExtents.push_back ( extentHead->_right ) ;
       }
-      // dump hex
       if ( DMS_SU_DMP_OPT_HEX & options )
       {
          if ( DMS_SU_DMP_OPT_HEX_PREFIX_AS_ADDR & options )
@@ -1018,7 +1007,6 @@ namespace engine
                               " Index Extent Header:"OSS_NEWLINE ) ;
          len += dumpExtentHeader ( inBuf, inSize, outBuf + len,
                                    outSize - len ) ;
-         // make sure extent is valid and in use
          if ( DMS_EXTENT_FLAG_FREED == extentHead->_flag )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
@@ -1028,7 +1016,6 @@ namespace engine
 
          if( dumpIndexKey )
          {
-            // dump all index keys
             for ( INT32 i = 0; i < extentHead->_totalKeyNodeNum; ++i )
             {
                UINT32 keyOffset = sizeof(ixmExtentHead) +

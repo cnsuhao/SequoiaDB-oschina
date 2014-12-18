@@ -28,20 +28,15 @@ INT32 receive ( ossSocket &sock, CHAR *buffer,
                 INT32 &len, INT32 timeout )
 {
    INT32 rc = SDB_OK ;
-   // receive buffer
    CHAR *readBuf = buffer ;
-   // the single received size
    INT32 tempLen = 0 ;
-   // received sum size
    INT32 bufferLen = len ;
-   // current received length
    len = 0 ;
 
    while ( len < bufferLen )
    {
       tempLen = (len + REST_ADAPTOR_RECV_BUFF_SIZE) > bufferLen ?
                 bufferLen - len : REST_ADAPTOR_RECV_BUFF_SIZE ;
-      // receiving
       rc = sock.recv ( buffer + len, tempLen, timeout, 0, FALSE ) ;
       if ( rc )
       {
@@ -49,7 +44,6 @@ INT32 receive ( ossSocket &sock, CHAR *buffer,
                  "Failed to call ossSocket recv" ) ;
          goto error ;
       }
-      // if receive "\r\n\r\n",we will continue to receive
       if ( ossStrstr ( readBuf + len - (len?6:0),
                        "\r\n0\r\n\r\n" ) )
       {
@@ -111,7 +105,6 @@ Host: 192.168.20.105:5004\r\n\
       printf ( "error receive\n" ) ;
       return FALSE ;
    }
-   //printf ( "\n%s\n", buffer ) ;
    return TRUE ;
 }
 

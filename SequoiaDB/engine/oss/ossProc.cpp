@@ -70,23 +70,18 @@ BOOLEAN ossIsProcessRunning ( OSSPID pid )
 
    if ( isRunning )
    {
-      // need to check whether process status is 'Z'
       INT32 numScaned                            = 0 ;
       INT32 readpid                              = 0 ;
       INT32 ppid                                 = 0 ;
       CHAR procName [ OSS_PROCESS_NAME_LEN + 1]  = {0} ;
       CHAR status [ OSS_PROCESS_NAME_LEN + 1]    = {0} ;
-         // since we are single-thread program, it's safe to use FILE
       FILE *fp                                   = NULL ;
 
-      // read /proc/pid/stat can get both pid and ppid
       ossSnprintf ( pathName, OSS_MAX_PATHSIZE, "/proc/%d/stat", pid ) ;
 
-      // open proc/pid/stat file
       fp = fopen ( pathName, "r" ) ;
       if ( fp )
       {
-         // get first 4 elements
          numScaned = fscanf ( fp, "%d%s%s%d",
                               &readpid,      // process pid
                               procName,      // process name
@@ -116,8 +111,6 @@ void ossCloseProcessHandle( OSSHANDLE & handle )
 }
 
 #define OSS_INVALID_MSG_QUEUE_ID -1
-// Linux wait child process
-// It calls waitpid until the given pid stop
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSWAITCHLD, "ossWaitChild" )
 INT32 ossWaitChild ( OSSPID pid, ossResultCode &result, BOOLEAN block )
 {
@@ -126,17 +119,14 @@ INT32 ossWaitChild ( OSSPID pid, ossResultCode &result, BOOLEAN block )
    INT32 err = 0 ;
    INT32 statuslocation ;
    INT32 options = block ? WUNTRACED : WNOHANG ;
-   // loop until the program finish
    do
    {
       rc = waitpid ( pid, &statuslocation, options ) ;
       err = errno ;
    } while ( -1 == rc && EINTR == err ) ;
 
-   // if we can get return code or the child doesn't exist
    if ( -1 == rc || 0 == rc )
    {
-      // child already terminated
       if ( -1 == rc && ECHILD == err )
       {
          result.termcode = OSS_EXIT_NORMAL ;
@@ -149,18 +139,15 @@ INT32 ossWaitChild ( OSSPID pid, ossResultCode &result, BOOLEAN block )
          rc = SDB_SYS ;
       }
    }
-   // otherwise let's check the status of the output process id
    else
    {
       if ( WIFEXITED ( statuslocation ) )
       {
-         // if exited
          result.termcode = OSS_EXIT_NORMAL ;
          result.exitcode = WEXITSTATUS ( statuslocation ) ;
       }
       else if ( WIFSTOPPED ( statuslocation ) )
       {
-         // if stopped
          switch ( WSTOPSIG ( statuslocation ) )
          {
          case 0 :
@@ -182,7 +169,6 @@ INT32 ossWaitChild ( OSSPID pid, ossResultCode &result, BOOLEAN block )
       }
       else
       {
-         // if WIFSIGNALED() true
          INT32 sig = WTERMSIG ( statuslocation ) ;
          switch ( sig )
          {
@@ -210,9 +196,6 @@ INT32 ossWaitChild ( OSSPID pid, ossResultCode &result, BOOLEAN block )
 }
 
 #define OSS_FIRST_ARGUMENT_LEN 255
-// create pointer list from character array
-// the array may contain 0 or more arguments, each arguments are separated by
-// '\0'. Two adjcent '\0\0' represent end of the string
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSCRTLST, "ossCreateList" )
 static INT32 ossCreateList ( const CHAR *pArguments,
                              const CHAR ***pppList,
@@ -226,7 +209,6 @@ static INT32 ossCreateList ( const CHAR *pArguments,
    const CHAR *p   = pArguments ;
    INT32 c         = 0 ;
    INT32 bufferLen = 0 ;
-   // first let's count how many arguments we have
    if ( NULL != pArguments )
    {
       UINT32 count = 0 ;
@@ -242,31 +224,23 @@ static INT32 ossCreateList ( const CHAR *pArguments,
       }
       iNumArgs += count ;
       bufferLen = i ;
-      // if the original buffer size is not large enough to hold the rename
-      // buffer, let's allocate a new one
       if ( isArgument && bufferLen < OSS_RENAME_PROCESS_BUFFER_LEN )
       {
          ++iNumArgs ;
-         // allocate memory
          CHAR *pTempMem = (CHAR*)SDB_OSS_MALLOC
                ( OSS_RENAME_PROCESS_BUFFER_LEN ) ;
-         // make sure allocation success
          PD_CHECK ( pTempMem, SDB_OOM, error, PDERROR,
                     "Failed to allocate memory for %d bytes",
                     OSS_RENAME_PROCESS_BUFFER_LEN ) ;
-         // copy original arguments to new memory
          ossMemcpy ( pTempMem, pArguments, bufferLen ) ;
-         // set the last argument to all space
          ossMemset ( &pTempMem[bufferLen], ' ',
                      OSS_RENAME_PROCESS_BUFFER_LEN-bufferLen ) ;
-         // set last byte to two '\0'
          pTempMem[OSS_RENAME_PROCESS_BUFFER_LEN-1] = '\0' ;
          pTempMem[OSS_RENAME_PROCESS_BUFFER_LEN-2] = '\0' ;
          p = pTempMem ;
       }
    }
 
-   // allocate memory, caller is responsible to free memory
    *pppList = (const CHAR **)SDB_OSS_MALLOC ( iNumArgs * sizeof(*pppList) ) ;
    if ( !*pppList )
    {
@@ -275,7 +249,6 @@ static INT32 ossCreateList ( const CHAR *pArguments,
       goto error ;
    }
    ossMemset ( *pppList, 0, sizeof(*pppList)*iNumArgs ) ;
-   // assign pppList element to argument
    if ( p )
    {
       while ( '\0' != *p )
@@ -295,7 +268,6 @@ error :
    goto done ;
 }
 
-// called by ossExec
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSEXEC2, "ossExec2" )
 static INT32 ossExec2 ( const CHAR *program,
                         const CHAR *arguments,
@@ -317,7 +289,6 @@ static INT32 ossExec2 ( const CHAR *program,
       bInheritHandles = TRUE ;
    }
 
-   // if the caller want stdout
    if ( NULL != npHandleStdout )
    {
       if ( -1 == pipe ( pipeDescStdOut ) )
@@ -328,7 +299,6 @@ static INT32 ossExec2 ( const CHAR *program,
          goto error ;
       }
    }
-   // if the caller want stdin
    if ( NULL != npHandleStdin )
    {
        if ( -1 == pipe ( pipeDescStdIn ) )
@@ -339,11 +309,9 @@ static INT32 ossExec2 ( const CHAR *program,
          goto error ;
       }
    }
-   // let's fork the process
    pid = fork() ;
    if ( -1 == pid )
    {
-      // can't fork
       err = ossGetLastError () ;
       PD_LOG ( PDERROR, "Failed to fork process, err = %d", err ) ;
       if ( EAGAIN == err )
@@ -360,43 +328,30 @@ static INT32 ossExec2 ( const CHAR *program,
       }
       goto error ;
    }
-   // check if i'm the new process or old one
    if ( 0 == pid )
    {
       const CHAR ** ppArgv   = NULL ;
       const CHAR ** ppEnvv   = NULL ;
       if ( npHandleStdin )
       {
-         // if we want to handle pipe in, we have to redirect pipe to stdin fd
          close ( pipeDescStdIn[1] ) ;
          dup2 ( pipeDescStdIn[0], STDIN_FILENO ) ;
-         // since dup2 duplicate fd, but fd still share real file descriptor, we
-         // shouldn't close the original one
       }
       if ( npHandleStdout )
       {
-         // if we want to handle pipe out, we have to redirect pipe to stdout fd
          close ( pipeDescStdOut[0] ) ;
          dup2 ( pipeDescStdOut[1], STDOUT_FILENO ) ;
          dup2 ( STDOUT_FILENO, STDERR_FILENO ) ;
-         // since dup2 duplicate fd, but fd still share real file descriptor, we
-         // shouldn't close the original one
       }
-      // if this is child process
       if ( !bInheritHandles )
       {
-         // if we don't want to inherit any handles
-         // first let's close all opened file descriptors
          if ( ( NULL != npHandleStdout ) ||
               ( NULL != npHandleStdin ) )
             ossCloseAllOpenFileHandles ( FALSE ) ;
          else
             ossCloseAllOpenFileHandles ( TRUE ) ;
       }
-      // we have to reset all signal handlers to default
       ossSigSet sigSet ;
-      // fill out all signals ( not SIGKILL and SIGSTOP are ignored in the
-      // function ossRegisterSignalHandle
       sigSet.fillSet () ;
       rc = ossRegisterSignalHandle( sigSet, SIG_DFL ) ;
       if ( SDB_OK != rc )
@@ -404,7 +359,6 @@ static INT32 ossExec2 ( const CHAR *program,
          PD_LOG ( PDERROR, "Failed to register signal handlers, rc = %d", rc ) ;
          _exit ( rc ) ;
       }
-      // create argument list, memory will be freed by end of the function
       rc = ossCreateList ( arguments, &ppArgv, 1, 0,
                            OSS_BIT_TEST ( flag, OSS_EXEC_NORESIZEARGV ) ?
                               FALSE : TRUE ) ;
@@ -413,7 +367,6 @@ static INT32 ossExec2 ( const CHAR *program,
          PD_LOG ( PDERROR, "Failed to create list, rc = %d", rc ) ;
          _exit ( rc ) ;
       }
-      // create environment list, memory will be freed by end of the function
       rc = ossCreateList ( environment, &ppEnvv, 1, 0, FALSE ) ;
       if ( rc )
       {
@@ -427,7 +380,6 @@ static INT32 ossExec2 ( const CHAR *program,
          _exit ( rc ) ;
       }
 
-      // execute the program
       if ( environment != NULL )
       {
          rc = execve ( program, (OSS_EXECV_CAST)ppArgv,
@@ -437,7 +389,6 @@ static INT32 ossExec2 ( const CHAR *program,
       {
          rc = execvp ( program, (OSS_EXECV_CAST)ppArgv ) ;
       }
-      // if this code is reached, something goes wrong with exec
       if ( ppArgv )
       {
          if ( ppArgv[0] != arguments )
@@ -451,7 +402,6 @@ static INT32 ossExec2 ( const CHAR *program,
          err = ossGetLastError () ;
          if ( msgQueue != OSS_INVALID_MSG_QUEUE_ID )
          {
-            // write error code into queue
             msgsnd ( msgQueue, &err, sizeof(err), 0 ) ;
          }
          _exit ( err ) ;
@@ -459,11 +409,8 @@ static INT32 ossExec2 ( const CHAR *program,
    } // if ( 0 == pid )
    else
    {
-      // parent should create a valid OSSNPIPE
       if ( npHandleStdout )
       {
-         // create a pipe for child's stdout stream, so from parent we should
-         // create a pipe with inbound
          close ( pipeDescStdOut[1] ) ;
          pipeDescStdOut[1] = SDB_INVALID_FH ;
          ossMemset ( npHandleStdout, 0, sizeof(OSSNPIPE) ) ;
@@ -483,8 +430,6 @@ static INT32 ossExec2 ( const CHAR *program,
       }
       if ( npHandleStdin )
       {
-         // create a pipe for child's stdin stream, so from parent we should
-         // create a pipe with outbound
          close ( pipeDescStdIn[0] ) ;
          pipeDescStdIn[0] = SDB_INVALID_FH ;
          ossMemset ( npHandleStdin, 0, sizeof(OSSNPIPE) ) ;
@@ -519,7 +464,6 @@ error :
    goto done ;
 }
 
-// function to execute program.
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSEXEC, "ossExec" )
 INT32 ossExec ( const CHAR * program,
                 const CHAR * arguments,
@@ -549,10 +493,8 @@ INT32 ossExec ( const CHAR * program,
    INT32               msgRecvBytes           = 0 ;
    if ( OSS_EXEC_SSAVE & flag )
    {
-      // we should block SIGCHLD and rembmer caller's mask
       sigemptyset ( &childmask ) ;
       sigaddset ( &childmask, SIGCHLD ) ;
-      // set new mask, save old mask
       err = pthread_sigmask( SIG_BLOCK, &childmask, &savemask ) ;
       if ( err )
       {
@@ -560,9 +502,7 @@ INT32 ossExec ( const CHAR * program,
          rc = SDB_SYS ;
          goto error ;
       }
-      // once we changed signal mask, we have to restore it later
       restoreSigMask = TRUE ;
-      // change sigchld action to default
       ignore.sa_handler = SIG_DFL ;
       sigemptyset ( &ignore.sa_mask ) ;
       ignore.sa_flags = 0 ;
@@ -573,10 +513,8 @@ INT32 ossExec ( const CHAR * program,
          rc = SDB_SYS ;
          goto error ;
       }
-      // once we change signal handler, we have to restore it later
       restoreSIGCHLDHandling = TRUE ;
 
-      // get a message queue to communicate with child
       msgQueue = msgget ( IPC_PRIVATE, IPC_CREAT | IPC_EXCL |
                                        S_IXOTH | S_IXUSR |
                                        S_IRUSR | S_IWUSR ) ;
@@ -586,7 +524,6 @@ INT32 ossExec ( const CHAR * program,
          goto error ;
       }
       queueCreated = TRUE ;
-      // execute the program
       retcode = ossExec2 ( program, arguments, environment, msgQueue, pid,
                            flag, npHandleStdin, npHandleStdout ) ;
       if ( SDB_OK == retcode )
@@ -600,7 +537,6 @@ INT32 ossExec ( const CHAR * program,
             pHandle->handleInOutPipe( pid, npHandleStdin, npHandleStdout ) ;
          }
 
-         // wait for program to terminate
          retcode = ossWaitChild ( pid, result ) ;
          if ( retcode )
          {
@@ -611,14 +547,11 @@ INT32 ossExec ( const CHAR * program,
                   PDINFO:PDERROR,
                   "Process %d is terminated with termcode %d, exitcode %d", pid,
                   result.termcode, result.exitcode ) ;
-         // if a message exists on the queue, then exec() failed, and let's get
-         // failed message
          msgRecvBytes = msgrcv ( msgQueue, &failedMessage,
                                  sizeof(failedMessage),
                                  0, IPC_NOWAIT ) ;
          if ( msgRecvBytes > 0 )
          {
-            // usually this means something wrong with execv
             PD_LOG ( PDERROR, "Child process %d is failed with code %d",
                      pid, failedMessage ) ;
             rc = failedMessage ;
@@ -626,13 +559,9 @@ INT32 ossExec ( const CHAR * program,
          }
          else if ( -1 == msgRecvBytes  )
          {
-            // if failed to receive ( ex, someone removed ipc queue )
-            // or everything goes fine :)
             err = errno ;
             if ( ( ENOMSG == err ) || (EINVAL == err ) )
             {
-               // if we have ENOMSG and retcode = 0, that means everything is
-               // good
                if ( retcode != 0 )
                {
                   PD_LOG ( PDERROR, "Cannot find msg in queue, retcode=%d",
@@ -656,7 +585,6 @@ INT32 ossExec ( const CHAR * program,
    } // if ( OSS_EXEC_SSAVE & exec_flag )
    else
    {
-      // if we don't need to wait for child, let's simply call ossExec2
       msgQueue = OSS_INVALID_MSG_QUEUE_ID ;
       retcode = ossExec2 ( program, arguments, environment, msgQueue, pid,
                            flag, npHandleStdin, npHandleStdout ) ;
@@ -743,7 +671,6 @@ void ossRenameProcess ( const CHAR *pNewName )
    PD_TRACE_ENTRY ( SDB_OSSRENMPROC );
    SDB_ASSERT ( g_bNameChangeEnabled,
                 "program must be enabled with name change" ) ;
-   // first copy to temp buffer
    ossStrncpy ( g_WorkBuffer, pNewName, g_workBufferLen ) ;
    UINT32 inputLen = ossStrlen ( g_WorkBuffer ) ;
    ossStrncpy ( g_specProgramName[0],
@@ -778,10 +705,8 @@ INT32 ossVerifyPID ( OSSPID inputpid, const CHAR *processName,
    CHAR pathName1 [ OSS_MAX_PATHSIZE + 1 ]    = {0} ;
    CHAR commandLine [ OSS_MAX_PATHSIZE + 1 ]  = {0} ;
    BOOLEAN loop                               = TRUE ;
-   // since we are single-thread program, it's safe to use FILE
    FILE *fp                                   = NULL ;
    FILE *fp1                                  = NULL ;
-   // read /proc/pid/stat can get both pid and ppid
    ossSnprintf ( pathName, OSS_MAX_PATHSIZE, "/proc/%d/stat", inputpid ) ;
    ossSnprintf ( pathName1, OSS_MAX_PATHSIZE, "/proc/%d/cmdline", inputpid ) ;
 
@@ -792,23 +717,17 @@ INT32 ossVerifyPID ( OSSPID inputpid, const CHAR *processName,
 
    while ( loop )
    {
-      // open proc/pid/stat file
       fp = fopen ( pathName, "r" ) ;
       fp1 = fopen ( pathName1, "r" ) ;
       if ( fp && fp1 )
       {
-         // get first 4 elements
          numScaned = fscanf ( fp, "%d%s%s%d",
                               &pid,          // process pid
                               procName,      // process name
                               status,        // process status
                               &ppid ) ;      // parent process id
-         // if we can't read 4 elements, something wrong
          if ( 4 == numScaned )
          {
-            // if we detected zombie process, let's get out of here. Since we
-            // have disabled SIGCHLD, so if fork() success but exec() fail, we
-            // are going to get zombie status in child process
             if ( status[0] == PROC_STATUS_ZOMBIE )
             {
                ossPrintf ( "Error: Failed to start %s"OSS_NEWLINE,
@@ -816,11 +735,6 @@ INT32 ossVerifyPID ( OSSPID inputpid, const CHAR *processName,
                loop = FALSE ;
                rc = SDB_SYS ;
             }
-            // make sure
-            // 1) pid matches what we want
-            // 2) parent pid matches myself
-            // 3) sequoiadb engine name is part of the process name ( after exec
-            //    successfully run )
             else if ( pid == inputpid && ossGetCurrentProcessID() == ppid )
             {
                if ( NULL != fgets ( commandLine, OSS_MAX_PATHSIZE, fp1 ) &&
@@ -833,7 +747,6 @@ INT32 ossVerifyPID ( OSSPID inputpid, const CHAR *processName,
                }
             }
          }
-         // if we can't read 4 elements, something wrong
          else
          {
             ossPrintf ( "Error: Failed to extract process information"
@@ -844,8 +757,6 @@ INT32 ossVerifyPID ( OSSPID inputpid, const CHAR *processName,
       }
       else
       {
-         // if we can't open the /proc/<pid>/stat, the child process is gone (
-         // it should never happen thou )
          ossPrintf ( "Error: Unable to read %s"OSS_NEWLINE, pathName ) ;
          rc = SDB_SYS ;
          loop = FALSE ;
@@ -860,7 +771,6 @@ INT32 ossVerifyPID ( OSSPID inputpid, const CHAR *processName,
          fclose ( fp1 ) ;
          fp1 = NULL ;
       }
-      // sleep for 1 second every round
       sleep ( 1 ) ;
    } // end while
 
@@ -1004,7 +914,6 @@ static INT32 ossResolvePath ( const CHAR *pPathToResolve,
    WCHAR  szwExecutablePath [ OSS_MAX_PATHSIZE + 1 ] = {0} ;
    LPCWSTR *pathList = NULL ;
    LPSTR  lpszProgName = NULL ;
-   // lpszwProgName is free at end of the function
    rc = ossANSI2WC ( pPathToResolve, &lpszwProgName, NULL ) ;
    if ( rc )
    {
@@ -1013,7 +922,6 @@ static INT32 ossResolvePath ( const CHAR *pPathToResolve,
       goto error ;
    }
    wcscpy ( szwProgName, lpszwProgName ) ;
-   // get executable path
    if ( !GetModuleFileName ( NULL, szwExecutablePath, OSS_MAX_PATHSIZE ) )
    {
       PD_LOG ( PDERROR, "Failed to GetModuleFileName, rc = %d",
@@ -1026,7 +934,6 @@ static INT32 ossResolvePath ( const CHAR *pPathToResolve,
    {
       *(++tSep) = '\0' ;
    }
-   // get current path
    if ( !GetCurrentDirectory ( OSS_MAX_PATHSIZE, szwCurrentPath  ) )
    {
       PD_LOG ( PDERROR, "Failed to GetCurrentDir, rc = %d",
@@ -1034,7 +941,6 @@ static INT32 ossResolvePath ( const CHAR *pPathToResolve,
       rc = SDB_SYS ;
       goto error ;
    }
-   // free at end of the function
    pathList = (LPCWSTR*)SDB_OSS_MALLOC ( sizeof(LPCWSTR) * 3 ) ;
    if ( !pathList )
    {
@@ -1054,7 +960,6 @@ static INT32 ossResolvePath ( const CHAR *pPathToResolve,
       rc = SDB_FNE ;
       goto error ;
    }
-   // lpszProgName is free at end of the function
    rc = ossWC2ANSI ( szwProgName, &lpszProgName, NULL ) ;
    if ( rc )
    {
@@ -1103,8 +1008,6 @@ INT32 ossWaitInterrupt ( HANDLE handle, DWORD timeout )
 {
    PD_TRACE_ENTRY ( SDB_OSSWTINT );
    DWORD rc ;
-   // wait until the process stop, since we don't have IPC in windows, we can't
-   // detect whether the process terminated properly or not
    rc = WaitForSingleObject ( handle, timeout ) ;
    switch ( rc )
    {
@@ -1140,7 +1043,6 @@ INT32 ossStartService( const CHAR *serviceName )
       goto error ;
    }
 
-   // open a handle to the sc manager database
    schSCM = OpenSCManager ( NULL, NULL, SC_MANAGER_CONNECT ) ;
    if ( schSCM == NULL )
    {
@@ -1149,7 +1051,6 @@ INT32 ossStartService( const CHAR *serviceName )
       goto error ;
    }
 
-   // open a handle to the sdbcm service
    schSRV = OpenService ( schSCM, pszWString,
                           SERVICE_START | SERVICE_QUERY_STATUS ) ;
    if ( schSRV == NULL )
@@ -1200,38 +1101,30 @@ static BOOL ossWaitForServiceToReachState( SC_HANDLE hService,
 {
    PD_TRACE_ENTRY ( SDB_OSS_WFSTRS ) ;
    DWORD dwLastState, dwLastCheckPoint ;
-   // Don't compare state & checkpoint the first time through
    BOOL  fFirstTime = TRUE ;
    BOOL  fServiceOk = TRUE ;
    DWORD dwTimeout = GetTickCount() + dwMilliseconds ;
  
-   // Loop until the service reaches the desired state,
-   // an error occurs, or we timeout
    while  (TRUE)
    {
-      // Get current state of service
       fServiceOk = ::QueryServiceStatus( hService, pss ) ;
  
-      // If we can't query the service, we're done
       if ( !fServiceOk )
       {
         break ;
       }
  
-      // If the service reaches the desired state, we're done
       if ( pss->dwCurrentState == dwDesiredState )
       {
          break ;
       }
  
-      // If we timed-out, we're done
       if ( dwMilliseconds != INFINITE && dwTimeout > GetTickCount() )
       {
          SetLastError( ERROR_TIMEOUT ) ;
          break;
       }
  
-      // If this is our first time, save the service's state & checkpoint
       if ( fFirstTime )
       {
          dwLastState = pss->dwCurrentState ;
@@ -1240,7 +1133,6 @@ static BOOL ossWaitForServiceToReachState( SC_HANDLE hService,
       }
       else
       {
-          // If not first time & state has changed, save state & checkpoint
          if ( dwLastState != pss->dwCurrentState )
          {
             dwLastState = pss->dwCurrentState ;
@@ -1248,26 +1140,20 @@ static BOOL ossWaitForServiceToReachState( SC_HANDLE hService,
          }
          else
          {
-            // State hasn't change, check that checkpoint is increasing
             if ( pss->dwCheckPoint > dwLastCheckPoint )
             {
-               // Checkpoint has increased, save checkpoint
                dwLastCheckPoint = pss->dwCheckPoint ;
             }
             else
             {
-               // Checkpoint hasn't increased, service failed, we're done!
                fServiceOk = FALSE ; 
                break ;
             }
          }
       }
-       // We're not done, wait the specified period of time
        Sleep( pss->dwWaitHint ) ;
     }
  
-   // Note: The last SERVICE_STATUS is returned to the caller so
-   // that the caller can check the service state and error codes.
    PD_TRACE_EXIT ( SDB_OSS_WFSTRS ) ;
    return fServiceOk ;
 }
@@ -1289,7 +1175,6 @@ INT32 ossStopService( const CHAR * serviceName, DWORD dwMilliseconds )
       goto error ;
    }
 
-   // open a handle to the sc manager database
    schSCM = OpenSCManager ( NULL, NULL, SC_MANAGER_CONNECT ) ;
    if ( schSCM == NULL )
    {
@@ -1298,7 +1183,6 @@ INT32 ossStopService( const CHAR * serviceName, DWORD dwMilliseconds )
       goto error ;
    }
 
-   // open a handle to the sdbcm service
    schSRV = OpenService ( schSCM, pszWString, SERVICE_STOP ) ;
    if ( schSRV == NULL )
    {
@@ -1356,7 +1240,6 @@ static INT32 ossCreatePipeAndDupHandle ( PHANDLE const pReadHandle,
       rc = SDB_SYS ;
       goto error ;
    }
-   // make sure the duplicated handle can't be inherite
    if ( !DuplicateHandle ( pid, *pHandleToDuplicate,
                            pid, pDuplicateHandle, 0, FALSE,
                            DUPLICATE_CLOSE_SOURCE | DUPLICATE_SAME_ACCESS ) )
@@ -1396,7 +1279,6 @@ INT32 ossExec ( const CHAR * program,
    CHAR *             pArgs      = NULL ;
    LPWSTR             lpszwArgs  = NULL ;
 
-   // security attribute is used to setup inheritable handles
    SECURITY_ATTRIBUTES secAttr = {'\0'} ;
    HANDLE stdinReadPipe = INVALID_HANDLE_VALUE ;
    HANDLE stdinWritePipeChild = INVALID_HANDLE_VALUE ;
@@ -1409,7 +1291,6 @@ INT32 ossExec ( const CHAR * program,
       ntFlag |= DETACHED_PROCESS ;
    }
 
-   // setup attribute so that child processes are able to inherite our handles
    if ( ( npHandleStdin != NULL ) || ( npHandleStdout != NULL ) )
    {
       secAttr.bInheritHandle = TRUE ;
@@ -1456,18 +1337,14 @@ INT32 ossExec ( const CHAR * program,
       npHandleStdout->_state  = OSS_NPIPE_INBOUND |
                                 OSS_NPIPE_BLOCK_WITH_TIMEOUT ;
    }
-   // check input arguments
    if ( ( flag & OSS_EXEC_INHERIT_HANDLES ) ||
         ( npHandleStdout ) || ( npHandleStdin) )
    {
       inheritH = TRUE ;
    }
-   // parse arguments
    if ( arguments )
    {
       pArgs = (CHAR*)arguments ;
-      // iterate all argument until we find "\0\0"
-      // this part we check if we have more than one argument in the list
       while ( TRUE )
       {
          INT32 argXLen = ossStrlen ( pArgs ) ;
@@ -1476,14 +1353,11 @@ INT32 ossExec ( const CHAR * program,
          if ( ( '\0' == pArgs[argXLen] ) &&
               ( '\0' == pArgs[argXLen + 1] ) )
          {
-            // iterate to end of the argument
             break ;
          }
-         // iterate to the next argument
          pArgs = &pArgs[argXLen + 1] ;
       }
 
-      // allocate memory, free by end of the function
       argBuffer = (CHAR*) SDB_OSS_MALLOC ( bufferLen+1 ) ;
       if ( !argBuffer )
       {
@@ -1493,12 +1367,10 @@ INT32 ossExec ( const CHAR * program,
       }
       ossMemset ( argBuffer, 0, bufferLen + 1) ;
       ossMemcpy ( argBuffer, arguments, bufferLen ) ;
-      // iterate through and change all '\0' to ' '
       pArgs = argBuffer ;
       while ( TRUE )
       {
          INT32 argXLen = ossStrlen ( pArgs ) ;
-         // break when we hit '\0''\0'
          if ( ( '\0' == pArgs[argXLen] ) &&
               ( '\0' == pArgs[argXLen + 1] ) )
          {
@@ -1547,12 +1419,6 @@ INT32 ossExec ( const CHAR * program,
       PD_LOG ( PDERROR, "Failed to convert args" ) ;
       goto error ;
    }
-   // create a new process with lpszArgs for arguments ( and commands )
-   // Note the first word in argument must be the command we are trying to
-   // execute. And since the command may include space ( like C:\Program
-   // Files\xxx ), we have to use double quotes to quote the command ( like
-   // "C:\Program Files\xxx" ), and then followed by zero or more arguments
-   // separated by space
    if ( !CreateProcess ( NULL,
                          lpszwArgs,         // arguments
                          NULL,              // process security
@@ -1583,7 +1449,6 @@ INT32 ossExec ( const CHAR * program,
       if ( pProcessHandle )
       {
          *pProcessHandle = procInfo.hProcess ;
-         // need close by caller
       }
 
       if ( flag & OSS_EXEC_SSAVE )
@@ -1594,11 +1459,9 @@ INT32 ossExec ( const CHAR * program,
                                       npHandleStdout ) ;
          }
 
-         // if we need to wait for result
          rc = ossWaitInterrupt ( procInfo.hProcess, INFINITE ) ;
          if ( rc == SDB_OK )
          {
-            // get termination code
             DWORD pgm_rc ;
             if ( !GetExitCodeProcess ( procInfo.hProcess, &pgm_rc ) )
             {
@@ -1740,7 +1603,6 @@ INT32 ossEnumProcesses( std::vector < ossProcInfo > &procs,
       }
    }
 
-   // close handle
    CloseHandle( procSnap ) ;
 
 done:
@@ -1805,16 +1667,13 @@ INT32 ossGetEWD ( CHAR *pBuffer, INT32 maxlen )
       goto error ;
    }
    tSep = wcsrchr ( lpszwPath, sep ) ;
-   // path with prefix "?\"
    if ( tSep )
       *tSep = '\0' ;
-   // path not with prefix
    else
    {
       lpszwPath[0] = '.' ;
       lpszwPath[1] = '\0' ;
    }
-   // lpszPath is free at the end of this function 
    rc = ossWC2ANSI ( lpszwPath, &lpszPath, NULL ) ;
    if ( rc )
    {
@@ -1889,7 +1748,6 @@ INT32 ossBuildArguments( CHAR **pArgumentBuffer, INT32 &buffSize,
    INT32 needBuffSize = 0 ;
    INT32 pos = 0 ;
 
-   // estimate the size of final buffer
    for ( std::list<const CHAR*>::iterator it = argv.begin() ;
          it != argv.end() ;
          ++it )
@@ -1904,7 +1762,6 @@ INT32 ossBuildArguments( CHAR **pArgumentBuffer, INT32 &buffSize,
       goto error ;
    }
 
-   // end with \0\0
    if ( buffSize - 1 < needBuffSize )
    {
       CHAR *pNewBuff = (CHAR*)SDB_OSS_MALLOC( needBuffSize + 1 ) ;
@@ -1925,14 +1782,12 @@ INT32 ossBuildArguments( CHAR **pArgumentBuffer, INT32 &buffSize,
 
    ossMemset ( *pArgumentBuffer, 0, buffSize ) ;
 
-   // copy arguments into buffer
    for ( std::list<const CHAR*>::iterator it = argv.begin() ;
          it != argv.end() ;
          ++it )
    {
       ossStrncpy ( &(*pArgumentBuffer)[pos], *it, needBuffSize - pos ) ;
       pos += ossStrlen ( *it ) ;
-      // each arguments are separated by '\0'
       (*pArgumentBuffer)[pos] = '\0' ;
       ++pos ;
    }

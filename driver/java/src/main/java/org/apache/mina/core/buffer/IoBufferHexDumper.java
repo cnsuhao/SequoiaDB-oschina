@@ -83,13 +83,11 @@ class IoBufferHexDumper {
 
         int mark = in.position();
 
-        // fill the first
         int byteValue = in.get() & 0xFF;
         out.append((char) highDigits[byteValue]);
         out.append((char) lowDigits[byteValue]);
         size--;
 
-        // and the others, too
         for (; size > 0; size--) {
             out.append(' ');
             byteValue = in.get() & 0xFF;

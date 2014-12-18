@@ -149,7 +149,6 @@ namespace engine
       }
       else
       {
-         /// do nothing.
       }
 
       _w = w ;
@@ -275,13 +274,10 @@ namespace engine
       }
       else
       {
-         /// do nothing.
       }
 
       if ( _isMainShd )
       {
-         /// we need to send back pagesize when this node
-         ///  is not the main shard.
          _meta2Obj( _metaObj ) ;
       }
    done:
@@ -390,7 +386,6 @@ namespace engine
                     *itr, rc ) ;
             ++failedNum ;
             rc = SDB_OK ;
-            /// do not goto error. try to rollback all pieces.
          }
       }
 

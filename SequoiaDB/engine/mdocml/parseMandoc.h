@@ -20,7 +20,6 @@
 #include "mandoc.h"
 #include "mdoc.h"
 #include "man.h"
-//#include <iostream>
 
 __BEGIN_DECLS
 
@@ -66,8 +65,6 @@ struct   curparse {
    void        parse(struct curparse *, int,
             const char *, enum mandoclevel *);
    int        toptions(struct curparse *, char *);
-//   void        usage(void) __attribute__((noreturn));
-//   void        version(void) __attribute__((noreturn));
    int        woptions(struct curparse *, char *);
 
 

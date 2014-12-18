@@ -46,7 +46,6 @@ using namespace std ;
     ( PMD_COMMANDS_STRING (PMD_OPTION_HELP, ",h"), "help" ) \
     ( PMD_OPTION_VERSION, "version" )
 
-// initialize options
 void init ( po::options_description &desc )
 {
    PMD_ADD_PARAM_OPTIONS_BEGIN ( desc )
@@ -69,7 +68,6 @@ INT32 main( INT32 argc, CHAR **argv )
 
    init ( desc ) ;
 
-   // validate arguments
    rc = engine::utilReadCommandLine( argc, argv, desc, vm, FALSE ) ;
    if ( rc )
    {
@@ -77,7 +75,6 @@ INT32 main( INT32 argc, CHAR **argv )
       displayArg ( desc ) ;
       goto done ;
    }
-   /// read cmd first
    if ( vm.count( PMD_OPTION_HELP ) )
    {
       displayArg( desc ) ;

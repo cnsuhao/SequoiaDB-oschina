@@ -45,7 +45,6 @@
 
 enum MSG_TYPE
 {
-   //shard msg
    MSG_BS_MSG_REQ                      = 1000,
    MSG_BS_MSG_RES                      = MAKE_REPLY_TYPE(MSG_BS_MSG_REQ),
    MSG_BS_INSERT_REQ                   = 2002,
@@ -82,8 +81,6 @@ enum MSG_TYPE
    MSG_BS_AGGREGATE_RSP                = MAKE_REPLY_TYPE(MSG_BS_AGGREGATE_REQ),
    MSG_BS_INTERRUPTE_SELF              = 2020,
 
-   //catalogue msg
-   //(MainController:3001~3099, catalogueManager:3100~3199, nodeManager:3200~3299)
    MSG_CAT_BEGIN                       = 3000,
    MSG_CAT_QUERY_DATA_GRP_REQ          = 3001,
    MSG_CAT_QUERY_DATA_GRP_RSP          = MAKE_REPLY_TYPE(MSG_CAT_QUERY_DATA_GRP_REQ),
@@ -94,73 +91,33 @@ enum MSG_TYPE
 
    MSG_CAT_CATALOGUE_BEGIN             = 3100,
 
-   // catalog query is searching for CAT_COLLECTION_INFO_COLLECTION collection
-   // using whatever matcher/selector/orderBy and hint provided by the caller
    MSG_CAT_QUERY_CATALOG_REQ           = 3101,
    MSG_CAT_QUERY_CATALOG_RSP           = MAKE_REPLY_TYPE(MSG_CAT_QUERY_CATALOG_REQ),
 
-   // create collectionspace need 1 argument
-   // 1) CAT_COLLECTION_SPACE_NAME for collection space name
    MSG_CAT_CREATE_COLLECTION_SPACE_REQ = 3102,
    MSG_CAT_CREATE_COLLECTION_SPACE_RSP = MAKE_REPLY_TYPE(MSG_CAT_CREATE_COLLECTION_SPACE_REQ),
 
-   // create collection need 1 or 2 arguments
-   // 1) CAT_COLLECTION_NAME for full collection name
-   // 2) (optional)CAT_SHARDINGKEY_NAME for sharding key def
-   // format: {Field1:1, Field2:-1...}, 1 for asc, -1 for desc
    MSG_CAT_CREATE_COLLECTION_REQ       = 3103,
    MSG_CAT_CREATE_COLLECTION_RSP       = MAKE_REPLY_TYPE(MSG_CAT_CREATE_COLLECTION_REQ),
 
-   // drop collection need 1 argument
-   // 1) CAT_COLLECTION_NAME for full collection name
    MSG_CAT_DROP_COLLECTION_REQ         = 3104,
    MSG_CAT_DROP_COLLECTION_RSP         = MAKE_REPLY_TYPE(MSG_CAT_DROP_COLLECTION_REQ),
 
-   // drop space need 1 argument
-   // 1) CAT_COLLECTION_SPACE_NAME for collection name
    MSG_CAT_DROP_SPACE_REQ              = 3105,
    MSG_CAT_DROP_SPACE_RSP              = MAKE_REPLY_TYPE(MSG_CAT_DROP_SPACE_REQ),
 
-   // query space info need 1 argument
-   // 1) CAT_COLLECTION_SPACE_NAME for collection name
    MSG_CAT_QUERY_SPACEINFO_REQ         = 3106,
    MSG_CAT_QUERY_SPACEINFO_RSP         = MAKE_REPLY_TYPE(MSG_CAT_QUERY_SPACEINFO_REQ),
 
-   // split prepare request need 5 or 4 arguments
-   // 1) CAT_COLLECTION_NAME for collection string
-   // 2) CAT_SOURCE_NAME for source group name string
-   // 3) CAT_TARGET_NAME for target group name string
-   // by range
-   // 4) CAT_SPLITQUERY_NAME for begin search condition Object
-   // 5) CAT_SPLITENDQUERY_NAME for end search condition Object
-   // by percent
-   // 4) CAT_SPLITPERCENT_NAME for search percent
    MSG_CAT_SPLIT_PREPARE_REQ           = 3107,
    MSG_CAT_SPLIT_PREPARE_RSP           = MAKE_REPLY_TYPE(MSG_CAT_SPLIT_PREPARE_REQ),
 
-   // split ready request need 4 or 5 arguments
-   // 1) CAT_COLLECTION_NAME for collection string
-   // 2) CAT_SOURCE_NAME for source group name string
-   // 3) CAT_TARGET_NAME for target group name string
-   // hash sharding and by percent :
-   // 4) CAT_SPLITPERCENT_NAME for being split percent
-   // else :
-   // 4) CAT_SPLITVALUE_NAME for the key of split
-   // 5) CAT_SPLITENDVALUE_NAME for the end key of split
    MSG_CAT_SPLIT_READY_REQ             = 3108,
    MSG_CAT_SPLIT_READY_RSP             = MAKE_REPLY_TYPE(MSG_CAT_SPLIT_READY_REQ),
 
-   // split cancel request need 1 or more arguments
-   // by task id :
-   // 1) CAT_TASKID_NAME for task id
-   // else :
-   // the same param with MSG_CAT_SPLIT_READY_REQ
    MSG_CAT_SPLIT_CANCEL_REQ            = 3109,
    MSG_CAT_SPLIT_CANCEL_RSP            = MAKE_REPLY_TYPE(MSG_CAT_SPLIT_CANCEL_REQ),
 
-   // split start/chgmeta/cleanup/finish request need 2 arguments
-   // 1) CAT_COLLECTION_NAME for collection string
-   // 2) CAT_TASKID_NAME for target group name string
    MSG_CAT_SPLIT_START_REQ             = 3110,
    MSG_CAT_SPLIT_START_RSP             = MAKE_REPLY_TYPE(MSG_CAT_SPLIT_START_REQ),
 
@@ -173,15 +130,9 @@ enum MSG_TYPE
    MSG_CAT_SPLIT_FINISH_REQ            = 3113,
    MSG_CAT_SPLIT_FINISH_RSP            = MAKE_REPLY_TYPE(MSG_CAT_SPLIT_FINISH_REQ),
 
-   // task request search for SYSCAT.SYSTASKS collection using whatever search
-   // condition provided by caller
    MSG_CAT_QUERY_TASK_REQ              = 3120,
    MSG_CAT_QUERY_TASK_RSP              = MAKE_REPLY_TYPE(MSG_CAT_QUERY_TASK_REQ),
 
-   // alter collection request takes 2 parameters
-   // 1) CAT_COLLECTION_NAME for full collection name
-   // 2) CAT_OPTIONS         for options
-   // In options there could be FIELD_NAME_W field exist
    MSG_CAT_ALTER_COLLECTION_REQ        = 3130,
    MSG_CAT_ALTER_COLLECTION_RSP        = MAKE_REPLY_TYPE(MSG_CAT_ALTER_COLLECTION_REQ),
 
@@ -195,44 +146,27 @@ enum MSG_TYPE
    MSG_CAT_UNLINK_CL_REQ               = 3134,
    MSG_CAT_UNLINK_CL_RSP               = MAKE_REPLY_TYPE(MSG_CAT_UNLINK_CL_REQ),
 
-   // catalog domain related
 
-   // create domain
-   // CAT_DOMAIN_NAME for domain name
-   // FIELD_NAME_OPTIONS for options
-   //    FIELD_NAME_GROUP for group list
    MSG_CAT_CREATE_DOMAIN_REQ           = 3136,
    MSG_CAT_CREATE_DOMAIN_RSP           = MAKE_REPLY_TYPE(MSG_CAT_CREATE_DOMAIN_REQ),
-   // drop domain
-   // CAT_DOMAIN_NAME for domain name
    MSG_CAT_DROP_DOMAIN_REQ             = 3137,
    MSG_CAT_DROP_DOMAIN_RSP             = MAKE_REPLY_TYPE(MSG_CAT_DROP_DOMAIN_REQ),
    MSG_CAT_ALTER_DOMAIN_REQ            = 3138,
    MSG_CAT_ALTER_DOMAIN_RSP            = MAKE_REPLY_TYPE(MSG_CAT_ALTER_DOMAIN_REQ),
 
-   // all messages for CATALOGUE must be smaller than MSG_CAT_CATALOGUE_END
    MSG_CAT_CATALOGUE_END               = 3199,
 
    MSG_CAT_NODE_BEGIN                  = 3200,
 
-   // group message request need 1 argument that's in MsgCatGroupReq header
-   // MsgCatGroupReq::id.columns for groupid, nodeid and serviceid
-   // There's no additional BSON arguments attached
    MSG_CAT_GRP_REQ                     = 3201,
    MSG_CAT_GRP_RES                     = MAKE_REPLY_TYPE(MSG_CAT_GRP_REQ),
 
-   // same for MSG_CAT_GRP_REQ
    MSG_CAT_CATGRP_REQ                  = 3202,
    MSG_CAT_CATGRP_RES                  = MAKE_REPLY_TYPE(MSG_CAT_CATGRP_REQ),
 
-   // change primary node id for a group, 1 argument in MsgCatPrimaryChange
-   // header
-   // MsgCatPrimaryChange::newPrimary.columns for groupid and nodeid
    MSG_CAT_PAIMARY_CHANGE              = 3203,
    MSG_CAT_PAIMARY_CHANGE_RES          = MAKE_REPLY_TYPE(MSG_CAT_PAIMARY_CHANGE),
 
-   // create a group, requires 1 argument
-   // 1) CAT_GROUPNAME_NAME for group name
    MSG_CAT_CREATE_GROUP_REQ            = 3205,
    MSG_CAT_CREATE_GROUP_RSP            = MAKE_REPLY_TYPE(MSG_CAT_CREATE_GROUP_REQ),
    MSG_CAT_REG_REQ                     = 3206,
@@ -244,7 +178,6 @@ enum MSG_TYPE
    MSG_CAT_UPDATE_NODE_REQ             = 3209,
    MSG_CAT_UPDATE_NODE_RSP             = MAKE_REPLY_TYPE(MSG_CAT_ACTIVE_GROUP_REQ),
 
-   // same for MSG_CAT_GRP_REQ
    MSG_CAT_NODEGRP_REQ                 = 3210,
    MSG_CAT_NODEGRP_RES                 = MAKE_REPLY_TYPE(MSG_CAT_NODEGRP_REQ),
    MSG_CAT_DEL_NODE_REQ                = 3211,
@@ -317,13 +250,11 @@ enum MSG_TYPE
    MSG_NULL                            = 999999        //reserved
 };
 
-// 4 bytes aligned, otherwise incompatible with java client
 #pragma pack(4)
 #define OP_ERRNOFIELD     "errno"
 #define OP_ERRDESP_FIELD  "description"
 #define OP_ERR_DETAIL     "detail"
 
-// maximized collection name length
 #define OP_MAXNAMELENGTH   255
 
 /*
@@ -353,7 +284,6 @@ message.
 You can determine if a message was successful with a getLastError command.
 */
 
-/// 8 bytes
 union _MsgRouteID
 {
    struct
@@ -369,10 +299,6 @@ union _MsgRouteID
 typedef union _MsgRouteID MsgRouteID ;
 #define MSG_INVALID_ROUTEID  0
 
-// system info request packet is very special since we do NOT know the endianess
-// of server and client
-// Therefore we are using a special length "-1" to indicate the request, and we
-// are going to reply the real system info
 #define MSG_SYSTEM_INFO_LEN                  0xFFFFFFFF
 #define MSG_SYSTEM_INFO_EYECATCHER           0xFFFEFDFC
 #define MSG_SYSTEM_INFO_EYECATCHER_REVERT    0xFCFDFEFF
@@ -398,7 +324,6 @@ struct _MsgSysInfoReply
    CHAR             pad[112] ; // total 128 bytes for reply
 } ;
 typedef struct _MsgSysInfoReply MsgSysInfoReply ;
-// end system info requests
 
 
 typedef enum _MSG_ROUTE_SERVICE_TYPE
@@ -412,7 +337,6 @@ typedef enum _MSG_ROUTE_SERVICE_TYPE
 
    MSG_ROUTE_SERVICE_TYPE_MAX
 }MSG_ROUTE_SERVICE_TYPE;
-// 28 bytes
 struct _MsgHeader
 {
    SINT32 messageLength ; // total message size, including this
@@ -430,75 +354,48 @@ struct _MsgInternalReplyHeader
 } ;
 typedef struct _MsgInternalReplyHeader MsgInternalReplyHeader ;
 
-// If set, the database will insert the supplied object into the collection if
-// no matching document is found.
 #define FLG_UPDATE_UPSERT       0x00000001
 #define FLG_UPDATE_MULTIUPDATE  0x00000002
 #define FLG_UPDATE_RETURNNUM    0x00000004
-// For Update, 3 BSON objects will be followed
-// Selector + Updator + Hint
 struct _MsgOpUpdate
 {
-   // 0-27 bytes
    MsgHeader header ;     // message header
    INT32     version ;    // the collection catalog version
    SINT16    w ;          // need w nodes to operator succeed
    SINT16    padding;     // padding
    SINT32    flags ;      // update flag
    SINT32    nameLength ; // length of collection name, without '\0'
-   // whatever number of bytes in nameLength
    CHAR      name[1] ;    // name of the object, ended with '\0'
 } ;
 typedef struct _MsgOpUpdate MsgOpUpdate ;
 
-// if set, db will not stop bulk insert if one failed with dup key
 #define FLG_INSERT_CONTONDUP  0x00000001
-// For Insert, 1 BSON object will be followed
-// Inserted Data
 struct _MsgOpInsert
 {
-   // 0-27 bytes
    MsgHeader header ;     // message header
    INT32     version ;    // the collection catalog version
    SINT16    w ;          // need w nodes to operator succeed
    SINT16    padding;     // padding
    SINT32    flags ;      // insert flag
    SINT32    nameLength ; // length of collection name
-   // whatever number of bytes in nameLength
    CHAR      name[1] ;    // name of the object
 } ;
 typedef struct _MsgOpInsert MsgOpInsert ;
 
-// String output, each fields are separated by |, this is only used by Hadoop
-// this flag is taking effect only with selector
 #define FLG_QUERY_STRINGOUT           0x00000001
-// Allow query of replica slave
 #define FLG_QUERY_SLAVEOK             0x00000002
-// Internal replication use only
 #define FLG_QUERY_OPLOGREPLAY         0x00000004
-// Context never timeout
 #define FLG_QUERY_NOCONTEXTTIMEOUT    0x00000008
-// If we are at end of the data, block for a while rather than return no data
-// After timeout period, we do return as normal
 #define FLG_QUERY_AWAITDATA           0x00000010
-// Allow partial reads if some of the shards are down
 #define FLG_QUERY_PARTIALREAD         0x00000020
-// Command[Create collection] if cs not exist,will create first
 #define FLG_CREATE_WHEN_NOT_EXIST     0x00000040
-// If use hint failed, query return failed
 #define FLG_QUERY_FORCE_HINT          0x00000080
-// Enable paralled sub querys
 #define FLG_QUERY_PARALLED            0x00000100
-// Find with return data in query response, can use for find one
 #define FLG_QUERY_WITH_RETURNDATA     0x00000200
-// explain query
 #define FLG_QUERY_EXPLAIN             0x00000400
 
-// For query takes 4 document
-// Query + returnFieldSelector + orderBy + hint
 struct _MsgOpQuery
 {
-   // 0-27 bytes
    MsgHeader header ;     // message header
    INT32     version ;    // the collection catalog version
    SINT16    w ;          // need w nodes to operator succeed
@@ -507,90 +404,66 @@ struct _MsgOpQuery
    SINT32    nameLength ; // length of collection name
    SINT64    numToSkip ;  // number of rows to skip
    SINT64    numToReturn ;// number of rows to return
-   // whatever number of bytes in nameLength
    CHAR      name[1] ;    // name of the object
 } ;
 typedef struct _MsgOpQuery MsgOpQuery ;
 
-// get next few records
 struct _MsgOpGetMore
 {
-   // 0-27 bytes
    MsgHeader header ;     // message header
    SINT64    contextID ;  // context ID from reply
    SINT32    numToReturn ;// number of rows to return
 } ;
 typedef struct _MsgOpGetMore MsgOpGetMore ;
 
-// remove one row instead of all matching records
 #define FLG_DELETE_SINGLEREMOVE     0x00000001
 #define FLG_DELETE_RETURNNUM        0x00000004
-// take 2 BSON object
-// Selector + hint
 struct _MsgOpDelete
 {
-   // 0-27 bytes
    MsgHeader header ;     // message header
    INT32     version ;    // the collection catalog version
    SINT16    w ;          // need w nodes to operator succeed
    SINT16    padding;     // padding
    SINT32    flags ;      // delete flags
    SINT32    nameLength ; // length of collection name
-   // whatever number of bytes in nameLength
    CHAR      name[1] ;    // name of the object
 } ;
 typedef struct _MsgOpDelete MsgOpDelete ;
 
 struct _MsgOpKillContexts
 {
-   // 0-27 bytes
    MsgHeader header ;     // message header
    SINT32    ZERO ;       // reserved
    SINT32    numContexts ; // Number of contexts to be killed
-   // whatever number of contexts * 4
    SINT64    contextIDs[1] ;
 } ;
 typedef struct _MsgOpKillContexts MsgOpKillContexts ;
 
 struct _MsgOpKillAllContexts
 {
-   // 0-27 bytes
    MsgHeader header ;    // message header
 } ;
 typedef struct _MsgOpKillAllContexts MsgOpKillAllContexts ;
 
 struct _MsgOpMsg
 {
-   // 0-27 bytes
    MsgHeader header ;     // message header
-   // whatever the size of the package indicated in header
-   // minus the sizeof(MsgHeader) bytes
    CHAR      msg[1] ;     // message body
 } ;
 typedef struct _MsgOpMsg MsgOpMsg ;
 
-// Followed by numReturned BSON objects
 struct _MsgOpReply
 {
-   // 0-27 bytes
    MsgHeader header ;     // message header
-   // 28-31 bytes
    SINT64    contextID ;   // context id if client need to get more
-   // 32-35 bytes
    SINT32    flags ;      // reply flags
-   // 36-39 bytes
    SINT32    startFrom ;  // where in the context "this" reply is starting
-   // 40-43 bytes
    SINT32    numReturned ;// number of recourds returned in the reply
 } ;
 typedef struct _MsgOpReply MsgOpReply ;
 
-// indicates disconnection between client and server
-// when this message is received by data nodes from coord, that means the
-// current unit of work is finished
 struct _MsgOpDisconnect
 {
-   // 0-27 bytes
    MsgHeader header ;
 } ;
 typedef struct _MsgOpDisconnect MsgOpDisconnect ;
@@ -598,23 +471,18 @@ typedef struct _MsgOpDisconnect MsgOpDisconnect ;
 
 struct _MsgCMRequest
 {
-   // 0-27 bytes
    MsgHeader header ;
    SINT32 remoCode ;     // remote operation code
    CHAR arguments[0] ;    // operation arguments
 } ;
 typedef struct _MsgCMRequest MsgCMRequest ;
 
-// | -- msg header -- | -- sql -- |
-// header.length = sizeof(header) + len(sql)
 struct _MsgOpSql
 {
-   // 0-27 bytes
    MsgHeader header ;
 } ;
 typedef struct _MsgOpSql MsgOpSql ;
 
-/// |-- header--|--{usrname:xx, passwd:xx}--|
 struct _MsgAuthentication
 {
    MsgHeader header ;
@@ -622,7 +490,6 @@ struct _MsgAuthentication
 } ;
 typedef struct _MsgAuthentication MsgAuthentication ;
 
-/// |-- header--|--{usrname:xx, passwd:xx}--|
 struct _MsgAuthCrtUsr
 {
    MsgHeader header ;
@@ -630,7 +497,6 @@ struct _MsgAuthCrtUsr
 } ;
 typedef struct _MsgAuthCrtUsr MsgAuthCrtUsr ;
 
-/// |-- header--|--{usrname:xx, passwd:xx}--|
 struct _MsgAuthDelUsr
 {
    MsgHeader header ;
@@ -666,25 +532,17 @@ typedef struct _MsgCoordCheckRouteID
 
 typedef struct _MsgOpAggregate
 {
-   // 0-27 bytes
    MsgHeader header ;     // message header
    INT32     version ;    // the collection catalog version
    SINT16    w ;          // need w nodes to operator succeed
    SINT16    padding;     // padding
    SINT32    flags ;      // aggregate flag
    SINT32    nameLength ; // length of collection name
-   // whatever number of bytes in nameLength
    CHAR      name[1] ;    // name of the object
 }MsgOpAggregate;
 
 
 
-/// when it is open reg |MsgOpLob|bsonobj|
-/// when it is open res |MsgOpReply|bsonobj|
-/// when it is put req |MsgOpLob|_MsgLobTuple|data|
-/// when it is put res |MsgOpReply|
-/// when it is read req |MsgOpLob|_MsgLobTuple|
-/// when it is read res |MsgOpReply|_MsgLobTuple|data|
 typedef struct _MsgOpLob
 {
    MsgHeader header ;

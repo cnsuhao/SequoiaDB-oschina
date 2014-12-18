@@ -87,7 +87,6 @@ namespace engine
       return DPS_LSN () ;
    }
 
-   // initialize a log file, file size max 4GB
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLOGFILE_INIT, "_dpsLogFile::init" )
    INT32 _dpsLogFile::init( const CHAR *path, UINT32 size, UINT32 fileNum )
    {
@@ -101,7 +100,6 @@ namespace engine
       _fileNum  = fileNum ;
       _idleSize = _fileSize ;
 
-      // allocate OSS_FILE, free in destructor
       _file = SDB_OSS_NEW _OSS_FILE();
       if ( !_file )
       {
@@ -110,7 +108,6 @@ namespace engine
          goto error;
       }
 
-      // if the file exist, restore
       if ( SDB_OK == ossAccess( path ) )
       {
          rc = ossOpen ( path, OSS_READWRITE|OSS_SHAREWRITE, OSS_RWXU, *_file ) ;
@@ -145,8 +142,6 @@ namespace engine
          }
       }
 
-      // open the file with "create only" and "read write" mode, for rx-r-----
-      // mode, use DirectIO for logging
       rc = ossOpen( path, OSS_CREATEONLY |OSS_READWRITE | OSS_SHAREWRITE,
                     OSS_RWXU, *_file );
 
@@ -155,7 +150,6 @@ namespace engine
          PD_LOG ( PDERROR, "Failed to open log file %s, rc = %d", path, rc ) ;
          goto error;
       }
-      // increase the file size to the given size plus log file header
       rc = ossExtendFile( _file, (SINT64)_fileSize + DPS_LOG_HEAD_LEN );
       if ( rc )
       {
@@ -173,7 +167,6 @@ namespace engine
          PD_LOG ( PDERROR, "Failed to flush header, rc = %d", rc ) ;
          goto error ;
       }
-      // Currently let's just skip head
       rc = ossSeek ( _file, DPS_LOG_HEAD_LEN, OSS_SEEK_SET ) ;
       if ( rc )
       {
@@ -205,7 +198,6 @@ namespace engine
       UINT64 baseOffset = 0 ;
       dpsLogRecordHeader lsnHeader ;
 
-      //Judge the length is right
       rc = ossGetFileSize( _file, &fileSize ) ;
       if ( SDB_OK != rc )
       {
@@ -220,7 +212,6 @@ namespace engine
          goto error ;
       }
 
-      //Init header
       rc = _readHeader() ;
       if ( SDB_OK != rc )
       {
@@ -228,7 +219,6 @@ namespace engine
          goto error ;
       }
 
-      // check header info
       if ( ossStrncmp( _logHeader._eyeCatcher, DPS_LOG_HEADER_EYECATCHER,
                        sizeof( _logHeader._eyeCatcher ) ) != 0 )
       {
@@ -253,13 +243,11 @@ namespace engine
          goto error ;
       }
 
-      // check the real size
       if ( fileSize > (INT64)( _fileSize + sizeof(dpsLogHeader) ) )
       {
          PD_LOG( PDERROR, "DPS file real size[%d] is not the same with "
                  "config[%d]", fileSize - sizeof(dpsLogHeader),
                  _fileSize ) ;
-         // start up from crash
          if ( !pmdGetStartup().isOK() )
          {
             rc = ossTruncateFile( _file, _fileSize + sizeof(dpsLogHeader) ) ;
@@ -282,7 +270,6 @@ namespace engine
                _logHeader._firstLSN.version, _logHeader._firstLSN.offset,
                _logHeader._logID ) ;
 
-      // upgrade the header
       if ( _logHeader._version != DPS_LOG_FILE_VERSION1 )
       {
          _logHeader._version = DPS_LOG_FILE_VERSION1 ;
@@ -303,7 +290,6 @@ namespace engine
       offSet = _logHeader._firstLSN.offset % _fileSize ;
       baseOffset = _logHeader._firstLSN.offset - offSet ;
 
-      //analysis the file
       while ( offSet < _fileSize )
       {
          rc = read ( offSet + baseOffset , sizeof (dpsLogRecordHeader),
@@ -424,7 +410,6 @@ namespace engine
       goto done ;
    }
 
-   // write data into log file
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLOGFILE_WRITE, "_dpsLogFile::write" )
    INT32 _dpsLogFile::write( const CHAR *content, UINT32 len )
    {
@@ -438,8 +423,6 @@ namespace engine
 
          while ( written < len )
          {
-            // write data into the file
-            // _fileSize - _idleSize is the offset for the current position
             rc = ossSeekAndWrite( _file, DPS_LOG_HEAD_LEN + _fileSize -
                                   _idleSize + written, &content[written],
                                   len - written, &writtenLen ) ;
@@ -479,7 +462,6 @@ namespace engine
       goto done;
    }
 
-   // read data from a given offset
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLOGFILE_READ, "_dpsLogFile::read" )
    INT32 _dpsLogFile::read ( const DPS_LSN_OFFSET &lOffset, UINT32 len, CHAR *buf )
    {
@@ -488,10 +470,8 @@ namespace engine
       SINT64 readLen = 0;
       UINT32 read = 0 ;
       UINT32 offset = lOffset % _fileSize ;
-      // make sure we don't read out of range
       SDB_ASSERT ( offset + len <= _fileSize,
                    "Read out of range" ) ;
-      // make sure the LSN is within the range
       if ( lOffset < _logHeader._firstLSN.offset ||
            lOffset > _logHeader._firstLSN.offset + _fileSize )
       {
@@ -501,7 +481,6 @@ namespace engine
       }
       while ( read < len )
       {
-         // seeks to given offset and read
          rc = ossSeekAndRead ( _file, offset + DPS_LOG_HEAD_LEN + read,
                                &buf[read], len-read, &readLen ) ;
          if ( rc )
@@ -518,7 +497,6 @@ namespace engine
       goto done;
    }
 
-   // close the file
    INT32 _dpsLogFile::close()
    {
       return ossClose( *_file );
@@ -543,8 +521,6 @@ namespace engine
 
          while ( written < len )
          {
-            // write data into the file
-            // _fileSize - _idleSize is the offset for the current position
             rc = ossSeekAndWrite( _file, DPS_LOG_HEAD_LEN + _fileSize -
                                   idleSize + written, &pData[written],
                                   len - written, &writtenLen ) ;

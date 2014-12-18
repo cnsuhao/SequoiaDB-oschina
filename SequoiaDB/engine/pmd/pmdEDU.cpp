@@ -192,7 +192,6 @@ namespace engine
 
    _pmdEDUCB::~_pmdEDUCB ()
    {
-      // wait for destory
       {
          ossScopedRWLock assist ( &_callInMutex, EXCLUSIVE ) ;
       }
@@ -224,7 +223,6 @@ namespace engine
 
    void _pmdEDUCB::clear()
    {
-      // clear all queue msg
       pmdEDUEvent data ;
       while ( _queue.try_pop( data ) )
       {
@@ -240,7 +238,6 @@ namespace engine
       releaseAlignedMemory() ;
 #endif // SDB_ENGINE
 
-      // release buff
       if ( _pCompressBuff )
       {
          releaseBuff( _pCompressBuff ) ;
@@ -254,7 +251,6 @@ namespace engine
       }
       _uncompressBuffLen = 0 ;
 
-      // clean catch
       CATCH_MAP_IT it = _catchMap.begin() ;
       while ( it != _catchMap.end() )
       {
@@ -265,7 +261,6 @@ namespace engine
       }
       _catchMap.clear() ;
 
-      // clean alloc memory
       ALLOC_MAP_IT itAlloc = _allocMap.begin() ;
       while ( itAlloc != _allocMap.end() )
       {
@@ -341,7 +336,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__PMDEDUCB_ISINT );
       BOOLEAN ret = FALSE ;
 
-      // mask interrupt while doing rollback
       if ( !onlyFlag && _isDoRollback )
       {
          goto done;
@@ -450,7 +444,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__PMDEDUCB_PRINTINFO );
-      //already exist, return ok
       if ( getInfo ( type ) )
       {
          goto done ;
@@ -529,13 +522,11 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // first alloc from catch
       if ( _totalCatchSize >= len && _allocFromCatch( len, ppBuff, buffLen ) )
       {
          goto done ;
       }
 
-      // malloc
       len = ossRoundUpToMultipleX( len, EDU_MEM_ALIGMENT_SIZE ) ;
       *ppBuff = ( CHAR* )SDB_OSS_MALLOC( len ) ;
       if( !*ppBuff )
@@ -547,7 +538,6 @@ namespace engine
       }
       buffLen = len ;
 
-      // update meta info
       _totalMemSize += buffLen ;
       _allocMap[ *ppBuff ] = buffLen ;
 
@@ -575,11 +565,9 @@ namespace engine
       }
       else
       {
-         // add to catch
          _catchMap.insert( std::make_pair( buffLen, pBuff ) ) ;
          _totalCatchSize += buffLen ;
 
-         // re-org catch
          while ( _totalCatchSize > EDU_MAX_CATCH_SIZE )
          {
             CATCH_MAP_IT it = _catchMap.begin() ;
@@ -625,7 +613,6 @@ namespace engine
 
       buffLen = len ;
 
-      // update meta info
       _totalMemSize += ( len - oldLen ) ;
 
       _allocMap[ *ppBuff ] = buffLen ;
@@ -657,7 +644,6 @@ namespace engine
 
    void _pmdEDUCB::saveBuffs( _pmdEDUCB::CATCH_MAP &catchMap )
    {
-      // release buff
       if ( _pCompressBuff )
       {
          releaseBuff( _pCompressBuff ) ;
@@ -671,7 +657,6 @@ namespace engine
       }
       _uncompressBuffLen = 0 ;
 
-      // clean alloc memory
       CHAR *pBuff = NULL ;
       ALLOC_MAP_IT itAlloc = _allocMap.begin() ;
       while ( itAlloc != _allocMap.end() )
@@ -682,7 +667,6 @@ namespace engine
       }
       _allocMap.clear() ;
 
-      // restore catch map
       CATCH_MAP_IT it = _catchMap.begin() ;
       while ( it != _catchMap.end() )
       {
@@ -981,7 +965,6 @@ namespace engine
       __try
       {
 #endif
-         // register TLS, this must happen at very beginning of each thread
          return pmdEDUEntryPoint ( type, pmdDeclareEDUCB ( cb ), arg ) ;
 #if defined (_WINDOWS)
       }
@@ -991,9 +974,6 @@ namespace engine
       return SDB_SYS ;
    }
 
-   // main entry point for all EDUs
-   // it will call individual main function for each EDU type
-   // entry points are defined in getEntryFuncByType
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDEDUENTPNT, "pmdEDUEntryPoint" )
    INT32 pmdEDUEntryPoint ( EDU_TYPES type, pmdEDUCB *cb, void *arg )
    {
@@ -1009,7 +989,6 @@ namespace engine
       BOOLEAN     isForced     = FALSE ;
       CHAR        eduName[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
-      // save kernel thread id ( Linux ), or thread handle ( windows )
 #if defined (_WINDOWS)
       HANDLE      tHdl = NULL ;
       BOOLEAN     isHdlCreated = false ;
@@ -1034,23 +1013,10 @@ namespace engine
       while ( !eduDestroyed )
       {
          type = cb->getType () ;
-         // currently the thread status should be either WAITING or CREATING
-         // usually we don't expect agent sitting in creating for long time
-         // the thread spawning the agent supposed to post event immediately
-         // after the thread is created
          if ( !cb->waitEvent ( event, OSS_ONE_SEC ) )
          {
-            // if don't receive anything in 1000 milliseconds,
-            // we should check "killed" mark for this session
-            // if we continue to run, then run
             if ( cb->isForced () )
             {
-               // we break the main loop, then we go ahead to call
-               // destroyEDU to destroy the memory
-               // this should be safe because in this code path
-               // the status of edu cannot be RUNNING
-               // then in either CREATING/IDLE/WAITING status
-               // it should be safe for us to destroy it
                isForced = TRUE ;
             }
             else
@@ -1061,9 +1027,7 @@ namespace engine
 
          if ( !isForced && PMD_EDU_EVENT_RESUME == event._eventType )
          {
-            // set EDU status to wait
             eduMgr->waitEDU ( cb->getID () ) ;
-            // find their main function entry by type
             pmdEntryPoint entryFunc = getEntryFuncByType ( cb->getType() ) ;
             if ( NULL == entryFunc )
             {
@@ -1075,15 +1039,12 @@ namespace engine
             else
             {
 #if defined ( SDB_ENGINE )
-               // initial monCfgCB
                *(cb->getMonConfigCB() ) = *( (monConfigCB*)(krcb->getMonCB()) );
-               // initial monAppCB
                cb->initMonAppCB() ;
 #endif // SDB_ENGINE
 
                rc = entryFunc ( cb, event._Data ) ;
 
-               // copy name
                ossStrncpy( eduName, cb->getName(), OSS_MAX_PATHSIZE ) ;
             }
 
@@ -1104,12 +1065,10 @@ namespace engine
                }
             }
 
-            // set EDU status to wait
             eduMgr->waitEDU ( cb->getID () ) ;
          }
          else if ( !isForced && PMD_EDU_EVENT_TERM != event._eventType )
          {
-            //the event is error
             PD_LOG ( PDERROR, "Recieve the error event[type=%d] in "
                      "EDU[ID:%lld, type:%s]", event._eventType, myEDUID,
                      getEDUName(cb->getType()) ) ;
@@ -1121,23 +1080,16 @@ namespace engine
             isForced = TRUE ;
          }
 
-         // release the event data
          if ( !isForced )
          {
             pmdEduEventRelase( event, cb ) ;
             event.reset () ;
          }
 
-         // call return EDU to return the EDU to pool. pool will decide whether
-         // to destroy it or continue let it run
-         // eduDestroyed argument will be assigned when pool want to destroy
-         // the thread
 
 #if defined ( SDB_ENGINE )
-         //reset and clear
          cb->resetMon() ;
 
-         //delete all leak context
          {
             SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
             SINT64 contextID = -1 ;
@@ -1153,7 +1105,6 @@ namespace engine
          cb->clear() ;
          rc = eduMgr->returnEDU ( cb->getID (), isForced, &eduDestroyed ) ;
 
-         // otherwise let's check rc and report error if it's not OK
          if ( SDB_OK != rc )
          {
             PD_LOG ( PDERROR, "Invalid EDU Status for EDU[TID:%d, ID:%lld, "
@@ -1167,14 +1118,12 @@ namespace engine
                     myEDUID, getEDUName( type ), eduName ) ;
          }
       }
-      // undeclare must happen after all TLS access
       pmdUndeclareEDUCB () ;
       PD_LOG ( PDEVENT, "Terminating thread[%d] for EDU[ID:%lld, Type:%s, "
                "Name: %s]", ossGetCurrentThreadID(), myEDUID,
                getEDUName( type ), eduName ) ;
 
    #if defined (_WINDOWS)
-      // close handle
       if ( isHdlCreated )
       {
          CloseHandle( tHdl ) ;
@@ -1217,8 +1166,6 @@ namespace engine
       __eduCB = NULL ;
    }
 
-   // for pmdRecv, we wait indefinitely until the agent is forced, because
-   // client may not send us anything due to idle of user activities
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDRECV, "pmdRecv" )
    INT32 pmdRecv ( CHAR *pBuffer, INT32 recvSize,
                    ossSocket *sock, pmdEDUCB *cb )

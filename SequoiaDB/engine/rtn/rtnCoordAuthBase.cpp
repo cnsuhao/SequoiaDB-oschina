@@ -92,7 +92,6 @@ namespace engine
                     "rc = %d", rc  ) ;
 
       nodes.clear() ;
-      // send message
       rc = rtnCoordSendRequestToPrimary( pReceiveBuffer,
                                          cata, nodes,
                                          pRouteAgent,
@@ -152,7 +151,6 @@ namespace engine
       }
       else
       {
-         // auth ok
          cb->setUserInfo( user.valuestrsafe(), pass.valuestrsafe() ) ;
       }
 

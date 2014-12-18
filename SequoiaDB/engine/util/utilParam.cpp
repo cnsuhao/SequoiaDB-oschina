@@ -160,7 +160,6 @@ namespace engine
          ossDelete( tmpFile.c_str() ) ;
       }
 
-      // 1. first back up the file
       if ( SDB_OK == ossAccess( pFile ) )
       {
          if ( createOnly )
@@ -174,7 +173,6 @@ namespace engine
          }
       }
 
-      // 2. Create the file
       rc = ossOpen ( pFile, OSS_READWRITE|OSS_SHAREWRITE|OSS_REPLACE,
                      OSS_RWXU, file ) ;
       if ( rc )
@@ -183,7 +181,6 @@ namespace engine
       }
       isOpen = TRUE ;
 
-      // 3. write data
       {
          SINT64 written = 0 ;
          SINT64 len = ossStrlen( pData ) ;
@@ -202,7 +199,6 @@ namespace engine
          }
       }
 
-      // 4. remove tmp
       if ( SDB_OK == ossAccess( tmpFile.c_str() ) )
       {
          ossDelete( tmpFile.c_str() ) ;
@@ -487,7 +483,6 @@ namespace engine
       OSSUID curUID  = OSS_INVALID_UID ;
       OSSGID curGID  = OSS_INVALID_GID ;
 
-      // first compare file:cur uid/gid
       ossGetFileUserInfo( curFileName, fileUID, fileGID ) ;
       curUID = ossGetCurrentProcessUID() ;
       curGID = ossGetCurrentProcessGID() ;
@@ -495,19 +490,15 @@ namespace engine
       if ( OSS_INVALID_UID == fileUID || 0 == fileUID ||
            OSS_INVALID_GID == fileGID || 0 == fileGID )
       {
-         // get install user info
          rc = utilGetInstallInfo( info ) ;
          if ( rc )
          {
-            // no install info, not change
             rc = SDB_OK ;
             goto done ;
          }
-         // get install user uid and gid
          rc = ossGetUserInfo( info._user.c_str(), fileUID, fileGID ) ;
          if ( rc )
          {
-            // no install user, not change
             rc = SDB_OK ;
             goto done ;
          }

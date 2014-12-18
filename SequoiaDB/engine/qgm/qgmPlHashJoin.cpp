@@ -79,7 +79,6 @@ namespace engine
       _qgmConditionNode *left = opti->_condition->left ;
       _qgmConditionNode *right = opti->_condition->right ;
 
-      /// TODO: put public attrs of qgmPlNLJoin and qgmPlHashJoin to qgmPlJoin.
       _outerAlias = &(input( 0 )->alias()) ;
       _innerAlias = &(input( 1 )->alias()) ;
       _inner = input( 1 ) ;
@@ -284,7 +283,6 @@ namespace engine
             }
             else
             {
-               /// do noting.
             }
          }
 

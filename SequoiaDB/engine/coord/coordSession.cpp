@@ -167,7 +167,6 @@ namespace engine
       _subSessionMap[routeID.value] = subSession;
    }
 
-   //Note: addSubSession and delSubSession must be called by the same thread
    INT32 CoordSession::addSubSession( const MsgRouteID &routeID )
    {
       INT32 rc = SDB_OK;
@@ -205,7 +204,6 @@ namespace engine
       goto done;
    }
 
-   //Note: addSubSession and delSubSession must be called by the same thread
    BOOLEAN CoordSession::delSubSession( const MsgRouteID & routeID )
    {
       UINT32 num = 0;

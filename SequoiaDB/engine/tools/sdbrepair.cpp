@@ -73,7 +73,6 @@ namespace fs = boost::filesystem ;
        ( COMMANDS_STRING(OPTION_CSNAME, ",c"), boost::program_options::value<string>(), "collection space name" ) \
        ( COMMANDS_STRING(OPTION_CLNAME, ",l"), boost::program_options::value<string>(), "collection name" ) \
 
-// since we are single-threaded program, we define a lots of global variables :)
 CHAR    gDatabasePath [ OSS_MAX_PATHSIZE + 1 ]       = {0} ;
 CHAR    gCSName [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
 CHAR    gCLName [ DMS_COLLECTION_NAME_SZ + 1 ]       = {0} ;
@@ -141,7 +140,6 @@ BOOLEAN sdbVerifyCollectionSpaceFileName ( const CHAR *pFileName,
       goto done ;
    }
 
-   // ext check
    if ( extFilter && 0 != ossStrcmp( pDotr + 1, extFilter ) )
    {
       goto done ;
@@ -149,7 +147,6 @@ BOOLEAN sdbVerifyCollectionSpaceFileName ( const CHAR *pFileName,
 
    {
       sequence = 0 ;
-      // check sequence
       const CHAR *pSeqPos = pDot + 1 ;
       while ( pSeqPos < pDotr )
       {
@@ -171,7 +168,6 @@ BOOLEAN sdbVerifyCollectionSpaceFileName ( const CHAR *pFileName,
       goto done ;
    }
 
-   // copy su name
    if ( pSUName )
    {
       ossStrncpy ( pSUName, pFileName, size ) ;
@@ -184,7 +180,6 @@ done :
    return ret ;
 }
 
-// resolve input argument
 INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
 {
    INT32 rc = SDB_OK ;
@@ -224,7 +219,6 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
       rc = SDB_PMD_HELP_ONLY ;
       goto done ;
    }
-   // for dbpath, copy to gDatabasePath
    if ( vm.count ( OPTION_DBPATH ) )
    {
       const CHAR *dbpath = vm[OPTION_DBPATH].as<string>().c_str() ;
@@ -238,11 +232,9 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
    }
    else
    {
-      // use current directory for default
       ossStrncpy ( gDatabasePath, ".", sizeof(gDatabasePath) ) ;
    }
 
-   // collection space name
    if ( vm.count ( OPTION_CSNAME ) )
    {
       const CHAR *csname = vm[OPTION_CSNAME].as<string>().c_str() ;
@@ -255,7 +247,6 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
       ossStrncpy ( gCSName, csname, sizeof(gCSName) ) ;
    }
 
-   // collection name
    if ( vm.count ( OPTION_CLNAME ) )
    {
       const CHAR *clname = vm[OPTION_CLNAME].as<string>().c_str() ;
@@ -268,8 +259,6 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
       ossStrncpy ( gCLName, clname, sizeof(gCLName) ) ;
    }
 
-   // show input parameters on screen so people can see it
-   // save them into output as well
    dumpPrintf( "Run Options   :"OSS_NEWLINE ) ;
    dumpPrintf ( "Database Path : %s"OSS_NEWLINE,
                 gDatabasePath ) ;
@@ -301,7 +290,6 @@ void inspectCollections ( OSSFILE &file )
       goto error ;
    }
 
-   // repair flag
    for ( UINT32 i = 0 ; i < DMS_MME_SLOTS ; ++i )
    {
       mb = (dmsMB*)( (CHAR*)gMMEBuff + (i*DMS_MB_SIZE) ) ;
@@ -376,8 +364,6 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
 
    isOpen = TRUE ;
 
-   // first let's read 8 bytes in front of the file, and make sure it's our
-   // storage unit file
    restLen = DMS_HEADER_EYECATCHER_LEN ;
    while ( restLen > 0 )
    {
@@ -393,11 +379,8 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
       readPos += readSize ;
    }
 
-   // if it doens't match our eye catcher, we may or may not dump error
    if ( ossStrncmp ( eyeCatcher, expectEye, DMS_HEADER_EYECATCHER_LEN ) )
    {
-      // if user specified the collection space, we should dump error if it's
-      // not a valid SU file
       if ( specific )
       {
          dumpPrintf ( "Error: %s is not a valid storage unit"OSS_NEWLINE,
@@ -406,8 +389,6 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
       goto done ;
    }
 
-   // when we get here, that means it's our SU file and let's dump header, SME,
-   // and all collections
    rc = ossSeek ( &file, 0, OSS_SEEK_SET ) ;
    if ( rc )
    {
@@ -420,7 +401,6 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
    dumpPrintf ( OSS_NEWLINE ) ;
 
 done :
-   // close input file
    if ( isOpen )
    {
       ossClose ( file ) ;
@@ -436,7 +416,6 @@ void actionCSAttemptEntry( const CHAR *csName, UINT32 sequence,
    string csFileName ;
    string csFullName ;
 
-   // clear global info
    ossMemset( gMMEBuff, 0, DMS_MME_SZ ) ;
 
    csFileName = sdbMakeSUFileName( csName, sequence,
@@ -448,7 +427,6 @@ void actionCSAttemptEntry( const CHAR *csName, UINT32 sequence,
 
 }
 
-// database inspection may entry code
 void repairDB ()
 {
    CHAR csName [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
@@ -481,13 +459,11 @@ void repairDB ()
    }
    else
    {
-      // if we can't find the path, let's show error
       dumpPrintf ( "Error: db path %s is not a valid directory"OSS_NEWLINE,
                    gDatabasePath ) ;
    }
 }
 
-// main function
 INT32 main ( INT32 argc, CHAR **argv )
 {
    INT32 rc = SDB_OK ;
@@ -504,7 +480,6 @@ INT32 main ( INT32 argc, CHAR **argv )
       goto done ;
    }
 
-   // allocate mme buffer
    gMMEBuff = (CHAR*)SDB_OSS_MALLOC( DMS_MME_SZ ) ;
    if ( !gMMEBuff )
    {

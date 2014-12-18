@@ -1,4 +1,3 @@
-// PoolOutputBuffer.java
 
 /**
  *      Copyright (C) 2008 10gen Inc.
@@ -94,8 +93,6 @@ public class PoolOutputBuffer extends OutputBuffer {
 	void _afterWrite() {
 
 		if (_cur.pos() < _end.pos()) {
-			// we're in the middle of the total space
-			// just need to make sure we're not at the end of a buffer
 			if (_cur.y == BUF_SIZE) _cur.nextBuffer();
 			return;
 		}
@@ -209,7 +206,6 @@ public class PoolOutputBuffer extends OutputBuffer {
 			try {
 				return _encoding.decode(_mine, 0, size());
 			} catch (IOException ioe) {
-				// we failed, fall back
 			}
 		}
 		return new String(_mine, 0, size(), encoding);

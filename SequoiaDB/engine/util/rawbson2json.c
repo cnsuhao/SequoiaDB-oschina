@@ -37,10 +37,6 @@
 #include "rawbson2json.h"
 #include "../client/jstobs.h"
 
-// The caller pass the pointer for raw bson, and output buffer pointer and
-// buffer length.
-// the function returns true if bufferLen is good enough to hold data, otherwise
-// it will return FALSE and the content in outputbuffer is not defined
 BOOLEAN rawbson2json ( const CHAR *bsonObj,
                       CHAR *pOutputBuffer,
                       INT32 bufferLen )

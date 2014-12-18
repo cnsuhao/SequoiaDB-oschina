@@ -48,8 +48,6 @@
 
 namespace fs = boost::filesystem ;
 
-//using namespace engine;
-///< _dpsCmdBase implementation
 _dpsLogFilter::_dpsLogFilter( const dpsCmdData* data )
 {
    SDB_ASSERT( NULL != data, "srcPath is NULL" ) ;
@@ -59,7 +57,6 @@ _dpsLogFilter::_dpsLogFilter( const dpsCmdData* data )
 
 _dpsLogFilter::~_dpsLogFilter()
 {
-   ///< managed by filter factory; 
    _filter = NULL ;
 }
 
@@ -166,7 +163,6 @@ INT32 _dpsLogFilter::doParse()
       Open = TRUE ;
    }
 
-   /// < meta need do specially
    if ( SDB_LOG_FILTER_META == _filter->getType() )
    {
       rc = _filter->doFilte( _cmdData, fileTo, NULL ) ;
@@ -176,7 +172,6 @@ INT32 _dpsLogFilter::doParse()
       }
       goto done ;
    }
-   ///< parse meta info end
 
    if( isDir( _cmdData->srcPath ) )
    {
@@ -198,7 +193,6 @@ INT32 _dpsLogFilter::doParse()
 
       for( INT32 idx = 0 ; idx < MAX_FILE_COUNT ; ++idx )
       {
-         // src log file ;
          fs::path fileDir( _cmdData->srcPath ) ;
          const CHAR *filepath = fileDir.string().c_str() ;
          CHAR filename[ OSS_MAX_PATHSIZE * 2 ] = { 0 } ;
@@ -221,12 +215,6 @@ INT32 _dpsLogFilter::doParse()
    }
    else
    {
-//      if( SDB_LOG_FILTER_LSN == _filter->getType() )
-//      {
-//         printf( "Error: Cannot specify a dir path when using --lsn/-l\n" );
-//         rc = SDB_INVALIDARG ;
-//         goto error ;
-//      }
       if( !isFileExisted( _cmdData->srcPath ) )
       {
          rc = SDB_INVALIDPATH ;

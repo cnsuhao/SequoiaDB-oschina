@@ -57,7 +57,6 @@ namespace engine
    class _qgmOptiAggregation ;
    class qgmOptiMthMatchSelect;
 
-   /// qgmBuilder can not be freed before sql operation done.
    class _qgmBuilder : public SDBObject
    {
    public:

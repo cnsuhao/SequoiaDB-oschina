@@ -36,9 +36,6 @@
 
 namespace engine
 {
-////////////////////////////////////////////////////////////////////////////////
-// BEGIN MAP DEFINITION
-////////////////////////////////////////////////////////////////////////////////
 
 #define ON_STRATEGY(oprUnitType, nodeType, strategyClass) \
    do { \
@@ -87,9 +84,6 @@ namespace engine
       } \
    } while ( 0 )
 
-////////////////////////////////////////////////////////////////////////////////
-// END MAP DEFINITION
-////////////////////////////////////////////////////////////////////////////////
 
    optQgmStrategyTable* getQgmStrategyTable ()
    {
@@ -169,9 +163,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // MAP STARATEGYS
 
-      // SORT
       ON_STRATEGY( QGM_OPTI_TYPE_SORT, QGM_OPTI_TYPE_SELECT, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_SORT, QGM_OPTI_TYPE_SORT, optQgmAcceptSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_SORT, QGM_OPTI_TYPE_FILTER, optQgmSortFilterSty ) ;
@@ -183,7 +175,6 @@ namespace engine
       ON_STRATEGY( QGM_OPTI_TYPE_SORT, QGM_OPTI_TYPE_MTHMCHFILTER, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_SORT, QGM_OPTI_TYPE_SPLIT, optQgmRefuseSty ) ;
 
-      // FILTER
       ON_STRATEGY( QGM_OPTI_TYPE_FILTER, QGM_OPTI_TYPE_SELECT, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_FILTER, QGM_OPTI_TYPE_SORT, optQgmFilterSortSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_FILTER, QGM_OPTI_TYPE_FILTER, optQgmFilterFilterSty ) ;
@@ -195,7 +186,6 @@ namespace engine
       ON_STRATEGY( QGM_OPTI_TYPE_FILTER, QGM_OPTI_TYPE_MTHMCHFILTER, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_FILTER, QGM_OPTI_TYPE_SPLIT, optQgmRefuseSty ) ;
 
-      // AGGR
       ON_STRATEGY_RANGE( QGM_OPTI_TYPE_AGGR, QGM_OPTI_TYPE_SELECT,
                          QGM_OPTI_TYPE_JOIN, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_AGGR, QGM_OPTI_TYPE_MTHMCHSEL, optQgmRefuseSty ) ;
@@ -203,9 +193,7 @@ namespace engine
       ON_STRATEGY( QGM_OPTI_TYPE_AGGR, QGM_OPTI_TYPE_MTHMCHFILTER, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_AGGR, QGM_OPTI_TYPE_SPLIT, optQgmRefuseSty ) ;
 
-      // SCAN
 
-      // JOIN
       ON_STRATEGY_RANGE( QGM_OPTI_TYPE_JOIN, QGM_OPTI_TYPE_SELECT,
                          QGM_OPTI_TYPE_JOIN, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_JOIN, QGM_OPTI_TYPE_MTHMCHSEL, optQgmRefuseSty ) ;
@@ -213,18 +201,15 @@ namespace engine
       ON_STRATEGY( QGM_OPTI_TYPE_JOIN, QGM_OPTI_TYPE_MTHMCHFILTER, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_JOIN, QGM_OPTI_TYPE_SPLIT, optQgmRefuseSty ) ;
 
-      // JOIN CONDITION
       ON_STRATEGY_RANGE( QGM_OPTI_TYPE_JOIN_CONDITION, QGM_OPTI_TYPE_SELECT,
                          QGM_OPTI_TYPE_SPLIT, optQgmRefuseSty ) ;
 
-      // INSERT
       ON_STRATEGY_RANGE( QGM_OPTI_TYPE_INSERT, QGM_OPTI_TYPE_SELECT,
                          QGM_OPTI_TYPE_JOIN, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_INSERT, QGM_OPTI_TYPE_MTHMCHSCAN, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_INSERT, QGM_OPTI_TYPE_MTHMCHFILTER, optQgmRefuseSty ) ;
       ON_STRATEGY( QGM_OPTI_TYPE_INSERT, QGM_OPTI_TYPE_SPLIT, optQgmRefuseSty ) ;
 
-      // END MAP STATEGYS
 
    done:
       return rc ;

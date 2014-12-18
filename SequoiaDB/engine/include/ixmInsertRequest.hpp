@@ -58,7 +58,6 @@ namespace engine
       virtual INT32 performAction() const = 0 ;
    } ;
 
-   // record information about where to insert key/rid
    class ixmIndexInsertRequestImpl : public ixmIndexInsertRequest
    {
    public :

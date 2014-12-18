@@ -108,8 +108,6 @@ namespace engine
       INT32 read( dmsTmpBlk &blk, UINT64 size,
                   void *buf, UINT64 &got ) ;
 
-      /// blks should be managed by user.
-      /// especially rebuild a blk on a old blk.
       INT32 buildBlk( const UINT64 &begin,
                       const UINT64 &size,
                       dmsTmpBlk &blk ) ;

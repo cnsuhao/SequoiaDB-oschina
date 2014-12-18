@@ -57,7 +57,6 @@ TEST(sptTest, test1)
   ASSERT_TRUE( SDB_OK == rc ) ;
 
   {
-//  const CHAR *code = "var a = new myjsclass(); var b = new myjsclass2();" ;
   const CHAR *code = "function sum(x,y){return x+y;} sum(1,2);"
   bson::BSONObj detail ;
   bson::BSONObj rval ;

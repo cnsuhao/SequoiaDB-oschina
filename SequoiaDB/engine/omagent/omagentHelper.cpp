@@ -182,7 +182,6 @@ namespace engine
    {
       SDB_ASSERT ( ppBuffer && bufferSize, "Invalid input" ) ;
       INT32 rc           = SDB_OK ;
-//      INT32 offset       = 0 ;
       INT32 packetLength = ossRoundUpToMultipleX ( bsonobj->objsize(), 4 ) ;
       if ( packetLength < 0 )
       {

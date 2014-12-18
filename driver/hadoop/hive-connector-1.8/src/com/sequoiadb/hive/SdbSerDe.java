@@ -40,7 +40,6 @@ public class SdbSerDe implements SerDe {
 
 	public SdbSerDe() throws SerDeException {
 		super();
-		// TODO Auto-generated constructor stub
 	}
 
 	static final String HIVE_TYPE_DOUBLE = "double";
@@ -58,7 +57,6 @@ public class SdbSerDe implements SerDe {
 	private int fieldCount;
 	private ObjectInspector objectInspector;
 	private List<String> columnNames;
-	//private String[] columnTypesArray;
 
 	private LazyStruct row;
 
@@ -80,23 +78,7 @@ public class SdbSerDe implements SerDe {
 		columnNames = new ArrayList<String>(columnNamesArray.length);
 		columnNames.addAll(Arrays.asList(columnNamesArray));
 
-		// log.debug("column names in mongo collection: " + columnNames);
 
-//		String hiveColumnNameProperty = tbl.getProperty(Constants.LIST_COLUMNS);
-//		List<String> hiveColumnNameArray = new ArrayList<String>();
-//
-//		if (hiveColumnNameProperty != null
-//				&& hiveColumnNameProperty.length() > 0) {
-//			hiveColumnNameArray = Arrays.asList(hiveColumnNameProperty
-//					.split("[,:;]"));
-//		}
-//		LOG.debug("column names in hive table: " + hiveColumnNamay);
-//
-//		String columnTypeProperty = tbl
-//				.getProperty(Constants.LIST_COLUMN_TYPES);
-//		 System.err.println("column types:" + columnTypeProperty);
-//		columnTypesArray = columnTypeProperty.split("[,:;]");
-//		LOG.debug("column types in hive table: " + columnTypesArray);
 		
 		serdeParams = LazySimpleSerDe.initSerdeParams(conf, tbl, getClass().getName());
 		
@@ -115,30 +97,6 @@ public class SdbSerDe implements SerDe {
 
 		row = new LazyStruct((LazySimpleStructObjectInspector) objectInspector);
 		
-//		final List<ObjectInspector> fieldOIs = new ArrayList<ObjectInspector>(
-//				columnNamesArray.length);
-//		for (int i = 0; i < columnNamesArray.length; i++) {
-//			if (HIVE_TYPE_INT.equalsIgnoreCase(columnTypesArray[i])) {
-//				fieldOIs.add(PrimitiveObjectInspectorFactory.javaIntObjectInspector);
-//			} else if (HIVE_TYPE_SMALLINT.equalsIgnoreCase(columnTypesArray[i])) {
-//				fieldOIs.add(PrimitiveObjectInspectorFactory.javaShortObjectInspector);
-//			} else if (HIVE_TYPE_TINYINT.equalsIgnoreCase(columnTypesArray[i])) {
-//				fieldOIs.add(PrimitiveObjectInspectorFactory.javaByteObjectInspector);
-//			} else if (HIVE_TYPE_BIGINT.equalsIgnoreCase(columnTypesArray[i])) {
-//				fieldOIs.add(PrimitiveObjectInspectorFactory.javaLongObjectInspector);
-//			} else if (HIVE_TYPE_BOOLEAN.equalsIgnoreCase(columnTypesArray[i])) {
-//				fieldOIs.add(PrimitiveObjectInspectorFactory.javaBooleanObjectInspector);
-//			} else if (HIVE_TYPE_FLOAT.equalsIgnoreCase(columnTypesArray[i])) {
-//				fieldOIs.add(PrimitiveObjectInspectorFactory.javaFloatObjectInspector);
-//			} else if (HIVE_TYPE_DOUBLE.equalsIgnoreCase(columnTypesArray[i])) {
-//				fieldOIs.add(PrimitiveObjectInspectorFactory.javaDoubleObjectInspector);
-//			} else {
-//				// treat as string
-//				fieldOIs.add(PrimitiveObjectInspectorFactory.javaStringObjectInspector);
-//			}
-//		}
-//		objectInspector = ObjectInspectorFactory
-//				.getStandardStructObjectInspector(hiveColumnNameArray, fieldOIs);
 
 		LOG.debug("Exit SdbSerDe::initialize");
 	}
@@ -160,85 +118,7 @@ public class SdbSerDe implements SerDe {
 		row.init(bytes, 0, record.getLength());
 		
 
-		// ********************************************************************************
-		// if (!(wr instanceof BSONWritable)) {
-		// throw new SerDeException("Expected BSONWritable, received "
-		// + wr.getClass().getName());
-		// }
-		//
-		// ((BSONWritable) wr).setFieldType(this.columnNames,
-		// this.columnTypesArray);
-		//
-		// // row.init((BSONWritable) wr, columnNames);
-		//
-		// LOG.debug("Exit SdbSerDe::deserialize");
-		// return wr;
 
-		// ********************************************************************************
-		// if (!(wr instanceof MapWritable)) {
-		// throw new SerDeException("Expected MapWritable, received "
-		// + wr.getClass().getName());
-		// }
-		//
-		// MapWritable input = (MapWritable) wr;
-		//
-		//
-		// final Text t = new Text();
-		// row.clear();
-		//
-		// for (int i = 0; i < fieldCount; i++) {
-		//
-		// t.set(columnNames.get(i));
-		// final Writable value = input.get(t);
-		//
-		// if (value != null && !NullWritable.get().equals(value)) {
-		// // parse as double to avoid NumberFormatException...
-		// // TODO:need more test,especially for type 'bigint'
-		// if (HIVE_TYPE_INT.equalsIgnoreCase(columnTypesArray[i])) {
-		// if (value instanceof IntWritable) {
-		// row.add(((IntWritable) value).get());
-		// }
-		// } else if (HIVE_TYPE_SMALLINT
-		// .equalsIgnoreCase(columnTypesArray[i])) {
-		// if (value instanceof IntWritable) {
-		// row.add(((IntWritable) value).get());
-		// }
-		// } else if (HIVE_TYPE_TINYINT
-		// .equalsIgnoreCase(columnTypesArray[i])) {
-		// if (value instanceof IntWritable) {
-		// row.add(((IntWritable) value).get());
-		// }
-		// } else if (HIVE_TYPE_BIGINT
-		// .equalsIgnoreCase(columnTypesArray[i])) {
-		// row.add(Long.valueOf(value.toString()));
-		// } else if (HIVE_TYPE_BOOLEAN
-		// .equalsIgnoreCase(columnTypesArray[i])) {
-		// if (value instanceof BooleanWritable) {
-		// row.add(((BooleanWritable) value).get());
-		// }
-		// } else if (HIVE_TYPE_FLOAT
-		// .equalsIgnoreCase(columnTypesArray[i])) {
-		// if (value instanceof FloatWritable) {
-		// row.add(((FloatWritable) value).get());
-		// }
-		// } else if (HIVE_TYPE_DOUBLE
-		// .equalsIgnoreCase(columnTypesArray[i])) {
-		// if (value instanceof DoubleWritable) {
-		// row.add(((DoubleWritable) value).get());
-		// }
-		// } else if (HIVE_TYPE_STRING
-		// .equalsIgnoreCase(columnTypesArray[i])){
-		// if (value instanceof Text) {
-		// row.add(((Text) value).toString());
-		// }
-		// }
-		//
-		// } else {
-		// row.add(null);
-		// }
-		// }
-		// ********************************************************************************
-		// System.out.println("Exit SdbSerDe::deserialize");
 
 		return row;
 	}
@@ -257,7 +137,6 @@ public class SdbSerDe implements SerDe {
 	public Writable serialize(final Object obj, final ObjectInspector inspector)
 			throws SerDeException {
 
-		// System.out.println("Entry SdbSerDe::serialize");
 		final StructObjectInspector structInspector = (StructObjectInspector) inspector;
 		final List<? extends StructField> fields = structInspector
 				.getAllStructFieldRefs();
@@ -277,7 +156,6 @@ public class SdbSerDe implements SerDe {
 				final Object field = structInspector.getStructFieldData(obj,
 						fields.get(c));
 
-				// TODO:currently only support hive primitive type
 				final AbstractPrimitiveObjectInspector fieldOI = (AbstractPrimitiveObjectInspector) fields
 						.get(c).getFieldObjectInspector();
 
@@ -320,14 +198,12 @@ public class SdbSerDe implements SerDe {
 
 			}
 		}
-		// System.out.println("Exit SdbSerDe::serialize");
 
 		return cachedWritable;
 	}
 
 	@Override
 	public SerDeStats getSerDeStats() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 

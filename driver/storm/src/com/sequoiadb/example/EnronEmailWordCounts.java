@@ -47,18 +47,14 @@ public class EnronEmailWordCounts {
 			String dstCsName = args[6];
 			String dstClName = args[7];
 
-			// Create a mapper from documents emitted from the spout to the ones
-			// we wish to process
 			SequoiaObjectGrabber mapsRecordToTuples = new SequoiaObjectGrabber() {
 				@Override
 				public List<Object> map(BSONObject object) {
-					// The tuple we are returning
 					List<Object> tuple = new ArrayList<Object>();
 
 					tuple.add(object.get("_id"));
 					tuple.add(object.get("body"));
 
-					// Return the mapped object
 					return tuple;
 				}
 
@@ -69,12 +65,10 @@ public class EnronEmailWordCounts {
 
 			};
 
-			// Set up
 			SequoiaCappedCollectionSpout spout = new SequoiaCappedCollectionSpout(
 					host, port, userName, password, srcCsName, srcClName,
 					mapsRecordToTuples);
 
-			// Create a word counting bold
 			IBasicBolt wordCountingBolt = new IBasicBolt() {
 				@Override
 				public void prepare(Map map, TopologyContext topologyContext) {
@@ -83,14 +77,10 @@ public class EnronEmailWordCounts {
 				@Override
 				public void execute(Tuple tuple,
 						BasicOutputCollector basicOutputCollector) {
-					// Grab the _id field so we can pass it on for a save later
 					Object _id = tuple.getValueByField("_id");
-					// Grab the text body
 					String body = tuple.getStringByField("body");
-					// Clean up the text split it and count
 					String[] Words = body.replace("\n\n", " ").split(" ");
 
-					// Count the number of words in this tuple
 					Map<String, Integer> wordNumsMap = new HashMap<String, Integer>();
 					for (String word : Words) {
 						if (wordNumsMap.containsKey(word)) {
@@ -101,14 +91,11 @@ public class EnronEmailWordCounts {
 						}
 					}
 
-					// spout the all of word's number
 					for (Entry<String, Integer> entry : wordNumsMap.entrySet()) {
-						// Create the tuple result
 						List<Object> resultTuple = new ArrayList<Object>();
 						resultTuple.add(entry.getKey());
 						resultTuple.add(entry.getValue());
 
-						// Emit the result
 						basicOutputCollector.emit(resultTuple);
 					}
 				}
@@ -129,11 +116,9 @@ public class EnronEmailWordCounts {
 				}
 			};
 
-			// Update Query for document
 			UpdateQueryCreator updateQueryCreator = new UpdateQueryCreator() {
 				@Override
 				public BSONObject createQuery(Tuple tuple) {
-					// Pick the document based on the _id passed in
 					BSONObject query = new BasicBSONObject();
 					query.put("word", tuple.getValueByField("word"));
 
@@ -141,7 +126,6 @@ public class EnronEmailWordCounts {
 				}
 			};
 
-			// Field mapper
 			StormSequoiaObjectGrabber mapper = new StormSequoiaObjectGrabber() {
 				@Override
 				public BSONObject map(BSONObject object, Tuple tuple) {
@@ -161,32 +145,23 @@ public class EnronEmailWordCounts {
 				}
 			};
 
-			// Create a mongodb update bolt that will update documents adding
-			// the
-			// wordcount variable
 			SequoiaUpdateBolt mongoUpdateBolt = new SequoiaUpdateBolt(host,
 					port, userName, password, dstCsName, dstClName,
 					updateQueryCreator, mapper);
 
-			// Build a topology
 			TopologyBuilder builder = new TopologyBuilder();
-			// Set the spout
 			builder.setSpout("sequoiadbspout", spout, 1);
-			// Add the bolt to count the number of words in each email
 			builder.setBolt("wordscount", wordCountingBolt, 20)
 					.shuffleGrouping("sequoiadbspout");
-			// Save the word count back to the db
 			builder.setBolt("sequoiadbbolt", mongoUpdateBolt, 10)
 					.shuffleGrouping("wordscount");
 
-			// Set debug config
 
 			Config config = new Config();
 			config.setDebug(false);
 
 			config.setNumWorkers(1);
 
-			// Submit a job
 			StormSubmitter.submitTopology("enron", config,
 					builder.createTopology());
 

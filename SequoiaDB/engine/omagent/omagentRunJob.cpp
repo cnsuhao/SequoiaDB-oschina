@@ -66,7 +66,6 @@ namespace engine
             goto error ;
          }
 
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Add hosts passes argument: %s",
@@ -100,18 +99,9 @@ namespace engine
       BSONObjBuilder bob ;
       BSONObj subObj ;
 
-      // the output bson format
-      // {
-      //  "SdbUser":"sdbadmin",
-      //  "SdbPasswd":"sdbadmin",
-      //  "SdbUserGroup":"sdbadmin_group",
-      //  "InstallPacket":"/home/users/tanzhaobo/sequoiadb/bin/../packet/sequoiadb-1.8-linux_x86_64-installer.run",
-      //  "HostInfo":{"IP":"192.168.20.42","HostName":"susetzb","User":"root","Passwd":"sequoiadb","SshPort":"22","AgentPort":"11790","InstallPath":"/opt/sequoiadb"}
-      // }
 
       try
       {
-         //build subObj
          bob.append( OMA_FIELD_IP, _addHostInfo._item._ip.c_str() ) ;
          bob.append( OMA_FIELD_HOSTNAME, _addHostInfo._item._hostName.c_str() ) ;
          bob.append( OMA_FIELD_USER, _addHostInfo._item._user.c_str() ) ;
@@ -121,7 +111,6 @@ namespace engine
          bob.append( OMA_FIELD_INSTALLPATH, _addHostInfo._item._installPath.c_str() ) ;
          subObj = bob.obj() ;
 
-         // build retObj
          builder.append( OMA_FIELD_SDBUSER,
                          _addHostInfo._common._sdbUser.c_str() ) ;
          builder.append( OMA_FIELD_SDBPASSWD,
@@ -172,7 +161,6 @@ namespace engine
                      "rc = %d", rc ) ;
             goto error ;
          }
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Remove host passes argument: %s",
@@ -205,16 +193,9 @@ namespace engine
       BSONObjBuilder bob ;
       BSONObj subObj ;
 
-      // the output bson format
-      // { "HostInfo":
-      //    { "IP": "192.168.20.165", "HostName": "rhel64-test8",
-      //      "User": "root", "Passwd": "sequoiadb", "SshPort": "22",
-      //      "AgentPort": "11790", "InstallPath": "/opt/sequoiadb" }
-      // } 
       
       try
       {
-         //build subObj
          bob.append( OMA_FIELD_IP, _RmHostInfo._item._ip.c_str() ) ;
          bob.append( OMA_FIELD_HOSTNAME, _RmHostInfo._item._hostName.c_str() ) ;
          bob.append( OMA_FIELD_USER, _RmHostInfo._item._user.c_str() ) ;
@@ -224,7 +205,6 @@ namespace engine
          bob.append( OMA_FIELD_INSTALLPATH, _RmHostInfo._item._installPath.c_str() ) ;
          subObj = bob.obj() ;
 
-         // build retObj
          builder.append( OMA_FIELD_HOSTINFO, subObj ) ;
          retObj = builder.obj() ;
       }
@@ -260,7 +240,6 @@ namespace engine
       {
          BSONObj obj( pInstallInfo ) ;
 
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_BUS, obj.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Check add host information passes argument: %s",
@@ -326,7 +305,6 @@ namespace engine
                  OMA_FIELD_USER          << _info._user.c_str() <<
                  OMA_FIELD_PASSWD        << _info._passwd.c_str() <<
                  OMA_FIELD_SSHPORT       << _info._sshPort.c_str() ) ;
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str(),
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
@@ -393,7 +371,6 @@ namespace engine
                  OMA_FIELD_USER          << _info._user.c_str() <<
                  OMA_FIELD_PASSWD        << _info._passwd.c_str() <<
                  OMA_FIELD_SSHPORT       << _info._sshPort.c_str() ) ;
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str(),
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
@@ -460,7 +437,6 @@ namespace engine
                  OMA_FIELD_USER          << _info._user.c_str() <<
                  OMA_FIELD_PASSWD        << _info._passwd.c_str() <<
                  OMA_FIELD_SSHPORT       << _info._sshPort.c_str() ) ;
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str(),
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
@@ -529,7 +505,6 @@ namespace engine
                  OMA_FIELD_USER          << _info._user.c_str() <<
                  OMA_FIELD_PASSWD        << _info._passwd.c_str() <<
                  OMA_FIELD_SSHPORT       << _info._sshPort.c_str() ) ;
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str(),
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
@@ -578,9 +553,7 @@ namespace engine
       {
          BSONObjBuilder bob ;
          BSONObj bus ;
-         // get installed host info
          _getInstallStandaloneInfo( bus ) ;
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Rollback standalone passes "
@@ -650,7 +623,6 @@ namespace engine
       {
          BSONObj sys = BSON (
                  OMA_FIELD_VCOORDSVCNAME << _vCoordSvcName.c_str() ) ;
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Rollback coord passes "
@@ -699,7 +671,6 @@ namespace engine
          BSONObj sys = BSON (
                  OMA_FIELD_VCOORDSVCNAME << _vCoordSvcName.c_str() ) ;
 
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Rollback catalog passes "
@@ -749,12 +720,10 @@ namespace engine
          BSONObjBuilder builder ;
          BSONObj dataGroupInfo ;
          BSONObj sys ;
-         // get installed data nodes info
          _getInstalledDataGroupInfo( dataGroupInfo ) ;
          builder.append( OMA_FIELD_VCOORDSVCNAME, _vCoordSvcName.c_str() ) ;
          builder.appendElements( dataGroupInfo ) ;
          sys = builder.obj() ;
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Rollback data group passes "
@@ -838,7 +807,6 @@ namespace engine
          bab.append( bob.obj() ) ;
          builder.appendArray( OMA_FIELD_HOSTINFO, bab.arr() ) ;
          bus = builder.obj() ;
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Remove standalone passes argument: %s",
@@ -901,7 +869,6 @@ namespace engine
          bob.append( OMA_FIELD_AUTHPASSWD, pStr ) ;
          bus = bob.obj() ;
          
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str(),
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
@@ -965,7 +932,6 @@ namespace engine
          bob.append( OMA_FIELD_AUTHPASSWD, pStr ) ;
          bus = bob.obj() ;
          
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str(),
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
@@ -1033,7 +999,6 @@ namespace engine
          bob.append( OMA_FIELD_UNINSTALLGROUPNAME, pStr ) ;
          bus = bob.obj() ;
          
-         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str(),
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;

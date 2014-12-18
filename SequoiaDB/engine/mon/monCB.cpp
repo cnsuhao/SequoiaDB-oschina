@@ -197,7 +197,6 @@ namespace engine
             {
                if ( _cmdType != CMD_UNKNOW )
                {
-                  // it is command, do not inc readTimeSpent
                   break ;
                }
             }
@@ -224,7 +223,6 @@ namespace engine
       UINT32 curLen = ossStrlen( _lastOpDetail ) ;
       if ( curLen >= sizeof( _lastOpDetail ) - 3 )
       {
-         // buffer is full, couldn't save more info
          goto done ;
       }
       else if ( curLen > 0 )

@@ -48,7 +48,6 @@ static   int        woptions(struct curparse *, char *);*/
 
 static   const char    *progname = "sdb";
 
-//static void
  void
 version(void)
 {
@@ -57,7 +56,6 @@ version(void)
    exit((int)MANDOCLEVEL_OK);
 }
 
-//static void
  void
 usage(void)
 {
@@ -75,7 +73,6 @@ usage(void)
    exit((int)MANDOCLEVEL_BADARG);
 }
 
-//static void
 void
 parse(struct curparse *curp, int fd,
       const char *file, enum mandoclevel *level)
@@ -189,7 +186,6 @@ parse(struct curparse *curp, int fd,
       *level = rc;
 }
 
-//static int
  int
 moptions(enum mparset *tflags, char *arg)
 {
@@ -208,7 +204,6 @@ moptions(enum mparset *tflags, char *arg)
    return(1);
 }
 
-//static int
  int
 toptions(struct curparse *curp, char *arg)
 {
@@ -242,7 +237,6 @@ toptions(struct curparse *curp, char *arg)
    return(1);
 }
 
-//static int
  int
 woptions(struct curparse *curp, char *arg)
 {
@@ -282,7 +276,6 @@ woptions(struct curparse *curp, char *arg)
    return(1);
 }
 
-//static void
  void
 mmsg(enum mandocerr t, enum mandoclevel lvl,
       const char *file, int line, int col, const char *msg)

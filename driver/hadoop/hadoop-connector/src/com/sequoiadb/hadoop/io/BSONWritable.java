@@ -47,6 +47,7 @@ public class BSONWritable implements WritableComparable {
     }
 
     public BSONWritable( BSONObject doc ){
+    	this();
         setBson(doc);
     }
 
@@ -76,7 +77,6 @@ public class BSONWritable implements WritableComparable {
     public void readFields( DataInput in ) throws IOException{
         BSONDecoder dec = new BasicBSONDecoder();
         BSONCallback cb = new BasicBSONCallback();
-        // Read the BSON length from the start of the record
         byte[] l = new byte[4];
         try {
             in.readFully( l );

@@ -442,7 +442,6 @@ public class JsonReader implements Closeable {
     if (peekStack == JsonScope.EMPTY_ARRAY) {
       stack[stackSize - 1] = JsonScope.NONEMPTY_ARRAY;
     } else if (peekStack == JsonScope.NONEMPTY_ARRAY) {
-      // Look for a comma before the next element.
       int c = nextNonWhitespace(true);
       switch (c) {
       case ']':
@@ -456,7 +455,6 @@ public class JsonReader implements Closeable {
       }
     } else if (peekStack == JsonScope.EMPTY_OBJECT || peekStack == JsonScope.NONEMPTY_OBJECT) {
       stack[stackSize - 1] = JsonScope.DANGLING_NAME;
-      // Look for a comma before the next element.
       if (peekStack == JsonScope.NONEMPTY_OBJECT) {
         int c = nextNonWhitespace(true);
         switch (c) {
@@ -494,7 +492,6 @@ public class JsonReader implements Closeable {
       }
     } else if (peekStack == JsonScope.DANGLING_NAME) {
       stack[stackSize - 1] = JsonScope.NONEMPTY_OBJECT;
-      // Look for a colon before the value.
       int c = nextNonWhitespace(true);
       switch (c) {
       case ':':
@@ -531,10 +528,8 @@ public class JsonReader implements Closeable {
       if (peekStack == JsonScope.EMPTY_ARRAY) {
         return peeked = PEEKED_END_ARRAY;
       }
-      // fall-through to handle ",]"
     case ';':
     case ',':
-      // In lenient mode, a 0-length literal in an array means 'null'.
       if (peekStack == JsonScope.EMPTY_ARRAY || peekStack == JsonScope.NONEMPTY_ARRAY) {
         checkLenient();
         pos--;
@@ -581,7 +576,6 @@ public class JsonReader implements Closeable {
   }
 
   private int peekKeyword() throws IOException {
-    // Figure out which keyword we're matching against by its first character.
     char c = buffer[pos];
     String keyword;
     String keywordUpper;
@@ -602,7 +596,6 @@ public class JsonReader implements Closeable {
       return PEEKED_NONE;
     }
 
-    // Confirm that chars [1..length) match the keyword.
     int length = keyword.length();
     for (int i = 1; i < length; i++) {
       if (pos + i >= limit && !fillBuffer(i + 1)) {
@@ -619,7 +612,6 @@ public class JsonReader implements Closeable {
       return PEEKED_NONE; // Don't match trues, falsey or nullsoft!
     }
 
-    // We've found the keyword followed either by EOF or by a non-literal character.
     pos += length;
     return peeked = peeking;
   }
@@ -631,7 +623,6 @@ public class JsonReader implements Closeable {
     int i = 0;
     int c = get(i);
 
-    // TODO: figure out a way to speed up repopulating 'c'
 
     if (c == '-') {
       negative = true;
@@ -908,7 +899,6 @@ public class JsonReader implements Closeable {
         peeked = PEEKED_NONE;
         return result;
       } catch (NumberFormatException ignored) {
-        // Fall back to parse as a double below.
       }
     } else {
       throw new IllegalStateException("Expected a long but was " + peek()
@@ -938,7 +928,6 @@ public class JsonReader implements Closeable {
    *     malformed.
    */
   private String nextQuotedValue(char quote) throws IOException {
-    // Like nextNonWhitespace, this uses locals 'p' and 'l' to save inner-loop field access.
     char[] buffer = this.buffer;
     StringBuilder builder = null;
     while (true) {
@@ -1019,7 +1008,6 @@ public class JsonReader implements Closeable {
         }
       }
 
-      // Attempt to load the entire literal into the buffer at once.
       if (i < buffer.length) {
         if (fillBuffer(i + 1)) {
           continue;
@@ -1028,7 +1016,6 @@ public class JsonReader implements Closeable {
         }
       }
 
-      // use a StringBuilder when the value is too long. This is too long to be a number!
       if (builder == null) {
         builder = new StringBuilder();
       }
@@ -1052,7 +1039,6 @@ public class JsonReader implements Closeable {
   }
 
   private void skipQuotedValue(char quote) throws IOException {
-    // Like nextNonWhitespace, this uses locals 'p' and 'l' to save inner-loop field access.
     char[] buffer = this.buffer;
     do {
       int p = pos;
@@ -1145,7 +1131,6 @@ public class JsonReader implements Closeable {
         peeked = PEEKED_NONE;
         return result;
       } catch (NumberFormatException ignored) {
-        // Fall back to parse as a double below.
       }
     } else {
       throw new IllegalStateException("Expected an int but was " + peek()
@@ -1237,7 +1222,6 @@ public class JsonReader implements Closeable {
     while ((total = in.read(buffer, limit, buffer.length - limit)) != -1) {
       limit += total;
 
-      // if this is the first read, consume an optional byte order mark (BOM) if it exists
       if (lineNumber == 0 && lineStart == 0 && limit > 0 && buffer[0] == '\ufeff') {
         pos++;
         lineStart++;
@@ -1311,7 +1295,6 @@ public class JsonReader implements Closeable {
         char peek = buffer[pos];
         switch (peek) {
         case '*':
-          // skip a /* c-style comment */
           pos++;
           if (!skipTo("*/")) {
             throw syntaxError("Unterminated comment");
@@ -1321,7 +1304,6 @@ public class JsonReader implements Closeable {
           continue;
 
         case '/':
-          // skip a // end-of-line comment
           pos++;
           skipToEndOfLine();
           p = pos;
@@ -1425,7 +1407,6 @@ public class JsonReader implements Closeable {
       if (pos + 4 > limit && !fillBuffer(4)) {
         throw syntaxError("Unterminated escape sequence");
       }
-      // Equivalent to Integer.parseInt(stringPool.get(buffer, pos, 4), 16);
       char result = 0;
       for (int i = pos, end = i + 4; i < end; i++) {
         char c = buffer[i];
@@ -1461,7 +1442,6 @@ public class JsonReader implements Closeable {
     case '\n':
       lineNumber++;
       lineStart = pos;
-      // fall-through
 
     case '\'':
     case '"':
@@ -1484,7 +1464,6 @@ public class JsonReader implements Closeable {
    * Consumes the non-execute prefix if it exists.
    */
   private void consumeNonExecutePrefix() throws IOException {
-    // fast forward through the leading whitespace
     nextNonWhitespace(true);
     pos--;
 
@@ -1498,7 +1477,6 @@ public class JsonReader implements Closeable {
       }
     }
 
-    // we consumed a security token!
     pos += NON_EXECUTE_PREFIX.length;
   }
 

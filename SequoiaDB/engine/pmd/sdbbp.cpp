@@ -57,7 +57,6 @@ using namespace engine ;
 #error "sdbbp should always have SDB_SHELL defined"
 #endif
 
-// caller should free output in the case of success
 // PD_TRACE_DECLARE_FUNCTION ( SDB_READFROMPIPE, "readFromPipe" )
 static INT32 readFromPipe ( OSSNPIPE & npipe , CHAR ** output )
 {
@@ -90,7 +89,6 @@ static INT32 readFromPipe ( OSSNPIPE & npipe , CHAR ** output )
          goto done ;
 
       boost::algorithm::trim ( buf ) ;
-      // output is freed by the caller
       *output = (CHAR *) SDB_OSS_MALLOC ( buf.size() + 1 ) ;
       if ( ! *output )
       {
@@ -129,7 +127,6 @@ void monitor_thread ( const OSSPID  shpid ,
       }
    }
 
-   // shell has exited, so just clean up and exit the whole program
    ossCleanNamedPipeByName ( f2bName ) ;
    ossCleanNamedPipeByName ( b2fName ) ;
    PD_TRACE_EXIT ( SDB_MONITOR_THREAD );
@@ -173,10 +170,8 @@ INT32 enterDaemonMode ( sptScope *scope ,
    PD_TRACE_ENTRY ( SDB_ENTERDAEMONMODE );
    CHAR *         code        = NULL ;
    BOOLEAN        exit        = FALSE ;
-   //FILE           oldStdout   = *stdout ;
    INT32          fd          = -1 ;
    INT32          hOutFd      = -1 ;
-   //FILE *         newStdout   = NULL ;
    CHAR *         result      = NULL ;
    bson::BSONObj rval ;
    bson::BSONObj detail ;
@@ -202,7 +197,6 @@ INT32 enterDaemonMode ( sptScope *scope ,
                             1 , 0 , b2fPipe ) ;
    SH_VERIFY_RC
 
-   // tell front-end that initialzation finished
    rc = ossOpenNamedPipe ( waitName , OSS_NPIPE_OUTBOUND , 0 , waitPipe ) ;
    SH_VERIFY_RC
 
@@ -217,7 +211,6 @@ INT32 enterDaemonMode ( sptScope *scope ,
       rc = ossConnectNamedPipe ( f2bPipe , OSS_NPIPE_INBOUND ) ;
       SH_VERIFY_RC
 
-      // code is freed after evaluated or in done:
       rc = readFromPipe ( f2bPipe , &code )  ;
       SH_VERIFY_RC
 
@@ -227,14 +220,10 @@ INT32 enterDaemonMode ( sptScope *scope ,
       rc = ossConnectNamedPipe ( b2fPipe , OSS_NPIPE_OUTBOUND ) ;
       SH_VERIFY_RC
 
-      // redirect stdout to b2fPipe
       rc = ossNamedPipeToFd ( b2fPipe , &fd ) ;
       SH_VERIFY_RC
 
-      //newStdout = ossFdopen ( fd , "a" ) ;
-      //SH_VERIFY_COND ( newStdout , SDB_SYS )
 
-      //*stdout = *newStdout ;
       hOutFd = ossDup( 1 ) ;
       rc = ossDup2( fd, 1 ) ;
       SH_VERIFY_RC
@@ -246,11 +235,9 @@ INT32 enterDaemonMode ( sptScope *scope ,
          scope->eval( code, ossStrlen( code ), "(sdbbp)", 1,
                       SPT_EVAL_FLAG_PRINT, rval, detail ) ;
       SAFE_OSS_FREE ( code ) ;
-      // shell always have errno defined
       ossPrintf ( " %d", sdbGetErrno() ) ;
       result = NULL ;
 
-      //*stdout = oldStdout ;
       ossCloseFd( 1 ) ;
       ossDup2( hOutFd, 1 ) ;
       ossCloseFd( hOutFd ) ;
@@ -317,7 +304,6 @@ int main ( int argc , const char * argv[] )
    rc = container.init() ;
    SH_VERIFY_RC
 
-   // will purge engine in done:
    scope = container.newScope() ;
    SH_VERIFY_COND ( scope , SDB_SYS ) ;
 

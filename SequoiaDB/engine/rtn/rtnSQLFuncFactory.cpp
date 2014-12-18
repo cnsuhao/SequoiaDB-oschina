@@ -54,7 +54,6 @@
 
 namespace engine
 {
-   /// TODO:simply completed. to be optimized.
    INT32  _rtnSQLFuncFactory::create( const CHAR *funcName,
                                       UINT32 paramNum,
                                        _rtnSQLFunc *&func )

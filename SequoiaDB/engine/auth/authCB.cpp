@@ -100,7 +100,6 @@ namespace engine
       }
       catch ( std::exception &e )
       {
-         // if exception happen, let's just continue
          PD_LOG ( PDWARNING, "Failed to initialize hint: %s",
                   e.what() ) ;
       }
@@ -269,7 +268,6 @@ namespace engine
          goto error ;
       }
 
-      // create index
       {
          BSONObjBuilder builder ;
          builder.append( IXM_FIELD_NAME_KEY, BSON( SDB_AUTH_USER << 1) ) ;

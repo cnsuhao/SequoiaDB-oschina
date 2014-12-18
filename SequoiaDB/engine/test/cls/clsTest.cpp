@@ -42,7 +42,6 @@ TEST(clsTest, clsHeap_1)
    _clsSyncSession session ;
    UINT32 num = 10;
    INT32 i = num ;
-   /// push 9 - 0
    while ( i-- >  0 )
    {
       session.endLsn = i ;
@@ -51,7 +50,6 @@ TEST(clsTest, clsHeap_1)
 
    ASSERT_TRUE( num == heap.dataSize() ) ;
 
-   /// pop 0 - 9
    for ( UINT32 j = 0; j < num; j++ )
    {
       ASSERT_TRUE( SDB_OK == heap.root( session )) ;
@@ -61,7 +59,6 @@ TEST(clsTest, clsHeap_1)
       cout << session.endLsn << endl ;
    }
    ASSERT_TRUE( 0 == heap.dataSize() ) ;
-   /// push 0 - 9
    for ( UINT32 j = 0; j < num; j++ )
    {
       session.endLsn = j ;
@@ -69,7 +66,6 @@ TEST(clsTest, clsHeap_1)
    }
    ASSERT_TRUE( num == heap.dataSize() ) ;
    cout << endl ;
-   /// pop 0 - 9
    for ( UINT32 j = 0; j < num; j++ )
    {
       ASSERT_TRUE( SDB_OK == heap.root( session )) ;
@@ -87,7 +83,6 @@ TEST(clsTest, clsHeap_2)
    _clsSyncSession session ;
    INT32 i = 100 ;
    UINT32 size = i ;
-   // push 99 - 0
    while ( i-- >  0 )
    {
       session.endLsn = i ;
@@ -160,7 +155,6 @@ TEST(clsTest, clsSyncManager_1)
    session.endLsn = 10 ;
    UINT32 w = 3 ;
    boost::thread t( fun, &sync, session, w, &complete ) ;
-   /// ensure that w is registered. sleep one sec.
    ossSleepsecs(2) ;
    DPS_LSN lsn ;
    lsn.version = 1 ;
@@ -177,7 +171,6 @@ TEST(clsTest, clsSyncManager_1)
 
 TEST(clsTest, clsSyncManager_2)
 {
-   /// local :2 group: 3, 4
    const UINT32 num = 10 ;
    myHandler handler ;
    _netRouteAgent agent( &handler ) ;
@@ -205,7 +198,6 @@ TEST(clsTest, clsSyncManager_2)
       ts[i] = NULL ;
    }
 
-   /// w [0, 9]
    for ( UINT32 i = 0; i < num; i++ )
    {
       cout << "construct w" << endl ;
@@ -222,8 +214,6 @@ TEST(clsTest, clsSyncManager_2)
 
    cout << "waiting..." << endl ;
    ossSleepsecs(2) ;
-   /// require must > wait.
-   /// require [1, 10]
    for ( UINT32 i = 1; i < num + 1; i++ )
    {
       id.columns.nodeID = 3 ;
@@ -269,7 +259,6 @@ TEST(clsTest, clsSyncManager_3)
       ts[i] = NULL ;
    }
 
-   /// w = 2
    for ( UINT32 i = 0; i < num; i++, i++ )
    {
       cout << "construct w" << endl ;
@@ -286,7 +275,6 @@ TEST(clsTest, clsSyncManager_3)
 
    ASSERT_TRUE( 0 == complete.peek() ) ;
 
-   /// w = 3
    for ( UINT32 i = 1; i < num; i++, i++ )
    {
       cout << "construct w" << endl ;
@@ -371,7 +359,6 @@ TEST(clsTest, clsSyncManager_4)
    cout << "waiting..." << endl ;
    ossSleepsecs(2) ;
 
-   /// only one node complete.
    for ( UINT32 i = 1; i < num + 1; i++ )
    {
       id.columns.nodeID = 3 ;

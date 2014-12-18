@@ -47,8 +47,6 @@ namespace engine
 
    }
 
-   // this updateRoute only change the old routeID to new one. It does NOT
-   // change the hostname and servicename, so we do not need to restart services
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETRTAG_UPRT, "_netRouteAgent::updateRoute" )
    INT32 _netRouteAgent::updateRoute ( const _MsgRouteID &oldID,
                                        const _MsgRouteID &newID )
@@ -81,7 +79,6 @@ namespace engine
          goto error ;
       }
 
-      // new node don't close the exist connect
       if ( FALSE == newAdd )
       {
          _frame.close( id ) ;
@@ -107,7 +104,6 @@ namespace engine
          goto error ;
       }
 
-      // new node don't close the existed connect
       if ( FALSE == newAdd )
       {
          _frame.close( id ) ;
@@ -169,7 +165,6 @@ namespace engine
       SDB_ASSERT( NULL != header,
                   "should not be NULL" ) ;
 
-      /// todo: trans to _netFrame
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__NETRTAG_SYNCSND );
       rc = _frame.syncSend( id, header, pHandle ) ;
@@ -183,7 +178,6 @@ namespace engine
       }
       else
       {
-         /// do nothing
       }
       {
       CHAR host[ OSS_MAX_HOSTNAME + 1 ] = { 0 } ;

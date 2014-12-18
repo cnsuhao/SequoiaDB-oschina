@@ -90,7 +90,6 @@ public class SdbSplit extends FileSplit implements InputSplit {
 
 		final Path[] tablePaths = FileInputFormat.getInputPaths(conf);
 
-		// ///////////////////////////////
 		Sequoiadb sdb = null;
 		BaseException lastException = null;
 
@@ -98,7 +97,6 @@ public class SdbSplit extends FileSplit implements InputSplit {
 		for (SdbConnAddr addr : sdbAddrList) {
 			try {
 				sdb = new Sequoiadb(addr.getHost(), addr.getPort(), null, null);
-				// Save current coord address.
 				curCoordAddr = addr;
 				break;
 			} catch (BaseException e) {
@@ -113,7 +111,6 @@ public class SdbSplit extends FileSplit implements InputSplit {
 			throw lastException;
 		}
 
-		// use snapshot(8,{Name:"tablename"}) for get group information
 		String spaceName = null;
 		String clName = null;
 		if (ConfigurationUtil.getCsName(conf) == null
@@ -127,21 +124,6 @@ public class SdbSplit extends FileSplit implements InputSplit {
 		StringBuilder snapCondBuilder = new StringBuilder();
 		String snapCond = snapCondBuilder.append("{Name:\"").append(spaceName)
 				.append('.').append(clName).append("\"}").toString();
-		// Snapshot 8 information:
-		// {
-		// "_id": {
-		// "$oid": "52e1f6885d7c4d346e2e0c1e"
-		// },
-		// "Name": "metastore.mdsn",
-		// "Version": 1,
-		// "ReplSize": 1,
-		// "CataInfo": [
-		// {
-		// "GroupID": 1000,
-		// "GroupName": "datagroup1"
-		// }
-		// ]
-		// }
 
 		List<InputSplit> splits = new LinkedList<InputSplit>();
 		List<Integer> groupIDList = new LinkedList<Integer>();
@@ -150,28 +132,20 @@ public class SdbSplit extends FileSplit implements InputSplit {
 			while (cursor.hasNext()) {
 				BSONObject obj = cursor.getNext();
 				LOG.info("Groups record:" + obj.toString());
-				// Get cataInfo list
 				BasicBSONList cataInfoList = (BasicBSONList) obj
 						.get("CataInfo");
 				for (int i = 0; i < cataInfoList.size(); i++) {
 
-					// Get a catainfo
 					BSONObject cataInfo = (BSONObject) cataInfoList.get(i);
 					Integer groupId = (Integer) cataInfo.get("GroupID");
 
-					// if the table have tow different range on the same group
-					// then the list have to same group.
-					// Don't add the group to split list, to avoid scan twice
-					// on this group.
 					if (groupIDList.contains(groupId)) {
 						continue;
 					}
 					groupIDList.add(groupId);
 
-					// Get group information by groupId
 					ReplicaGroup group = sdb.getReplicaGroup(groupId);
 
-					// Get the slave node's host&port.
 					Node node = group.getSlave();
 
 					String hostName = node.getHostName();
@@ -181,18 +155,10 @@ public class SdbSplit extends FileSplit implements InputSplit {
 				}
 			}
 		} catch (BaseException e) {
-			// If get excepiton, have tow cause:
-			// 1. The SequoiaDB is stand-alone mode, so cannot get snapshot(8);
-			// 2. Get snapshot occurs exception.
-			// Then return just one split, the split get data from coord node,
-			// instead of data node.
 
-			// Set scan split
-			// For SequoiaDB, Just set DataNode connect information
 			splits.add(new SdbSplit(curCoordAddr.getHost(), curCoordAddr
 					.getPort(), tablePaths[0]));
 		}
-		// /////////////////////////////////
 
 		LOG.info("Exit SdbScanNode::getScanRangeLocations");
 		sdb.disconnect();

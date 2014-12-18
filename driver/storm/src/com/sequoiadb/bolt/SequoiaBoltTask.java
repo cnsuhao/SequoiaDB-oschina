@@ -20,7 +20,6 @@ public abstract class SequoiaBoltTask implements Runnable, Serializable {
 	private static Logger LOG = Logger.getLogger(SequoiaBoltTask.class);
 	private AtomicBoolean running = new AtomicBoolean(true);
 
-	// Interal variables
 	protected LinkedBlockingQueue<Tuple> queue;
 	protected Sequoiadb sdb;
 	protected CollectionSpace space;
@@ -94,16 +93,13 @@ public abstract class SequoiaBoltTask implements Runnable, Serializable {
 
 	@Override
 	public void run() {
-		// while the thread is set to running
 		while (running.get()) {
 			try {
 				Tuple tuple = queue.poll();
 
-				// Check if we have a next item in the collection
 				if (tuple != null) {
 					execute(tuple);
 				} else {
-					// Sleep for 50ms and then wake up
 					Thread.sleep(50);
 				}
 			} catch (Exception e) {

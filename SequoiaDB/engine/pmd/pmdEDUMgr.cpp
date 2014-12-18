@@ -162,14 +162,12 @@ namespace engine
       setDestroyed ( TRUE ) ;
       setQuiesced ( TRUE ) ;
 
-      //stop all ioservice
       while ( _getIOServiceCount() > 0 )
       {
          _forceIOService () ;
          ossSleepmillis ( 200 ) ;
       }
 
-      //stop all user edus
       UINT32 timeCounter = 0 ;
       UINT32 eduCount = _getEDUCount ( EDU_USER ) ;
 
@@ -184,7 +182,6 @@ namespace engine
          eduCount = _getEDUCount ( EDU_USER ) ;
       }
 
-      //stop all system edus
       timeCounter = 0 ;
       eduCount = _getEDUCount ( EDU_ALL ) ;
       while ( eduCount != 0 )
@@ -203,7 +200,6 @@ namespace engine
       return SDB_OK ;
    }
 
-   // force a specific EDU
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_FORCEUSREDU, "_pmdEDUMgr::forceUserEDU" )
    INT32 _pmdEDUMgr::forceUserEDU ( EDUID eduID )
    {
@@ -217,7 +213,6 @@ namespace engine
          goto error ;
       }
       {
-         // critical section start
          EDUMGR_XLOCK
          for ( it = _runQueue.begin () ; it != _runQueue.end () ; ++it )
          {
@@ -298,7 +293,6 @@ namespace engine
       return (UINT32)_ioserviceList.size() ;
    }
 
-   // block all new request and attempt to terminate existing requests
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR__FORCEEDUS, "_pmdEDUMgr::_forceEDUs" )
    INT32 _pmdEDUMgr::_forceEDUs ( INT32 property )
    {
@@ -308,7 +302,6 @@ namespace engine
       /*******************CRITICAL SECTION ********************/
       {
          EDUMGR_XLOCK
-         // send terminate request to everyone
          for ( it = _runQueue.begin () ; it != _runQueue.end () ; ++it )
          {
             if ( ((EDU_SYSTEM & property) && _isSystemEDU( it->first ))
@@ -372,7 +365,6 @@ namespace engine
       /*******************CRITICAL SECTION ********************/
       {
          EDUMGR_XLOCK
-         // send terminate request to everyone
          for ( it = _runQueue.begin () ; it != _runQueue.end () ; ++it )
          {
             if ( (*it).second->isWritingDB() )
@@ -426,17 +418,11 @@ namespace engine
       pmdEDUCB* eduCB = NULL ;
       std::map<EDUID, pmdEDUCB*>::iterator it ;
       {
-         // shared lock the block, since we don't change anything
          EDUMGR_SLOCK
          if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
          {
-            // if we cannot find it in runqueue, we search for idle queue
-            // note that during the time, we already have EDUMgr locked,
-            // so thread cannot change queue from idle to run
-            // that means we are safe to exame both queues
             if ( _idleQueue.end () == ( it = _idleQueue.find ( eduID )) )
             {
-               // we can't find edu id anywhere
                rc = SDB_SYS ;
                goto error ;
             }
@@ -459,24 +445,17 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__PMDEDUMGR_WAITEDUPST );
       pmdEDUCB* eduCB = NULL ;
       std::map<EDUID, pmdEDUCB*>::iterator it ;
-      // shared lock the block, since we don't change anything
       {
          EDUMGR_SLOCK
          if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
          {
-            // if we cannot find it in runqueue, we search for idle queue
-            // note that during the time, we already have EDUMgr locked,
-            // so thread cannot change queue from idle to run
-            // that means we are safe to exame both queues
             if ( _idleQueue.end () == ( it = _idleQueue.find ( eduID )) )
             {
-               // we can't find edu id anywhere
                rc = SDB_SYS ;
                goto error ;
             }
          }
          eduCB = ( *it ).second ;
-         // wait for event. when millsecond is 0, it should always return TRUE
          if ( !eduCB->waitEvent( event, millsecond ) )
          {
             rc = SDB_TIMEOUT ;
@@ -490,9 +469,6 @@ namespace engine
       goto done ;
    }
 
-   // release control from a given EDU
-   // EDUMgr should decide whether put the EDU to pool or destroy it
-   // EDU Status must be in waiting or creating
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_RTNEDU, "_pmdEDUMgr::returnEDU" )
    INT32 _pmdEDUMgr::returnEDU ( EDUID eduID, BOOLEAN force, BOOLEAN* destroyed )
    {
@@ -501,7 +477,6 @@ namespace engine
       EDU_TYPES type  = EDU_TYPE_UNKNOWN ;
       pmdEDUCB *educb = NULL ;
       std::map<EDUID, pmdEDUCB*>::iterator it ;
-      // shared critical section
       _mutex.get_shared () ;
       if ( _runQueue.end() == ( it = _runQueue.find ( eduID ) ) )
       {
@@ -514,11 +489,6 @@ namespace engine
          }
       }
       educb = (*it).second ;
-      // if we are trying to destry EDU manager, or enforce destroy, or
-      // if the total number of threads are more than what we need
-      // we need to destroy this EDU
-      //
-      // Currentl we only able to pool agent and coordagent
       if ( educb )
       {
          type = educb->getType() ;
@@ -527,17 +497,12 @@ namespace engine
       _mutex.release_shared () ;
 
 
-      // if the EDU type can't be pooled, or if we forced, or if the EDU is
-      // destroied, or we exceed max pooled edus, let's destroy it
       if ( !isPoolable(type) || force || isDestroyed () || size () >=
            pmdGetOptionCB()->getMaxPooledEDU () )
       {
          rc = destroyEDU ( eduID ) ;
          if ( destroyed )
          {
-            // we consider the EDU is destroyed when destroyEDU returns
-            // OK or SDB_SYS (edu can't be found), so that thread can terminate
-            // itself
             if ( SDB_OK == rc || SDB_SYS == rc )
                *destroyed = TRUE ;
             else
@@ -546,14 +511,9 @@ namespace engine
       }
       else
       {
-         // in this case, we don't need to care whether the EDU is agent or not
-         // as long as we treat SDB_SYS as "destroyed" signal, we should be
-         // safe here
          rc = deactivateEDU ( eduID ) ;
          if ( destroyed )
          {
-            // when we try to pool the EDU, destroyed set to true only when
-            // the EDU can't be found in the list
             if ( SDB_SYS == rc )
                *destroyed = TRUE ;
             else
@@ -567,7 +527,6 @@ namespace engine
       goto done ;
    }
 
-   // get an EDU from idle pool, if idle pool is empty, create new one
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_STARTEDU, "_pmdEDUMgr::startEDU" )
    INT32 _pmdEDUMgr::startEDU ( EDU_TYPES type, void* arg, EDUID *eduid )
    {
@@ -583,15 +542,9 @@ namespace engine
          goto done ;
       }
       /****************** CRITICAL SECTION **********************/
-      // get exclusive latch, we don't latch the entire function
-      // in order to avoid creating new thread while holding latch
       _mutex.get () ;
-      // if there's any pooled EDU?
-      // or is the request type can be pooled ?
       if ( TRUE == _idleQueue.empty () || !isPoolable ( type ) )
       {
-         // note that EDU types other than "agent" shouldn't be pooled at all
-         // release latch before calling createNewEDU
          _mutex.release () ;
          rc = createNewEDU ( type, arg, eduid ) ;
          if ( SDB_OK == rc )
@@ -599,17 +552,13 @@ namespace engine
          goto error ;
       }
 
-      // if we can find something in idle queue, let's get the first of it
       for ( it = _idleQueue.begin () ;
             ( _idleQueue.end () != it ) &&
             ( PMD_EDU_IDLE != ( *it ).second->getStatus ()) ;
             it ++ ) ;
 
-      // if everything in idleQueue are in DESTROY status, we still need to
-      // create a new EDU
       if ( _idleQueue.end () == it )
       {
-         // release latch before calling createNewEDU
          _mutex.release () ;
          rc = createNewEDU ( type, arg, eduid  ) ;
          if ( SDB_OK == rc )
@@ -617,19 +566,15 @@ namespace engine
          goto error ;
       }
 
-      // now "it" is pointing to an idle EDU
-      // note that all EDUs in the idleQueue should be AGENT type
       eduID = ( *it ).first ;
       eduCB = ( *it ).second ;
       _idleQueue.erase ( eduID ) ;
       SDB_ASSERT ( isPoolable ( type ),
                    "must be agent/coordagent/subagent" ) ;
-      // switch agent type for the EDU ( call different agent entry point )
       eduCB->setType ( type ) ;
       eduCB->setStatus ( PMD_EDU_WAITING ) ;
       _runQueue [ eduID ] = eduCB ;
       *eduid = eduID ;
-      //The edu is start, need post a resum event
       eduCB->clear() ;
       eduCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_RESUME,
                                      PMD_EDU_MEM_NONE, arg ) ) ;
@@ -643,7 +588,6 @@ namespace engine
       goto done ;
    }
 
-   // whoever calling this function should NOT get latch
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_CRTNEWEDU, "_pmdEDUMgr::createNewEDU" )
    INT32 _pmdEDUMgr::createNewEDU ( EDU_TYPES type, void* arg, EDUID *eduid )
    {
@@ -669,12 +613,10 @@ namespace engine
       cb = SDB_OSS_NEW pmdEDUCB ( this, type ) ;
       SDB_VALIDATE_GOTOERROR ( cb, SDB_OOM,
                "Out of memory to create agent control block" ) ;
-      // set to creating status
       cb->setStatus ( PMD_EDU_CREATING ) ;
 
       /***********CRITICAL SECTION*********************/
       _mutex.get () ;
-      // if the EDU exist in runqueue
       if ( _runQueue.end() != _runQueue.find ( _EDUID )  )
       {
          _mutex.release () ;
@@ -682,7 +624,6 @@ namespace engine
          probe = 10 ;
          goto error ;
       }
-      // if the EDU exist in idle queue
       if ( _idleQueue.end() != _idleQueue.find ( _EDUID )  )
       {
          _mutex.release () ;
@@ -690,34 +631,25 @@ namespace engine
          probe = 15 ;
          goto error ;
       }
-      // assign EDU id and increment global EDUID
       cb->setID ( _EDUID ) ;
       if ( eduid )
          *eduid = _EDUID ;
-      // place cb into runqueue
       _runQueue [ _EDUID ] = ( pmdEDUCB* ) cb ;
       myEDUID = _EDUID ;
       ++_EDUID ;
-      // post RESUME event BEFORE agent starts!
-      // we have to do this BEFORE starting the agent thread because we need to
-      // make sure the agent is always picking up RESUME event at first
       cb ->postEvent( pmdEDUEvent( PMD_EDU_EVENT_RESUME, PMD_EDU_MEM_NONE,
                                    arg ) ) ;
       _mutex.release () ;
       /***********END CRITICAL SECTION****************/
 
-      // create a new thread here, pass agent CB and other arguments
       try
       {
          boost::thread agentThread ( pmdEDUEntryPointWrapper,
                                      type, cb, arg ) ;
-         // detach the agent so that he's all on his own
-         // we only track based on CB
          agentThread.detach () ;
       }
       catch ( std::exception &e )
       {
-         // if we failed to create thread, make sure to clean runqueue
          PD_LOG ( PDSEVERE, "Failed to create new agent: %s",
                   e.what() ) ;
          _runQueue.erase ( myEDUID ) ;
@@ -730,7 +662,6 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__PMDEDUMGR_CRTNEWEDU, rc );
       return rc ;
    error :
-      // clean out memory if it's allocated
       if ( cb )
       {
          SDB_OSS_DEL cb ;
@@ -739,10 +670,6 @@ namespace engine
       goto done ;
    }
 
-   // this function must be called against a thread that
-   // in either SDB_EDU_WAITING or SDB_EDU_IDLE status
-   // return: SDB_OK -- success
-   //         SDB_EDU_INVAL_STATUS -- edu status is not destroy
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_DSTEDU, "_pmdEDUMgr::destroyEDU" )
    INT32 _pmdEDUMgr::destroyEDU ( EDUID eduID )
    {
@@ -754,33 +681,22 @@ namespace engine
       std::map<UINT32, EDUID>::iterator it1 ;
       {
          EDUMGR_XLOCK
-         // try to find the edu id in runqueue
-         // Since this is private function, no latch is needed
          if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
          {
-            // if we cannot find it in runqueue, we search for idle queue
-            // note that during the time, we already have EDUMgr locked,
-            // so thread cannot change queue from idle to run
-            // that means we are safe to exame both queues
             if ( _idleQueue.end () == ( it = _idleQueue.find ( eduID )) )
             {
-               // we can't find edu id anywhere
                rc = SDB_SYS ;
                goto error ;
             }
             eduCB = ( *it ).second ;
-            // if we find in idle queue, we expect idle status
             if ( !PMD_IS_EDU_IDLE ( eduCB->getStatus ()) )
             {
-               // if the status is not destroy
                rc = SDB_EDU_INVAL_STATUS ;
                goto error ;
             }
-            // set the status to destroy
             eduCB->setStatus ( PMD_EDU_DESTROY ) ;
             _idleQueue.erase ( eduID ) ;
          }
-         // if we find in run queue, we expect waiting status
          else
          {
             eduCB = ( *it ).second ;
@@ -788,15 +704,12 @@ namespace engine
             if ( !PMD_IS_EDU_WAITING ( eduStatus ) &&
                  !PMD_IS_EDU_CREATING ( eduStatus ) )
             {
-               // if the status is not destroy
-               // we should return error indicating bad status
                rc = SDB_EDU_INVAL_STATUS ;
                goto error ;
             }
             eduCB->setStatus ( PMD_EDU_DESTROY ) ;
             _runQueue.erase ( eduID ) ;
          }
-         // clean up tid/eduid map
          for ( it1 = _tid_eduid_map.begin(); it1 != _tid_eduid_map.end();
                ++it1 )
          {
@@ -819,7 +732,6 @@ namespace engine
       goto done ;
    }
 
-   // change edu status from running to waiting
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_WAITEDU, "_pmdEDUMgr::waitEDU" )
    INT32 _pmdEDUMgr::waitEDU ( EDUID eduID )
    {
@@ -833,7 +745,6 @@ namespace engine
          EDUMGR_SLOCK
          if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
          {
-            // we can't find EDU in run queue
             rc = SDB_SYS ;
             goto error ;
          }
@@ -862,13 +773,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       UINT32 eduStatus = cb->getStatus() ;
 
-      // if it's already waiting, let's do nothing
       if ( PMD_IS_EDU_WAITING ( eduStatus ) )
          goto done ;
 
       if ( !PMD_IS_EDU_RUNNING ( eduStatus ) )
       {
-         // if it's not running status
          rc = SDB_EDU_INVAL_STATUS ;
          goto error ;
       }
@@ -880,9 +789,6 @@ namespace engine
       goto done ;
    }
 
-   // creating/waiting status edu can be deactivated (pooled)
-   // deactivateEDU supposed only happened to AGENT EDUs
-   // any EDUs other than AGENT will be destroyed and SDB_SYS will be returned
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_DEATVEDU, "_pmdEDUMgr::deactivateEDU" )
    INT32 _pmdEDUMgr::deactivateEDU ( EDUID eduID )
    {
@@ -891,18 +797,14 @@ namespace engine
       UINT32 eduStatus = PMD_EDU_CREATING ;
       pmdEDUCB* eduCB  = NULL ;
       std::map<EDUID, pmdEDUCB*>::iterator it ;
-      // cross queue operation, need X lock
       {
          EDUMGR_XLOCK
          if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
          {
-            // if it's not in run queue, then is it in idle queue?
-            // if it's already idle, we don't need to do anything
             if ( _idleQueue.end() != _idleQueue.find ( eduID )  )
             {
                goto done ;
             }
-            // we can't find EDU in run queue
             rc = SDB_SYS ;
             goto error ;
          }
@@ -910,7 +812,6 @@ namespace engine
 
          eduStatus = eduCB->getStatus () ;
 
-         // if it's already idle, let's get out of here
          if ( PMD_IS_EDU_IDLE ( eduStatus ) )
             goto done ;
 
@@ -921,8 +822,6 @@ namespace engine
             goto error ;
          }
 
-         // only Agent can be deactivated (pooled), other system
-         // EDUs can only be destroyed
          SDB_ASSERT ( isPoolable ( eduCB->getType() ),
                       "Only agent, subagent and coordagent can be pooled" ) ;
          _runQueue.erase ( eduID ) ;
@@ -937,9 +836,6 @@ namespace engine
       goto done ;
    }
 
-   // make an idle EDU active (to RUNNING status)
-   // runqueue: WAITING/CREATING status
-   // idlequeue: IDLE status
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_ATVEDU, "_pmdEDUMgr::activateEDU" )
    INT32 _pmdEDUMgr::activateEDU ( EDUID eduID )
    {
@@ -950,19 +846,15 @@ namespace engine
       std::map<EDUID, pmdEDUCB*>::iterator it ;
       {
          /************** CRITICAL SECTION ***********/
-         // we should lock the entire function in order to avoid
-         // eduCB is deleted after we getting (*it).second
          EDUMGR_XLOCK
          if ( _idleQueue.end () == ( it = _idleQueue.find ( eduID )) )
          {
             if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
             {
-               // we can't find EDU in idle list nor runqueue
                rc = SDB_SYS ;
                goto error ;
             }
             eduCB = ( *it ).second ;
-            // in runqueue we may have creating/waiting status
             eduStatus = eduCB->getStatus () ;
 
             if ( PMD_IS_EDU_RUNNING ( eduStatus ) )
@@ -980,13 +872,11 @@ namespace engine
          eduStatus = eduCB->getStatus () ;
          if ( PMD_IS_EDU_RUNNING ( eduStatus ) )
             goto done ;
-         // in idleQueue
          if ( !PMD_IS_EDU_IDLE ( eduStatus ) )
          {
             rc = SDB_EDU_INVAL_STATUS ;
             goto error ;
          }
-         // now the EDU status is idle, let's bring it to RUNNING
          _idleQueue.erase ( eduID ) ;
          eduCB->setStatus ( PMD_EDU_RUNNING ) ;
          _runQueue [ eduID ] = eduCB ;
@@ -1029,7 +919,6 @@ namespace engine
       goto done ;
    }
 
-   // get pmdEDUCB for the given thread id
    pmdEDUCB *_pmdEDUMgr::getEDU ( UINT32 tid )
    {
       map<UINT32, EDUID>::iterator it ;
@@ -1054,7 +943,6 @@ namespace engine
       EDUMGR_XLOCK
       _tid_eduid_map [ tid ] = eduid ;
    }
-   // get pmdEDUCB for the current thread
    pmdEDUCB *_pmdEDUMgr::getEDU ()
    {
       return getEDU ( ossGetCurrentThreadID() ) ;
@@ -1063,17 +951,11 @@ namespace engine
    pmdEDUCB *_pmdEDUMgr::getEDUByID ( EDUID eduID )
    {
       std::map<EDUID, pmdEDUCB*>::iterator it ;
-      // shared lock the block, since we don't change anything
       EDUMGR_SLOCK
       if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
       {
-         // if we cannot find it in runqueue, we search for idle queue
-         // note that during the time, we already have EDUMgr locked,
-         // so thread cannot change queue from idle to run
-         // that means we are safe to exame both queues
          if ( _idleQueue.end () == ( it = _idleQueue.find ( eduID )) )
          {
-            // we can't find edu id anywhere
             return NULL ;
          }
       }

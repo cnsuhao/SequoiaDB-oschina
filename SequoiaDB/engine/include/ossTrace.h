@@ -1,155 +1,182 @@
-/* This list file is automatically generated,you shoud NOT modify this file anyway! */
+/*    Copyright 2012 SequoiaDB Inc.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+/*    Copyright (C) 2011-2014 SequoiaDB Ltd.
+ *    This program is free software: you can redistribute it and/or modify
+ *    it under the term of the GNU Affero General Public License, version 3,
+ *    as published by the Free Software Foundation.
+ *
+ *    This program is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warrenty of
+ *    MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *    GNU Affero General Public License for more details.
+ *
+ *    You should have received a copy of the GNU Affero General Public License
+ *    along with this program. If not, see <http://www.gnu.org/license/>.
+ */
+
+/* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef ossTRACE_H__
 #define ossTRACE_H__
-// Component: oss
-#define SDB_OSSRSTSYSSIG                                   0x100000007d2L
-#define SDB_OSSSIGHNDABT                                   0x100000007d3L
-#define SDB_OSSFUNCADDR2NM                                 0x100000007d4L
-#define SDB_OSSDUMPSYSTM                                   0x100000007d5L
-#define SDB_OSSDUMPDBINFO                                  0x100000007d6L
-#define SDB_OSSDUMPSYSINFO                                 0x100000007d7L
-#define SDB_OSSMCHCODE                                     0x100000007d8L
-#define SDB_OSSDUMPSIGINFO                                 0x100000007d9L
-#define SDB_OSSWLKSTK                                      0x100000007daL
-#define SDB_OSSGETSYMBNFA                                  0x100000007dbL
-#define SDB_OSSDUMPREGSINFO                                0x100000007dcL
-#define SDB_OSSDUMPST                                      0x100000007ddL
-#define SDB_OSSDUMPREGSINFO2                               0x100000007deL
-#define SDB_OSSDUMPST2                                     0x100000007dfL
-#define SDB_OSSDUMPREGSINFO3                               0x100000007e0L
-#define SDB_OSSDUMPST3                                     0x100000007e1L
-#define SDB_OSSSYMINIT                                     0x100000007e2L
-#define SDB_OSSWKSEX                                       0x100000007e3L
-#define SDB_OSSWS                                          0x100000007e4L
-#define SDB_OSSGETSYMBNFADDR                               0x100000007e5L
-#define SDB__OSSSK__OSSSK                                  0x100000007e6L
-#define SDB__OSSSK__OSSSK2                                 0x100000007e7L
-#define SDB__OSSSK__OSSSK3                                 0x100000007e8L
-#define SDB_OSSSK_INITTSK                                  0x100000007e9L
-#define SDB_OSSSK_SETSKLI                                  0x100000007eaL
-#define SDB_OSSSK_BIND_LSTN                                0x100000007ebL
-#define SDB_OSSSK_SEND                                     0x100000007ecL
-#define SDB_OSSSK_ISCONN                                   0x100000007edL
-#define SDB_OSSSK_CONNECT                                  0x100000007eeL
-#define SDB_OSSSK_CLOSE                                    0x100000007efL
-#define SDB_OSSSK_DISNAG                                   0x100000007f0L
-#define SDB_OSSSK__GETADDR                                 0x100000007f1L
-#define SDB_OSSSK_SETTMOUT                                 0x100000007f2L
-#define SDB__OSSSK__COMPLETE                               0x100000007f3L
-#define SDB_OSSMODULEHANDLE_INIT                           0x100000007f4L
-#define SDB_OSSMODULEHANDLE_UNLOAD                         0x100000007f5L
-#define SDB_OSSMODULEHANDLE_RESOLVEADDRESS                 0x100000007f6L
-#define SDB__OSSAIOMSGPROC__PROC                           0x100000007f7L
-#define SDB__OSSAIOMSGPROC__HNDWP                          0x100000007f8L
-#define SDB__OSSAIOMSGPROC__HNDRPH                         0x100000007f9L
-#define SDB__OSSAIOMSGPROC__RDPH                           0x100000007faL
-#define SDB__OSSAIOMSGPROC_CONNECT                         0x100000007fbL
-#define SDB__TMPAIR_CHK_DLINE                              0x100000007fcL
-#define SDB__TMPAIR_RUN                                    0x100000007fdL
-#define SDB__OSSAIO__HNDAPT                                0x100000007feL
-#define SDB__OSSAIO__ACCEPT                                0x100000007ffL
-#define SDB__OSSAIO_CONNECT                                0x10000000800L
-#define SDB__OSSAIO_ADDTIMER                               0x10000000801L
-#define SDB__OSSAIO_RMTIMER                                0x10000000802L
-#define SDB__OSSMMF_OPEN                                   0x10000000803L
-#define SDB__OSSMMF_CLOSE                                  0x10000000804L
-#define SDB__OSSMMF_SIZE                                   0x10000000805L
-#define SDB__OSSMMF_MAP                                    0x10000000806L
-#define SDB__OSSMMF_FLHALL                                 0x10000000807L
-#define SDB__OSSMMF_FLUSH                                  0x10000000808L
-#define SDB__OSSMMF_UNLINK                                 0x10000000809L
-#define SDB__OSSMEMALLOC                                   0x1000000080aL
-#define SDB__OSSMEMREALLOC                                 0x1000000080bL
-#define SDB__OSSMEMFREE                                    0x1000000080cL
-#define SDB_OSSISPROCRUNNING                               0x1000000080dL
-#define SDB_OSSWAITCHLD                                    0x1000000080eL
-#define SDB_OSSCRTLST                                      0x1000000080fL
-#define SDB_OSSEXEC2                                       0x10000000810L
-#define SDB_OSSEXEC                                        0x10000000811L
-#define SDB_OSSENBNMCHGS                                   0x10000000812L
-#define SDB_OSSRENMPROC                                    0x10000000813L
-#define SDB_OSSVERIFYPID                                   0x10000000814L
-#define SDB_OSSRSVPATH                                     0x10000000815L
-#define SDB_OSSWTINT                                       0x10000000816L
-#define SDB_OSSSTARTSERVICE                                0x10000000817L
-#define SDB_OSS_WFSTRS                                     0x10000000818L
-#define SDB_OSS_STOPSERVICE                                0x10000000819L
-#define SDB_OSSCRTPADUPHND                                 0x1000000081aL
-#define SDB_WIN_OSSEXEC                                    0x1000000081bL
-#define SDB_OSSGETEWD                                      0x1000000081cL
-#define SDB_OSSCMSTART_BLDARGS                             0x1000000081dL
-#define SDB_OSS_STARTPROCESS                               0x1000000081eL
-#define SDB_OSSTS2STR                                      0x1000000081fL
-#define SDB_OSSGETCPUUSG                                   0x10000000820L
-#define SDB_OSSGETCPUUSG2                                  0x10000000821L
-#define SDB_OSSTCF_INIT                                    0x10000000822L
-#define SDB_OSSSRAND                                       0x10000000823L
-#define SDB_OSSRAND                                        0x10000000824L
-#define SDB_OSSHEXDL                                       0x10000000825L
-#define SDB_OSSHEXDUMPBUF                                  0x10000000826L
-#define SDB_OSSGETMEMINFO                                  0x10000000827L
-#define SDB_OSSGETDISKINFO                                 0x10000000828L
-#define SDB_OSSGETCPUINFO                                  0x10000000829L
-#define SDB_OSSGETPROCMEMINFO                              0x1000000082aL
-#define SDB__OSSEVN_WAIT                                   0x1000000082bL
-#define SDB__OSSEN_SIGNAL                                  0x1000000082cL
-#define SDB__OSSEN_SIGALL                                  0x1000000082dL
-#define SDB__OSSVN_RESET                                   0x1000000082eL
-#define SDB__OSSRWM_LOCK_R                                 0x1000000082fL
-#define SDB__OSSRWM_LOCK_W                                 0x10000000830L
-#define SDB__OSSRWM_RLS_R                                  0x10000000831L
-#define SDB__OSSRWM_RLS_W                                  0x10000000832L
-#define SDB_OSSPFOP_OPEN                                   0x10000000833L
-#define SDB_OSSPFOP_READ                                   0x10000000834L
-#define SDB_OSSPFOP_WRITE                                  0x10000000835L
-#define SDB_OSSPFOP_FWRITE                                 0x10000000836L
-#define SDB_OSSPFOP_GETSIZE                                0x10000000837L
-#define SDB_OSSNTHND                                       0x10000000838L
-#define SDB_OSSST                                          0x10000000839L
-#define SDB_OSSEDUCTHND                                    0x1000000083aL
-#define SDB_OSSEDUEXCFLT                                   0x1000000083bL
-#define SDB_OSSDMPSYSTM                                    0x1000000083cL
-#define SDB_OSSDMPDBINFO                                   0x1000000083dL
-#define SDB_OSSSTKTRA                                      0x1000000083eL
-#define SDB_OSSREGSIGHND                                   0x1000000083fL
-#define SDB__OSSENUMNMPS                                   0x10000000840L
-#define SDB__OSSENUMNMPS2                                  0x10000000841L
-#define SDB_OSSCRTNMP                                      0x10000000842L
-#define SDB_OSSOPENNMP                                     0x10000000843L
-#define SDB_OSSCONNNMP                                     0x10000000844L
-#define SDB_OSSRENMP                                       0x10000000845L
-#define SDB_OSSWTNMP                                       0x10000000846L
-#define SDB_OSSDISCONNNMP                                  0x10000000847L
-#define SDB_OSSCLSNMP                                      0x10000000848L
-#define SDB_OSSNMP2FD                                      0x10000000849L
-#define SDB_OSSCRTNP                                       0x1000000084aL
-#define SDB_OSSOPENNP                                      0x1000000084bL
-#define SDB_OSSRDNP                                        0x1000000084cL
-#define SDB__OSSWTNP                                       0x1000000084dL
-#define SDB_OSSDELNP                                       0x1000000084eL
-#define SDB_OSSNP2FD                                       0x1000000084fL
-#define SDB_OSSCLNPBYNM                                    0x10000000850L
-#define SDB_GETEXECNM                                      0x10000000851L
-#define SDB_OSSLCEXEC                                      0x10000000852L
-#define SDB_OSSOPEN                                        0x10000000853L
-#define SDB_OSSCLOSE                                       0x10000000854L
-#define SDB_OSSMKDIR                                       0x10000000855L
-#define SDB_OSSDELETE                                      0x10000000856L
-#define SDB_OSSFILECOPY                                    0x10000000857L
-#define SDB_OSSACCESS                                      0x10000000858L
-#define SDB_OSSREAD                                        0x10000000859L
-#define SDB_OSSWRITE                                       0x1000000085aL
-#define SDB_OSSSEEK                                        0x1000000085bL
-#define SDB_OSSSEEKANDREAD                                 0x1000000085cL
-#define SDB_OSSSEEKANDWRITE                                0x1000000085dL
-#define SDB_OSSFSYNC                                       0x1000000085eL
-#define SDB_OSSGETPATHTYPE                                 0x1000000085fL
-#define SDB_OSSGETFSBYNM                                   0x10000000860L
-#define SDB_OSSGETFILESIZE                                 0x10000000861L
-#define SDB_OSSTRUNCATEFILE                                0x10000000862L
-#define SDB_OSSEXTFILE                                     0x10000000863L
-#define SDB_OSSGETREALPATH                                 0x10000000864L
-#define SDB_OSSGETFSTYPE                                   0x10000000865L
-#define SDB_OSSRENMPATH                                    0x10000000866L
-#define SDB_OSSLOCKFILE                                    0x10000000867L
+#define SDB_OSSTS2STR                                      0x1000000029cL
+#define SDB_OSSGETCPUUSG                                   0x1000000029dL
+#define SDB_OSSGETCPUUSG2                                  0x1000000029eL
+#define SDB_OSSTCF_INIT                                    0x1000000029fL
+#define SDB_OSSSRAND                                       0x100000002a0L
+#define SDB_OSSRAND                                        0x100000002a1L
+#define SDB_OSSHEXDL                                       0x100000002a2L
+#define SDB_OSSHEXDUMPBUF                                  0x100000002a3L
+#define SDB_OSSGETMEMINFO                                  0x100000002a4L
+#define SDB_OSSGETDISKINFO                                 0x100000002a5L
+#define SDB_OSSGETCPUINFO                                  0x100000002a6L
+#define SDB_OSSGETPROCMEMINFO                              0x100000002a7L
+#define SDB_OSSOPEN                                        0x100000002a8L
+#define SDB_OSSCLOSE                                       0x100000002a9L
+#define SDB_OSSMKDIR                                       0x100000002aaL
+#define SDB_OSSDELETE                                      0x100000002abL
+#define SDB_OSSFILECOPY                                    0x100000002acL
+#define SDB_OSSACCESS                                      0x100000002adL
+#define SDB_OSSREAD                                        0x100000002aeL
+#define SDB_OSSWRITE                                       0x100000002afL
+#define SDB_OSSSEEK                                        0x100000002b0L
+#define SDB_OSSSEEKANDREAD                                 0x100000002b1L
+#define SDB_OSSSEEKANDWRITE                                0x100000002b2L
+#define SDB_OSSFSYNC                                       0x100000002b3L
+#define SDB_OSSGETPATHTYPE                                 0x100000002b4L
+#define SDB_OSSGETFSBYNM                                   0x100000002b5L
+#define SDB_OSSGETFILESIZE                                 0x100000002b6L
+#define SDB_OSSTRUNCATEFILE                                0x100000002b7L
+#define SDB_OSSEXTFILE                                     0x100000002b8L
+#define SDB_OSSGETREALPATH                                 0x100000002b9L
+#define SDB_OSSGETFSTYPE                                   0x100000002baL
+#define SDB_OSSRENMPATH                                    0x100000002bbL
+#define SDB_OSSLOCKFILE                                    0x100000002bcL
+#define SDB__OSSRWM_LOCK_R                                 0x100000002bdL
+#define SDB__OSSRWM_LOCK_W                                 0x100000002beL
+#define SDB__OSSRWM_RLS_R                                  0x100000002bfL
+#define SDB__OSSRWM_RLS_W                                  0x100000002c0L
+#define SDB_OSSPFOP_OPEN                                   0x100000002c1L
+#define SDB_OSSPFOP_READ                                   0x100000002c2L
+#define SDB_OSSPFOP_WRITE                                  0x100000002c3L
+#define SDB_OSSPFOP_FWRITE                                 0x100000002c4L
+#define SDB_OSSPFOP_GETSIZE                                0x100000002c5L
+#define SDB_GETEXECNM                                      0x100000002c6L
+#define SDB_OSSLCEXEC                                      0x100000002c7L
+#define SDB__OSSSK__OSSSK                                  0x100000002c8L
+#define SDB__OSSSK__OSSSK2                                 0x100000002c9L
+#define SDB__OSSSK__OSSSK3                                 0x100000002caL
+#define SDB_OSSSK_INITTSK                                  0x100000002cbL
+#define SDB_OSSSK_SETSKLI                                  0x100000002ccL
+#define SDB_OSSSK_BIND_LSTN                                0x100000002cdL
+#define SDB_OSSSK_SEND                                     0x100000002ceL
+#define SDB_OSSSK_ISCONN                                   0x100000002cfL
+#define SDB_OSSSK_CONNECT                                  0x100000002d0L
+#define SDB_OSSSK_CLOSE                                    0x100000002d1L
+#define SDB_OSSSK_DISNAG                                   0x100000002d2L
+#define SDB_OSSSK__GETADDR                                 0x100000002d3L
+#define SDB_OSSSK_SETTMOUT                                 0x100000002d4L
+#define SDB__OSSSK__COMPLETE                               0x100000002d5L
+#define SDB_OSSMODULEHANDLE_INIT                           0x100000002d6L
+#define SDB_OSSMODULEHANDLE_UNLOAD                         0x100000002d7L
+#define SDB_OSSMODULEHANDLE_RESOLVEADDRESS                 0x100000002d8L
+#define SDB_OSSISPROCRUNNING                               0x100000002d9L
+#define SDB_OSSWAITCHLD                                    0x100000002daL
+#define SDB_OSSCRTLST                                      0x100000002dbL
+#define SDB_OSSEXEC2                                       0x100000002dcL
+#define SDB_OSSEXEC                                        0x100000002ddL
+#define SDB_OSSENBNMCHGS                                   0x100000002deL
+#define SDB_OSSRENMPROC                                    0x100000002dfL
+#define SDB_OSSVERIFYPID                                   0x100000002e0L
+#define SDB_OSSRSVPATH                                     0x100000002e1L
+#define SDB_OSSWTINT                                       0x100000002e2L
+#define SDB_OSSSTARTSERVICE                                0x100000002e3L
+#define SDB_OSS_WFSTRS                                     0x100000002e4L
+#define SDB_OSS_STOPSERVICE                                0x100000002e5L
+#define SDB_OSSCRTPADUPHND                                 0x100000002e6L
+#define SDB_WIN_OSSEXEC                                    0x100000002e7L
+#define SDB_OSSGETEWD                                      0x100000002e8L
+#define SDB_OSSCMSTART_BLDARGS                             0x100000002e9L
+#define SDB_OSS_STARTPROCESS                               0x100000002eaL
+#define SDB__OSSMMF_OPEN                                   0x100000002ebL
+#define SDB__OSSMMF_CLOSE                                  0x100000002ecL
+#define SDB__OSSMMF_SIZE                                   0x100000002edL
+#define SDB__OSSMMF_MAP                                    0x100000002eeL
+#define SDB__OSSMMF_FLHALL                                 0x100000002efL
+#define SDB__OSSMMF_FLUSH                                  0x100000002f0L
+#define SDB__OSSMMF_UNLINK                                 0x100000002f1L
+#define SDB__OSSMEMALLOC                                   0x100000002f2L
+#define SDB__OSSMEMREALLOC                                 0x100000002f3L
+#define SDB__OSSMEMFREE                                    0x100000002f4L
+#define SDB_OSSRSTSYSSIG                                   0x100000002f5L
+#define SDB_OSSSIGHNDABT                                   0x100000002f6L
+#define SDB_OSSFUNCADDR2NM                                 0x100000002f7L
+#define SDB_OSSDUMPSYSTM                                   0x100000002f8L
+#define SDB_OSSDUMPDBINFO                                  0x100000002f9L
+#define SDB_OSSDUMPSYSINFO                                 0x100000002faL
+#define SDB_OSSMCHCODE                                     0x100000002fbL
+#define SDB_OSSDUMPSIGINFO                                 0x100000002fcL
+#define SDB_OSSWLKSTK                                      0x100000002fdL
+#define SDB_OSSGETSYMBNFA                                  0x100000002feL
+#define SDB_OSSDUMPREGSINFO                                0x100000002ffL
+#define SDB_OSSDUMPST                                      0x10000000300L
+#define SDB_OSSDUMPREGSINFO2                               0x10000000301L
+#define SDB_OSSDUMPST2                                     0x10000000302L
+#define SDB_OSSDUMPREGSINFO3                               0x10000000303L
+#define SDB_OSSDUMPST3                                     0x10000000304L
+#define SDB_OSSSYMINIT                                     0x10000000305L
+#define SDB_OSSWKSEX                                       0x10000000306L
+#define SDB_OSSWS                                          0x10000000307L
+#define SDB_OSSGETSYMBNFADDR                               0x10000000308L
+#define SDB__OSSEVN_WAIT                                   0x10000000309L
+#define SDB__OSSEN_SIGNAL                                  0x1000000030aL
+#define SDB__OSSEN_SIGALL                                  0x1000000030bL
+#define SDB__OSSVN_RESET                                   0x1000000030cL
+#define SDB_OSSNTHND                                       0x1000000030dL
+#define SDB_OSSST                                          0x1000000030eL
+#define SDB_OSSEDUCTHND                                    0x1000000030fL
+#define SDB_OSSEDUEXCFLT                                   0x10000000310L
+#define SDB_OSSDMPSYSTM                                    0x10000000311L
+#define SDB_OSSDMPDBINFO                                   0x10000000312L
+#define SDB_OSSSTKTRA                                      0x10000000313L
+#define SDB_OSSREGSIGHND                                   0x10000000314L
+#define SDB__OSSAIOMSGPROC__PROC                           0x10000000315L
+#define SDB__OSSAIOMSGPROC__HNDWP                          0x10000000316L
+#define SDB__OSSAIOMSGPROC__HNDRPH                         0x10000000317L
+#define SDB__OSSAIOMSGPROC__RDPH                           0x10000000318L
+#define SDB__OSSAIOMSGPROC_CONNECT                         0x10000000319L
+#define SDB__TMPAIR_CHK_DLINE                              0x1000000031aL
+#define SDB__TMPAIR_RUN                                    0x1000000031bL
+#define SDB__OSSAIO__HNDAPT                                0x1000000031cL
+#define SDB__OSSAIO__ACCEPT                                0x1000000031dL
+#define SDB__OSSAIO_CONNECT                                0x1000000031eL
+#define SDB__OSSAIO_ADDTIMER                               0x1000000031fL
+#define SDB__OSSAIO_RMTIMER                                0x10000000320L
+#define SDB__OSSENUMNMPS                                   0x10000000321L
+#define SDB__OSSENUMNMPS2                                  0x10000000322L
+#define SDB_OSSCRTNMP                                      0x10000000323L
+#define SDB_OSSOPENNMP                                     0x10000000324L
+#define SDB_OSSCONNNMP                                     0x10000000325L
+#define SDB_OSSRENMP                                       0x10000000326L
+#define SDB_OSSWTNMP                                       0x10000000327L
+#define SDB_OSSDISCONNNMP                                  0x10000000328L
+#define SDB_OSSCLSNMP                                      0x10000000329L
+#define SDB_OSSNMP2FD                                      0x1000000032aL
+#define SDB_OSSCRTNP                                       0x1000000032bL
+#define SDB_OSSOPENNP                                      0x1000000032cL
+#define SDB_OSSRDNP                                        0x1000000032dL
+#define SDB__OSSWTNP                                       0x1000000032eL
+#define SDB_OSSDELNP                                       0x1000000032fL
+#define SDB_OSSNP2FD                                       0x10000000330L
+#define SDB_OSSCLNPBYNM                                    0x10000000331L
 #endif

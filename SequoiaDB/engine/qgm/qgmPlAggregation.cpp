@@ -263,7 +263,6 @@ namespace engine
                   }
                   else
                   {
-                     /// do nothing.
                   }
 
                   rc = _push( subFetch ) ;
@@ -415,7 +414,6 @@ namespace engine
          result.alias = _alias ;
       }
 
-      // clear push count
       _pushedAtThisTime = FALSE ;
 
    done:

@@ -47,16 +47,12 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__RTNACCESSPL_INVALIDATE );
       vector<optAccessPlan *>::iterator it ;
       RTNAPL_XLOCK
-      // check if the plan is in the list
       for ( it = _plans.begin(); it != _plans.end(); )
       {
-         // if so let's decrease the count
          if ( (*it)->getCount() == 0 )
          {
             optAccessPlan *tmp = (*it) ;
             SDB_OSS_DEL tmp ;
-            // in vector, erase returns the next valid iterator, or
-            // vector::end()
             it = _plans.erase(it) ;
          }
          else
@@ -82,28 +78,21 @@ namespace engine
       vector<optAccessPlan *>::iterator it ;
       {
          RTNAPL_XLOCK
-         // check if the plan is in the list
          for ( it = _plans.begin(); it != _plans.end(); ++it )
          {
             if ( (*it)->Reusable ( query, orderBy, hint )  )
             {
-               // we found one plan match, then let's delete the plan we just
-               // created and return the existing one
                incSize = FALSE ;
                *out = *it ;
-               // if it's not the first one, let's remove it and re-add to begin
-               // of the list
                if ( it != _plans.begin() )
                {
                   _plans.erase(it) ;
                   _plans.insert ( _plans.begin(), *out ) ;
                }
-               // increase usage count
                (*out)->incCount() ;
                goto done ;
             }
          }
-         // first create an uninitialized plan
          *out = SDB_OSS_NEW optAccessPlan ( _su, _collectionName, query,
                                             orderBy, hint ) ;
          if ( !(*out) )
@@ -113,20 +102,14 @@ namespace engine
             rc = SDB_OOM ;
             goto error ;
          }
-         // set the parent of plan apm to this apm
          (*out)->setAPM ( _apm ) ;
-         // if the plan is not in the list, let's try to optimize it
          rc = (*out)->optimize() ;
          PD_RC_CHECK ( rc, (SDB_RTN_INVALID_PREDICATES==rc)?PDINFO:PDERROR,
                        "Failed to optimize plan, query: %s\norder %s\nhint %s",
                        query.toString().c_str(),
                        orderBy.toString().c_str(),
                        hint.toString().c_str() ) ;
-         // now we have to insert it into the list, let's set incSize = TRUE for
-         // now
          incSize = TRUE ;
-         // now let's see how many plans we have, if so let's attempt to remove
-         // any plan that not been used
          if ( _plans.size() >= RTN_APL_SIZE )
          {
             vector<optAccessPlan *>::reverse_iterator rit ;
@@ -134,7 +117,6 @@ namespace engine
             {
                if ( (*rit)->getCount() == 0 )
                {
-                  // we can remove existing, let's reset incSize back to FALSE
                   incSize = FALSE ;
                   SDB_OSS_DEL (*rit) ;
 
@@ -144,8 +126,6 @@ namespace engine
                }
             }
          }
-         // if the list still full, let's dump warning message
-         // otherwise insert the new plan into plan list
          if ( _plans.size() >= RTN_APL_SIZE )
          {
             pdLog ( PDWARNING, __FUNC__, __FILE__, __LINE__,
@@ -176,18 +156,14 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNACCESSPL_RELPL );
       vector<optAccessPlan *>::iterator it ;
       RTNAPL_SLOCK
-      // check if the plan is in the list
       for ( it = _plans.begin(); it != _plans.end(); ++it )
       {
-         // if the plan is already in cache, let's return without any change
          if ( *it == plan )
          {
-            // decrease plan count
             plan->decCount () ;
             goto done ;
          }
       }
-      // otherwise it's not in the list, let's simply delete the plan
       SDB_OSS_DEL plan ;
    done :
       PD_TRACE_EXIT ( SDB_RTNACCESSPL_RELPL );
@@ -200,16 +176,12 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__RTNACCESSPL_CLEAR );
       vector<optAccessPlan *>::iterator it ;
       RTNAPL_XLOCK
-      // check if the plan is in the list
       for ( it = _plans.begin(); it != _plans.end(); )
       {
-         // if so let's decrease the count
          if ( (*it)->getCount() == 0 )
          {
             optAccessPlan *tmp = (*it) ;
             SDB_OSS_DEL tmp ;
-            // in vector, erase returns the next valid iterator, or
-            // vector::end()
             it = _plans.erase(it) ;
          }
          else
@@ -243,7 +215,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__RTNACCESSPS_GETPLAN );
       UINT32 hash = optAccessPlan::hash ( query, orderBy, hint ) ;
-      // let's try to remove emptys
       if ( _totalNum > RTN_APS_SIZE )
       {
          clear ( FALSE ) ;
@@ -252,7 +223,6 @@ namespace engine
          RTNAPS_SLOCK
          if ( _planLists.find ( hash ) != _planLists.end() )
          {
-            // if the hash already exist, then let's get in and see
             rc = _planLists[hash]->getPlan ( query, orderBy, hint,
                                              out, incSize ) ;
             if ( rc )
@@ -269,8 +239,6 @@ namespace engine
       {
          BOOLEAN newAlloc = FALSE ;
          RTNAPS_XLOCK
-         // check again just in case someone else added after we release S
-         // lock
          if ( _planLists.find ( hash ) == _planLists.end() )
          {
             rtnAccessPlanList *list = SDB_OSS_NEW rtnAccessPlanList (
@@ -289,7 +257,6 @@ namespace engine
          rc = planlist->getPlan ( query, orderBy, hint, out, incSize ) ;
          if ( rc )
          {
-            // let's delete the newly created list
             if ( newAlloc )
             {
                SDB_OSS_DEL planlist ;
@@ -320,7 +287,6 @@ namespace engine
       RTNAPS_SLOCK
       if ( _planLists.find ( hash ) == _planLists.end() )
       {
-         // if the plan is not in the plan list
          SDB_OSS_DEL plan ;
          goto done ;
       }
@@ -343,7 +309,6 @@ namespace engine
          list->clear() ;
          INT32 afterSize = list->size() ;
          _totalNum -= preSize - afterSize ;
-         // clear empty list
          if ( afterSize == 0 )
          {
             SDB_OSS_DEL list ;
@@ -353,7 +318,6 @@ namespace engine
          {
             ++it ;
          }
-         // don't run too aggresive, try to clear things to 75%
          if ( !full && _totalNum < RTN_APS_DFT_OCCUPY )
             goto done ;
       }
@@ -413,7 +377,6 @@ namespace engine
          RTNAPM_SLOCK
          if ( _planSets.find ( collectionName ) != _planSets.end() )
          {
-            // if we are able to find the collection name
             rc = _planSets[collectionName]->getPlan ( query, orderBy,
                                                       hint, out, incSize ) ;
             if ( rc )
@@ -426,16 +389,12 @@ namespace engine
             goto done ;
          }
       } // S lock scope
-      // if not able to find the collection
       {
          BOOLEAN newAlloc = FALSE ;
          RTNAPM_XLOCK
-         // check again just in case someone else added after we release S
-         // lock
          if ( _planSets.find ( collectionName ) == _planSets.end() )
          {
             CHAR *pCollectionName = NULL ;
-            // memory will be freed in destructor or clear()
             rtnAccessPlanSet *planset = SDB_OSS_NEW rtnAccessPlanSet (_su,
                   collectionName, this ) ;
             if ( !planset )
@@ -445,8 +404,6 @@ namespace engine
                rc = SDB_OOM ;
                goto error ;
             }
-            // get the _collectionName pointer from planset and save it in
-            // _planSets.first
             pCollectionName = planset->getName() ;
             _planSets[pCollectionName] = planset ;
             newAlloc = TRUE ;
@@ -456,13 +413,8 @@ namespace engine
          rc = planset->getPlan ( query, orderBy, hint, out, incSize ) ;
          if ( rc )
          {
-            // clean up the currently allocated set
             if ( newAlloc )
             {
-                // make sure to erase first because planset.first is pointing
-                // to _collectionName in the rtnAccessPlanSet, so we need to
-                // make sure during erase comparion, the object is still
-                // avaliable
                 _planSets.erase(collectionName) ;
                 SDB_OSS_DEL planset ;
             }
@@ -494,7 +446,6 @@ namespace engine
 #endif
       const CHAR *pCollectionName = plan->getName() ;
       RTNAPM_SLOCK
-      // if the collection no longer exist, we simply delete the plan
       if ( (it = _planSets.find(pCollectionName) ) == _planSets.end() )
       {
          SDB_OSS_DEL plan ;
@@ -523,7 +474,6 @@ namespace engine
          planset->clear() ;
          INT32 afterSize = planset->size() ;
          _totalNum -= preSize - afterSize ;
-         // clear empty list
          if ( afterSize == 0 )
          {
             _planSets.erase(it++) ;

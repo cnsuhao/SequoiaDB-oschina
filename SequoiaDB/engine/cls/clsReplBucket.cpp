@@ -190,7 +190,6 @@ namespace engine
       UINT32 len = 0 ;
       clsBucketUnit *pUnit = NULL ;
 
-      // release all memory and data bucket
       vector< clsBucketUnit* >::iterator it = _dataBucket.begin() ;
       while ( it != _dataBucket.end() )
       {
@@ -205,7 +204,6 @@ namespace engine
       }
       _dataBucket.clear() ;
 
-      // release all latch lock
       vector< ossSpinXLatch* >::iterator itLatch = _latchBucket.begin() ;
       while ( itLatch != _latchBucket.end() )
       {
@@ -294,14 +292,11 @@ namespace engine
          goto error ;
       }
 
-      // init mem
       rc = _memPool.initialize() ;
       PD_RC_CHECK( rc, PDERROR, "Init mem pool failed, rc: %d", rc ) ;
 
-      // create data bucket and latch
       while ( index < _bucketSize )
       {
-         // memory will be freed in destructor
          pBucket = SDB_OSS_NEW clsBucketUnit() ;
          if ( !pBucket )
          {
@@ -388,7 +383,6 @@ namespace engine
 
    INT32 _clsBucket::pushData( UINT32 index, CHAR * pData, UINT32 len )
    {
-      // only use offset
       if ( DPS_INVALID_LSN_OFFSET == _expectLSN.offset )
       {
          _expectLSN = _pDPSCB->expectLsn() ;
@@ -429,7 +423,6 @@ namespace engine
                break ;
             }
          }
-         // prepare new data
          pNewData = _memPool.alloc( CLS_BUCKET_NEW_LEN( len ), newLen ) ;
          if ( !pNewData )
          {
@@ -438,7 +431,6 @@ namespace engine
             rc = SDB_OOM ;
             goto error ;
          }
-         // copy data
          ossMemcpy( pNewData, pData, len ) ;
       }
       else
@@ -447,10 +439,8 @@ namespace engine
          newLen   = len ;
       }
 
-      // lock
       _latchBucket[ index ]->get() ;
 
-      // start replsync job
       if ( 0 == curAgentNum() || ( !_dataBucket[ index ]->isAttached() &&
            idleAgentNum() < idleUnitCount() &&
            curAgentNum() < maxReplSync() ) )
@@ -477,7 +467,6 @@ namespace engine
          _allEmptyEvent.reset() ;
       }
 
-      // no cb attach in and no push to que, need to push to nty quque
       if ( !_dataBucket[ index ]->isAttached() &&
            !_dataBucket[ index ]->isInQue() )
       {
@@ -509,10 +498,8 @@ namespace engine
          goto error ;
       }
 
-      // lock
       _latchBucket[ index ]->get() ;
 
-      // must attach in first
       SDB_ASSERT ( _dataBucket[ index ]->isAttached(),
                    "Must attach in first" ) ;
 
@@ -563,7 +550,6 @@ namespace engine
       {
          rc = SDB_CLS_REPLAY_LOG_FAILED ;
          _doRollback() ;
-         // wait
          _emptyEvent.wait() ;
          _status = CLS_BUCKET_NORMAL ;
       }
@@ -584,11 +570,8 @@ namespace engine
       {
          goto done ;
       }
-      // wait for empty
       _emptyEvent.wait() ;
-      // set status
       _status = CLS_BUCKET_ROLLBACKING ;
-      // push complete queue to bucket
       _bucketLatch.get() ;
       it = _completeMap.begin() ;
       while ( it != _completeMap.end() )
@@ -656,7 +639,6 @@ namespace engine
          }
 
          _latchBucket[ unitID ]->get() ;
-         // if has some other attach in, wait next
          if ( _dataBucket[ unitID ]->isAttached() )
          {
             _latchBucket[ unitID ]->release() ;
@@ -664,7 +646,6 @@ namespace engine
          }
          _idleUnitCount.dec() ;
          decIdelAgent() ;
-         // set attach
          _dataBucket[ unitID ]->attach() ;
 
          _latchBucket[ unitID ]->release() ;
@@ -690,7 +671,6 @@ namespace engine
       }
 
       incIdleAgent() ;
-      // lock
       _latchBucket[ unitID ]->get() ;
 
       SDB_ASSERT( _dataBucket[ unitID ]->isAttached(), "Must attach in unit" ) ;
@@ -792,10 +772,8 @@ namespace engine
       BOOLEAN releaseMem = FALSE ;
       _bucketLatch.get() ;
 
-      // increase repl counter
       _incCount( pData ) ;
 
-      // the first one
       if ( _expectLSN.compareOffset( offset ) >= 0 )
       {
          SDB_ASSERT( 0 == _expectLSN.compareOffset( offset ),
@@ -843,7 +821,6 @@ namespace engine
          result = CLS_SUBMIT_LT_MAX ;
       }
 
-      // not expect, insert to map
       if ( !(_completeMap.insert( std::make_pair( offset, info ) ) ).second )
       {
          SDB_ASSERT( FALSE, "System error, dps log exist" ) ;
@@ -867,7 +844,6 @@ namespace engine
 
       _bucketLatch.get() ;
 
-      // if has agent process, do nothing
       if ( _curAgentNum.peek() > 0 )
       {
          goto done ;

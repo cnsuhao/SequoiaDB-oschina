@@ -26,7 +26,6 @@
 #pragma once
 
 #include "util/optime.h"
-//#include "util/time_support.h"
 
 /*#ifndef log
 #define log(...) std::cerr
@@ -61,8 +60,6 @@ namespace bson {
             return string(codeWScopeCode(), *(int*)(valuestr())-1);
         default:
             break ;
-            //log() << "can't convert type: " << (int)(type()) << " to code"
-            //      << endl;
         }
         uassert( 10062 ,  "not code" , 0 );
         return "";

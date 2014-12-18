@@ -97,11 +97,8 @@ namespace engine
       } ;
 
    public:
-      /// buf will be freed by pool
-      /// the last buf allocated will be invalid when allocate mem.
       INT32 allocate( UINT32 len, CHAR **buf ) ;
 
-      /// realBuf will be freed when do clear
       INT32 push( const CHAR *data, UINT32 len,
                   SINT64 offset ) ;
 

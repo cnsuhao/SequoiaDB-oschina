@@ -7,9 +7,7 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/foreach.hpp>
 
-// xml source file
 #define OPTXMLSRC "optlist.xml"
-// output file path
 #define HEADERNAME "pmdOptions"
 #define HEADERPATHCPP "../../SequoiaDB/engine/include/"HEADERNAME".hpp"
 #define HEADERPATHC "../../SequoiaDB/engine/include/"HEADERNAME".h"
@@ -18,7 +16,6 @@
 #define DATASAMPLEPATH "../../conf/samples/sdb.conf.data"
 #define STANDALONESAMPLEPATH "../../conf/samples/sdb.conf.standalone"
 
-// XML element
 
 #define OPTLISTTAG "optlist"
 #define OPTTAG "opt"

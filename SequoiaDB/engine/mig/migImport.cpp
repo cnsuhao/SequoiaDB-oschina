@@ -93,7 +93,6 @@ migImport::~migImport()
 INT32 migImport::_connectDB()
 {
    INT32 rc = SDB_OK ;
-   // connection is established
    rc = sdbConnect ( _pMigArg->pHostname, _pMigArg->pSvcname,
                      _pMigArg->pUser, _pMigArg->pPassword,
                      &_gConnection ) ;
@@ -112,7 +111,6 @@ error:
 INT32 migImport::_getCS( CHAR *pCSName )
 {
    INT32 rc = SDB_OK ;
-   // get collection space
    rc = sdbGetCollectionSpace ( _gConnection, pCSName,
                                 &_gCollectionSpace ) ;
    if ( SDB_DMS_CS_NOTEXIST == rc )
@@ -136,7 +134,6 @@ error:
 INT32 migImport::_getCL( CHAR *pCLName )
 {
    INT32 rc = SDB_OK ;
-   // get collection
    rc = sdbGetCollection1 ( _gCollectionSpace, pCLName,
                             &_gCollection ) ;
    if ( SDB_DMS_NOTEXIST == rc )
@@ -315,7 +312,6 @@ INT32 migImport::init ( migImprtArg *pMigArg )
                       _pMigArg->delRecord ) ;
 
    parserPara.accessModel  = UTIL_GET_IO ;
-   //parserPara.accessModel = UTIL_GET_HDFS ;
    parserPara.fileName     = _pMigArg->pFile ;
    parserPara.bufferSize   = 33554432 ;
    parserPara.blockNum     = 32768 ;
@@ -501,7 +497,6 @@ INT32 migImport::_run ( INT32 &total, INT32 &succeed )
       {
          bson_destroy ( tempObj ) ;
          ++count ;
-         // empty bson
          continue ;
       }
       if ( (UINT32)( sumSize + bsonSize ) >=
@@ -632,7 +627,6 @@ INT32 migImport::run ( INT32 &total, INT32 &succeed )
       if ( bsonObj.dataSize <= 5 )
       {
          bson_destroy ( obj ) ;
-         // empty bson
          continue ;
       }
       ++count ;

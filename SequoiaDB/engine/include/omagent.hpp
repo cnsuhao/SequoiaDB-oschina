@@ -100,18 +100,13 @@ namespace engine
 
    struct _RollbackInfo
    {
-      // standalone
       map< string, vector<InstalledNode> > _standaloneRollbackInfo ;
-      // coord
       map< string, vector<InstalledNode> > _coordRollbackInfo ;
-      // catalog
       map< string, vector<InstalledNode> > _catalogRollbackInfo ;
-      // data node
       map< string, vector<InstalledNode> > _dataGroupRollbackInfo ;
    } ;
    typedef struct _RollbackInfo RollbackInfo ;
 
-   /// add host 
    struct _AddHost
    {
       std::string _ip ;

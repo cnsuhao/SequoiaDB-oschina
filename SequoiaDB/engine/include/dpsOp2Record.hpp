@@ -46,7 +46,6 @@ using namespace bson ;
 
 namespace engine
 {
-   /// warning: any value can not be value-passed.
    INT32 dpsInsert2Record( const CHAR *fullName,
                            const BSONObj &obj,
                            const DPS_TRANS_ID &transID,
@@ -156,9 +155,6 @@ namespace engine
    INT32 dpsRecord2TransCommit( const CHAR *logRecord,
                                 DPS_TRANS_ID &transID ) ;
 
-//   INT32 dpsTransRollback2Record( const DPS_TRANS_ID &transID,
-//                                  const DPS_LSN_OFFSET &preTransLsn,
-//                                  dpsLogRecord &record ) ;
 
    INT32 dpsInvalidCata2Record( const CHAR * clFullName,
                                 dpsLogRecord &record ) ;

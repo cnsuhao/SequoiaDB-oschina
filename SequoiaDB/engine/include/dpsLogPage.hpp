@@ -168,7 +168,6 @@ namespace engine
          }
 
       public:
-         //INT32 insert( const CHAR *src, UINT32 len );
 
          INT32 fill( UINT32 offset, const CHAR *src, UINT32 len );
 

@@ -56,7 +56,6 @@ namespace engine
    typedef UINT32 NET_NODE_ID ;
    typedef UINT16 NET_SERVICE_ID ;
 
-   // invalid timer id
    #define NET_INVALID_TIMER_ID        ( 0 )
 
    /*
@@ -78,7 +77,6 @@ namespace engine
    {
    public :
       SINT32 _status;   // make sure the addr of _status is aligned 4 bytes,
-                        // so the assignment of _status is atomic
       CHAR _host[OSS_MAX_HOSTNAME+1] ;
       std::string _service[MSG_ROUTE_SERVICE_TYPE_MAX] ;
       MsgRouteID _id ;

@@ -59,7 +59,6 @@ namespace engine
                "failed to parse the parameter:%s(type=%d, expectType=%d)",
                elem.fieldName(), elem.type(), Object );
 
-      // 1.parse the fields
       try
       {
          obj = elem.embeddedObject();
@@ -93,7 +92,6 @@ namespace engine
                   e.what() );
       }
 
-      // 2.build the node
       pSelect->_limit = -1;
       pSelect->_skip = 0;
       pSelect->_type = QGM_OPTI_TYPE_SELECT;
@@ -191,7 +189,6 @@ namespace engine
       CHAR *pFuncBuf = NULL;
       try
       {
-         // parse field
          const CHAR *pFuncName = funcObj.firstElementFieldName();
          PD_CHECK( AGGR_KEYWORD_PREFIX == pFuncName[0], SDB_INVALIDARG, error, PDERROR,
                   "failed to parse selector field(%s), function name must begin with \"$\"",
@@ -201,11 +198,9 @@ namespace engine
                   "failed to parse selector field(%s), parameter must begin with \"$\"",
                   pFuncParam );
 
-         // build selector
          qgmField slValAttr;
          qgmField slValRelegation;
 
-         // fun(parameter), i.e:sum(a)
          UINT32 nameLen = ossStrlen(&(pFuncName[1]));
          UINT32 paramLen = ossStrlen(AGGR_CL_DEFAULT_ALIAS) + 1 + ossStrlen(&(pFuncParam[1]));
          UINT32 curPos = 0;
@@ -321,7 +316,6 @@ namespace engine
 
          PD_CHECK( fieldNum > 0, SDB_INVALIDARG, error, PDERROR,
                   "Can't add empty obj!" );
-         // space for comma which between parameters
          paramLen += ( fieldNum - 1 );
          pFuncBuf = ( CHAR * )SDB_OSS_MALLOC( nameLen + 3 + paramLen );
          PD_CHECK( pFuncBuf != NULL, SDB_OOM, error, PDERROR,

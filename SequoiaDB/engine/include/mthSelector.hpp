@@ -83,29 +83,16 @@ namespace engine
 
       OSS_INLINE void _incSelectorIndex( INT32 *selectorIndex ) ;
 
-      // when requested update want to change something that not exist in
-      // original
-      // object, we need to append the original object in those cases
       template<class Builder>
       INT32 _appendNew ( const CHAR *pFieldName, Builder& b,
                          SINT32 *selectorIndex ) ;
 
-      // Builder could be BSONObjBuilder or BSONArrayBuilder
-      // _appendNewFromMods appends the current builder with the new field
-      // root represent the current fieldName, me is the current selector elemen
-      // b is the builder, onedownseen represent the all subobjects have been
-      // processed in the current object, and selectorIndex is the pointer for
-      // current selector
       template<class Builder>
       INT32 _appendNewFromMods ( CHAR **ppRoot,
                                  INT32 &rootBufLen,
                                  INT32 rootLen,
                                  Builder &b,
                                  SINT32 *selectorIndex ) ;
-      // Builder could be BSONObjBuilder or BSONArrayBuilder
-      // This function is recursively called to build new object
-      // The prerequisit is that _selectorElement is sorted, which supposed to
-      // happen at end of loadPattern
       template<class Builder>
       INT32 _buildNewObj ( CHAR **ppRoot,
                            INT32 &rootBufLen,

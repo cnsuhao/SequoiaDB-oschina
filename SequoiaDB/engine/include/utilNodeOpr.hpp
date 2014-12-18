@@ -102,13 +102,11 @@ namespace engine
       INT32    _type ;
       INT32    _role ;
       OSSPID   _pid ;
-      // extra info
       INT32    _groupID ;
       INT32    _nodeID ;
       INT32    _primary ;
       string   _groupName ;
       string   _dbPath ;
-      // extra info end
 
       _utilNodeInfo()
       {

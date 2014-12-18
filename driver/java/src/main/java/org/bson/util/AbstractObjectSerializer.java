@@ -18,7 +18,6 @@ package org.bson.util;
 
 abstract class AbstractObjectSerializer implements ObjectSerializer {
 
-    //@Override
     public String serialize(final Object obj) {
         StringBuilder builder = new StringBuilder();
         serialize(obj, builder);

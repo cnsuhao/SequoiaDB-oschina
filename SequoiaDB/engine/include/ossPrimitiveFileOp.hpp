@@ -83,13 +83,8 @@
    int oss_access( const char *path, int mode ) ;
 #endif
 
-// size of the internal buffer used by ossPrimitiveFileOp::fwrite
-// Note:
-//   Do NOT change this value to a bigger size,
-//   ossPrimitiveFileOp::fwrite allocates the buffer from stack !
 #define OSS_PRIMITIVE_FILE_OP_FWRITE_BUF_SIZE 2048
 
-// open() options
 #define OSS_PRIMITIVE_FILE_OP_READ_ONLY     (((UINT32_64)1) << 0)
 #define OSS_PRIMITIVE_FILE_OP_WRITE_ONLY    (((UINT32_64)1) << 1)
 #define OSS_PRIMITIVE_FILE_OP_READ_WRITE    (((UINT32_64)1) << 2)
@@ -137,28 +132,9 @@ protected :
 
 public :
 
-   // Default constructor.  Construct an uninitialized OSS file handle
    ossPrimitiveFileOp() ;
    ~ossPrimitiveFileOp() ;
 
-   // Create or open an existing file.
-   // pFilePath [in]
-   //    Full path to the file.
-   // options [in]
-   //    Open operation mask, logical OR from following :
-   //       OSS_PRIMITIVE_FILE_OP_READ_WRITE
-   //          - default. open for read/write.
-   //       OSS_PRIMITIVE_FILE_OP_READ_ONLY
-   //          - open for read only.
-   //       OSS_PRIMITIVE_FILE_OP_WRITE_ONLY
-   //          - open for write only.
-   //       OSS_PRIMITIVE_FILE_OP_OPEN_EXISTING
-   //          - Open an existing file, fails if the file doesn't exist.
-   //       OSS_PRIMITIVE_FILE_OP_OPEN_ALWAYS
-   //          - Open an existing file, creates one if the file doesn't exist.
-   // Return:
-   //    0,     success
-   //    errno, failure
    int Open
    (
       const char * pFilePath,
@@ -166,63 +142,26 @@ public :
                              | OSS_PRIMITIVE_FILE_OP_OPEN_ALWAYS
    ) ;
 
-   // open stdout for output.
    void openStdout() ;
 
-   // close the file
    void Close() ;
 
-   // validate an oss file handle
    BOOLEAN isValid( void ) ;
 
-   // read data from the file
-   // size [in]
-   //    the size of pBuf
-   // pBuf[out]
-   //    a preallocated buffer for reading data.
-   // pBytesRead [out]
-   //    the  number of bytes read from the file.
-   // Return:
-   //    0,     success
-   //    errno, failure
    int Read( const size_t size, void * const pBuf, int * const pBytesRead ) ;
 
-   // write data to the file
-   // pBuf[in]
-   //   Data to be written
-   // len[in]
-   //   Number of bytes to be written. If the pBuf is a NULL termianted
-   //   string this parameter can be ignored.
    int Write( const void * pBuf, size_t len = 0 ) ;
 
-   // write formated information to the file. It can only handle a fixed
-   // size buffer ( 2K, OSS_PRIMITIVE_FILE_OP_FWRITE_BUF_SIZE )
-   // fmt
-   //   a fprintf style format specifier.
-   // ...
-   //   variable argument list assocatiated with the above format flags
-   // Note:
-   //   It calls vsnprintf internally, and the fixed size buffer are allocated
-   //   from the stack.
    int fWrite( const char * fmt, ... ) ;
 
-   // get the current file offset.
    offsetType getCurrentOffset (void) const ;
 
-   // seek to the position obtained by currentOffset.
    void seekToOffset( offsetType offset ) ;
 
-   // seek to the end
    void seekToEnd( void ) ;
 
-   // get the current file size.
-   // pFileSize[out]
-   // Return:
-   //    0,     success
-   //    errno, failure
    int getSize( offsetType * const pFileSize ) ;
 
-   // get the raw file descriptor.  For OSS inernal use only.
    handleType getHandle( void ) const
    {
       return _fileHandle ;

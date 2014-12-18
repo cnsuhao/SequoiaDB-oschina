@@ -45,7 +45,6 @@
 #include <boost/thread.hpp>
 #include <boost/thread/shared_mutex.hpp>
 
-//32MB buffer size must be multiple of 33554432
 #define UTIL_DATA_BUFFER_SIZE 33554432
 #define UTIL_DATA_HEADER_SIZE 1024
 
@@ -112,7 +111,6 @@ public:
    CHAR        _delChar[2]   ;
    CHAR        _delField[2]  ;
    CHAR        _delRecord[2] ;
-   //field vector
    std::vector< CHAR * > _vField ;
 public:
    _utilDataParser() ;
@@ -153,30 +151,18 @@ public:
 class _utilCSVParser : public _utilDataParser
 {
 private :
-   //record cursor in block number
    UINT32      _pBlock       ;
-   //not read buffer size
    UINT32      _unreadSpace  ;
 
-   //buffer sum size
    UINT32      _fieldSize   ;
-   //read buffer size
    UINT32      _readNumStr   ;
-   //not read buffer size
    UINT32      _readFreeSpace ;
-   //left field size
    UINT32      _leftFieldSize ;
-   //record cursor
    CHAR       *_curBuffer    ;
-   //field buffer
    CHAR       *_fieldBuffer ;
-   //next field cursor
    CHAR       *_nextFieldCursor ;
-   // is string ?
    BOOLEAN     _isString ;
-   // delChar number
    INT32       _delCharNum ;
-   // not auto add filed
 public:
    virtual INT32 initialize ( _utilParserParamet *parserPara ) ;
    virtual INT32 getNextRecord ( UINT32 &startOffset,

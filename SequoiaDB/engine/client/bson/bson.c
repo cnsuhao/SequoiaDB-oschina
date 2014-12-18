@@ -208,14 +208,12 @@ SDB_EXPORT void bson_oid_gen( bson_oid_t *oid ) {
     static int incr = 0;
     int i;
     int t = time( NULL );
-    // initialize system machine and pid for first time entry
     if ( !bson_oid_initialized )
     {
        unsigned long long n = 0 ;
        unsigned short pid = 0 ;
        bson_oid_initialized = 1 ;
        srand ( (unsigned int)time(NULL) ) ;
-       // generate a system id
 #if defined (_WIN32)
        {
           unsigned int a=0, b=0 ;
@@ -228,7 +226,6 @@ SDB_EXPORT void bson_oid_gen( bson_oid_t *oid ) {
        pid = (unsigned short) getpid () ;
        n = (((unsigned long long)random())<<32) | random() ;
 #endif
-       // fold in pid to bson_ourMachineAndPid
        memcpy ( &bson_ourMachineAndPid, &n, sizeof(struct bson_machine_pid) ) ;
        bson_ourMachineAndPid._pid = pid ;
     }
@@ -253,9 +250,6 @@ SDB_EXPORT void bson_oid_gen( bson_oid_t *oid ) {
 #endif
        memcpy ( &oid->ints[1], &bson_ourMachineAndPid,
                 sizeof(bson_ourMachineAndPid) ) ;
-       //memcpy ( ((unsigned char*)&oid->ints[1]) + sizeof(bson_ourMachineAndPid),
-       //         &i, 3 ) ;
-       // apply i to last 3 bytes
        source = (unsigned char *)&i ;
        dest = (unsigned char*)&oid->ints[2] ;
 #if defined (SDB_BIG_ENDIAN)
@@ -445,8 +439,6 @@ SDB_EXPORT int bson_sprint_iterator ( char **pbuf, int *left, bson_iterator *i,
          sprintf ( temp, "\", \"$type\": \"%u\" }", bson_iterator_bin_type ( i ) ) ;
          bson_sprint_raw_concat ( pbuf, left, "{ \"$binary\": \"" ) ;
          CHECK_LEFT ( left )
-         //bson_sprint_hex_concat ( pbuf, left, bson_iterator_bin_data ( i ),
-         //                         bson_iterator_bin_len ( i ) ) ;
          bin_size = bson_iterator_bin_len ( i ) ;
          base64_size = getEnBase64Size( bin_size ) ;
          pBase64Buf = (char *)malloc( base64_size + 1 ) ;
@@ -746,7 +738,6 @@ SDB_EXPORT int bson_sprint_length_raw ( const char *data, int isobj ) {
         key = bson_iterator_key( &i );
         if ( isobj )
         {
-            // "<key>"<SPC>:<SPC>
             total += 5 + strlen( key );
         }
         k = bson_sprint_length_iterator ( &i ) ;
@@ -761,7 +752,6 @@ SDB_EXPORT int bson_sprint_length_raw ( const char *data, int isobj ) {
 
 SDB_EXPORT int bson_sprint_length( const bson *b ) {
     if ( ! b ) return 0 ;
-    // additional '\0' is in bson_sprint_length_raw
     return bson_sprint_length_raw( b->data, 1 ) ;
 }
 
@@ -1577,7 +1567,6 @@ SDB_EXPORT int bson_append_time_t( bson *b, const char *name, time_t secs ) {
 
 SDB_EXPORT int bson_append_start_object( bson *b, const char *name ) {
     if ( bson_append_estart( b, BSON_OBJECT, name, 5 ) == BSON_ERROR ) return BSON_ERROR;
-    // make sure the bson doesn't have too many embedded layers
     if ( b->stackPos >= BSON_MAX_STACK_SIZE-1 ) return BSON_ERROR ;
     b->stack[ b->stackPos++ ] = b->cur - b->data;
     bson_append32( b , &zero );
@@ -1586,7 +1575,6 @@ SDB_EXPORT int bson_append_start_object( bson *b, const char *name ) {
 
 SDB_EXPORT int bson_append_start_array( bson *b, const char *name ) {
     if ( bson_append_estart( b, BSON_ARRAY, name, 5 ) == BSON_ERROR ) return BSON_ERROR;
-    // make sure the bson doesn't have too many embedded layers
     if ( b->stackPos >= BSON_MAX_STACK_SIZE-1 ) return BSON_ERROR ;
     b->stack[ b->stackPos++ ] = b->cur - b->data;
     bson_append32( b , &zero );
@@ -1726,9 +1714,6 @@ void LocalTime ( time_t *Time, struct tm *TM )
 #if defined (__linux__ )
    localtime_r( Time, TM ) ;
 #elif defined (_WIN32)
-   // The Time represents the seconds elapsed since midnight (00:00:00),
-   // January 1, 1970, UTC. This value is usually obtained from the time
-   // function.
    localtime_s( TM, Time ) ;
 #endif
 }

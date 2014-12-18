@@ -316,21 +316,14 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__MIGLOADJSONPS__CHECKWORKER );
       pmdEDUEvent    event ;
 
-      // if we receive any post, that means worker got something wrong and we
-      // should handle it respectively
       /*isGetEven = eduCB->waitEvent ( event, 0 ) ;
       if ( isGetEven )
       {
-         // if we receive anything, let's count the success and failure and
-         // goon, note it means something wrong happened at worker
          workerRe = (_workerReturn *)event._Data ;
          success += workerRe->success ;
          failure += workerRe->failure ;
          --_workerNum ;
       }*/
-      // if something wrong happened at worker, or the connection is gone,
-      // let's rollback
-      //if ( isGetEven || !_sock->isConnected() )
       if ( !_exitSignal )
       {
          _exitSignal = !_sock->isConnected() ;
@@ -341,17 +334,13 @@ namespace engine
       }
       if ( _exitSignal )
       {
-         // print the error in log
          PD_LOG ( PDERROR, "rollback all data" ) ;
-         // send error to user side, note we don't need to check rc since we
-         // can't do anything if it's not success, anyway
          sendMsgToClient ( "Error: rollback all data" ) ;
 
          rc = _stopAndWaitWorker ( eduCB, success, failure ) ;
          PD_RC_CHECK ( rc, PDERROR,
                        "Failed to call _stopAndWaitWorker, rc=%d", rc ) ;
 
-         //roll back
          rc = loadOp->loadRollbackPhase ( mbContext ) ;
          if ( rc )
          {
@@ -443,8 +432,6 @@ namespace engine
          PD_LOG( PDERROR, "Collection is loading" ) ;
          rc = SDB_COLLECTION_LOAD ;
          sendMsgToClient ( "Collection is loading" ) ;
-         // we set noClearFlag to true, so that we'll convert the collection
-         // flag to NORMAL in done
          noClearFlag = TRUE ;
          goto error ;
       }
@@ -452,7 +439,6 @@ namespace engine
       dmsLoadExtent.setFlagLoad ( mbContext->mb() ) ;
       dmsLoadExtent.setFlagLoadLoad ( mbContext->mb() ) ;
 
-      // unlock
       mbContext->mbUnlock() ;
 
       rc = dmsCB->writable( eduCB ) ;
@@ -486,17 +472,12 @@ namespace engine
             goto error ;
          }
 
-         // fetch one record
          rc = _parser->getNextRecord ( startOffset, size,
                                        &line, &column, _ppBucket ) ;
          if ( rc )
          {
-            // special handle for end of file
             if ( rc == SDB_EOF )
             {
-               // when we hit end of file, let's push 0 to all worker threads,
-               // with num of workers ( so each worker will dispatch one 0, and
-               // exit )
                rc = _stopAndWaitWorker ( eduCB, success, failure ) ;
                PD_RC_CHECK ( rc, PDERROR,
                              "Failed to call _stopAndWaitWorker, rc=%d", rc ) ;
@@ -507,7 +488,6 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to parseJSONs getNextRecord,rc=%d", rc ) ;
             goto error1 ;
          }
-         // calculate the blocks to be locked, based on the length of our record
          rc = getBlockFromPointer ( startOffset, size,
                                     startBlock, endBlock ) ;
          if ( rc )
@@ -515,17 +495,13 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to get block from pointer, rc=%d", rc ) ;
             goto error1 ;
          }
-         // lock them
          for ( UINT32 i = startBlock; i <= endBlock; ++i )
          {
             _ppBucket[i]->inc() ;
          }
-         // push the record to queue
          pushToQueue ( startOffset, size, line, column ) ;
       } // while ( !eduCB->isForced() )
 
-      // when all workers are finish, let's start build phase to rebuild all
-      // indexes
       sendMsgToClient ( "build index" ) ;
       rc = dmsLoadExtent.loadBuildPhase ( mbContext, eduCB, _pParameters->isAsynchronous,
                                           this, &success, &failure ) ;
@@ -535,11 +511,9 @@ namespace engine
          goto error ;
       }
    done:
-      // we only lock and clear flag if we switched to load
       if ( su && mbContext && !noClearFlag )
       {
          rc = mbContext->mbLock( EXCLUSIVE ) ;
-         // we should log failure information
          if ( SDB_OK == rc )
          {
             if ( dmsLoadExtent.isFlagLoadLoad ( mbContext->mb() ) )
@@ -561,7 +535,6 @@ namespace engine
          }
       }
 
-      // send the success message to client
       sendMsgToClient ( "success json: %u, failure json: %u",
                         success, failure ) ;
       sendMsgToClient ( "Load end" ) ;
@@ -574,7 +547,6 @@ namespace engine
       {
          dmsCB->suUnlock ( suID ) ;
       }
-      // count down
       if ( writable )
       {
          dmsCB->writeDown();
@@ -645,7 +617,6 @@ namespace engine
       UINT32 column = 0 ;
       UINT32 startBlock = 0 ;
       UINT32 endBlock   = 0 ;
-      //CHAR  *pJsonBuffer = NULL ;
 
       _master->popFromQueue ( eduCB,
                               offset, size,
@@ -680,8 +651,6 @@ namespace engine
       }
       if ( tempRc )
       {
-         //PD_LOG ( PDERROR, "Failed to json convert bson, json: %s , rc=%d",
-         //         _pJsonBuffer, tempRc ) ;
          _master->sendMsgToClient ( "Error: error "
                                     "in json format, line %u, column %u",
                                     line, column ) ;

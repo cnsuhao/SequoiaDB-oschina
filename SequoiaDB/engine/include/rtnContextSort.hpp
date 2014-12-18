@@ -68,8 +68,6 @@ namespace engine
       _rtnSorting _sorting ;
       SINT64 _skip ;
       SINT64 _limit ;
-      /// WARNING: do not use this plan to do anything
-      ///  except keeping plan for explaining. -- yunwu.
       _optAccessPlan *_planForExplain ;
    } ;
    typedef class _rtnContextSort rtnContextSort ;

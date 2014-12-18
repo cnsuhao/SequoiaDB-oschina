@@ -162,7 +162,6 @@ namespace engine
 
       try
       {
-         /// here we bind 0.0.0.0.
          tcp::resolver::query query ( tcp::v4(), NET_LISTEN_HOST, serviceName ) ;
          tcp::resolver resolver ( _ioservice ) ;
          tcp::resolver::iterator itr = resolver.resolve ( query ) ;
@@ -218,7 +217,6 @@ namespace engine
          NET_INSERT_OPPO( eh ) ;
          NET_INSERT_ROUTE( eh ) ;
          _mtx.release() ;
-         // callback: handleConnect
          _handler->handleConnect( eh->handle(), id, TRUE ) ;
          eh->asyncRead() ;
       }
@@ -389,7 +387,6 @@ namespace engine
          header->routeID = _local ;
       }
       eh->mtx().get() ;
-      /// header len should be computed. can not get sizeof(MsgHeader)
       rc = eh->syncSend( header, headLen ) ;
       if ( SDB_OK != rc )
       {
@@ -816,7 +813,6 @@ namespace engine
       _mtx.get() ;
       NET_INSERT_OPPO(eh) ;
       _mtx.release() ;
-      // callback: handleConnect
       _handler->handleConnect( eh->handle(), eh->id(), FALSE ) ;
       _asyncAccept() ;
       eh->asyncRead() ;

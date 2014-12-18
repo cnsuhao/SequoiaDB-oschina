@@ -65,7 +65,6 @@ namespace engine
       qgmOprUnit *oprUnit = NULL ;
       qgmAggrUnit *aggrUnit = NULL ;
 
-      // create a optional select oprUnit
       if ( _selector.size() > 0 )
       {
          oprUnit = SDB_OSS_NEW qgmFilterUnit( QGM_OPTI_TYPE_FILTER ) ;
@@ -80,14 +79,12 @@ namespace engine
          oprUnit = NULL ;
       }
 
-      // create aggr OprUnit
       aggrUnit = SDB_OSS_NEW qgmAggrUnit( QGM_OPTI_TYPE_AGGR ) ;
       if ( !aggrUnit )
       {
          rc = SDB_OOM ;
          goto error ;
       }
-      // add group by
       aggrUnit->addOpField( _groupby, FALSE ) ;
       aggrUnit->addAggrSelector( _selector ) ;
       _oprUnits.push_back( aggrUnit ) ;
@@ -113,7 +110,6 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__QGMOPTIAGGREGATION_DONE ) ;
       INT32 rc = SDB_OK ;
-      // if the sub node's output is same with this output, clear the output
       qgmOpStream subOpStream ;
       BOOLEAN bSame = TRUE ;
 
@@ -286,7 +282,6 @@ namespace engine
       {
          qgmOPFieldVec *fields = oprUnit->getFields() ;
 
-         // if fields it not empty and wildcard, need make selector
          if ( fields->size() != 0 && !oprUnit->isWildCardField() )
          {
             qgmAggrSelectorVec tmpSelector = _selector ;
@@ -329,7 +324,6 @@ namespace engine
          qgmFilterUnit *filterUnit = (qgmFilterUnit*)oprUnit ;
          _addFields( filterUnit ) ;
 
-         // delete other fiterUnit
          qgmFilterUnit *otherUnit = (qgmFilterUnit*)
                                      getOprUnitByType( QGM_OPTI_TYPE_FILTER ) ;
          if ( otherUnit )
@@ -347,7 +341,6 @@ namespace engine
       }
       else if ( QGM_OPTI_TYPE_SORT == oprUnit->getType() )
       {
-         // add the group more fields
          if ( _groupby.size() > oprUnit->getFields()->size() )
          {
             UINT32 count = _groupby.size() ;
@@ -407,7 +400,6 @@ namespace engine
    {
       PD_TRACE_ENTRY( SDB__QGMOPTIAGGREGATION_OURPUTSORT ) ;
       INT32 rc = SDB_OK ;
-      // if no group, can break down all up sort
       if ( _groupby.size() == 0 )
       {
          if ( _hasAggrFunc )

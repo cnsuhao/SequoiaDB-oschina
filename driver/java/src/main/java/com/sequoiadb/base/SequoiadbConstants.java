@@ -254,38 +254,5 @@ public class SequoiadbConstants {
 		}
 	}
 	
-//	public enum SptReturnType {
-//	   TYPE_VOID(0),
-//	   TYPE_STR(1),
-//	   TYPE_NUMBER(2),
-//	   TYPE_OBJ(3),
-//	   TYPE_BOOL(4),
-//	   TYPE_RECORDSET(5),
-//	   TYPE_CS(6),
-//	   TYPE_CL(7),
-//	   TYPE_RG(8),
-//	   TYPE_RN(9);
-//	   
-//	   private int typeCode;
-//	   
-//	   private SptReturnType(int typeCode) {
-//		   this.typeCode = typeCode;
-//	   }
-//	   
-//	   public int getTypeCode() {
-//		   return typeCode;
-//	   }
-//	   
-//	   public static SptReturnType getByValue(int codeType) {
-//		   SptReturnType retType = null;
-//		   for (SptReturnType rt : values()) {
-//			   if (rt.getTypeCode() == codeType) {
-//				   retType = rt;
-//				   break;
-//			   }
-//		   }
-//		   return retType;
-//	   }
-//	}
 	
 }

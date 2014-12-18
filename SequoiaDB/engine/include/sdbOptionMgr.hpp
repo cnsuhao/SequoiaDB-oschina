@@ -33,8 +33,6 @@
 
 *******************************************************************************/
 
-//#define SDB_HELP_ONLY       -1
-//#define SDB_VERSION_ONLY    -2
 
 #define SDB_POSITIONAL_OPTIONS_DESCRIPTION                        \
       destd.add ( "shell" , -1 );

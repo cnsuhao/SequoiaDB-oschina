@@ -115,8 +115,6 @@ namespace engine
                            , 1 ) ;
       }
       {
-      /// have no idea how to build a expected tree temporarily.
-      /// we'd better improve it.
       SQL_CON_ITR end = c.begin()->children.end() ;
       SQL_CON_ITR itr = c.begin()->children.begin();
       while ( TRUE )
@@ -273,7 +271,6 @@ namespace engine
                                          vitr->value.end()) ) ;
          ss << "," ;
       }
-      /// erase the last ','
       ss.seekp((INT32)ss.tellp()-1 ) ;
       }
       ss << "}" ;
@@ -296,7 +293,6 @@ namespace engine
       {
          if ( itr->children.empty() )
          {
-           /// selector = '*'
             goto done ;
          }
          for ( SQL_CON_ITR citr = itr->children.begin();
@@ -354,10 +350,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       stringstream ss ;
       string value = string( itr->value.begin(), itr->value.end() ) ;
-      /// leaf node.
       if ( itr->children.empty() )
       {
-         /// no idea why begin with ' '
          ss << boost::trim_copy(value) ;
       }
       else if ( 0 == value.compare( SQL_SYMBOL_LT ) )
@@ -581,7 +575,6 @@ namespace engine
       fullName = boost::trim_copy( string(itr->value.begin(),
                                               itr->value.end()) ) ;
 
-      /// the same tree. reuse func.
       rc = buildOrder( c2, fields ) ;
       if ( SDB_OK != rc )
       {

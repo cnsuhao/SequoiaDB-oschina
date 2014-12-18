@@ -88,7 +88,6 @@ namespace engine
       {
          --_limit;
       }
-      //0 < _limit ? --_limit:_limit;
    done:
       return rc ;
    error:
@@ -117,7 +116,6 @@ namespace engine
 
       if ( 0 != lastLen )
       {
-         /// keep the last obj in buf.
          ossMemcpy( _buf, _buf + _read, lastLen ) ;
       }
 
@@ -137,7 +135,6 @@ namespace engine
       goto done ;
    }
 
-///////////_rtnMergeSorting
    _rtnMergeSorting::_rtnMergeSorting( _dmsTmpBlkUnit *unit,
                                        const BSONObj &orderby )
    :_order( Ordering::make(orderby) ),
@@ -242,8 +239,6 @@ namespace engine
             goto error ;
          }
 
-         /// TODO: if there is only one blk left, we do not need to push record to
-         /// heap.
          rc = _pushObjFromSink( node.getI() ) ;
          if ( SDB_DMS_EOC == rc )
          {
@@ -256,7 +251,6 @@ namespace engine
          }
          else
          {
-            /// do noting.
          }
       }
       else if ( SDB_CLS_EMPTY_HEAP != rc )
@@ -356,7 +350,6 @@ namespace engine
                              node.tuple()->len());
                   _mergePos += node.tuple()->len() ;
                }
-               /// if the buf is full. out put to unit.
                else
                {
                   rc = _unit->seek( _unitHelper._outputStart ) ;
@@ -383,7 +376,6 @@ namespace engine
                   _unitHelper._outputStart += _mergePos ;
                   _unitHelper._newBlkSize += _mergePos ;
 
-                  /// reset mem info.
                   ossMemcpy( _buf, node.tuple(), node.tuple()->len() ) ;
                   _mergePos = node.tuple()->len() ;
                }
@@ -400,7 +392,6 @@ namespace engine
                }
                else
                {
-                  /// do nothing.
                }
             }
             else
@@ -432,7 +423,6 @@ namespace engine
             }
          } // while (TRUE)
 
-         /// one merge done.
          dmsTmpBlk blk ;
          rc = _unit->buildBlk( _unitHelper._outputStart - _unitHelper._newBlkSize,
                                _unitHelper._newBlkSize,
@@ -464,20 +454,17 @@ namespace engine
                       blkSize : _mergeMax ;
       _mergeBufSize = _size / _mergeBlkSize ;
       PD_LOG( PDDEBUG, "build [%d] blks to heap at tihs time.", _mergeBlkSize - 1 ) ;
-      /// start from 1. 0 is out put buf.
       for ( UINT32 i = 1; i < _mergeBlkSize; i++ )
       {
          PD_LOG( PDDEBUG, "put the [%d] blk [%s] to the heap",
                  i, src.front().toString().c_str() ) ;
 
-         /// init data sink
          _dataSink[i].init( src.front(),
                             _buf + i * _mergeBufSize,
                             _mergeBufSize, _limit );
          rc = _pushObjFromSink( i ) ;
          if ( SDB_OK == rc || SDB_DMS_EOC == rc )
          {
-            /// do noting. if first push returned eoc, means limit is 0.
          }
          else
          {

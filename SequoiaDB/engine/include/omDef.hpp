@@ -45,10 +45,8 @@ namespace engine
    #define OM_TEMPLATE_COORD_NUM       "coordnum"
    #define OM_TEMPLATE_TRANSACTION     PMD_OPTION_TRANSACTIONON
 
-   // database
    #define OM_DBPATH_PREFIX_DATABASE   "database"
 
-   // extend configure
    #define OM_CONF_DETAIL_EX_DG_NAME   "datagroupname"
 
    #define OM_SIZE_MEGABIT                   ( 1024 * 1024 )
@@ -56,7 +54,6 @@ namespace engine
    #define OM_INT32_LENGTH                   (20)
    #define OM_INT64_LENGTH                   (20)
 
-   // OM user's table
    #define  OM_DEFAULT_LOGIN_USER            "admin"
    #define  OM_DEFAULT_LOGIN_PASSWD          "admin"
 
@@ -78,7 +75,6 @@ namespace engine
    */
    #define OM_CS_DEPLOY                      "SYSDEPLOY"
 
-   // deploy.cluster
    #define OM_CS_DEPLOY_CL_CLUSTER           OM_CS_DEPLOY".SYSCLUSTER"
 
    #define OM_CLUSTER_FIELD_NAME             "ClusterName"
@@ -91,7 +87,6 @@ namespace engine
    #define OM_CS_DEPLOY_CL_CLUSTERIDX1       "{name:\"SYSDEPLOY_CLUSTER_IDX1\",key: {"\
                                              OM_CLUSTER_FIELD_NAME":1}, unique: true, enforced: true } "
 
-   // deploy.host                            
    #define OM_CS_DEPLOY_CL_HOST              OM_CS_DEPLOY".SYSHOST"
 
    #define OM_HOST_FIELD_NAME                "HostName"
@@ -138,7 +133,6 @@ namespace engine
                                              OM_HOST_FIELD_IP":1}, unique: true, enforced: true } "
 
 
-   // deploy.business
    #define OM_CS_DEPLOY_CL_BUSINESS          OM_CS_DEPLOY".SYSBUSINESS"
 
    #define OM_BUSINESS_FIELD_NAME            "BusinessName"
@@ -151,14 +145,12 @@ namespace engine
    #define OM_CS_DEPLOY_CL_BUSINESSIDX1      "{name:\"SYSDEPLOY_BUSINESS_IDX1\",key: {"\
                                              OM_BUSINESS_FIELD_NAME":1}, unique: true, enforced: true } "
 
-   // deploy.configure
    #define OM_CS_DEPLOY_CL_CONFIGURE         OM_CS_DEPLOY".SYSCONFIGURE"
 
    #define OM_CONFIGURE_FIELD_HOSTNAME       OM_HOST_FIELD_NAME
    #define OM_CONFIGURE_FIELD_BUSINESSNAME   OM_BUSINESS_FIELD_NAME
    #define OM_CONFIGURE_FIELD_CONFIG         "Config"
 
-   // deploy.taskinfo
    #define OM_CS_DEPLOY_CL_TASKINFO          OM_CS_DEPLOY".SYSTASKINFO"
 
    #define OM_TASKINFO_FIELD_TASKID          "TaskID"
@@ -175,7 +167,6 @@ namespace engine
    #define OM_CS_DEPLOY_CL_TASKINFOIDX1      "{name:\"SYSDEPLOY_TASKINFO_IDX1\",key: {"\
                                              OM_TASKINFO_FIELD_TASKID":1}, unique: true, enforced: true } "
 
-   // OM_REST_DEFINE
    #define  OM_REST_LOGIN_HTML               "login.html"
    #define  OM_REST_INDEX_HTML               "index.html"
    #define  OM_REST_FAVICON_ICO              "favicon.ico"
@@ -188,15 +179,12 @@ namespace engine
                                              "<meta http-equiv=\"refresh\" content=\"0;url="\
                                              OM_REST_INDEX_HTML"\"></head></html>"
 
-   //#define  OM_REST_RES_RETCODE              OP_ERRNOFIELD
    #define  OM_REST_RES_RETCODE              OP_ERRNOFIELD
    #define  OM_REST_RES_DETAIL               OP_ERR_DETAIL
    #define  OM_REST_RES_LOCAL                "local"
 
-   // *********************om command list****************************
    #define  OM_REST_FIELD_COMMAND            "cmd"
 
-   // ***************om rest create_cluster_req***********************
    #define  OM_CREATE_CLUSTER_REQ            "create cluster"
 
    #define  OM_REST_CLUSTER_INFO             "ClusterInfo"
@@ -217,39 +205,27 @@ namespace engine
    #define  OM_DEFAULT_INSTALL_PATH          "/opt/sequoiadb/"
 #endif
 
-   // *****************************************************************
 
-   // *********************om rest query_cluster_req*******************
    #define  OM_QUERY_CLUSTER_REQ             "query cluster"
 
    #define  OM_BSON_FIELD_INSTALLPATH        OM_CLUSTER_FIELD_INSTALLPATH
-   // *****************************************************************
 
-   // *********************om rest login_req***************************
    #define  OM_LOGIN_REQ                     "login"
 
    #define  OM_REST_FIELD_LOGIN_NAME         "User"
    #define  OM_REST_FIELD_LOGIN_PASSWD       "Passwd"
    #define  OM_REST_FIELD_TIMESTAMP          "Timestamp"
-   // *****************************************************************
 
-   // *********************om rest logout_req***************************
    #define  OM_LOGOUT_REQ                    "logout"
 
-   // *****************************************************************
 
 
-   // *********************om rest change passwd***********************
    #define  OM_CHANGE_PASSWD_REQ             "change passwd"
 
    #define  OM_REST_FIELD_NEW_PASSWD         "NewPasswd"
-   // *****************************************************************
 
-   // *******************om rest check_session_req*********************
    #define  OM_CHECK_SESSION_REQ             "check session"
-   // *****************************************************************
 
-   // *********************om rest scan_host_req***********************
    #define  OM_SCAN_HOST_REQ                 "scan host"
 
    #define  OM_REST_FIELD_HOST_INFO          "HostInfo"
@@ -263,8 +239,6 @@ namespace engine
 
    #define  OM_BSON_FIELD_AGENT_PORT         OM_HOST_FIELD_AGENT_PORT
 
-   // milliseconds
-   //one hours
    #define  OM_MSG_TIMEOUT_TWO_HOUR          (2 * 3600 * 1000)
    #define  OM_BASICCHECK_INTERVAL           OM_MSG_TIMEOUT_TWO_HOUR
    #define  OM_INSTALL_AGET_INTERVAL         OM_MSG_TIMEOUT_TWO_HOUR
@@ -275,21 +249,16 @@ namespace engine
    #define  OM_WAIT_PROGRESS_RES_INTERVAL    (3000)
    #define  OM_WAIT_AGENT_EXIT_RES_INTERVAL  (1000)
    #define  OM_WAIT_UPDATE_HOST_INTERVAL     (OM_MSG_TIMEOUT_TWO_HOUR)
-   // *****************************************************************
 
-   // *********************om rest check_host_req**********************
    #define  OM_CHECK_HOST_REQ                "check host"
 
-   // sub command with agent
    #define  OM_BASIC_CHECK_REQ               "basic check"
    #define  OM_INSTALL_REMOTE_AGENT          "install remote agent"
    #define  OM_UNINSTALL_REMOTE_AGENT        "uninstall remote agent"
 
    #define  OM_BSON_FIELD_OS                 "OS"
    #define  OM_BSON_FIELD_OM                 "OM"
-   // array
    #define  OM_BSON_FIELD_MEMORY             "Memory"
-   // array
    #define  OM_BSON_FIELD_DISK               OM_HOST_FIELD_DISK
    #define  OM_BSON_FIELD_DISK_NAME          OM_HOST_FIELD_DISK_NAME
    #define  OM_BSON_FIELD_DISK_SIZE          OM_HOST_FIELD_DISK_SIZE
@@ -299,24 +268,18 @@ namespace engine
 
    #define  OM_BSON_FIELD_DISK_CANUSE        "CanUse"
 
-   // MB
    #define  OM_MIN_DISK_FREE_SIZE            (600)
 
-   // array
    #define  OM_BSON_FIELD_CPU                OM_HOST_FIELD_CPU
-   // array
    #define  OM_BSON_FIELD_NET                OM_HOST_FIELD_NET
    #define  OM_BSON_FIELD_PORT               OM_HOST_FIELD_PORT
    #define  OM_BSON_FIELD_SERVICE            OM_HOST_FIELD_SERVICE
    #define  OM_BSON_FIELD_SAFETY             OM_HOST_FIELD_SAFETY
-   //
    #define  OM_BSON_FIELD_CONFIG             OM_CONFIGURE_FIELD_CONFIG
 
    #define  OM_BSON_FIELD_NEEDUNINSTALL      "IsNeedUninstall"
 
-   // *****************************************************************
 
-   // ***************om rest add_host_req******************************
    #define  OM_ADD_HOST_REQ                  "add host"
 
    #define  OM_ROLLBACK_TRANSACTION_REQ      "rollback transaction"
@@ -324,23 +287,14 @@ namespace engine
    #define  OM_BSON_FIELD_INSTALL_PATH       OM_HOST_FIELD_INSTALLPATH
    #define  OM_BSON_FIELD_TRANSACTION_ID     "TransactionID"
 
-   // with filename
    #define  OM_BSON_FIELD_PATCKET_PATH       "InstallPacket"
 
    #define  OM_PACKET_SUBPATH                "packet"
 
-   // *****************************************************************
-   // om rest list_host_req
    #define  OM_LIST_HOST_REQ                 "list host"
-   // *****************************************************************
 
-   // *****************************************************************
-   // om rest query_host_req
    #define  OM_QUERY_HOST_REQ                "query host"
-   // *****************************************************************
 
-   // *****************************************************************
-   // query host status
    #define  OM_QUERY_HOST_STATUS_REQ         "query host status"
 
    #define  OM_BSON_FIELD_CPU_SYS            "Sys"
@@ -364,9 +318,7 @@ namespace engine
    #define  OM_BSON_FIELD_NET_TXERRORS       "TXErrors"
    #define  OM_BSON_FIELD_NET_TXDROPS        "TXDrops"
 
-   // *****************************************************************
 
-   // om rest query_business_type_req
    #define  OM_QUERY_BUSINESS_TYPE_REQ       "query business type"
 
    #define  OM_BUSINESS_CONFIG_SUBDIR        "config"
@@ -380,9 +332,7 @@ namespace engine
    #define  OM_BSON_BUSINESS_TYPE            OM_BUSINESS_FIELD_TYPE
    #define  OM_BSON_BUSINESS_NAME            OM_BUSINESS_FIELD_NAME
    #define  OM_BSON_BUSINESS_DESC            "BusinessDesc"
-   // *****************************************************************
 
-   // om rest query_business_template_req
    #define  OM_QUERY_BUSINESS_TEMPLATE_REQ   "query business template"
 
    #define  OM_TEMPLATE_FILE_NAME            "_template.xml"
@@ -403,9 +353,7 @@ namespace engine
    #define  OM_BSON_PROPERTY_LEVEL           "Level"
    #define  OM_BSON_PROPERTY_WEBNAME         "WebName"
 
-   // *****************************************************************
 
-   // om rest config_business_req
    #define  OM_CONFIG_BUSINESS_REQ           "config business"
 
    #define  OM_CONFIG_ITEM_FILE_NAME         "_config.xml"
@@ -415,18 +363,14 @@ namespace engine
 
    #define  OM_BSON_PROPERTY_VALUE           "Value"
 
-   // *****************************************************************
 
-   // om rest install_business_req
    #define  OM_INSTALL_BUSINESS_REQ          "add business"
 
    #define  OM_REST_CONFIG_INFO              "ConfigInfo"
 
    #define  OM_BSON_TASKID                   "TaskID"
    #define  OM_BSON_TASKTYPE                 "TaskType"
-   // *****************************************************************
 
-   // om query install progress
    #define  OM_QUERY_PROGRESS                "query progress"
 
    #define  OM_REST_TASKID                   OM_BSON_TASKID
@@ -447,94 +391,63 @@ namespace engine
    #define  OM_TASK_STATUS_ROLLBACK          "rollback"
    #define  OM_TASK_STATUS_UNINSTALL         "uninstall"
    #define  OM_TASK_STATUS_ADDHOST           "addhost"
-   //******************************************************************
 
-   // om list node req
    #define  OM_LIST_NODE_REQ                 "list node"
 
 
    #define  OM_BSON_FIELD_SVCNAME            FIELD_NAME_SERVICE_NAME
    #define  OM_BSON_FIELD_ROLE               FIELD_NAME_ROLE
-   //******************************************************************
 
-   // om query node req
    #define  OM_QUERY_NODE_CONF_REQ           "query node configure"
 
    #define  OM_REST_BUSINESS_NAME            OM_BSON_BUSINESS_NAME
    #define  OM_REST_SVCNAME                  FIELD_NAME_SERVICE_NAME
 
-   //******************************************************************
 
-   // om list business req
    #define  OM_LIST_BUSINESS_REQ             "list business"
-   //******************************************************************
 
-   // om query business req
    #define  OM_QUERY_BUSINESS_REQ            "query business"
 
    #define  OM_REST_CLUSTER_NAME             OM_BSON_FIELD_CLUSTER_NAME
    #define  OM_BSON_BUSINESS_INFO            "BusinessInfo"
-   //******************************************************************
 
-   // om start business req
-   //******************************************************************
 
-   // om stop business req
-   //******************************************************************
 
-   // om remove cluster req
    #define  OM_REMOVE_CLUSTER_REQ            "remove cluster"
 
-   //******************************************************************
 
-   // om remove host req
    #define  OM_REMOVE_HOST_REQ               "remove host"
 
    #define  OM_REST_HOST_NAME                OM_BSON_FIELD_HOST_NAME
    #define  OM_REST_ISFORCE                  "IsForce"
 
-   //******************************************************************
 
-   // om remove business req
    #define  OM_REMOVE_BUSINESS_REQ           "remove business"
 
    #define  OM_SDB_AUTH_USER                 "AuthUser"
    #define  OM_SDB_AUTH_PASSWD               "AuthPasswd"
 
-   //******************************************************************
 
-   // om update hostname req
    #define  OM_UPDATE_HOSTNAME_REQ            "update hostname"
-   //******************************************************************
 
-   // om predict capacity req
    #define  OM_PREDICT_CAPACITY_REQ           "predict capacity"
 
    #define  OM_BSON_FIELD_VALID_SIZE          "ValidSize"
    #define  OM_BSON_FIELD_TOTAL_SIZE          "TotalSize"
    #define  OM_BSON_FIELD_REDUNDANCY_RATE     "RedundancyRate"
-   //******************************************************************
 
-   // om list task req
    #define  OM_LIST_TASK_REQ                 "list task"
-   //******************************************************************
 
-   // om query task req
    #define  OM_QUERY_TASK_REQ                "query task"
-   //******************************************************************
 
 
 
 
-   // agent query task req
    #define AGENT_QUERY_TASK_REQ              "query task"
-   //******************************************************************
 
 
 
-   // agent default localhost
    #define  OM_DEFAULT_LOCAL_HOST            "localhost"
-   // agent default port
    #define  OM_AGENT_DEFAULT_PORT            SDBCM_DFT_PORT
 
 

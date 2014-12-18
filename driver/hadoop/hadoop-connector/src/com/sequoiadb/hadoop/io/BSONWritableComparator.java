@@ -110,7 +110,6 @@ public class BSONWritableComparator extends WritableComparator {
 
     public int compare( Object a, Object b ){
         return compare(((BSONWritable)a).getBson(), ((BSONWritable)b).getBson());
-        //return super.compare( a, b );
     }
     
     private Iterator<Entry<String, Object>> getIterator(BSONObject obj) {
@@ -129,7 +128,6 @@ public class BSONWritableComparator extends WritableComparator {
         Iterator<Entry<String, Object>> iter2 = getIterator(obj2);
         
         while (iter1.hasNext()) {
-            // If the key, values up to now are the same, but 2 has more elements left
             if (!iter2.hasNext()) {
                 return -1;
             }
@@ -137,18 +135,14 @@ public class BSONWritableComparator extends WritableComparator {
             Entry<String, Object> entry1 = iter1.next();
             Entry<String, Object> entry2 = iter2.next();
             
-            // Different keys at this index
             int diff = entry1.getKey().compareTo(entry2.getKey());
             if (diff != 0) {
                 return diff;
             }
 
-            // Comparing the values (could be null values)
             Object one = entry1.getValue();
             Object two = entry2.getValue();
 
-            // For now MinKey won't be used here, so if the value is not 
-            // null, then the comparison order must be greater than null's
             if (one == null && two == null) {
                 continue;
             } 
@@ -159,7 +153,6 @@ public class BSONWritableComparator extends WritableComparator {
                 return 1;
             } else {
 
-                // Whether they're the same type
                 Integer oneValue = types.get(one.getClass());
                 Integer twoValue = types.get(two.getClass());
                 diff = oneValue.compareTo(twoValue);
@@ -169,7 +162,6 @@ public class BSONWritableComparator extends WritableComparator {
 
                 diff = compareValues(one, two);
 
-                // If not the same, return immediately, else keep checking
                 if (diff != 0) {
                     return diff;
                 }
@@ -187,14 +179,11 @@ public class BSONWritableComparator extends WritableComparator {
     private int compareValues(Object one, Object two) {
         int diff = 0;
         if (one instanceof Number) {
-            // Need to be comparing all numeric values to one another, 
-            // so cast all of them to Double
             diff = (Double.valueOf(one.toString())).
                     compareTo(Double.valueOf(two.toString()));
         } else if (one instanceof String) {
             diff = ((String) one).compareTo((String) two);
         } else if (one instanceof BSONObject) {
-            // BasicBSONObject and BasicBSONList both covered in this cast
             diff = compare((BSONObject) one, (BSONObject)two);
         } else if (one instanceof Binary) {
             ByteBuffer buff1 = ByteBuffer.wrap(((Binary) one).getData());
@@ -214,7 +203,6 @@ public class BSONWritableComparator extends WritableComparator {
             diff =compareBSONTimestamp((BSONTimestamp) one ,(BSONTimestamp) two);
         }
         
-        // MinKey, MaxKey, Pattern, Code, and CodeWScope aren't cast options
 
         return diff;
     }

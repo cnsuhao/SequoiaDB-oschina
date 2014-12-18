@@ -42,7 +42,6 @@
 
 namespace engine
 {
-   /// warning: any value can not be value-passed.
    static INT32 dpsPushTran( const DPS_TRANS_ID &transID,
                              const DPS_LSN_OFFSET &preTransLsn,
                              const DPS_LSN_OFFSET &relatedLSN,

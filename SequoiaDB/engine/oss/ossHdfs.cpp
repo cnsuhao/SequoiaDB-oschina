@@ -37,8 +37,6 @@
 #include "../util/hdfs.h"
 #include "ossHdfs.hpp"
 
-//typedef int ( OSS_MODULE_FUNCTION ) () ;
-//typedef OSS_MODULE_FUNCTION *OSS_MODULE_PFUNCTION ;
 
 #define OSS_HDFS_CONNECT    (hdfsFS(*)(const char*,unsigned short,const char*))
 #define OSS_HDFS_DISCONNECT (int(*)(hdfsFS))

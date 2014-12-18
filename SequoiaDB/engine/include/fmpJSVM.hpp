@@ -60,7 +60,6 @@ public:
 
    virtual INT32 initGlobalDB( BSONObj &res ) ;
 
-  // virtual INT32 compile( const BSONElement &func, const CHAR *name ) ;
 
 private:
    INT32 _transCode2Str( const BSONElement &ele, std::string &str ) ;

@@ -3,7 +3,6 @@
 #include <string.h>
 
 
-// class parseMandoc
 parseMandoc::parseMandoc()
 {
    memset(&curp, 0, sizeof(struct curparse));
@@ -33,7 +32,6 @@ INT32 parseMandoc::parse(const CHAR* filename)
 {
    INT32 rc = SDB_OK ;
    enum mandoclevel ret = MANDOCLEVEL_OK;
-   // parse the file
    ::parse(&curp, -1, filename, &ret);
    if  ( ret != MANDOCLEVEL_OK )
    {

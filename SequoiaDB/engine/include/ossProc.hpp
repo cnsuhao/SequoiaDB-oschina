@@ -50,13 +50,11 @@
 #define PROC_STATUS_ZOMBIE             'Z'
 #endif
 #define OSS_EXECV_CAST                 char*const*
-// define ossExec execute flags
 #define OSS_EXEC_INHERIT_HANDLES       1 // inherit fd/handles in new process
 #define OSS_EXEC_SSAVE                 2 // sync process, return result
 #define OSS_EXEC_NORESIZEARGV          4 // not resize buffer for argv for rename
 #define OSS_EXEC_NODETACHED            8 // not detached
 
-// define term code
 #define OSS_EXIT_NORMAL 0
 #define OSS_EXIT_ERROR  1
 #define OSS_EXIT_TRAP   2

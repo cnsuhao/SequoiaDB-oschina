@@ -66,7 +66,6 @@ namespace engine
       }
       else
       {
-         //store type to TID and dispatch restore
          pNewMsg->TID = (UINT32)CLS_SHARD ;
          _pMgrEDUCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
                                              PMD_EDU_MEM_ALLOC,
@@ -89,7 +88,6 @@ namespace engine
    void _replMsgHandler::_postMainMsg( const NET_HANDLE &handle,
                                        MsgHeader *pNewMsg )
    {
-      //store type to TID and dispatch restore
       pNewMsg->TID = (UINT32)CLS_REPL ;
       _pMgrEDUCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
                                           PMD_EDU_MEM_ALLOC,

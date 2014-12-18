@@ -1,4 +1,3 @@
-// inline_decls.h
 
 /*    Copyright 2010 10gen Inc.
  *

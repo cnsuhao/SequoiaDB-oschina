@@ -141,7 +141,6 @@ namespace engine
       pMsgHead = (MsgHeader *)pMsgReq;
       pMsgHead->TID = cb->getTID();
 
-      // execute on data nodes
       rc = executeOnDataGroup( pMsgReq, pRouteAgent, cb );
       PD_RC_CHECK( rc, PDERROR,
                   "failed to execute on data-group on phase1(rc=%d)",
@@ -178,7 +177,6 @@ namespace engine
       pMsgHead = (MsgHeader *)pMsgReq;
       pMsgHead->TID = cb->getTID();
 
-      // execute on data nodes
       rc = executeOnDataGroup( pMsgReq, pRouteAgent, cb );
       PD_RC_CHECK( rc, PDERROR,
                   "failed to execute on data-group on phase1(rc=%d)",
@@ -198,7 +196,6 @@ namespace engine
                                          CHAR * * ppResultBuffer, pmdEDUCB * cb,
                                          MsgOpReply & replyHeader )
    {
-      // do nothing
       return SDB_OK;
    }
 

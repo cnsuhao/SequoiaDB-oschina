@@ -70,18 +70,15 @@ typedef  INT64 QGM_HT_CONTEXT ;
 
       void clear() ;
 
-      /// release data and mem.
       void release() ;
    private:
 
 #pragma pack(1)
       struct hashTuple
       {
-         // BSONElement start
          const CHAR *data ;
          INT32 fieldNameSize ;
          INT32 totalSize ;
-         // BSONElement end
 
          const CHAR *value ; // bosnobj rawdata.
          hashTuple *next ;

@@ -37,14 +37,6 @@
 #include "core.hpp"
 #include "pdTrace.hpp"
 
-// Whenever we add a new component, we have to modify
-// 1) pdTrace.hpp ( the component list )
-// 2) pdComponents.cpp ( component list string )
-// 3) pdTrace.hpp ( _pdTraceComponentNum )
-// 4) add a new directory with EXACT same component name
-// 5) create <comp>Trace.hpp which will include <comp>Trace.h
-// There will be <comp>Trace.h automatically created in include directory
-// Note there are max 32 components can be added into list
 const CHAR *_pdTraceComponentDir[] = {
    "auth",   // PD_TRACE_COMPONENT_AUTH
    "bps",    // PD_TRACE_COMPONENT_BPS

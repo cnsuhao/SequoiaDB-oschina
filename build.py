@@ -65,7 +65,7 @@ err_exit( rs, 'Failed to build engine/tools/testcases/shell/client/fmp!')
 
 #build php driver
 php_code_path = code_path + '/driver/php5'
-build_php_cmd_common = build_cmd_pre + '--phpversion='
+build_php_cmd_common = build_cmd_pre + ' --phpversion='
 php_ver_file_path = ''
 if os_type == 'Windows' or os_type == 'Microsoft':
    php_ver_file_path = php_code_path + '/php_ver_win.list'
@@ -84,7 +84,6 @@ try:
       err_exit( rs, 'Failed to build PHP driver!' )
 finally:
    php_ver_file_obj.close()
-
 #build java driver
 java_code_path = code_path + '/driver/java'
 build_java_cmd = build_cmd_pre

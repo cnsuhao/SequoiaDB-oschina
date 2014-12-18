@@ -59,7 +59,6 @@ namespace engine
    INT32 sdbGetErrno() ;
    void  sdbSetErrno( INT32 errNum ) ;
 
-   // clear msg and errno
    void  sdbClearErrorInfo() ;
 
    BOOLEAN  sdbNeedPrintError() ;

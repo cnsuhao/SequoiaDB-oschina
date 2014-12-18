@@ -112,27 +112,6 @@ typedef struct
    } ;
 } FILE_QUERY_DIRECTORY, *PFILE_QUERY_DIRECTORY ;
 
-// ntdll!NtQueryDirectoryFile ( NT Specific )
-//
-// The function searches a directory for a file whose name and
-// attributes match those specified in the function call.
-//
-// NTSYSAPI
-// NTSTATUS
-// NTAPI
-// NtQueryDirectoryFile (
-//    IN HANDLE FileHandle,
-//    IN HANDLE EventHandle OPTIONAL,
-//    IN PIO_APC_ROUTINE ApcRoutine OPTIONAL,
-//    IN PVOID ApcContext OPTIONAL,
-//    OUT PIO_STATUS_BLOCK IoStatusBlock,
-//    OUT PVOID Buffer,
-//    IN ULONG BufferLength,
-//    IN FILE_INFORMATION_CLASS InformationClass,
-//    IN BOOLEAN ReturnByOne,
-//    IN PUNICODE_STRING FileTemplate OPTIONAL,
-//    IN BOOLEAN Reset
-// ) ;
 typedef LONG ( WINAPI *PROCNTQDF ) ( HANDLE, HANDLE, PVOID, PVOID,
                                      PIO_STATUS_BLOCK, PVOID, ULONG,
                                      UINT, BOOL, PUNICODE_STRING, BOOL ) ;
@@ -153,12 +132,10 @@ static INT32 _ossEnumNamedPipes ( vector<string> &names,
    LPWSTR pszWString = NULL ;
    DWORD dwString ;
    CHAR DirInfoBuffer [1024] ;
-   // load NtQueryDirectoryFile function pointer from ntdll
    NtQueryDirectoryFile = (PROCNTQDF)GetProcAddress(
                                      GetModuleHandle(L"ntdll"),
                                      OSS_NPIPE_NTQUERYDIRECTORYFILE
                                      ) ;
-   // make sure the function pointer is valid
    if ( !NtQueryDirectoryFile )
    {
       PD_LOG ( PDERROR, "Failed to load "OSS_NPIPE_NTQUERYDIRECTORYFILE ) ;
@@ -166,7 +143,6 @@ static INT32 _ossEnumNamedPipes ( vector<string> &names,
       goto done ;
    }
 
-   // prepare open pipe string
    rc = ossANSI2WC ( pRootPath, &pszWString, &dwString ) ;
    if ( rc )
    {
@@ -174,7 +150,6 @@ static INT32 _ossEnumNamedPipes ( vector<string> &names,
                rc ) ;
       goto done ;
    }
-   // open pipe file
    hPipe = CreateFile ( pszWString, GENERIC_READ,
                         FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
                         NULL, OPEN_EXISTING, 0, NULL ) ;
@@ -198,7 +173,6 @@ static INT32 _ossEnumNamedPipes ( vector<string> &names,
 
    while ( TRUE )
    {
-      // iterate pipes
       ntStatus = NtQueryDirectoryFile ( hPipe, NULL, NULL, NULL, &IoStatus,
                                         DirInfo, 1024, FileDirectoryInformation,
                                         FALSE, NULL,
@@ -215,11 +189,9 @@ static INT32 _ossEnumNamedPipes ( vector<string> &names,
       TmpInfo = DirInfo ;
       while ( TRUE )
       {
-         // store old values before we mangle the buffer
          const INT32 endStringAt = TmpInfo->FileNameLength/sizeof(WCHAR) ;
          const WCHAR oldValue = TmpInfo->FileDirectoryInformationClass.FileName[
                                       endStringAt] ;
-         // place a null char at the end of string so we can convert to string
          TmpInfo->FileDirectoryInformationClass.FileName[endStringAt] = NULL ;
          rc = ossWC2ANSI ( TmpInfo->FileDirectoryInformationClass.FileName,
                            &pszString, &dwString ) ;
@@ -231,7 +203,6 @@ static INT32 _ossEnumNamedPipes ( vector<string> &names,
                      rc ) ;
             goto done ;
          }
-         // add pipe name to output
          names.push_back ( string ( pszString ) ) ;
          SDB_OSS_FREE ( pszString ) ;
          pszString = NULL ;
@@ -265,13 +236,6 @@ error :
    goto done ;
 }
 
-// enumate all named pipes that EXACT matches pattern
-// if pattern is NULL, the call will enumerate all pipes in the system
-// For example if we are looking for name "sequoiadb_engine_50000",
-// then pattern will be "sequoiadb_engine_50000", any other pipe name
-// will not match it.
-// Users can check the size of "names" to verify whether the given pipe
-// name exists in the system
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSENUMNMPS2, "ossEnumNamedPipes" )
 INT32 ossEnumNamedPipes ( std::vector<std::string> &names,
                           const CHAR *pattern,
@@ -367,7 +331,6 @@ INT32 ossCreateNamedPipe ( const CHAR *name,
    }
 
    handle._state = action ;
-   // read or write or read/write
    switch ( action & OSS_NPIPE_DUPLEX )
    {
    case OSS_NPIPE_INBOUND :
@@ -535,7 +498,6 @@ INT32 ossOpenNamedPipe ( const CHAR *name,
                name ) ;
       goto error ;
    }
-   // wait until the pipe is availiable
    if ( doWait && !WaitNamedPipe ( lpwstrName, waitTimeout ) )
    {
       rc = ossGetLastError () ;
@@ -544,7 +506,6 @@ INT32 ossOpenNamedPipe ( const CHAR *name,
       goto error ;
    }
 
-   // check for overlap flag
    if ( action & OSS_NPIPE_BLOCK_WITH_TIMEOUT )
    {
       handle._overlappedFlag = OSS_NPIPE_OVERLAP_ENABLED ;
@@ -565,7 +526,6 @@ INT32 ossOpenNamedPipe ( const CHAR *name,
       PD_LOG ( PDERROR, "Failed to open pipe, error = %d", rc ) ;
       goto error ;
    }
-   // everything must be fine here, otherwise we should jump to error
    if ( handle._overlappedFlag )
    {
       handle._overlapped.Offset = 0 ;
@@ -654,7 +614,6 @@ INT32 ossConnectNamedPipe ( OSSNPIPE &handle,
       OSS_BIT_CLEAR ( handle._overlappedFlag,
                       OSS_NPIPE_OVERLAP_IOPENDING ) ;
 
-      // if we are waiting for IO, let's wait for event
       if ( OSS_NPIPE_INFINITE_TIMEOUT == timeout )
       {
          connectTimeout = -1 ;
@@ -663,7 +622,6 @@ INT32 ossConnectNamedPipe ( OSSNPIPE &handle,
       {
          connectTimeout = timeout * 1000 ;
       }
-      // wait until something arrive
       rc = ossWaitInterrupt ( handle._overlapped.hEvent,
                               connectTimeout ) ;
       if ( rc )
@@ -672,7 +630,6 @@ INT32 ossConnectNamedPipe ( OSSNPIPE &handle,
       }
       else
       {
-         // check how many bytes we received
          if ( !GetOverlappedResult ( handle._handle, &handle._overlapped,
                                      &recv, FALSE ) )
          {
@@ -707,7 +664,6 @@ INT32 ossReadNamedPipe ( OSSNPIPE &handle,
                     handle._overlappedFlag?&handle._overlapped:NULL ) )
    {
       rc = ossGetLastError () ;
-      // if we get io pending, let's try to wait and read it
       if ( handle._overlappedFlag && ( ERROR_IO_PENDING == rc ) )
       {
          rc = SDB_OK ;
@@ -719,7 +675,6 @@ INT32 ossReadNamedPipe ( OSSNPIPE &handle,
          {
             timeWait = timeout * 1000 ;
          }
-         // wait for interrupt
          rc = ossWaitInterrupt ( handle._overlapped.hEvent, timeWait ) ;
          if ( SDB_OK == rc )
          {
@@ -735,8 +690,6 @@ INT32 ossReadNamedPipe ( OSSNPIPE &handle,
          }
          else
          {
-            // if something wrong with overlapped IO, we need to cancel the
-            // read request
             if ( !CancelIo ( handle._handle ) )
             {
                rc = ossGetLastError () ;
@@ -745,14 +698,12 @@ INT32 ossReadNamedPipe ( OSSNPIPE &handle,
                rc = SDB_SYS ;
                goto error ;
             }
-            // if something sent anything before canceling io, let's receive
             if ( !GetOverlappedResult ( handle._handle, &handle._overlapped,
                                         &tempRead, FALSE ) )
             {
                rc = ossGetLastError () ;
                if ( ERROR_OPERATION_ABORTED == rc )
                {
-                  // this is expected, so we get timeout here
                   rc = SDB_TIMEOUT ;
                   goto error ;
                }
@@ -814,7 +765,6 @@ INT32 ossWriteNamedPipe ( OSSNPIPE &handle,
       rc = ossGetLastError () ;
       if ( handle._overlappedFlag && ( ERROR_IO_PENDING == rc ) )
       {
-         // wait for interrupt forever
          rc = ossWaitInterrupt ( handle._overlapped.hEvent,
                                  OSS_NPIPE_INFINITE_TIMEOUT ) ;
          if ( SDB_OK == rc )
@@ -972,8 +922,6 @@ INT32 ossCleanNamedPipeByName ( const CHAR * pipeName,
 {
    (void *) pipeName ; // avoid compiler warning
 
-   // Windows will automatically clean up any open pipe when process exits,
-   // So there is no need to do anything here
    return SDB_OK ;
 }
 
@@ -1076,7 +1024,6 @@ INT32 ossOpenNamedPipe ( const CHAR *name,
    {
       PD_LOG ( PDERROR, "Named pipe is too long: %s", pathName.c_str() ) ;
       rc = SDB_INVALIDARG ;
-      // we don't need to check rc in error here
       goto done ;
    }
 
@@ -1104,8 +1051,6 @@ INT32 ossOpenNamedPipe ( const CHAR *name,
    while ( ( -1 == handle._handle ) && ( (rc = ossGetLastError()) == EINTR ) ) ;
    if ( -1 == handle._handle )
    {
-// only display the error in release mode because debug mode may display
-// messages on screen and we don't want this error ruin the sdb output
 #if defined ( _DEBUG )
 #else
       PD_LOG ( PDERROR, "Failed to open named pipe: %s, errno = %d",
@@ -1113,7 +1058,6 @@ INT32 ossOpenNamedPipe ( const CHAR *name,
 #endif
       goto error ;
    }
-   // when fd is opened, we have to check the fd is FIFO
    if ( -1 == oss_fstat ( handle._handle, &st ) )
    {
       rc = ossGetLastError () ;
@@ -1129,7 +1073,6 @@ INT32 ossOpenNamedPipe ( const CHAR *name,
       PD_LOG ( PDERROR, "name %s is not pipe", handle._name ) ;
       goto done ;
    }
-   // check number of bytes can be written to pipe
    if ( -1 == ( handle._bufSize = fpathconf ( handle._handle, _PC_PIPE_BUF )))
    {
       rc = ossGetLastError () ;
@@ -1195,7 +1138,6 @@ INT32 ossReadNamedPipe ( OSSNPIPE &handle,
       }
       else if ( rc > 0 && ( FD_ISSET ( handle._handle, &fds ) ) )
       {
-         // data arrive
       }
       else
       {

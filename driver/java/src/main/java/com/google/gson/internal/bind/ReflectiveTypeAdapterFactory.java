@@ -77,7 +77,6 @@ public final class ReflectiveTypeAdapterFactory implements TypeAdapterFactory {
       final TypeToken<?> fieldType, boolean serialize, boolean deserialize) {
     final boolean isPrimitive = Primitives.isPrimitive(fieldType.getRawType());
 
-    // special casing primitives here saves ~5% on Android...
     return new ReflectiveTypeAdapterFactory.BoundField(name, serialize, deserialize) {
       final TypeAdapter<?> typeAdapter = context.getAdapter(fieldType);
       @SuppressWarnings({"unchecked", "rawtypes"}) // the type adapter and field type always agree

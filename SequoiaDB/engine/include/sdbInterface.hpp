@@ -66,7 +66,6 @@ namespace engine
       SDB_CB_OMAGT,
 
       SDB_CB_PMDCTRL,
-      // THE MAX CB TYPE
       SDB_CB_MAX
    } ;
 
@@ -80,7 +79,6 @@ namespace engine
       SDB_IF_EVT_HANDLER,
       SDB_IF_EVT_HOLDER,
 
-      // THD MAX IF TYPE
       SDB_IF_MAX
    } ;
 
@@ -100,7 +98,6 @@ namespace engine
       SDB_SESSION_SPLIT_DST,
       SDB_SESSION_OMAGENT,
 
-      // Reserved
       SDB_SESSION_MAX
    } ;
 
@@ -112,7 +109,6 @@ namespace engine
       SDB_CLIENT_EXTERN    = 1,  // external client,ex: local service
       SDB_CLIENT_INNER,          // inner client, ex: shard service
 
-      // Reserved
       SDB_CLIENT_MAX
    } ;
 

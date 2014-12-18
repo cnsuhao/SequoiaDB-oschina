@@ -86,7 +86,6 @@ namespace engine
                       BOOLEAN isCloseInterval ) ;
 
    private:
-      // forbid copy constructor
       clsCatalogPredicateTree( clsCatalogPredicateTree &right ){}
    private:
       VEC_CLSCATAPREDICATESET       _children ;

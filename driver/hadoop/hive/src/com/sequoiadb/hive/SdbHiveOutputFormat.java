@@ -49,7 +49,6 @@ public class SdbHiveOutputFormat implements OutputFormat<NullWritable, BytesWrit
 	@Override
 	public void checkOutputSpecs(FileSystem arg0, JobConf arg1)
 			throws IOException {
-		// TODO Auto-generated method stub
 
 	}
 

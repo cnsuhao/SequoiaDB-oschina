@@ -46,7 +46,6 @@ public class SequoiadbBlockReader extends RecordReader<Object, BSONWritable> {
     private long seen = 0;
     private long total;
 	
-//    public SequoiadbBlockReader(InputSplit inputSplit,String collectionSpaceName,String collectionName){
       public SequoiadbBlockReader(InputSplit inputSplit, Configuration conf){
     	if(inputSplit==null||!(inputSplit instanceof SdbBlockSplit)){
     		throw new IllegalArgumentException("the inputsplit is not SdbBlockSplit" );
@@ -55,7 +54,6 @@ public class SequoiadbBlockReader extends RecordReader<Object, BSONWritable> {
 		String collectionSpaceName = SequoiadbConfigUtil.getInCollectionSpaceName(conf);
 		String queryStr = SequoiadbConfigUtil.getQueryString(conf);
 		String selectorStr = SequoiadbConfigUtil.getSelectorString(conf);
-//		String orderbyStr = SequoiadbConfigUtil.getOrderbyString(conf);
 		
     	this.sdbBlockSplit=(SdbBlockSplit)inputSplit;
     	   	
@@ -64,7 +62,6 @@ public class SequoiadbBlockReader extends RecordReader<Object, BSONWritable> {
     	}
     	
     	this.sequoiadb = new Sequoiadb(this.sdbBlockSplit.getSdbAddr().getHost(), this.sdbBlockSplit.getSdbAddr().getPort(),null,null);
-
     	CollectionSpace collectionSpace=sequoiadb.getCollectionSpace(collectionSpaceName);
     	if(collectionSpace==null){
     		throw new IllegalArgumentException(" the CS not exists");
@@ -87,23 +84,23 @@ public class SequoiadbBlockReader extends RecordReader<Object, BSONWritable> {
     	BSONObject selectorBson = null;
     	BSONObject orderbyBson = null;
 
-    	log.info("queryStr = " + queryStr);
-    	log.info("selectorStr = " + selectorStr);
-//    	log.info("orderbyStr = " + orderbyStr);
-    	if ( queryStr != null && !queryStr.equalsIgnoreCase("null") ){
-    		queryBson = (BSONObject) JSON.parse( queryStr );
+    	if ( queryStr != null){  //格式有问题
+    		try {
+    			queryBson = (BSONObject) JSON.parse( queryStr );
+			} catch (Exception e) {
+			}
     		log.info( "queryBson = " + queryBson.toString() );
     	}
-    	if ( selectorStr != null && !selectorStr.equalsIgnoreCase("null") ){
-    		
-    		selectorBson = (BSONObject) JSON.parse( selectorStr );
-    		selectorBson.put("_id", null);
+    	if ( selectorStr != null){ //格式有问题
+    		try {
+    			selectorBson = (BSONObject) JSON.parse( selectorStr );
+    			selectorBson.put("_id", null);
+			} catch (Exception e) {
+				
+			}
     		log.info( "selectorBson = " + selectorBson.toString() );
     	}
-//    	if ( orderbyStr != null && !orderbyStr.equalsIgnoreCase("null") ){
-//    		orderbyBson = (BSONObject) JSON.parse(orderbyStr);
-//    		log.info( "orderbyBson = " + orderbyBson.toString() );
-//    	}
+
     	this.cursor=dbCollection.query( queryBson, 
     			                        selectorBson,
     			                        orderbyBson,

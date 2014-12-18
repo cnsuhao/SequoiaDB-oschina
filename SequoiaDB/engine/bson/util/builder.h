@@ -93,7 +93,6 @@ accesses) is the same as if
 
     template< class Allocator >
     class _BufBuilder {
-        // non-copyable, non-assignable
         _BufBuilder( const _BufBuilder& );
         _BufBuilder& operator=( const _BufBuilder& );
         Allocator al;
@@ -242,7 +241,6 @@ accesses) is the same as if
 
 #if defined(_WIN32)
 #pragma warning( push )
-// warning C4996: 'sprintf': This function or variable may be unsafe. Consider using sprintf_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS.
 #pragma warning( disable : 4996 )
 #endif
 
@@ -314,7 +312,6 @@ accesses) is the same as if
     private:
         BufBuilder _buf;
 
-        // non-copyable, non-assignable
         StringBuilder( const StringBuilder& );
         StringBuilder& operator=( const StringBuilder& );
 

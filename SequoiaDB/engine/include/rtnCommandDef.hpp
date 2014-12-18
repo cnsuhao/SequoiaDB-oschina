@@ -94,7 +94,6 @@ namespace engine
 
 #define NAME_JSON_LOAD                       CMD_NAME_JSON_LOAD
 
-// the commands that does not supported by data nodes or standalone mode
 #define NAME_CREATE_GROUP                    CMD_NAME_CREATE_GROUP
 #define NAME_REMOVE_GROUP                    CMD_NAME_REMOVE_GROUP
 #define NAME_CREATE_NODE                     CMD_NAME_CREATE_NODE
@@ -197,7 +196,6 @@ namespace engine
       CMD_LINK_COLLECTION                    = 150,
       CMD_UNLINK_COLLECTION                  = 151,
 
-      // trace commands
       CMD_TRACE_START                        = 160,
       CMD_TRACE_RESUME                       = 161,
       CMD_TRACE_STOP                         = 162,

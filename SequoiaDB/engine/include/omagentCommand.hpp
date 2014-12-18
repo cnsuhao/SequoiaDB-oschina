@@ -104,7 +104,6 @@ namespace engine
          UINT32                          _readSize ;
          vector<BSONObj>                 _hosts ;
          string                          _content ;
-//         map<string, string>  _jsFiles ;
          vector< pair<string, string> >  _jsFiles ;
          _sptScope            *_scope ;
    } ;
@@ -275,7 +274,6 @@ namespace engine
    */
    class _omaAddHost2 : public _omaCommand
    {
-//      DECLARE_OACMD_AUTO_REGISTER()
       public:
          _omaAddHost2 () ;
          ~_omaAddHost2 () ;
@@ -299,7 +297,6 @@ namespace engine
          ~_omaRemoveHost () ;
          virtual const CHAR * name () { return OMA_CMD_REMOVE_HOST ; }
          virtual INT32 init ( const CHAR *pInstallInfo ) ;
-         //virtual INT32 final( BSONObj &rval, BSONObj &retObj ) ;
    } ;
 
    /******************************* install db business ***********************/
@@ -335,9 +332,7 @@ namespace engine
       private:
          INT32 _getCataAddr( BSONObj &obj ) ;
          
-         // raw unistall info
          BSONObj                     _uninstallInfoObj ;
-         // uninstall info after category
          vector<BSONObj>             _coord ;
          vector<BSONObj>             _catalog ;
          vector<BSONObj>             _data ;
@@ -383,8 +378,6 @@ namespace engine
             return OMA_CMD_UPDATE_HOSTS ;
          }
          virtual INT32 init ( const CHAR *pInstallInfo ) ;
-//         virtual INT32 doit ( BSONObj &retObj ) ;
-//         virtual INT32 final( BSONObj &rval, BSONObj &retObj ) ;
    } ; 
 
    /***************************** query host status ********************/
@@ -405,7 +398,6 @@ namespace engine
       private:
    } ;
 
-   // _omaCreateVirtualCoord
    class _omaCreateVirtualCoord : public _omaCommand
    {
       public:
@@ -418,7 +410,6 @@ namespace engine
          INT32 createVirtualCoord ( BSONObj &retObj ) ;
    } ;
 
-   // _omaRemoveVirtualCoord
    class _omaRemoveVirtualCoord : public _omaCommand
    {
       public:
@@ -432,7 +423,6 @@ namespace engine
          CHAR _vCoordSvcName[OSS_MAX_SERVICENAME + 1] ;
    } ;
 
-   // _omaAddHostRollbackInternal
    class _omaAddHostRollbackInternal : public _omaCommand
    {
       public:
@@ -442,7 +432,6 @@ namespace engine
          virtual INT32 init ( const CHAR *pInstallInfo ) ;
    } ;
 
-   // _omaRunAddHost
    class _omaRunAddHost : public _omaCommand
    {
       public:
@@ -458,7 +447,6 @@ namespace engine
          AddHostInfo         _addHostInfo ;
    } ;
 
-   // _omaRunRmHost
    class _omaRunRmHost : public _omaCommand
    {
       public:
@@ -473,7 +461,6 @@ namespace engine
          AddHostInfo         _RmHostInfo ;
    } ;
 
-   // _omaRunCheckAddHostInfo
    class _omaRunCheckAddHostInfo : public _omaCommand
    {
       public:
@@ -483,7 +470,6 @@ namespace engine
          virtual INT32 init ( const CHAR *pInstallInfo ) ;
    } ;
 
-   // run create standalone job
    class _omaRunCreateStandaloneJob : public _omaCommand
    {
       public:
@@ -501,7 +487,6 @@ namespace engine
          string                                         _vCoordSvcName ;
    } ;
 
-   // run create catalog job
    class _omaRunCreateCatalogJob : public _omaCommand
    {
       public:
@@ -519,7 +504,6 @@ namespace engine
          string                                         _vCoordSvcName ;
    } ;
 
-   // run create coord job
    class _omaRunCreateCoordJob : public _omaCommand
    {
       public:
@@ -537,7 +521,6 @@ namespace engine
          string                                         _vCoordSvcName ;
    } ;
 
-   // run create data node job
    class _omaRunCreateDataNodeJob : public _omaCommand
    {
       public:
@@ -555,7 +538,6 @@ namespace engine
          string                                         _vCoordSvcName ;
    } ;
 
-   // install db business task run rollback standalone job
    class _omaRunRollbackStandaloneJob : public _omaCommand
    {
       public:
@@ -575,7 +557,6 @@ namespace engine
          string                                         _vCoordSvcName ;
    } ;
 
-   // install db business task run rollback coord job
    class _omaRunRollbackCoordJob : public _omaCommand
    {
       public:
@@ -593,7 +574,6 @@ namespace engine
          string                                         _vCoordSvcName ;
    } ;
 
-   // install db business task run rollback catalog job
    class _omaRunRollbackCatalogJob : public _omaCommand
    {
       public:
@@ -611,7 +591,6 @@ namespace engine
          string                                         _vCoordSvcName ;
    } ;
 
-   // install db business task run rollback data nodes job
    class _omaRunRollbackDataNodeJob : public _omaCommand
    {
       public:
@@ -631,7 +610,6 @@ namespace engine
          string                                         _vCoordSvcName ;
    } ;
 
-   // remove standalone 
    class _omaRmStandalone : public _omaCommand
    {
       public:
@@ -647,7 +625,6 @@ namespace engine
 */
    } ;
 
-   // remove catalog group 
    class _omaRmCataRG : public _omaCommand
    {
       public:
@@ -665,7 +642,6 @@ namespace engine
          string                                         _vCoordSvcName ;
    } ;
 
-   // remove coord group 
    class _omaRmCoordRG : public _omaCommand
    {
       public:
@@ -683,7 +659,6 @@ namespace engine
          string                                         _vCoordSvcName ;
    } ;
 
-   // remove data group 
    class _omaRmDataRG : public _omaCommand
    {
       public:

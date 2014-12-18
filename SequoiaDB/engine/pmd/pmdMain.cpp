@@ -76,7 +76,6 @@ namespace engine
       }
 
       rc = pmdGetOptionCB()->init( argc, argv, exePath ) ;
-      // if user only ask for help information, we simply return
       if ( SDB_PMD_HELP_ONLY == rc || SDB_PMD_VERSION_ONLY == rc )
       {
          PMD_SHUTDOWN_DB( SDB_OK ) ;
@@ -104,11 +103,9 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      //analysis the start type
       rc = pmdGetStartup().init( pmdGetOptionCB()->getDbPath() ) ;
       PD_RC_CHECK( rc, PDERROR, "Start up check failed[rc:%d]", rc ) ;
 
-      // Init qgm strategy table
       rc = getQgmStrategyTable()->init() ;
       PD_RC_CHECK( rc, PDERROR, "Init qgm strategy table failed, rc: %d",
                    rc ) ;
@@ -134,7 +131,6 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Failed to rebuild database, rc: %d",
                          rc ) ;
 
-            // cut all dps
             rc = sdbGetDPSCB()->move( 0, 0 ) ;
             if ( rc )
             {
@@ -153,7 +149,6 @@ namespace engine
       goto done ;
    }
 
-   // based on millisecond
    #define PMD_START_WAIT_TIME         ( 60000 )
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDMSTTHRDMAIN, "pmdMasterThreadMain" )
@@ -164,7 +159,6 @@ namespace engine
       pmdKRCB   *krcb     = pmdGetKRCB () ;
       UINT32     startTimerCount = 0 ;
 
-      // 1. read command line first
       rc = pmdResolveArguments ( argc, argv ) ;
       if ( rc )
       {
@@ -177,7 +171,6 @@ namespace engine
          return rc ;
       }
 
-      // 2. enalble pd log
       sdbEnablePD( pmdGetOptionCB()->getDiagLogPath(),
                    pmdGetOptionCB()->diagFileNum() ) ;
       setPDLevel( (PDLEVEL)( pmdGetOptionCB()->getDiagLevel() ) ) ;
@@ -188,29 +181,24 @@ namespace engine
                SDB_ENGINE_SUBVERSION_CURRENT, SDB_ENGINE_RELEASE_CURRENT,
                SDB_ENGINE_BUILD_TIME ) ;
 
-      // 3. printf all configs
       {
          BSONObj confObj ;
          krcb->getOptionCB()->toBSON( confObj ) ;
          PD_LOG( PDEVENT, "All configs: %s", confObj.toString().c_str() ) ;
       }
 
-      // 4. handlers and init global mem
       rc = pmdEnableSignalEvent( pmdGetOptionCB()->getDiagLogPath(),
                                  (PMD_ON_QUIT_FUNC)pmdOnQuit ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to enable trap, rc: %d", rc ) ;
 
-      // 5. register cbs
       sdbGetPMDController()->registerCB( pmdGetDBRole() ) ;
 
-      // 6. system init
       rc = _pmdSystemInit() ;
       if ( rc )
       {
          goto error ;
       }
 
-      // 7. inti krcb
       rc = krcb->init() ;
       if ( rc )
       {
@@ -218,14 +206,12 @@ namespace engine
          goto error ;
       }
 
-      // 8. post init
       rc = _pmdPostInit() ;
       if ( rc )
       {
          goto error ;
       }
 
-      // wait until business is ok
       while ( PMD_IS_DB_UP && startTimerCount < PMD_START_WAIT_TIME &&
               !krcb->isBusinessOK() )
       {
@@ -246,9 +232,6 @@ namespace engine
 
 #if defined (_LINUX)
       {
-         // once all threads starts ( especially we need to make sure the
-         // TcpListener thread is successfully started ), we can rename the
-         // process. Otherwise if TcpListener failed
          CHAR pmdProcessName [ OSS_RENAME_PROCESS_BUFFER_LEN + 1 ] = {0} ;
          ossSnprintf ( pmdProcessName, OSS_RENAME_PROCESS_BUFFER_LEN,
                        "%s(%s) %s", utilDBTypeStr( pmdGetDBType() ),
@@ -261,14 +244,12 @@ namespace engine
       {
          EDUID agentEDU = PMD_INVALID_EDUID ;
          pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
-         // Then start windows listener thread for "backdoor" listening
          eduMgr->startEDU ( EDU_TYPE_PIPESLISTENER,
                             (void*)pmdGetOptionCB()->getServiceAddr(),
                             &agentEDU ) ;
          eduMgr->regSystemEDU ( EDU_TYPE_PIPESLISTENER, agentEDU ) ;
       }
 
-      // Now master thread get into big loop and check shutdown flag
       while ( PMD_IS_DB_UP )
       {
          ossSleepsecs ( 1 ) ;

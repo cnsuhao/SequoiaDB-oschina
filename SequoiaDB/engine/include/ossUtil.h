@@ -118,7 +118,6 @@ INT32 ossDup2( int oldFd, int newFd ) ;
          fflush(stdout) ;\
       } while (0)
 #endif
-// String compare without case
 BOOLEAN ossIsUTF8 ( CHAR *pzInfo ) ;
 INT32 ossStrncasecmp ( const CHAR *pString1, const CHAR *pString2,
                        size_t iLength) ;

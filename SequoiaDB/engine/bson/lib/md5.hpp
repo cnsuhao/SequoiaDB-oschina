@@ -1,4 +1,3 @@
-// md5.hpp
 
 /*    Copyright 2009 10gen Inc.
  *

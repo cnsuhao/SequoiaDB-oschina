@@ -175,12 +175,10 @@ static void sdbPrintBson( sdbbson *bson, int log_level ) ;
 #define serializeOid( x )makeConst( OIDOID, -1, InvalidOid, 4, ObjectIdGetDatum( x ), 0, 1 )
 static Const *serializeString( const char *s ) ;
 static Const *serializeUint64( UINT64 value ) ;
-//static Const *serializeLong( long i ) ;
 static List *serializeSdbExecState( SdbExecState *fdwState ) ;
 
 static char *deserializeString( Const *constant ) ;
 static UINT64 deserializeUint64( Const *constant ) ;
-//static long deserializeLong( Const *constant ) ;
 static SdbExecState *deserializeSdbExecState( List *sdbExecStateList ) ;
 
 static int sdbSetBsonValue( sdbbson *bsonObj, const char *name, Datum valueDatum, 
@@ -332,7 +330,6 @@ sdbConnectionHandle sdbGetConnectionHandle( const char *host,
       SdbConnection *tmpConnection = &pool->connList[count] ;
       if ( strcmp( tmpConnection->connName, connName->data )== 0 )
       {
-         // return pool->connList[count].hConnection ;
          BOOLEAN result = FALSE ;
          sdbIsValid( tmpConnection->hConnection, &result ) ;
          if ( !result )
@@ -344,13 +341,6 @@ sdbConnectionHandle sdbGetConnectionHandle( const char *host,
          if ( tmpConnection->transLevel <= 0 )
          {
             tmpConnection->transLevel = 1 ;
-//            rc = sdbTransactionBegin( tmpConnection->hConnection ) ;
-//            if ( SDB_OK != rc )
-//            {
-//               ereport( ERROR, ( errcode( ERRCODE_FDW_ERROR ), 
-//                        errmsg( "begin transaction failed:rc=%d", rc ) ) ) ;
-//               return SDB_INVALID_HANDLE ;
-//            }
          }
          
          return tmpConnection->hConnection;
@@ -408,13 +398,6 @@ sdbConnectionHandle sdbGetConnectionHandle( const char *host,
    connect->transLevel    = 1 ;
    pool->numConnections++ ;
 
-//   rc = sdbTransactionBegin( connect->hConnection ) ;
-//   if ( SDB_OK != rc )
-//   {
-//      ereport( ERROR, ( errcode( ERRCODE_FDW_ERROR ), 
-//               errmsg( "begin transaction failed:rc=%d", rc ) ) ) ;
-//      return SDB_INVALID_HANDLE ;
-//   }
 
    return hConnection ;
 }
@@ -503,19 +486,6 @@ Const *serializeUint64( UINT64 value )
           0 ) ;
 }
 
-//Const *serializeLong( long i )
-//{
-// if ( sizeof( long )<= 4 )
-//    return makeConst( INT4OID, -1, InvalidOid, 4, Int32GetDatum( ( int32 )i ), 1, 0 ) ;
-// else
-//    return makeConst( INT4OID, -1, InvalidOid, 8, Int64GetDatum( ( int64 )i ),
-//#ifdef USE_FLOAT8_BYVAL
-//          1,
-//#else
-//          0,
-//#endif  /* USE_FLOAT8_BYVAL */
-//          0 ) ;
-//}
 
 List *serializeSdbExecState( SdbExecState *fdwState )
 {
@@ -755,7 +725,6 @@ int sdbSetBsonValue( sdbbson *bsonObj, const char *name, Datum valueDatum,
       
       case DATEOID :
       {
-         // Convert date to timestamp with time zone data type.
          Datum valueDatum_tmp = DirectFunctionCall1( date_timestamptz, valueDatum ) ;
          Timestamp valueTimestamp = DatumGetTimestamp( valueDatum_tmp ) ;
          INT64 valueUsecs         = valueTimestamp + POSTGRES_TO_UNIX_EPOCH_USECS ;
@@ -769,7 +738,6 @@ int sdbSetBsonValue( sdbbson *bsonObj, const char *name, Datum valueDatum,
       case TIMESTAMPOID :
       case TIMESTAMPTZOID :
       {
-         // Convert local timestamp to timestamp at GMT
          Datum valueDatum_tmp = DirectFunctionCall1( timestamp_timestamptz, valueDatum ) ;
          Timestamp valueTimestamp = DatumGetTimestamp( valueDatum_tmp ) ;
          INT64 valueUsecs         = valueTimestamp + POSTGRES_TO_UNIX_EPOCH_USECS ;
@@ -786,7 +754,6 @@ int sdbSetBsonValue( sdbbson *bsonObj, const char *name, Datum valueDatum,
 			INT32 len  = VARSIZE( ( bytea * )DatumGetPointer( valueDatum ) ) 
 			             - VARHDRSZ;
          sdbbson_append_binary( bsonObj, name, BSON_BIN_BINARY, buff, len ) ;
-         //sdbbson_append_string( bsonObj, name, outputString ) ;
          break ;
       }
 
@@ -1520,7 +1487,6 @@ INT32 sdbGenerateFilterCondition ( Oid foreign_id, RelOptInfo *baserel, sdbbson 
    rc = sdbbson_finish( condition ) ;
    if ( SDB_OK != rc )
    {
-      //sdbPrintBson( condition ) ;
       sdbbson_destroy( condition ) ;
    }
    
@@ -2222,7 +2188,6 @@ static Datum sdbColumnValue( sdbbson_iterator *sdbbsonIterator, Oid columnTypeId
       INT64 utcUsecs       = sdbbson_iterator_getusecs( sdbbsonIterator ) ;   
       INT64 timestamp      = utcUsecs - POSTGRES_TO_UNIX_EPOCH_USECS ;
       Datum timestampDatum = TimestampGetDatum( timestamp ) ;
-      //Convert timestamp with time zone to date data type.
       columnValue = DirectFunctionCall1( timestamptz_date, timestampDatum ) ;
       break ;
    }
@@ -2232,7 +2197,6 @@ static Datum sdbColumnValue( sdbbson_iterator *sdbbsonIterator, Oid columnTypeId
       INT64 utcUsecs       = sdbbson_iterator_getusecs( sdbbsonIterator ) ;
       INT64 timestamp      = utcUsecs - POSTGRES_TO_UNIX_EPOCH_USECS ;
       Datum timestampDatum = TimestampGetDatum( timestamp ) ;
-      //Convert timestamp at GMT to local timestamp
       columnValue = DirectFunctionCall1( timestamptz_timestamp, timestampDatum ) ;
       break ;
    }
@@ -2794,7 +2758,6 @@ static TupleTableSlot * SdbIterateForeignScan( ForeignScanState *scanState )
       goto done ;
    }
 
-   //sdbPrintBson( recordObj ) ;
    sdbFillTupleSlot( recordObj, sdbbsonDocumentKey,
                       executionState->columnMappingHash,
                       columnValues, columnNulls ) ;
@@ -3034,7 +2997,6 @@ error :
 
 /* SdbAnalyzeForeignTable collects statistics for the given foreign table
  */
-// 获取sdb某一特定表所需要的page数和表的样例数据获取函数( 以便pg预算sql耗时 )
 static bool SdbAnalyzeForeignTable ( 
       Relation relation,
       AcquireSampleRowsFunc *acquireSampleRowsFunc,
@@ -3097,28 +3059,10 @@ static INT32 SdbIsForeignRelUpdatable( Relation rel )
 static void SdbAddForeignUpdateTargets( Query *parsetree, RangeTblEntry *target_rte,
       Relation target_relation )
 {
-//   TupleDesc tupdesc = target_relation->rd_att ;
-//   int i ;
 
-//   /* loop through all columns of the foreign table */
-//   for ( i = 0 ; i < tupdesc->natts ; ++i )
-//   {
-//      Form_pg_attribute att = tupdesc->attrs[i] ;
-//      AttrNumber attrno     = att->attnum ;
-//      Var *var ;
-//      TargetEntry *tle ;
 
-//      /* Make a Var representing the desired value */
-//      var = makeVar( parsetree->resultRelation, attrno, att->atttypid, 
-//               att->atttypmod, att->attcollation, 0 ) ;
 
-//      /* Wrap it in a resjunk TLE with the right name ... */
-//      tle = makeTargetEntry( ( Expr * )var, list_length( parsetree->targetList )+ 1, 
-//               pstrdup( NameStr( att->attname ) ), true ) ;
 
-//      /* ... and add it to the query's targetlist */
-//      parsetree->targetList = lappend( parsetree->targetList, tle ) ;
-//   }
 }
 
  static List *SdbPlanForeignModify( PlannerInfo *root, ModifyTable *plan, 
@@ -3127,8 +3071,6 @@ static void SdbAddForeignUpdateTargets( Query *parsetree, RangeTblEntry *target_
    RangeTblEntry *rte           = NULL ;
    Oid foreignTableId ;
    SdbExecState *fdw_state      = NULL ;
-   //TODO: returningList should be support for select * for update?
-   //List *returningList = NIL ;
 
    if ( resultRelation < root->simple_rel_array_size
          && root->simple_rel_array[resultRelation] != NULL )
@@ -3170,11 +3112,8 @@ static void SdbAddForeignUpdateTargets( Query *parsetree, RangeTblEntry *target_
 void SdbBeginForeignModify( ModifyTableState *mtstate,
       ResultRelInfo *rinfo, List *fdw_private, int subplan_index, int eflags )
 {
-//   int i = 0 ;
-//   Plan *subplan = mtstate->mt_plans[subplan_index]->plan ;
    
    SdbExecState *fdw_state = deserializeSdbExecState( fdw_private ) ;
-   //store the pointer of fdw_state for the insert/update/delete
    rinfo->ri_FdwState = fdw_state ;
 
    fdw_state->hConnection = sdbGetConnectionHandle( fdw_state->sdbServerHost, 
@@ -3182,12 +3121,6 @@ void SdbBeginForeignModify( ModifyTableState *mtstate,
    fdw_state->hCollection = sdbGetSdbCollection( fdw_state->hConnection, 
       fdw_state->sdbcs, fdw_state->sdbcl ) ;
 
-//   for ( i = 0 ; i < fdw_state->pgTableDesc->ncols ; ++i )
-//   {
-//      fdw_state->pgTableDesc->cols[i].attnum_in_target = 
-//         ExecFindJunkAttributeInTlist( subplan->targetlist, 
-//         fdw_state->pgTableDesc->cols[i].pgname ) ;
-//   }
 
 }
 
@@ -3199,7 +3132,6 @@ TupleTableSlot *SdbExecForeignInsert( EState *estate, ResultRelInfo *rinfo,
    PgTableDesc *tableDesc = NULL ;
    int rc = SDB_OK ;
 
-   //change the slot value to the bson format
    sdbbson insert ;
    sdbbson_init( &insert ) ;
    tableDesc = fdw_state->pgTableDesc ;
@@ -3235,7 +3167,6 @@ TupleTableSlot *SdbExecForeignInsert( EState *estate, ResultRelInfo *rinfo,
       return NULL ;
    }
 
-   //insert the bson to the sdb
    rc = sdbInsert( fdw_state->hCollection, &insert ) ;
    if ( rc != SDB_OK )
    {
@@ -3272,7 +3203,6 @@ TupleTableSlot *SdbExecForeignDelete( EState *estate, ResultRelInfo *rinfo,
    }
    sdbbson_finish( &sdbbsonCondition ) ;
    
-   //delete the bson from the sdb
    rc = sdbDelete( fdw_state->hCollection, &sdbbsonCondition, NULL ) ;
    if ( rc != SDB_OK )
    {
@@ -3351,8 +3281,6 @@ TupleTableSlot *SdbExecForeignUpdate( EState *estate, ResultRelInfo *rinfo,
    sdbbson_append_sdbbson( &sdbbsonValues, "$set", &sdbbsonTempValue ) ;
    sdbbson_finish( &sdbbsonValues ) ;
    
-   //update the bson to the sdb
-   //TODO: WARNING, the shardingKey columns can not be change in the sequoiadb!!!!
    rc = sdbUpdate( fdw_state->hCollection, &sdbbsonValues, &sdbbsonCondition, NULL ) ;
    if ( rc != SDB_OK )
    {
@@ -3388,7 +3316,6 @@ void SdbEndForeignModify( EState *estate, ResultRelInfo *rinfo )
 void SdbExplainForeignModify( ModifyTableState *mtstate, ResultRelInfo *rinfo,
       List *fdw_private, int subplan_index, struct ExplainState *es )
 {
-   //TODO: we have nothing to do yet
 }
 
 #endif
@@ -3397,7 +3324,6 @@ void SdbExplainForeignModify( ModifyTableState *mtstate, ResultRelInfo *rinfo,
 
 static void SdbFdwXactCallback( XactEvent event, void *arg )
 {
-   //INT32 tmp = GetCurrentTransactionNestLevel() ;
    INT32 count             = 0 ;
    SdbConnectionPool *pool = sdbGetConnectionPool(  ) ;
    for( count = 0 ; count < pool->numConnections ; ++count )
@@ -3409,11 +3335,9 @@ static void SdbFdwXactCallback( XactEvent event, void *arg )
       switch( event )
       {
       case XACT_EVENT_COMMIT :
-         //sdbTransactionCommit( pool->connList[count].hConnection ) ;
          pool->connList[count].transLevel = 0 ;
          break ;
       case XACT_EVENT_ABORT :
-         //sdbTransactionRollback( pool->connList[count].hConnection ) ;
          pool->connList[count].transLevel = 0 ;
          break ;
       default :

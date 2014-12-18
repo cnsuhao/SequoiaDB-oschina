@@ -132,7 +132,6 @@ namespace engine
          goto error ;
       }
 
-      // send message to agent
       pMsg = (MsgHeader *)pContent ;
       rc   = _sendMsgToAgent( _omTaskInfo.agentHost, _omTaskInfo.agentService,  
                               remoteSession, pMsg ) ;
@@ -297,7 +296,6 @@ namespace engine
                                              OM_TASKINFO_FIELD_AGENTHOST ) ;
       _omTaskInfo.agentService = record.getStringField( 
                                              OM_TASKINFO_FIELD_AGENTPORT ) ;
-      // must copy the bson
       _omTaskInfo.taskInfo     = record.getObjectField( 
                                              OM_TASKINFO_FIELD_INFO ).copy() ;
       _omTaskInfo.isFinished   = record.getBoolField( 
@@ -310,7 +308,6 @@ namespace engine
                                              OM_TASKINFO_FIELD_TYPE ) ;
       _omTaskInfo.detail       = record.getStringField( 
                                              OM_TASKINFO_FIELD_DETAIL ) ;
-      // must copy the bson
       _omTaskInfo.progress = record.getObjectField(
                                           OM_TASKINFO_FIELD_PROGRESS ).copy() ;
 
@@ -327,7 +324,6 @@ namespace engine
 
       PD_LOG( PDEVENT, "restore install:%s", record.toString().c_str() ) ;
 
-      //SDB_ASSERT( _omTaskInfo.taskType == OM_INSTALL_BUSINESS_REQ, "" ) ;
    done:
       return rc ;
    error:
@@ -836,7 +832,6 @@ namespace engine
          goto done ;
       }
 
-      // if task is error( like rollback failed ) we should clean this task
       rc = _getProgressFromAgent( flag, response ) ;
       if ( SDB_OK != rc )
       {
@@ -846,7 +841,6 @@ namespace engine
 
       if ( SDB_OK != flag )
       {
-         // agent process install failed, we should cancel this task
          rc = flag ;
          string errorDetail = response.getStringField( OM_REST_RES_DETAIL ) ;
          PD_LOG( PDERROR, "agent process %s failed, cancel task:taskID="
@@ -1071,7 +1065,6 @@ namespace engine
 
       if ( SDB_OK != flag )
       {
-         // agent process uninstall failed, we should cancel this task
          rc = flag ;
          string errorDetail = response.getStringField( OM_REST_RES_DETAIL ) ;
          PD_LOG( PDERROR, "agent process %s failed, cancel task:taskID="
@@ -1245,7 +1238,6 @@ namespace engine
 
       if ( SDB_OK != flag )
       {
-         // agent process add host failed, we should cancel this task
          rc = flag ;
          string errorDetail = response.getStringField( OM_REST_RES_DETAIL ) ;
          PD_LOG( PDERROR, "agent process %s failed, cancel task:taskID="
@@ -1467,7 +1459,6 @@ namespace engine
          bool isFinish   = record.getBoolField( OM_TASKINFO_FIELD_ISFINISH ) ;
          if ( !isEnable || isFinish )
          {
-            //ignore the diable or finished job
             continue ;
          }
 
@@ -1756,7 +1747,6 @@ namespace engine
       if ( iter == _mapTasks.end() )
       {
          _lock.release() ;
-         // find task in table SYSDEPLOY.SYSTASKINFO
          BSONObj result ;
          rc = _getTaskRecord( taskID, result ) ;
          if ( SDB_OK != rc )

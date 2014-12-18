@@ -152,12 +152,10 @@ namespace engine
       INT32 _processMsg( const NET_HANDLE &handle,
                          MsgHeader *pMsg ) ;
 
-   // event function
    protected:
       INT32 _onActiveEvent( pmdEDUEvent *event ) ;
       INT32 _onDeactiveEvent( pmdEDUEvent *event ) ;
 
-   // message process functions
    protected:
       INT32 processCommandMsg( const NET_HANDLE &handle, MsgHeader *pMsg,
                                BOOLEAN writable ) ;
@@ -204,7 +202,6 @@ namespace engine
       INT32 processCmdDropDomain ( const CHAR *pQuery ) ;
       INT32 processCmdAlterDomain ( const CHAR *pQuery ) ;
 
-   // tool functions
    protected:
       void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;
       INT32 _sendFailedRsp( NET_HANDLE handle, INT32 res, MsgHeader *reqMsg) ;

@@ -100,7 +100,6 @@ int main ( int argc, char **argv )
              numSeg*segmentSize-fileSize) ;
       return 0 ;
    }
-   // initialize file
    char *pBuffer = (char*)SDB_OSS_MALLOC(sizeof(char)*segmentSize) ;
    if ( !pBuffer )
    {
@@ -110,7 +109,6 @@ int main ( int argc, char **argv )
    }
    
    SINT64   lenWritten = 0 ;
-   // move to beginning of the file
    rc = ossSeek(&file, 0, OSS_SEEK_SET ) ;
    if ( rc )
    {

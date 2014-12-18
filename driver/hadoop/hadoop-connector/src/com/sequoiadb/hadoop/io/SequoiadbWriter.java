@@ -68,7 +68,6 @@ public class SequoiadbWriter<K, V> extends RecordWriter<K, V> {
 	private int bulkNum;
 	private String writeType = null;
 
-	// this function for SequoiadbOutputFormat.class
 	public SequoiadbWriter(String collectionSpaceName, String collectionName,
 			SdbConnAddr sdbConnAddr, int bulkNum, String writeType) {
 		super();
@@ -100,7 +99,6 @@ public class SequoiadbWriter<K, V> extends RecordWriter<K, V> {
 		log.info("writeType = " + this.writeType);
 	}
 	
-	// this function for SequoiadbMergeFormat.class
 	public SequoiadbWriter(String collectionSpaceName, String collectionName,
 			SdbConnAddr sdbConnAddr, String writeType) {
 		super();
@@ -159,7 +157,6 @@ public class SequoiadbWriter<K, V> extends RecordWriter<K, V> {
 				try {
 					bson = BasicBSONObject.typeToBson(value);
 				} catch (Exception e) {
-					// TODO Auto-generated catch block
 					log.error("Failed convert value to bson", e);
 				}
 			}
@@ -177,7 +174,6 @@ public class SequoiadbWriter<K, V> extends RecordWriter<K, V> {
 		
 		if ( this.writeType.equalsIgnoreCase("bulkinsert") ){
 			if (lstBsonBuffer.size() < bulkNum) {
-//				log.info(bson);
 				lstBsonBuffer.add(bson);
 			} else {
 				this.dbCollection.bulkInsert(lstBsonBuffer, DBCollection.FLG_INSERT_CONTONDUP);

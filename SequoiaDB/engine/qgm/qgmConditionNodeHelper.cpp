@@ -483,7 +483,6 @@ namespace engine
       }
       else
       {
-         /// do nothing.
       }
       PD_TRACE_EXIT( SDB__QGMCONDITIONNODEHELPER__TOBSON ) ;
       return builder.obj() ;
@@ -670,7 +669,6 @@ namespace engine
       }
       else
       {
-         /// do noing.
       }
    done:
       PD_TRACE_EXITRC( SDB__QGMCONDITIONNODEHELPER__GETALLATTR, rc ) ;

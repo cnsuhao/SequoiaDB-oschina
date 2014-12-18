@@ -43,7 +43,6 @@
 #include "rtnQueryOptions.hpp"
 namespace engine
 {
-   //default command-processer
    #define COORD_CMD_DEFAULT                  "COORD_CMD_DEFAULT"
    #define COORD_CMD_BACKUP_OFFLINE           CMD_ADMIN_PREFIX CMD_NAME_BACKUP_OFFLINE
    #define COORD_CMD_LIST_BACKUPS             CMD_ADMIN_PREFIX CMD_NAME_LIST_BACKUPS
@@ -164,8 +163,6 @@ namespace engine
       INT32 _getReplyObjsFromQueue( REPLY_QUE &replyQueue,
                                     pmdEDUCB *cb,
                                     rtnContextCoord *context ) ;
-      // don't define any members that will change while execute
-      // because this obj will be shared for different threads
    };
 
    class rtnCoordDefaultCommand : public rtnCoordCommand

@@ -51,7 +51,6 @@ namespace engine
                            CoordGroupList &sendGroupLst,
                            CoordGroupList &groupLst )
    {
-      //TODO: parse deleteObj and select data-node
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCODEL_GETNODEGROUPS ) ;
       cataInfo->getGroupByMatcher( deleteObj, groupLst );
@@ -61,7 +60,6 @@ namespace engine
       }
       else
       {
-         //don't resend to the node which reply ok
          CoordGroupList::iterator iter = sendGroupLst.begin();
          while( iter != sendGroupLst.end() )
          {
@@ -169,7 +167,6 @@ namespace engine
                               BSONObj **ppErrorObj )
    {
       INT32 rc = SDB_OK;
-      //PD_TRACE_ENTRY ( SDB_RTNCODEL_EXECUTE ) ;
       pmdKRCB *pKrcb                   = pmdGetKRCB();
       CoordCB *pCoordcb                = pKrcb->getCoordCB();
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
@@ -179,7 +176,6 @@ namespace engine
       CoordGroupList sendGroupLst;
       BSONObj boDeletor;
 
-      // fill default-reply(delete success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_DELETE_RES;
@@ -251,7 +247,6 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "delete failed(rc=%d)", rc ) ;
    done:
-      //PD_TRACE_EXITRC ( SDB_RTNCODEL_EXECUTE, rc ) ;
       return rc;
    error:
       if ( cb->isTransaction() )

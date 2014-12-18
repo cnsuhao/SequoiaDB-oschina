@@ -124,7 +124,6 @@ typedef class _OSSNPIPE OSSNPIPE ;
 #define OSS_NPIPE_FIRST_PIPE_INSTANCE      FILE_FLAG_FIRST_PIPE_INSTANCE
 #define OSS_NPIPE_NOWAIT                   PIPE_NOWAIT
 #define OSS_NPIPE_OVERLAP_ENABLED          0x00000001
-// this bit is set by internal, indicating the pipe is waiting for IO
 #define OSS_NPIPE_OVERLAP_IOPENDING        0x00000002
 #elif defined (_LINUX)
 #define OSS_NPIPE_UNLIMITED_INSTANCES      0
@@ -133,17 +132,8 @@ typedef class _OSSNPIPE OSSNPIPE ;
 INT32 ossCreateNamedPipe ( const CHAR *name,
                            UINT32 inboundBufferSize,  // not valid on linux
                            UINT32 outboundBufferSize, // not valid on linux
-                           // bitwise OR of
-                           // OSS_NPIPE_INBOUND
-                           // OSS_NPIPE_OUTBOUND
-                           // OSS_NPIPE_DUPLEX
-                           // OSS_NPIPE_NONBLOCK
-                           // OSS_NPIPE_BLOCK_WITH_TIMEOUT
-                           // OSS_NPIPE_BLOCK
                            UINT32 action,
                            UINT32 numInstances,       // ignore on linux
-                           // unit: second
-                           // can be OSS_NPIPE_INFINITE_TIMEOUT
                            SINT32 defaultTimeout,
                            OSSNPIPE &handle,
                            const CHAR *pRootPath = OSS_NPIPE_LOCAL_PREFIX ) ;
@@ -156,7 +146,6 @@ INT32 ossOpenNamedPipe ( const CHAR *name,
 
 INT32 ossConnectNamedPipe ( OSSNPIPE &handle,
                             UINT32 action,
-                            // timeout is not used in linux
                             SINT32 timeout = OSS_NPIPE_INFINITE_TIMEOUT ) ;
 
 INT32 ossReadNamedPipe ( OSSNPIPE &handle,
@@ -176,21 +165,11 @@ INT32 ossCloseNamedPipe ( OSSNPIPE &handle ) ;
 
 INT32 ossDeleteNamedPipe ( OSSNPIPE &handle ) ;
 
-// intends to be used when one thread want to kill the whole program
-// and clean up.
 INT32 ossCleanNamedPipeByName ( const CHAR * pipeName,
                                 const CHAR *pRootPath = OSS_NPIPE_LOCAL_PREFIX ) ;
 
-// convert named pipe to C file descriptor
 INT32 ossNamedPipeToFd ( OSSNPIPE &handle , INT32 * fd ) ;
 
-// enumate all named pipes that EXACT matches pattern
-// if pattern is NULL, the call will enumerate all pipes in the system
-// For example if we are looking for name "sequoiadb_engine_50000",
-// then pattern will be "sequoiadb_engine_50000", any other pipe name
-// will not match it.
-// Users can check the size of "names" to verify whether the given pipe
-// name exists in the system
 INT32 ossEnumNamedPipes ( std::vector<std::string> &names,
                           const CHAR *pattern = NULL,
                           OSS_MATCH_TYPE type = OSS_MATCH_ALL,

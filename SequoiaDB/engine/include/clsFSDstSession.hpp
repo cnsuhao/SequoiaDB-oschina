@@ -82,7 +82,6 @@ namespace engine
          virtual void    _endLog () = 0 ;
          virtual INT32   _onNotify () = 0 ;
 
-      //message function
       protected:
          INT32 handleMetaRes( NET_HANDLE handle, MsgHeader* header ) ;
          INT32 handleIndexRes( NET_HANDLE handle, MsgHeader* header ) ;
@@ -212,10 +211,7 @@ namespace engine
          STEP_NONE      = 0,
          STEP_START ,         // start notify to catalog
          STEP_META ,          // when cleanup notify to catalog and catalog
-                              // split the catalog and response, begin to
-                              // update catalog in local, and check it
          STEP_END_NTY ,       // notify the peer node to update catalog and
-                              // check it
          STEP_END_LOG,        // get the last log
          STEP_FINISH,         // notify catalog get all data, will to clean
          STEP_CLEANUP ,       // notify the peer node to clean up data
@@ -228,7 +224,6 @@ namespace engine
          virtual EDU_TYPES eduType () const ;
          virtual BOOLEAN canAttachMeta() const ;
 
-      //message fuction
       protected:
          INT32 handleTaskNotifyRes ( NET_HANDLE handle, MsgHeader* header ) ;
          INT32 handleBeginRes( NET_HANDLE handle, MsgHeader* header ) ;

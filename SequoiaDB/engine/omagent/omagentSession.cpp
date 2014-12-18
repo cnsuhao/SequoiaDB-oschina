@@ -54,7 +54,6 @@ namespace engine
       _omaSession implement
    */
    BEGIN_OBJ_MSG_MAP( _omaSession, _pmdAsyncSession )
-      // msg map or event map
       ON_MSG( MSG_CM_REMOTE, _onNodeMgrReq )
       ON_MSG( MSG_AUTH_VERIFY_REQ, _onAuth )
       ON_MSG( MSG_BS_QUERY_REQ, _onOMAgentReq )
@@ -94,7 +93,6 @@ namespace engine
 
       if ( curTime.time - _lastRecvTime.time > OMAGENT_SESESSION_TIMEOUT )
       {
-         // will be release
          ret = TRUE ;
          goto done ;
       }
@@ -140,7 +138,6 @@ namespace engine
          goto error ;
       }
 
-      //Send message
       if ( bodyLen > 0 )
       {
          rc = routeAgent()->syncSend ( _netHandle, (MsgHeader *)header,
@@ -168,7 +165,6 @@ namespace engine
       const CHAR *pBody = NULL ;
       INT32 bodyLen     = 0 ;
 
-      //Build reply message
       _replyHeader.header.opCode = MAKE_REPLY_TYPE( pSrcReqMsg->opCode ) ;
       _replyHeader.header.messageLength = sizeof ( MsgOpReply ) ;
       _replyHeader.header.requestID = pSrcReqMsg->requestID ;
@@ -204,7 +200,6 @@ namespace engine
       user = obj.getField( SDB_AUTH_USER ) ;
       pass = obj.getField( SDB_AUTH_PASSWD ) ;
 
-      // check usr and passwd
       if ( 0 != ossStrcmp( user.valuestrsafe(), SDB_OMA_USER ) )
       {
          PD_LOG( PDERROR, "User name[%s] is not support",
@@ -319,11 +314,8 @@ namespace engine
       BSONObjBuilder builder ;
 
       PD_LOG ( PDDEBUG, "Omagent receive requset from omsvc" ) ;
-      // compute the time takes
       ossGetCurrentTime( tmBegin ) ;
-      // build reply massage header
       _buildReplyHeader( pMsg ) ;
-      // extract command
       rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQuery,
                              &pFieldSelector, &pOrderByBuffer,
@@ -336,7 +328,6 @@ namespace engine
          goto error ;
       }
 
-      // handle command
       if ( omaIsCommand ( pCollectionName ) )
       {
          PD_LOG( PDDEBUG, "Omagent receive command: %s, argument: %s",
@@ -374,23 +365,19 @@ namespace engine
          goto error ;
       }
 
-      // consturct reply
       builder.appendElements( retObj ) ;
 
    done :
-      // release command
       if ( pCommand )
       {
          omaReleaseCommand( &pCommand ) ;
       }
-      // reply
       retObj = builder.obj() ;
       _replyHeader.header.messageLength += retObj.objsize() ;
       _replyHeader.numReturned = 1 ;
       _replyHeader.flags = rc ;
 
       ossGetCurrentTime ( tmEnd ) ;
-      // time takes
       tkTime = ( tmEnd.time * 1000000 + tmEnd.microtm ) -
                ( tmBegin.time * 1000000 + tmBegin.microtm ) ;
       sec = tkTime/1000000 ;
@@ -400,10 +387,8 @@ namespace engine
       PD_LOG ( PDDEBUG, "Excute command[%s] takes %lld.%llds.",
                pCollectionName, sec, microSec ) ;
 
-      // reply message
       return _reply( &_replyHeader, retObj.objdata(), retObj.objsize() ) ;
    error :
-      // check flags
       if ( rc < -SDB_MAX_ERROR || rc > SDB_MAX_WARNING )
       {
          PD_LOG ( PDERROR, "Error code error[rc:%d]", rc ) ;

@@ -84,7 +84,6 @@ int main (int argc, char** argv)
          patternLoaded = false ;
       }
       char *p = &patternBuffer[0] ;
-      // skip all space and tab
       while ( *p != 0 )
       {
          if ( *p == ' ' || *p == '\t' )
@@ -92,10 +91,8 @@ int main (int argc, char** argv)
          else
             break ;
       }
-      // empty line?
       if ( *p == 0 || *p == '\n')
          continue ;
-      // if this is comment?
       if ( *p == COMMENT_SYMBOL )
       {
          printf("\t%s",p) ;
@@ -105,7 +102,6 @@ int main (int argc, char** argv)
       if( p[strlen(p)-1] == '\n' )
          p[strlen(p)-1]=0 ;
 
-      // create pattern object
       printf("\tOriginal: %s\n", p) ;
       BSONObj patternObj ;
       if ( SDB_OK != fromjson ( p, patternObj ) )
@@ -120,7 +116,6 @@ int main (int argc, char** argv)
          printf("\tError: failed to create pattern: %s\n", p);
          continue ;
       }
-      // print pattern object
       printf("\tParse To: %s\n", patternObj.toString().c_str());
       mthMatcher matcher ;
       if ( 0!=matcher.loadPattern(patternObj))
@@ -129,7 +124,6 @@ int main (int argc, char** argv)
          continue ;
       }
 
-      // load compares
       int compareCount = 0 ;
       bool compareLoaded = true ;
       fseek(pCompareFile,0,SEEK_SET);
@@ -143,7 +137,6 @@ int main (int argc, char** argv)
             compareLoaded = false ;
          }
          char *q = &compareBuffer[0] ;
-         // skip all space and tab
          while ( *q != 0 )
          {
             if ( *q == ' ' || *q == '\t' )
@@ -151,10 +144,8 @@ int main (int argc, char** argv)
             else
                break ;
          }
-         // empty line?
          if ( *q == 0 || *q == '\n')
             continue ;
-         // if this is comment?
          if ( *q == COMMENT_SYMBOL )
          {
             printf("\t\t%s",q) ;
@@ -177,7 +168,6 @@ int main (int argc, char** argv)
             printf("\t\tError: failed to create compare: %s\n", p);
             continue ;
          }
-         // print compare object
          printf("\t\tParse To: %s\n", compareObj.toString().c_str());
          BOOLEAN result ;
          if ( 0 !=matcher.matches(compareObj, result))

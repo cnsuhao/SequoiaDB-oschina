@@ -90,7 +90,6 @@ class _linenoiseCmdBuilder : public SDBObject
 };
 typedef _linenoiseCmdBuilder linenoiseCmdBuilder ;
 
-/// Tool functions
 
 linenoiseCmdBuilder* getLinenoiseCmdBuilder() ;
 #define g_lnBuilder (*getLinenoiseCmdBuilder())
