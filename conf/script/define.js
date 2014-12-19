@@ -39,6 +39,7 @@ var Cpus                         = "Cpus" ;
 var CanUse                       = "CanUse" ;
 var Detail                       = "detail" ;
 var DefaultPort                  = "defaultPort" ;
+var Description                  = "description" ;
 var Disk                         = "Disk" ;
 var Disks                        = "Disks" ;
 var Distributor                  = "Distributor" ;

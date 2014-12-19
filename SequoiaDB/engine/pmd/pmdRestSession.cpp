@@ -461,33 +461,46 @@ namespace engine
       }
       else 
       {
-         if ( 0 == contextBuff.recordNum() )
+         if ( -1 != contextID )
          {
-            rtnContext *pContext = _pRTNCB->contextFind( contextID ) ;
-            if ( NULL != pContext )
-            {
-               rc = pContext->getMore( -1, contextBuff, _pEDUCB ) ;
-               if ( rc || pContext->eof() )
-               {
-                  _pRTNCB->contextDelete( contextID, _pEDUCB ) ;
-                  contextID = -1 ;
-               }
-            }
-
-            if ( SDB_DMS_EOC == rc )
-            {
-               rc = SDB_OK ;
-            }
          }
 
-         BSONObj tmp = BSON( OM_REST_RES_RETCODE << rc ) ;
-         pAdaptor->setOPResult( this, rc, tmp ) ;
          if ( 0 != contextBuff.recordNum() )
          {
             pAdaptor->appendHttpBody( this, contextBuff.data(), 
                                       contextBuff.size(), 
                                       contextBuff.recordNum() ) ;
          }
+
+         if ( -1 != contextID )
+         {
+            rtnContext *pContext = _pRTNCB->contextFind( contextID ) ;
+            while ( NULL != pContext )
+            {
+               rtnContextBuf tmpContextBuff ;
+               rc = pContext->getMore( -1, tmpContextBuff, _pEDUCB ) ;
+               if ( rc || pContext->eof() )
+               {
+                  _pRTNCB->contextDelete( contextID, _pEDUCB ) ;
+                  contextID = -1 ;
+                  if ( SDB_DMS_EOC == rc )
+                  {
+                     rc = SDB_OK ;
+                  }
+
+                  break ;
+               }
+
+               pAdaptor->appendHttpBody( this, tmpContextBuff.data(), 
+                                         tmpContextBuff.size(), 
+                                         tmpContextBuff.recordNum() ) ;
+            }
+
+
+         }
+
+         BSONObj tmp = BSON( OM_REST_RES_RETCODE << rc ) ;
+         pAdaptor->setOPResult( this, rc, tmp ) ;
       }
 
       pAdaptor->sendResponse( this, HTTP_OK ) ;
@@ -1544,7 +1557,7 @@ namespace engine
                      FIELD_NAME_OPTIONS ) ;
          goto error ;
       }
-      
+
       rc = fromjson( pOption, option ) ;
       if ( SDB_OK != rc )
       {
@@ -1780,7 +1793,7 @@ namespace engine
 
          hint = builder.obj() ;
       }
-      
+
       rc = msgBuildQueryMsg( &pBuff, &buffSize, pCommand, 0, 0, 0, -1, &matcher, 
                              NULL, NULL, &hint ) ;
       if ( SDB_OK != rc )

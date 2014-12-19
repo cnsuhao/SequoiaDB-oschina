@@ -277,7 +277,7 @@ function installRemoteAgent( ssh, osInfo, ip )
    if ( flag )
    {
       retObj[AgentPort] = "" + getSdbcmPort( ssh, osInfo ) ;
-      uninstallRemoteTmpPacket( ssh, osInfo ) ;
+      removeTmpDir( ssh, osInfo ) ;
       return retObj ;
    }
    // get a port in remote machine for installing sdbcm in target host

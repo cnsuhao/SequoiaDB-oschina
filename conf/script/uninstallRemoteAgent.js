@@ -67,7 +67,7 @@ function main()
          }
 
          // remove the packet in remote machine
-         uninstallRemoteTmpPacket( ssh, osInfo ) ;
+         removeTmpDir( ssh, osInfo ) ;
       }
       catch ( e )
       {

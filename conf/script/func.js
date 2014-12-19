@@ -77,18 +77,38 @@ function GETLASTERRMSG ()
 ***************************************************************************** */
 function exception_handle( exp, msg )
 {
-    if ( "number" == typeof( exp ) && exp < 0 )
-    {
-       setLastErrMsg( msg + ": " + getErr( exp ) ) ;
-       setLastError( exp ) ;
-       throw exp ;
-    }
-    else
-    {
-       setLastErrMsg( msg + ", exception is: " + exp ) ;
-       setLastError( SDB_SYS ) ;
-       throw SDB_SYS ;
-    }
+   setLastErrMsg( msg + ": " + getLastErrMsg() ) ; 
+   if ( "number" == typeof( exp ) && exp < 0 )
+   {
+      //setLastErrMsg( msg + ": " + getErr( exp ) ) ;
+      setLastError( exp ) ;
+      throw exp ;
+   }
+   else
+   {
+      //setLastErrMsg( msg + ", exception is: " + exp ) ;
+      setLastError( SDB_SYS ) ;
+      throw SDB_SYS ;
+   }
+}
+function exception_handle2( exp, msg )
+{
+   setLastErrMsg( msg ) ;
+   if ( "number" == typeof( exp ) && exp < 0 )
+   {
+      setLastError( exp ) ;
+      throw exp ;
+   }
+   else
+   {
+      setLastError( SDB_SYS ) ;
+      throw SDB_SYS ;
+   }
+}
+
+function exception_msg( exp )
+{
+   return ((null != exp.message) && undefined != exp.message) ? exp.message : exp ;
 }
 
 /* *****************************************************************************
@@ -361,7 +381,8 @@ function extractPort( str )
 function getSdbcmPort( ssh, osInfo )
 {
    var retPort = -1 ;
-   var str = null ;
+   var str = "" ;
+   var errMsg = "" ;
 
    if ( OMA_LINUX == osInfo )
    {
@@ -391,23 +412,20 @@ function getSdbcmPort( ssh, osInfo )
          ret = ssh.getLastRet() ;
          if ( ret < 0 )
          {
-            setLastErrMsg( "Failed to get remote sdbcm status" ) ;
-            setLastError( SDB_SYS ) ;
-            throw SDB_SYS ;
+            errMsg = "Failed to get sdbcm's status in host [" + ssh.getPeerIP() + "]" ;
+            exception_handle( SDB_SYS, errMsg ) ;
          }
          else if ( ret > 0 )
          {
-            setLastErrMsg( "Remote sdbcm is not running" ) ;
-            setLastError( SDB_SYS ) ;
-            throw SDB_SYS ;
+            errMsg = "sdbcm is not running in host [" + ssh.getPeerIP() + "]" ;
+            exception_handle2( SDB_SYS, errMsg ) ;
          }
       }
       retPort = extractPort ( str ) ;
       if ( -1 == retPort )
       {
-         setLastErrMsg( "Failed to get remote sdbcm's port" ) ;
-         setLastError( SDB_SYS ) ;
-         throw SDB_SYS ;
+         errMsg = ( "Failed to get sdbcm's port in host [" + ssh.getPeerIP() + "]" ) ;
+         exception_handle2( SDB_SYS, errMsg ) ;
       }
    }
    else
@@ -544,7 +562,7 @@ function getAUsablePortFromLocal( osInfo )
 function getAUsablePortFromRemote( ssh, osInfo )
 {
    var retPort = OMA_PORT_INVALID ;
-   var cmd = "" ;
+   var str = "" ;
    var port = OMA_PORT_TEMP_AGENT_PORT ;
    var flag = false ;
 
@@ -558,10 +576,10 @@ function getAUsablePortFromRemote( ssh, osInfo )
          {
             continue ;
          }
-         cmd = "netstat -nap | grep " + port + " | grep -v grep" ;
+         str = "netstat -nap | grep " + port + " | grep -v grep" ;
          try
          {
-            ssh.exec( cmd ) ;
+            ssh.exec( str ) ;
          }
          catch ( e )
          {
@@ -795,28 +813,28 @@ function getLocalIP()
 }
 
 /* *****************************************************************************
-@discretion: remove the temp directory and files in remote host
+@discretion: remove the temp directory and files in temporary directory
 @author: Tanzhaobo
 @parameter
    ssh[object]: ssh object
    osInfo[string]: os type
 @return void
 ***************************************************************************** */
-function uninstallRemoteTmpPacket( ssh, osInfo )
+function removeTmpDir( ssh, osInfo )
 {
-   var cmd = "" ;
+   var str = "" ;
+   var errMsg = "" ;
    if ( OMA_LINUX == osInfo )
    {
-      cmd = "rm -rf " + OMA_PATH_TEMP_OMA_DIR_L2 ;
+      str = "rm -rf " + OMA_PATH_TEMP_OMA_DIR_L2 ;
       try
       {
-         ssh.exec( cmd ) ;
+         ssh.exec( str ) ;
       }
       catch ( e )
       {
-         setLastErrMsg( "Failed to remove director[" + OMA_PATH_TEMP_OMA_DIR_L + "] in host [" + ssh.getPeerIP() + "]" ) ;
-         setLastError( SDB_SYS ) ;
-         throw SDB_SYS ;
+         errMsg = "Failed to remove director[" + OMA_PATH_TEMP_OMA_DIR_L + "] in host [" + ssh.getPeerIP() + "]" ;
+         exception_handle2( SDB_SYS, errMsg ) ;
       }
    }
    else
