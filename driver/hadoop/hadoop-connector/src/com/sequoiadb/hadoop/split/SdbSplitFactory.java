@@ -32,11 +32,11 @@ import com.sequoiadb.hadoop.util.SequoiadbConfigUtil;
 /**
  * 
  * 
- * @className：SdbSplit
+ * @className锛歋dbSplit
  * 
- * @author： gaoshengjie
+ * @author锛�gaoshengjie
  * 
- * @createtime:2013年12月11日 上午10:46:36
+ * @createtime:2013骞�2鏈�1鏃�涓婂崍10:46:36
  * 
  * @changetime:TODO
  * 
@@ -62,6 +62,10 @@ public class SdbSplitFactory {
 
 		String urls = SequoiadbConfigUtil.getInputURL(conf);
 		SdbConnAddr[] sdbConnAddrs = SequoiadbConfigUtil.getAddrList(urls);
+		
+		String user = SequoiadbConfigUtil.getInputUser(conf);
+		String passwd = SequoiadbConfigUtil.getInputPasswd(conf);
+		
 		String preferedInstance=SequoiadbConfigUtil.getPreferenceInstance(conf);
 		String collectionName = SequoiadbConfigUtil.getInCollectionName(conf);
 		String collectionSpaceName = SequoiadbConfigUtil.getInCollectionSpaceName(conf);
@@ -74,7 +78,27 @@ public class SdbSplitFactory {
 		for (int i = 0; i < sdbConnAddrs.length; i++) {
 			try {
 				sdb = new Sequoiadb(sdbConnAddrs[i].getHost(),
-						sdbConnAddrs[i].getPort(), null, null);
+						sdbConnAddrs[i].getPort(), user, passwd);
+				
+				if (preferedInstance.equalsIgnoreCase("slave")){
+					preferedInstance = "S";
+				}else if(preferedInstance.equalsIgnoreCase("master")){
+					preferedInstance = "M";
+				}else if(preferedInstance.equalsIgnoreCase("anyone")){
+					preferedInstance = "A";
+				}else if(preferedInstance.equalsIgnoreCase("node1") ||
+						 preferedInstance.equalsIgnoreCase("node2") ||
+						 preferedInstance.equalsIgnoreCase("node3") ||
+						 preferedInstance.equalsIgnoreCase("node4") ||
+						 preferedInstance.equalsIgnoreCase("node5") ||
+						 preferedInstance.equalsIgnoreCase("node6") ||
+						 preferedInstance.equalsIgnoreCase("node7"))
+				{
+					preferedInstance = preferedInstance.substring(4, 5);
+				}else{
+					log.warn("conf set 'preferedInstance' = " + preferedInstance + ", this type is undefine, use preferedInstance = 'slave'");
+					preferedInstance = "S";
+				}
 				sdb.setSessionAttr(new BasicBSONObject("PreferedInstance",preferedInstance));
 				break;
 			} catch (BaseException e) {
@@ -109,8 +133,8 @@ public class SdbSplitFactory {
     		try {
     			queryBson = (BSONObject) JSON.parse( queryStr );
 			} catch (Exception e) {
-				throw new IllegalArgumentException(
-						"sequoiadb.query.json is wrong");
+				queryBson = null;
+				log.warn("query string is error");
 			}
     	}
     	if ( selectorStr != null){ 
@@ -118,24 +142,28 @@ public class SdbSplitFactory {
     			selectorBson = (BSONObject) JSON.parse( selectorStr );
     			selectorBson.put("_id", null);
 			} catch (Exception e) {
-				throw new IllegalArgumentException(
-						"sequoiadb.selector.json is wrong");
+				selectorBson = null;
+				log.warn("selector string is error");
 			}
     	}
     	log.info("explain");
     	DBCursor explainCurl=collection.explain(queryBson, selectorBson, null, null, 0, 0, 0,new BasicBSONObject("Run",false));
     	Set<String> subCls=new HashSet<String>();
     	while(explainCurl.hasNext()){
-    		BSONObject explainBson=explainCurl.getNext();
-    		try{
-    			List<BSONObject> list=(List<BSONObject>) explainBson.get("SubCollections");
-        		for(int i=0;i<list.size();i++)
-        		{
-        			subCls.add((String)list.get(i).get("Name"));
-        		}
-    		}catch(Exception e){
-    			subCls.add(collectionSpaceName+"."+collectionName);
-    		}	
+    		BSONObject explainBson=explainCurl.getNext();	
+    		
+    		BasicBSONList bsonlist = (BasicBSONList) explainBson.get("SubCollections");
+    		if(bsonlist == null)
+    		{
+    			subCls.add((String)explainBson.get("Name"));
+    		}else
+    		{
+    			for(int i=0;i<bsonlist.size();i++)
+    			{
+    				BSONObject bson = (BSONObject) bsonlist.get(i);
+    				subCls.add((String) bson.get("Name"));
+    			}
+    		}
 
     	}
     	log.info("input split");
@@ -145,14 +173,14 @@ public class SdbSplitFactory {
     		String temp=clName.next();
     		String[] items=temp.split("\\.");
     		collection = sdb.getCollectionSpace(items[0]).getCollection(items[1]);
-    		collect(collection,splits);
+    		collect(collection, splits, items[0], items[1]);
     	}   	
 
 		log.debug("inputsplit  size is"+splits.size());		
 		return splits;
 	}
 	
-	private static void collect(DBCollection collection,List<InputSplit> splits){	
+	private static void collect(DBCollection collection,List<InputSplit> splits, String collectionSpaceName, String collectionName){	
 		DBCursor cursor = collection.getQueryMeta(null, null, null, 0, -1, 0);
 		while (cursor.hasNext()) {
 			BSONObject obj = cursor.getNext();
@@ -184,12 +212,13 @@ public class SdbSplitFactory {
 
 			if ("tbscan".equals(scanType)) {
 				BasicBSONList blockList = (BasicBSONList) obj.get("Datablocks");
+				
 				int i = 0;
 				for (Object objBlock : blockList) {
 					if (objBlock instanceof Integer) {
 						Integer blockId = (Integer) objBlock;
 						splits.add(new SdbBlockSplit(new SdbConnAddr(hostname,
-								port), scanType, blockId));
+								port), scanType, blockId, collectionSpaceName, collectionName));
 					}
 				}
 			}

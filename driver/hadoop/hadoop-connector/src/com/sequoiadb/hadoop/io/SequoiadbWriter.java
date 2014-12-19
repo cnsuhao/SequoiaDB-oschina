@@ -69,11 +69,10 @@ public class SequoiadbWriter<K, V> extends RecordWriter<K, V> {
 	private String writeType = null;
 
 	public SequoiadbWriter(String collectionSpaceName, String collectionName,
-			SdbConnAddr sdbConnAddr, int bulkNum, String writeType) {
+			SdbConnAddr sdbConnAddr, String user, String passwd, int bulkNum, String writeType) {
 		super();
 		this.sequoiadb = new Sequoiadb(sdbConnAddr.getHost(),
-				sdbConnAddr.getPort(), null, null);
-		log.info("collectionSpaceName:"+collectionSpaceName+"---collectionName:"+collectionName);
+				sdbConnAddr.getPort(), user, passwd);
 		
 		CollectionSpace space=null;
 		if(sequoiadb.isCollectionSpaceExist(collectionSpaceName)){
@@ -96,15 +95,14 @@ public class SequoiadbWriter<K, V> extends RecordWriter<K, V> {
 			log.warn("writeType != bulkinsert and writeType != upsert,use default value");
 			this.writeType = "upsert";
 		}
-		log.info("writeType = " + this.writeType);
+		log.debug("writeType = " + this.writeType);
 	}
 	
 	public SequoiadbWriter(String collectionSpaceName, String collectionName,
-			SdbConnAddr sdbConnAddr, String writeType) {
+			SdbConnAddr sdbConnAddr, String user, String passwd, String writeType) {
 		super();
 		this.sequoiadb = new Sequoiadb(sdbConnAddr.getHost(),
-				sdbConnAddr.getPort(), null, null);
-		log.info("collectionSpaceName:"+collectionSpaceName+"---collectionName:"+collectionName);
+				sdbConnAddr.getPort(), user, passwd);
 		
 		CollectionSpace space=null;
 		if(sequoiadb.isCollectionSpaceExist(collectionSpaceName)){
@@ -126,7 +124,7 @@ public class SequoiadbWriter<K, V> extends RecordWriter<K, V> {
 			log.warn("writeType != bulkinsert and writeType != upsert,use default value");
 			this.writeType = "upsert";
 		}
-		log.info("writeType = " + this.writeType);
+		log.debug("writeType = " + this.writeType);
 	}
 
 	@Override

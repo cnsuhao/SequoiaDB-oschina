@@ -27,6 +27,8 @@ public class SequoiadbMergeFormat extends OutputFormat implements Configurable {
 	private String collectionSpaceName;
 	private String collectionName;
 	private SdbConnAddr[] sdbConnAddr;
+	private String user;
+	private String passwd;
 	
 	@Override
 	public Configuration getConf() {
@@ -39,6 +41,9 @@ public class SequoiadbMergeFormat extends OutputFormat implements Configurable {
 		this.collectionName = SequoiadbConfigUtil.getOutCollectionName(conf);
 		this.collectionSpaceName = SequoiadbConfigUtil
 				.getOutCollectionSpaceName(conf);
+		
+		this.user = SequoiadbConfigUtil.getOutputUser(conf);
+		this.passwd = SequoiadbConfigUtil.getOutputPasswd(conf);
 		
 		
 		String urlStr = SequoiadbConfigUtil.getOutputURL(conf);
@@ -104,7 +109,7 @@ public class SequoiadbMergeFormat extends OutputFormat implements Configurable {
 		log.debug("Select coord address:" + localAddrList.get(i).toString());
 
 		return new SequoiadbWriter(collectionSpaceName, collectionName,
-				localAddrList.get(i), "upsert");
+				localAddrList.get(i), user, passwd, "upsert");
 	}
 
 }

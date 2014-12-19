@@ -32,19 +32,31 @@ public class SdbBlockSplit extends InputSplit implements Writable,org.apache.had
 	private SdbConnAddr sdbAddr;
 	private String scanType;
 	private int dataBlockId;
+	private String collectionSpaceName = null;
+	private String collectionName = null;
 	
 	public SdbBlockSplit() {
 		super();
 	}
 
 	public SdbBlockSplit(SdbConnAddr sdbAddr, String scanType,
-			int dataBlockId) {
+			int dataBlockId, String colletionSpaceName, String collectionName) {
 		super();
 		this.sdbAddr = sdbAddr;
 		this.scanType = scanType;
 		this.dataBlockId = dataBlockId;
+		this.collectionSpaceName = colletionSpaceName;
+		this.collectionName = collectionName;
 	}
 
+	public String getCollectionSpaceName()
+	{
+		return this.collectionSpaceName;
+	}
+	public String getCollectionName()
+	{
+		return this.collectionName;
+	}
 	public SdbConnAddr getSdbAddr() {
 		return sdbAddr;
 	}
@@ -86,6 +98,8 @@ public class SdbBlockSplit extends InputSplit implements Writable,org.apache.had
 		sdbAddr.setPort(in.readInt());
 		scanType=in.readUTF();
 		dataBlockId=in.readInt();
+		collectionSpaceName = in.readUTF();
+		collectionName = in.readUTF();
 	}
 
 	@Override
@@ -100,6 +114,8 @@ public class SdbBlockSplit extends InputSplit implements Writable,org.apache.had
 		out.writeInt(this.sdbAddr.getPort());
 		out.writeUTF(this.scanType);
 		out.writeInt(this.dataBlockId);
+		out.writeUTF(this.collectionSpaceName);
+		out.writeUTF(this.collectionName);
 	}
 
 

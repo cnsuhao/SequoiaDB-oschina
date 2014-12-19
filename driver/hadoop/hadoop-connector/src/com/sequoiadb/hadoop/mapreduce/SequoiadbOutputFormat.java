@@ -24,6 +24,8 @@ public class SequoiadbOutputFormat extends OutputFormat implements Configurable 
 	private String collectionName;
 	private int bulkNum;
 	private SdbConnAddr[] sdbConnAddr;
+	private String user;
+	private String passwd;
 
 	public SequoiadbOutputFormat() {
 
@@ -77,7 +79,7 @@ public class SequoiadbOutputFormat extends OutputFormat implements Configurable 
 		log.debug("Select coord address:" + localAddrList.get(i).toString());
 
 		return new SequoiadbWriter(collectionSpaceName, collectionName,
-				localAddrList.get(i), bulkNum, "bulkinsert");
+				localAddrList.get(i), user, passwd, bulkNum, "bulkinsert");
 	}
 
 	private Configuration conf;
@@ -94,6 +96,8 @@ public class SequoiadbOutputFormat extends OutputFormat implements Configurable 
 		this.collectionSpaceName = SequoiadbConfigUtil
 				.getOutCollectionSpaceName(conf);
 		String bulkNumStr = SequoiadbConfigUtil.getOutputBulknum(conf);
+		this.user = SequoiadbConfigUtil.getOutputUser(conf);
+		this.passwd = SequoiadbConfigUtil.getOutputPasswd(conf);
 		
 		if (bulkNumStr != null) {
 			try{

@@ -1107,7 +1107,7 @@ static BOOLEAN jsonConvertBson ( cJSON *cj, bson *bs, BOOLEAN isObj )
                free ( out ) ;
                return FALSE ;
             }
-            out_len = strlen ( out ) ;
+            out_len = len - 1 ;
             if ( 5 == cj->valueint &&
                CJSON_MD5_16 != out_len &&
                CJSON_MD5_32 != out_len &&

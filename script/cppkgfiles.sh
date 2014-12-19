@@ -280,7 +280,7 @@ src_dir_tls_sdbsppt="$sdb_path/tools/sdbsupport"
 dest_dir_tls_sdbsppt="$pkg_src_tmp/tools/sdbsupport"
 mkdir -p $dest_dir_tls_sdbsppt
 copy_file $src_dir_tls_sdbsppt/readme.txt $dest_dir_tls_sdbsppt
-copy_file $src_dir_tls_sdbsppt/sdbdpsdump $dest_dir_tls_sdbsppt
+copy_file $src_dir_bin//sdbdpsdump $dest_dir_tls_sdbsppt
 copy_file $src_dir_tls_sdbsppt/sdbsupportfunc1.sh $dest_dir_tls_sdbsppt
 copy_file $src_dir_tls_sdbsppt/sdbsupportfunc2.sh $dest_dir_tls_sdbsppt
 copy_file $src_dir_tls_sdbsppt/sdbsupport.sh $dest_dir_tls_sdbsppt

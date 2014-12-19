@@ -26,11 +26,11 @@ import com.sequoiadb.hadoop.util.SequoiadbConfigUtil;
 /**
  * 
  * 
- * @className：SequoiadbReader
+ * @className锛歋equoiadbReader
  * 
- * @author： gaoshengjie
+ * @author锛�gaoshengjie
  * 
- * @createtime:2013年12月10日 下午4:33:34
+ * @createtime:2013骞�2鏈�0鏃�涓嬪崍4:33:34
  * 
  * @changetime:TODO
  * 
@@ -50,8 +50,11 @@ public class SequoiadbBlockReader extends RecordReader<Object, BSONWritable> {
     	if(inputSplit==null||!(inputSplit instanceof SdbBlockSplit)){
     		throw new IllegalArgumentException("the inputsplit is not SdbBlockSplit" );
     	}
-    	String collectionName = SequoiadbConfigUtil.getInCollectionName(conf);
-		String collectionSpaceName = SequoiadbConfigUtil.getInCollectionSpaceName(conf);
+    	
+		String user = SequoiadbConfigUtil.getInputUser(conf);
+		String passwd = SequoiadbConfigUtil.getInputPasswd(conf);
+		
+    	
 		String queryStr = SequoiadbConfigUtil.getQueryString(conf);
 		String selectorStr = SequoiadbConfigUtil.getSelectorString(conf);
 		
@@ -61,7 +64,10 @@ public class SequoiadbBlockReader extends RecordReader<Object, BSONWritable> {
     		throw new IllegalArgumentException(" the SdbBlockSplit.sdbaddr is null");
     	}
     	
-    	this.sequoiadb = new Sequoiadb(this.sdbBlockSplit.getSdbAddr().getHost(), this.sdbBlockSplit.getSdbAddr().getPort(),null,null);
+    	String collectionName = this.sdbBlockSplit.getCollectionName();
+		String collectionSpaceName = this.sdbBlockSplit.getCollectionSpaceName();
+
+    	this.sequoiadb = new Sequoiadb(this.sdbBlockSplit.getSdbAddr().getHost(), this.sdbBlockSplit.getSdbAddr().getPort(),user,passwd);
     	CollectionSpace collectionSpace=sequoiadb.getCollectionSpace(collectionSpaceName);
     	if(collectionSpace==null){
     		throw new IllegalArgumentException(" the CS not exists");
@@ -84,21 +90,25 @@ public class SequoiadbBlockReader extends RecordReader<Object, BSONWritable> {
     	BSONObject selectorBson = null;
     	BSONObject orderbyBson = null;
 
-    	if ( queryStr != null){  //格式有问题
+    	if ( queryStr != null){  //鏍煎紡鏈夐棶棰�
     		try {
     			queryBson = (BSONObject) JSON.parse( queryStr );
 			} catch (Exception e) {
+				log.warn("query string is error");
+				queryBson = null;
 			}
-    		log.info( "queryBson = " + queryBson.toString() );
+    		log.debug( "queryBson = " + queryBson.toString() );
     	}
-    	if ( selectorStr != null){ //格式有问题
+    	if ( selectorStr != null){ //鏍煎紡鏈夐棶棰�
     		try {
     			selectorBson = (BSONObject) JSON.parse( selectorStr );
     			selectorBson.put("_id", null);
 			} catch (Exception e) {
+				log.warn("selector string is error");
+				selectorBson = null;
 				
 			}
-    		log.info( "selectorBson = " + selectorBson.toString() );
+    		log.debug( "selectorBson = " + selectorBson.toString() );
     	}
 
     	this.cursor=dbCollection.query( queryBson, 

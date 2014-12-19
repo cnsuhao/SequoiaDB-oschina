@@ -159,6 +159,26 @@ Building Connectors:
 		make install
 
 
+Package RPM Prerequisites:
+-----------------
+        rpmbuild ( 4.8.0 )
+        scons ( 2.3.0 )
+        ant ( 1.8.2 )
+        Python ( 2.7.3 )
+        PostgreSQL ( 9.3.4 )
+        Linux x86-64:
+                g++ ( 4.3.4 )
+                gcc ( 4.3.4 )
+                make ( 3.81 )
+                kernel ( 3.0.13-0.27-default )
+
+
+Package RPM:
+-----------------
+        python script/package.py
+        # the RPM-package will output in package/output/RPMS/
+
+
 Running:
 -----------------
 	For command line options to start SequoiaDB, invoke:

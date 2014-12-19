@@ -9,9 +9,31 @@
     <value>192.168.30.182:11810</value>
   </property>
   <property>
+  	<name>sequoiadb.input.user</name>
+  	<value>sdbadmin</value>
+  	<description>default:null</description>
+  </property>
+  <property>
+  	<name>sequoiadb.input.passwd</name>
+  	<value>sdbadmin</value>
+  	<description>default:null</description>
+  </property>
+  
+  <property>
     <name>sequoiadb.output.url</name>
     <value>192.168.30.182:11810</value>
-  </property> 
+  </property>
+  <property>
+  	<name>sequoiadb.output.user</name>
+  	<value>sdbadmin</value>
+  	<description>default:null</description>
+  </property>
+  <property>
+  	<name>sequoiadb.output.passwd</name>
+  	<value>sdbadmin</value>
+  	<description>default:null</description>
+  </property>
+   
   <property>
     <name>sequoiadb.in.collectionspace</name>
     <value>chentest</value>
@@ -46,6 +68,10 @@
     <name>sequoiadb.selector.json</name>
     <value>{"CREDENT_NO":null,"ROLE":null}</value>
     <description>default:null;JSON type</description>
+  </property>
+  <property>
+  	<name>sequoiadb.preferedinstance</name>
+  	<value>[slave/master/anyone/node(1-7)]</value>
   </property>
 
 </configuration>

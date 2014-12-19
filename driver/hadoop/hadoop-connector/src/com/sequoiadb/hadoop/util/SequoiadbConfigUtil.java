@@ -44,8 +44,12 @@ public class SequoiadbConfigUtil {
 	public static final String JOB_MAPPER_OUTPUT_VALUE = "sequoiadb.job.mapper.output.value";
 
 	public static final String JOB_INPUT_URL = "sequoiadb.input.url";
+	public static final String JOB_INPUT_USER = "sequoiadb.input.user";
+	public static final String JOB_INPUT_PASSWD = "sequoiadb.input.passwd";
 	public static final String JOB_OUTPUT_URL = "sequoiadb.output.url";
-
+	public static final String JOB_OUTPUT_USER = "sequoiadb.output.user";
+	public static final String JOB_OUTPUT_PASSWD = "sequoiadb.output.passwd";
+	
 	public static final String JOB_IN_COLLECTIONSPACE = "sequoiadb.in.collectionspace";
 	public static final String JOB_IN_COLLECTION = "sequoiadb.in.collect";
 
@@ -152,6 +156,19 @@ public class SequoiadbConfigUtil {
 	}
 	
 	public static String  getPreferenceInstance( Configuration conf ){
-		return conf.get(JOB_PREFEREDINSTANCE,"S");
+		
+		return conf.get(JOB_PREFEREDINSTANCE,null);
+	}
+	public static String getInputUser(Configuration conf){
+		return conf.get(JOB_INPUT_USER,null);
+	}
+	public static String getInputPasswd(Configuration conf){
+		return conf.get(JOB_INPUT_PASSWD,null);
+	}
+	public static String getOutputUser(Configuration conf){
+		return conf.get(JOB_OUTPUT_USER,null);
+	}
+	public static String getOutputPasswd(Configuration conf){
+		return conf.get(JOB_OUTPUT_PASSWD,null);
 	}
 }

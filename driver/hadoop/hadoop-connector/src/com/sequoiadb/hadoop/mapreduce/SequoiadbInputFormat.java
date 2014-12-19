@@ -27,11 +27,11 @@ import com.sequoiadb.hadoop.util.SequoiadbConfigUtil;
 /**
  * 
  * 
- * @className：SequoiadbInputFormat
+ * @className锛歋equoiadbInputFormat
  * 
- * @author： gaoshengjie
+ * @author锛�gaoshengjie
  * 
- * @createtime:2013年12月11日 上午10:14:14
+ * @createtime:2013骞�2鏈�1鏃�涓婂崍10:14:14
  * 
  * @changetime:TODO
  * 

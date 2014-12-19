@@ -5,6 +5,7 @@ Release: 1
 License: AGPL
 Source:sequoiadb-SDB_ENGINE_VERISON_CURRENT.SDB_ENGINE_SUBVERSION_CURRENT.tar.gz
 Group: Applications/Databases
+AutoReqProv: no
 %define InstallPath /opt/sequoiadb
 %description
 NoSQL database.
