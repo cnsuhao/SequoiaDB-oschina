@@ -50,6 +50,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <map>
 #include "../bson/bson.h"
 
 using namespace std ;
@@ -71,6 +72,35 @@ namespace engine
       PMD_CFG_DATA_CMD        = 0,           // command
       PMD_CFG_DATA_BSON                      // BSON
    } ;
+
+   /*
+      _pmdParamValue define
+   */
+   struct _pmdParamValue
+   {
+      string         _value ;
+      BOOLEAN        _hasMapped ;
+
+      _pmdParamValue()
+      {
+         _hasMapped = FALSE ;
+      }
+      _pmdParamValue( INT32 value, BOOLEAN hasMappe = TRUE )
+      {
+         CHAR tmp[ 15 ] = { 0 } ;
+         ossItoa( value, tmp, sizeof( tmp ) - 1 ) ;
+         _value = tmp ;
+         _hasMapped = hasMappe ;
+      }
+      _pmdParamValue( const string &value, BOOLEAN hasMappe = TRUE )
+      {
+         _value = value ;
+         _hasMapped = hasMappe ;
+      }
+   } ;
+   typedef _pmdParamValue pmdParamValue ;
+
+   typedef map< string, pmdParamValue >      MAP_K2V ;
 
    /*
       _pmdCfgExchange define
@@ -112,7 +142,10 @@ namespace engine
          BOOLEAN hasField( const CHAR *pFieldName ) ;
 
       private:
-         const CHAR *getData( UINT32 &dataLen ) ;
+         const CHAR *getData( UINT32 &dataLen, MAP_K2V &mapKeyValue ) ;
+         MAP_K2V     getKVMap() ;
+
+         void        _makeKeyValueMap( po::variables_map *pVM ) ;
 
       private:
          PMD_CFG_STEP            _cfgStep ;
@@ -123,8 +156,10 @@ namespace engine
          BSONObjBuilder          _dataBuilder ;
          po::variables_map       *_pVMFile ;
          po::variables_map       *_pVMCmd ;
-         std::stringstream       _strStream ;
-         std::string             _dataStr ;
+         stringstream            _strStream ;
+         string                  _dataStr ;
+
+         MAP_K2V                 _mapKeyField ;
 
    } ;
    typedef _pmdCfgExchange pmdCfgExchange ;
@@ -132,7 +167,7 @@ namespace engine
    /*
       _pmdCfgRecord define
    */
-   class _pmdCfgRecord : public SDBObject
+   class _pmdCfgRecord : public SDBObject, public _IParam
    {
       public:
          typedef class _pmdAddrPair
@@ -141,6 +176,15 @@ namespace engine
                CHAR _host[ OSS_MAX_HOSTNAME + 1 ] ;
                CHAR _service[ OSS_MAX_SERVICENAME + 1 ] ;
          } pmdAddrPair ;
+
+      public:
+         virtual  BOOLEAN hasField( const CHAR *pFieldName ) ;
+         virtual  INT32   getFieldInt( const CHAR *pFieldName,
+                                       INT32 &value,
+                                       INT32 *pDefault = NULL ) ;
+         virtual  INT32   getFieldStr( const CHAR *pFieldName,
+                                       CHAR *pValue, UINT32 len,
+                                       const CHAR *pDefault = NULL ) ;
 
       public:
          _pmdCfgRecord () ;
@@ -158,7 +202,7 @@ namespace engine
          INT32 change( const BSONObj &objData ) ;
 
          INT32 toBSON ( BSONObj &objData ) ;
-         INT32 toString( std::string &str ) ;
+         INT32 toString( string &str ) ;
 
          UINT32 getChangeID () const { return _changeID ; }
 
@@ -175,6 +219,9 @@ namespace engine
          string makeAddressLine( vector< pmdAddrPair > &vecAddr,
                                  CHAR chItemSep = ',',
                                  CHAR chInnerSep = ':' ) ;
+
+         INT32  _addToFieldMap( const string &key, INT32 value ) ;
+         INT32  _addToFieldMap( const string &key, const string &value ) ;
 
       protected:
          virtual INT32 doDataExchange( pmdCfgExchange *pEX ) = 0 ;
@@ -224,10 +271,12 @@ namespace engine
          INT32 rdvNotEmpty( pmdCfgExchange *pEX, CHAR *pValue ) ;
 
       private:
-         std::string                         _curFieldName ;
+         string                              _curFieldName ;
          INT32                               _result ;
          UINT32                              _changeID ;
          IConfigHandle                       *_pConfigHander ;
+
+         MAP_K2V                             _mapKeyValue ;
 
    } ;
    typedef _pmdCfgRecord pmdCfgRecord ;

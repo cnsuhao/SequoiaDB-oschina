@@ -146,6 +146,11 @@ namespace engine
          rc = SDB_SYS ;
       }
 
+      if ( SDB_OK == rc )
+      {
+         _mapKeyField[ pFieldName ] = pmdParamValue( value, TRUE ) ;
+      }
+
       return rc ;
    }
 
@@ -157,7 +162,9 @@ namespace engine
       {
          value = defaultValue ;
          rc = SDB_OK ;
+         _mapKeyField[ pFieldName ] = pmdParamValue( value, TRUE ) ;
       }
+
       return rc ;
    }
 
@@ -212,6 +219,11 @@ namespace engine
          rc = SDB_SYS ;
       }
 
+      if ( SDB_OK == rc )
+      {
+         _mapKeyField[ pFieldName ] = pmdParamValue( pValue, TRUE ) ;
+      }
+
       return rc ;
    }
 
@@ -225,6 +237,8 @@ namespace engine
          ossStrncpy( pValue, pDefault, len ) ;
          pValue[ len - 1 ] = 0 ;
          rc = SDB_OK ;
+
+         _mapKeyField[ pFieldName ] = pmdParamValue( pValue, TRUE ) ;
       }
       return rc ;
    }
@@ -287,21 +301,123 @@ namespace engine
       return FALSE ;
    }
 
-   const CHAR* _pmdCfgExchange::getData( UINT32 & dataLen )
+   const CHAR* _pmdCfgExchange::getData( UINT32 & dataLen, MAP_K2V &mapKeyValue )
    {
+      MAP_K2V::iterator it ;
       if ( PMD_CFG_DATA_BSON == _dataType )
       {
+         it = mapKeyValue.begin() ;
+         while ( it != mapKeyValue.end() )
+         {
+            if ( FALSE == it->second._hasMapped )
+            {
+               _dataBuilder.append( it->first, it->second._value ) ;
+            }
+            ++it ;
+         }
          _dataObj = _dataBuilder.obj() ;
          dataLen = _dataObj.objsize() ;
          return _dataObj.objdata() ;
       }
       else if ( PMD_CFG_DATA_CMD == _dataType )
       {
+         it = mapKeyValue.begin() ;
+         while ( it != mapKeyValue.end() )
+         {
+            if ( FALSE == it->second._hasMapped )
+            {
+               _strStream << it->first << " = " << it->second._value << "\n" ;
+            }
+            ++it ;
+         }
          _dataStr = _strStream.str() ;
          dataLen = _dataStr.size() ;
          return _dataStr.c_str() ;
       }
       return NULL ;
+   }
+
+   void _pmdCfgExchange::_makeKeyValueMap( po::variables_map *pVM )
+   {
+      po::variables_map::iterator it = pVM->begin() ;
+      MAP_K2V::iterator itKV ;
+      while ( it != pVM->end() )
+      {
+         itKV = _mapKeyField.find( it->first ) ;
+         if ( itKV != _mapKeyField.end() && TRUE == itKV->second._hasMapped )
+         {
+            ++it ;
+            continue ;
+         }
+         try
+         {
+            _mapKeyField[ it->first ] = pmdParamValue( it->second.as<string>(),
+                                                       FALSE ) ;
+            ++it ;
+            continue ;
+         }
+         catch( std::exception )
+         {
+         }
+
+         try
+         {
+            _mapKeyField[ it->first ] = pmdParamValue( it->second.as<int>(),
+                                                       FALSE ) ;
+            ++it ;
+            continue ;
+         }
+         catch( std::exception )
+         {
+         }
+
+         ++it ;
+      }
+   }
+
+   MAP_K2V _pmdCfgExchange::getKVMap()
+   {
+      if ( PMD_CFG_DATA_CMD == _dataType )
+      {
+         if ( _pVMFile )
+         {
+            _makeKeyValueMap( _pVMFile ) ;
+         }
+         if ( _pVMCmd )
+         {
+            _makeKeyValueMap( _pVMCmd ) ;
+         }
+      }
+      else
+      {
+         MAP_K2V::iterator itKV ;
+         BSONObjIterator it( _dataObj ) ;
+         while ( it.more() )
+         {
+            BSONElement e = it.next() ;
+
+            itKV = _mapKeyField.find( e.fieldName() ) ;
+            if ( itKV != _mapKeyField.end() &&
+                 TRUE == itKV->second._hasMapped )
+            {
+               ++it ;
+               continue ;
+            }
+
+            if ( String == e.type() )
+            {
+               _mapKeyField[ e.fieldName() ] = pmdParamValue( e.valuestrsafe(),
+                                                              FALSE ) ;
+            }
+            else if ( e.isNumber() )
+            {
+               _mapKeyField[ e.fieldName() ] = pmdParamValue( e.numberInt(),
+                                                              FALSE ) ;
+            }
+         }
+      }
+
+      return _mapKeyField ;
    }
 
    /*
@@ -330,6 +446,8 @@ namespace engine
    INT32 _pmdCfgRecord::restore( const BSONObj & objData,
                                  po::variables_map *pVMCMD )
    {
+      MAP_K2V mapKeyValue ;
+      MAP_K2V::iterator it ;
       pmdCfgExchange ex( objData, TRUE, PMD_CFG_STEP_INIT ) ;
       INT32 rc = doDataExchange( &ex ) ;
       if ( rc )
@@ -338,17 +456,26 @@ namespace engine
       }
       else if ( pVMCMD )
       {
-         pmdCfgExchange ex( pVMCMD, NULL, TRUE, PMD_CFG_STEP_REINIT ) ;
-         rc = doDataExchange( &ex ) ;
+         pmdCfgExchange ex1( pVMCMD, NULL, TRUE, PMD_CFG_STEP_REINIT ) ;
+         rc = doDataExchange( &ex1 ) ;
          if ( rc )
          {
             goto error ;
          }
+         mapKeyValue = ex1.getKVMap() ;
       }
       rc = postLoaded() ;
       if ( rc )
       {
          goto error ;
+      }
+
+      _mapKeyValue = ex.getKVMap() ;
+      it = mapKeyValue.begin() ;
+      while ( it != mapKeyValue.end() )
+      {
+         _mapKeyValue[ it->first ] = it->second ;
+         ++it ;
       }
 
       if ( getConfigHandler() )
@@ -370,6 +497,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BSONObj oldCfg ;
+      MAP_K2V mapKeyField ;
+      MAP_K2V::iterator it ;
       pmdCfgExchange ex( objData, TRUE, PMD_CFG_STEP_CHG ) ;
 
       rc = toBSON( oldCfg ) ;
@@ -385,6 +514,14 @@ namespace engine
          goto restore ;
       }
       ++_changeID ;
+
+      mapKeyField = ex.getKVMap() ;
+      it = mapKeyField.begin() ;
+      while ( it != mapKeyField.end() )
+      {
+         _mapKeyValue[ it->first ] = it->second ;
+         ++it ;
+      }
 
       if ( getConfigHandler() )
       {
@@ -416,6 +553,8 @@ namespace engine
       }
       ++_changeID ;
 
+      _mapKeyValue = ex.getKVMap() ;
+
       if ( getConfigHandler() )
       {
          rc = getConfigHandler()->onConfigInit() ;
@@ -443,7 +582,8 @@ namespace engine
             UINT32 dataLen = 0 ;
             try
             {
-               objData = BSONObj( ex.getData( dataLen ) ).getOwned() ;
+               objData = BSONObj( ex.getData( dataLen,
+                                  _mapKeyValue ) ).getOwned() ;
             }
             catch( std::exception &e )
             {
@@ -465,7 +605,7 @@ namespace engine
          if ( SDB_OK == rc )
          {
             UINT32 dataLen = 0 ;
-            str = ex.getData( dataLen ) ;
+            str = ex.getData( dataLen, _mapKeyValue ) ;
          }
       }
       return rc ;
@@ -565,6 +705,72 @@ namespace engine
          }
       }
       return ss.str() ;
+   }
+
+   BOOLEAN _pmdCfgRecord::hasField( const CHAR * pFieldName )
+   {
+      if ( _mapKeyValue.find( pFieldName ) == _mapKeyValue.end() )
+      {
+         return FALSE ;
+      }
+      return TRUE ;
+   }
+
+   INT32 _pmdCfgRecord::getFieldInt( const CHAR * pFieldName,
+                                     INT32 &value,
+                                     INT32 *pDefault )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !hasField( pFieldName ) )
+      {
+         if ( pDefault )
+         {
+            value = *pDefault ;
+         }
+         else
+         {
+            rc = SDB_FIELD_NOT_EXIST ;
+         }
+      }
+      else
+      {
+         value = ossAtoi( _mapKeyValue[ pFieldName ]._value.c_str() ) ;
+      }
+
+      return rc ;
+   }
+
+   INT32 _pmdCfgRecord::getFieldStr( const CHAR * pFieldName,
+                                     CHAR *pValue, UINT32 len,
+                                     const CHAR * pDefault )
+   {
+      INT32 rc = SDB_OK ;
+      string tmpValue ;
+
+      if ( !hasField( pFieldName ) )
+      {
+         if ( pDefault )
+         {
+            tmpValue = *pDefault ;
+         }
+         else
+         {
+            rc = SDB_FIELD_NOT_EXIST ;
+         }
+      }
+      else
+      {
+         tmpValue = _mapKeyValue[ pFieldName ]._value ;
+      }
+
+      if ( SDB_OK == rc )
+      {
+         ossStrncpy( pValue, tmpValue.c_str(), len ) ;
+         pValue[ len - 1 ] = 0 ;
+      }
+
+      return rc ;
    }
 
    INT32 _pmdCfgRecord::rdxString( pmdCfgExchange *pEX, const CHAR *pFieldName,
@@ -1463,6 +1669,7 @@ namespace engine
       PMD_ADD_PARAM_OPTIONS_BEGIN( all )
          PMD_COMMANDS_OPTIONS
          PMD_HIDDEN_COMMANDS_OPTIONS
+         ( "*", po::value<string>(), "" )
       PMD_ADD_PARAM_OPTIONS_END
 
       PMD_ADD_PARAM_OPTIONS_BEGIN( display )

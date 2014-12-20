@@ -63,7 +63,7 @@ namespace engine
          virtual UINT32          maxConnNum() const = 0 ;
 
       public:
-         virtual INT32           init() = 0 ;
+         virtual INT32           init( IResource *pResource ) = 0 ;
          virtual INT32           active() = 0 ;
          virtual INT32           deactive() = 0 ;
          virtual INT32           fini() = 0 ;

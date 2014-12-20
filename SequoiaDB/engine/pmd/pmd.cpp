@@ -83,6 +83,11 @@ namespace engine
    {
    }
 
+   IParam* _SDB_KRCB::getParam()
+   {
+      return &_optioncb ;
+   }
+
    IControlBlock* _SDB_KRCB::getCBByType( SDB_CB_TYPE type )
    {
       if ( (INT32)type < 0 || (INT32)type >= SDB_CB_MAX )

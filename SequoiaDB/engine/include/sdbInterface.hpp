@@ -186,6 +186,26 @@ namespace engine
    typedef _IConfigHandle IConfigHandle ;
 
    /*
+      _IParam define
+   */
+   class _IParam
+   {
+      public:
+         _IParam() {}
+         virtual ~_IParam() {}
+
+      public:
+         virtual  BOOLEAN hasField( const CHAR *pFieldName ) = 0 ;
+         virtual  INT32   getFieldInt( const CHAR *pFieldName,
+                                       INT32 &value,
+                                       INT32 *pDefault = NULL ) = 0 ;
+         virtual  INT32   getFieldStr( const CHAR *pFieldName,
+                                       CHAR *pValue, UINT32 len,
+                                       const CHAR *pDefault = NULL ) = 0 ;
+   } ;
+   typedef _IParam IParam ;
+
+   /*
       _IClient define
    */
    class _IClient : public SDBObject
@@ -258,6 +278,24 @@ namespace engine
 
    } ;
    typedef _IControlBlock IControlBlock ;
+
+   /*
+      _IResource define
+   */
+   class _IResource
+   {
+      public:
+         _IResource() {}
+         virtual ~_IResource() {}
+
+      public:
+         virtual IParam*            getParam() = 0 ;
+         virtual IControlBlock*     getCBByType( SDB_CB_TYPE type ) = 0 ;
+         virtual BOOLEAN            isCBValue( SDB_CB_TYPE type ) const = 0 ;
+         virtual void*              getOrgPointByType( SDB_CB_TYPE type ) = 0 ;
+
+   } ;
+   typedef _IResource IResource ;
 
 }
 
