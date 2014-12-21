@@ -34,6 +34,6 @@
 *******************************************************************************/
 
 #ifndef SPTTRACE_HPP__
-#define SPTRACE_HPP__
+#define SPTTRACE_HPP__
 #include "sptTrace.h"
 #endif

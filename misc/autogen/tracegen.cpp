@@ -231,20 +231,7 @@ void TraceGen::_genList ( const CHAR *pPath,
                           " *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n"
                           " *    See the License for the specific language governing permissions and\n"
                           " *    limitations under the License.\n"
-                          " */\n"
-                          "/*    Copyright (C) 2011-2014 SequoiaDB Ltd.\n"
-                          " *    This program is free software: you can redistribute it and/or modify\n"
-                          " *    it under the term of the GNU Affero General Public License, version 3,\n"
-                          " *    as published by the Free Software Foundation.\n"
-                          " *\n"
-                          " *    This program is distributed in the hope that it will be useful,\n"
-                          " *    but WITHOUT ANY WARRANTY; without even the implied warrenty of\n"
-                          " *    MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the\n"
-                          " *    GNU Affero General Public License for more details.\n"
-                          " *\n"
-                          " *    You should have received a copy of the GNU Affero General Public License\n"
-                          " *    along with this program. If not, see <http://www.gnu.org/license/>.\n"
-                          " */\n";
+                          " */\n" ;
                         foutNew << std::left<<comment << endl ;
                         foutNew << "/* This list file is automatically generated," <<
                                    "you shoud NOT modify this file anyway! test comment*/" << endl ;

@@ -98,7 +98,7 @@ namespace engine
     * Kernel Control Block
     * Database Kernel Variables
     */
-   class _SDB_KRCB : public SDBObject, public _IConfigHandle
+   class _SDB_KRCB : public SDBObject, public _IConfigHandle, public IResource
    {
    public:
       _SDB_KRCB () ;
@@ -109,9 +109,11 @@ namespace engine
 
       BOOLEAN isActive() const { return _isActive ; }
 
-      IControlBlock*    getCBByType( SDB_CB_TYPE type ) ;
-      void*             getOrgPointByType( SDB_CB_TYPE type ) ;
-      BOOLEAN           isCBValue( SDB_CB_TYPE type ) const ;
+   public:
+      virtual IParam*            getParam() ;
+      virtual IControlBlock*     getCBByType( SDB_CB_TYPE type ) ;
+      virtual void*              getOrgPointByType( SDB_CB_TYPE type ) ;
+      virtual BOOLEAN            isCBValue( SDB_CB_TYPE type ) const ;
 
       INT32             registerCB( IControlBlock *pCB, void *pOrg ) ;
 
