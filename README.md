@@ -75,8 +75,8 @@ Building Prerequisites:
 -----------------
 	scons ( 2.3.0 )
 	ant ( 1.8.2 )
-        Python ( 2.7.3 )
-        PostgreSQL ( 9.3.4 )
+	Python ( 2.7.3 )
+	PostgreSQL ( 9.3.4 )
 	Linux x86-64:
 		g++ ( 4.3.4 )
 		gcc ( 4.3.4 )
@@ -126,7 +126,7 @@ Building Drivers:
 			PHP source code is located in thirdparty/php directory
 			The dir name must be "php-<version>"
 	Python Client:
-                <python-devel package is required>
+		<python-devel package is required>
 		cd driver/python
 		scons
 	Java Client:
@@ -219,3 +219,5 @@ License:
 -----------------
 	Most SequoiaDB source files are made available under the terms of the
 	GNU Affero General Public License (AGPL). See individual files for details.
+	All source files for clients, drivers and connectors are released
+	under Apache License v2.0.

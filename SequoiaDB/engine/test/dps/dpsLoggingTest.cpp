@@ -52,7 +52,7 @@ const UINT32 MAX_DEPTH = 5;
 void mySleep(UINT32 sec=10)
 {
    boost::xtime xt;
-   boost::xtime_get(&xt, boost::TIME_UTC);
+   boost::xtime_get(&xt, boost::TIME_UTC_);
    xt.sec += sec;
    boost::thread::sleep(xt);
 }

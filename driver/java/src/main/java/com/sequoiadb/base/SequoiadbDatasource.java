@@ -22,6 +22,7 @@ package com.sequoiadb.base;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.ListIterator;
 import java.util.Random;
 import java.util.Timer;
@@ -106,7 +107,7 @@ public class SequoiadbDatasource
 	 * @see SequoiadbOption
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
-	public SequoiadbDatasource(ArrayList<String> urls, String username, String password,
+	public SequoiadbDatasource(List<String> urls, String username, String password,
 			ConfigOptions nwOpt, SequoiadbOption dsOpt) throws BaseException
 	{
 		if (null == urls || 0 == urls.size())
@@ -130,10 +131,10 @@ public class SequoiadbDatasource
 		{
 			throw e;
 		}
-		timer.schedule(new CleanConnectionTask(this), dsOpt.getRecheckCyclePeriod(),
-				       dsOpt.getRecheckCyclePeriod());
-		timer2.schedule(new RecaptureCoordAddrTask(this), dsOpt.getRecaptureConnPeriod(),
-				        dsOpt.getRecaptureConnPeriod());
+		timer.schedule(new CleanConnectionTask(this), this.dsOpt.getRecheckCyclePeriod(),
+				       this.dsOpt.getRecheckCyclePeriod());
+		timer2.schedule(new RecaptureCoordAddrTask(this), this.dsOpt.getRecaptureConnPeriod(),
+				        this.dsOpt.getRecaptureConnPeriod());
 	}
 
 	/**

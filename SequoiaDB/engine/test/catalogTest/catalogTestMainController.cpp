@@ -35,7 +35,7 @@ TEST(catalogMainControllerTest, init)
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_NE(PMD_INVALID_EDUID, agentEDU);
    boost::xtime sleepTime;
-   boost::xtime_get(&sleepTime, boost::TIME_UTC);
+   boost::xtime_get(&sleepTime, boost::TIME_UTC_);
    sleepTime.sec += 1;
    boost::thread::sleep(sleepTime);
    pmdGetKRCB()->destroy();

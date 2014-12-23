@@ -153,6 +153,8 @@ struct httpConnection
 
    INT32 _firstRecordSize ;
    INT32 _responseSize ;
+   BOOLEAN _isChunk ;
+   BOOLEAN _isSendHttpHeader ;
 
 /* request */
 
@@ -187,6 +189,8 @@ struct httpConnection
                       _querySize(0),
                       _firstRecordSize(0),
                       _responseSize(0),
+                      _isChunk(FALSE),
+                      _isSendHttpHeader(FALSE),
                       _isKey(TRUE),
                       _common(COM_CMD),
                       _fileType(HTTP_FILE_DEFAULT),

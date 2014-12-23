@@ -463,7 +463,11 @@ namespace engine
       {
          if ( -1 != contextID )
          {
+            pAdaptor->setChunkModal( this ) ;
          }
+
+         BSONObj tmp = BSON( OM_REST_RES_RETCODE << rc ) ;
+         pAdaptor->setOPResult( this, rc, tmp ) ;
 
          if ( 0 != contextBuff.recordNum() )
          {
@@ -479,28 +483,30 @@ namespace engine
             {
                rtnContextBuf tmpContextBuff ;
                rc = pContext->getMore( -1, tmpContextBuff, _pEDUCB ) ;
-               if ( rc || pContext->eof() )
+               if ( rc )
                {
                   _pRTNCB->contextDelete( contextID, _pEDUCB ) ;
                   contextID = -1 ;
-                  if ( SDB_DMS_EOC == rc )
+                  if ( SDB_DMS_EOC != rc )
                   {
-                     rc = SDB_OK ;
+                     PD_LOG( PDERROR, "getmore failed:rc=%d", rc ) ;
+                     goto error ;
                   }
 
+                  rc = SDB_OK ;
                   break ;
                }
 
-               pAdaptor->appendHttpBody( this, tmpContextBuff.data(), 
-                                         tmpContextBuff.size(), 
-                                         tmpContextBuff.recordNum() ) ;
+               rc = pAdaptor->appendHttpBody( this, tmpContextBuff.data(), 
+                                              tmpContextBuff.size(), 
+                                              tmpContextBuff.recordNum() ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG( PDERROR, "append http body failed:rc=%d", rc ) ;
+                  goto error ;
+               }
             }
-
-
          }
-
-         BSONObj tmp = BSON( OM_REST_RES_RETCODE << rc ) ;
-         pAdaptor->setOPResult( this, rc, tmp ) ;
       }
 
       pAdaptor->sendResponse( this, HTTP_OK ) ;
@@ -1232,7 +1238,7 @@ namespace engine
          BSONObj selector ;
          INT32 flag = FLG_QUERY_WITH_RETURNDATA ;
          INT32 skip = 0 ;
-         INT32 returnRow = REST_QUERY_MAX_RETURN_ROW ;
+         INT32 returnRow = -1 ;
          if ( NULL != pOrder )
          {
             rc = fromjson( pOrder, order ) ;

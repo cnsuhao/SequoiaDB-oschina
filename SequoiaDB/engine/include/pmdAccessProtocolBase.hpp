@@ -60,7 +60,7 @@ namespace engine
          /*
             0 for unlimited
          */
-         virtual UINT32          maxConnNum() const = 0 ;
+         virtual UINT32          maxConnNum() const = 0 { return 0 ; }
 
       public:
          virtual INT32           init( IResource *pResource ) = 0 ;

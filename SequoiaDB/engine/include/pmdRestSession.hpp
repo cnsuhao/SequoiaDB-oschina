@@ -231,9 +231,6 @@ namespace engine
    #define REST_KEY_NAME_INSERTOR      "Insertor"
    #define REST_KEY_NAME_UPDATOR       "Updator"
    #define REST_KEY_NAME_DELETOR       "Deletor"
-
-
-   #define REST_QUERY_MAX_RETURN_ROW   200
    
    class RestToMSGTransfer : public SDBObject
    {

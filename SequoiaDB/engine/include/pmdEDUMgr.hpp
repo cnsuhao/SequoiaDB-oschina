@@ -51,7 +51,6 @@
 #include <set>
 #include <string>
 
-using namespace boost ;
 using namespace boost::asio ;
 using namespace boost::asio::ip ;
 namespace engine

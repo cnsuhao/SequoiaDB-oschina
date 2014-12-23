@@ -864,7 +864,7 @@ namespace engine
             }
             else
             {
-               PD_LOG ( PDWARNING, "Send message to om[%s] failed[rc:%d]. "
+               PD_LOG ( PDWARNING, "Send message to om[%d] failed[rc:%d]. "
                         "It is possible because the remote service was not "
                         "started yet",
                         _vecOmNode[index].columns.nodeID,

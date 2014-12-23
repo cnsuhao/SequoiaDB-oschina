@@ -71,10 +71,12 @@
 
 #define REPORT_RC(cond, funcName, rc)                       \
    do {                                                     \
-      engine::sdbSetErrMsg( rc ? getErrDesp( rc ) : NULL ) ;\
-      engine::sdbSetErrno( rc ) ;                           \
+      engine::sdbSetErrMsg( NULL ) ;\
+      engine::sdbSetErrno( SDB_OK ) ;                           \
       if ( ! (cond) ) {                                     \
          ret = JS_FALSE ;                                   \
+         engine::sdbSetErrMsg( rc ? getErrDesp( rc ) : NULL ) ;\
+         engine::sdbSetErrno( rc ) ;                         \
          JS_SetPendingException ( cx , INT_TO_JSVAL( rc ) ) ;   \
          goto error ;                                       \
       }                                                     \
@@ -82,10 +84,12 @@
 
 #define REPORT_RC_MSG(cond, funcName, rc, msg )             \
    do {                                                     \
-      engine::sdbSetErrMsg( rc ? msg : NULL ) ;                         \
-      engine::sdbSetErrno( rc ) ;                           \
+      engine::sdbSetErrMsg( NULL ) ;                         \
+      engine::sdbSetErrno( SDB_OK ) ;                           \
       if ( ! (cond) ) {                                     \
          ret = JS_FALSE ;                                   \
+         engine::sdbSetErrMsg( rc ? getErrDesp( rc ) : NULL ) ;\
+         engine::sdbSetErrno( rc ) ;                         \
          JS_SetPendingException ( cx , INT_TO_JSVAL( rc ) ) ;   \
          goto error ;                                       \
       }                                                     \

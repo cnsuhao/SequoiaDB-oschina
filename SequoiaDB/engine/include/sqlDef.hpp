@@ -47,7 +47,6 @@
 
 #define BOOST_SPIRIT_GRAMMAR_STARTRULE_TYPE_LIMIT 20
 
-using namespace boost ;
 using namespace BOOST_SPIRIT_CLASSIC_NS ;
 using namespace boost::spirit ;
 using namespace std ;
