@@ -101,6 +101,7 @@ namespace engine
    {
       _pCatCB->getMainController()->detachCB( cb ) ;
       _pEduCB = NULL ;
+      _changeEvent.signal() ;
    }
 
    INT32 catCatalogueManager::_defaultMsgFunc( NET_HANDLE handle,

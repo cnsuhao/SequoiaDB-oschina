@@ -49,6 +49,7 @@ ossFiles = [
       "oss/ossEvent.cpp",
       "oss/ossRWMutex.cpp",
       "oss/ossProc.cpp",
+      "oss/ossCmdRunner.cpp",
       "oss/ossNPipe.cpp",
       "oss/ossVer.cpp",
       "oss/ossMem.cpp",

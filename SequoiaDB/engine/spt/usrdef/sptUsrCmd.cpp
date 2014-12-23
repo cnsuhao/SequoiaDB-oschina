@@ -30,7 +30,7 @@
 *******************************************************************************/
 
 #include "sptUsrCmd.hpp"
-#include "sptCmdRunner.hpp"
+#include "ossCmdRunner.hpp"
 #include "ossMem.hpp"
 #include "ossUtil.hpp"
 
@@ -111,7 +111,7 @@ namespace engine
       string cmd ;
       string ev ;
       UINT32 timeout = 0 ;
-      sptCmdRunner runner ;
+      ossCmdRunner runner ;
 
       rc = arg.getString( 0, cmd ) ;
       if ( SDB_OK != rc )
@@ -187,7 +187,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       string cmd ;
       string ev ;
-      sptCmdRunner runner ;
+      ossCmdRunner runner ;
 
       rc = arg.getString( 0, cmd ) ;
       if ( SDB_OK != rc )
@@ -260,7 +260,7 @@ namespace engine
       return SDB_OK ;
    }
 
-   INT32 _sptUsrCmd::_setRVal( _sptCmdRunner *runner,
+   INT32 _sptUsrCmd::_setRVal( _ossCmdRunner *runner,
                                _sptReturnVal &rval,
                                BOOLEAN setToRVal,
                                BSONObj &detail )

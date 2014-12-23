@@ -1048,7 +1048,7 @@ namespace sdbclient
     \param [out] lob The newly create large object
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
-    \note When oid is offered, use it to create a lob for writing, otherwise, API will generate one. After creating a lob, need to close it to release resource.
+    \note When oid is offered, use it to create a lob for writing, otherwise, API will generate one. After finish writing the newly created lob, need to close it to release resource.
 */
     INT32 createLob( sdbLob &lob, const bson::OID *oid = NULL )
     {

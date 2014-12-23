@@ -34,6 +34,8 @@ SDB_EXTERN_C_START
 
 #define SDB_MD5_DIGEST_LENGTH 16
 
+INT32 clientCheckRetMsgHeader( const CHAR *pSendBuf, const CHAR *pRecvBuf ) ;
+
 #ifdef __cplusplus
 INT32 clientBuildUpdateMsgCpp ( CHAR **ppBuffer, INT32 *bufferSize,
                                 const CHAR *CollectionName, SINT32 flag,
@@ -221,7 +223,6 @@ INT32 clientBuildCloseLobMsg( CHAR **ppBuffer, INT32 *bufferSize,
                               SINT32 flags, SINT16 w,
                               SINT64 contextID, UINT64 reqID,
                               BOOLEAN endianConvert ) ;
-
 
 SDB_EXTERN_C_END
 #endif

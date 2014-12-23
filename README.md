@@ -193,7 +193,8 @@ Running:
 
 	To run in standalone mode:
 		$ mkdir /sequoiadb/data
-		$ /opt/sequoiadb/bin/sdbstart
+		$ cd /sequoiadb/data
+		$ /opt/sequoiadb/bin/sdbstart -p 11810 --force
 		$ # sequoiadb start successful
 		$ # start sequoiadb shell
 		$ /opt/sequoiadb/bin/sdb

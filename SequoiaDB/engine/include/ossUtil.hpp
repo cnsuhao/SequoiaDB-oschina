@@ -97,7 +97,7 @@ OSS_INLINE void ossSleepmicros(UINT64 s)
 {
 #if defined( SDB_ENGINE )
    boost::xtime xt ;
-   boost::xtime_get ( &xt, boost::TIME_UTC ) ;
+   boost::xtime_get ( &xt, boost::TIME_UTC_ ) ;
    xt.sec += (INT32)(s/1000000);
    xt.nsec += (int)((s%1000000)*1000);
    if(xt.nsec>=1000000000)

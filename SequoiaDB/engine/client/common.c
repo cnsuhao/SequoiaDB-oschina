@@ -239,6 +239,29 @@ static void clientEndianConvertHeader ( MsgHeader *pHeader )
    ossMemcpy ( pHeader, &newheader, sizeof(newheader) ) ;
 }
 
+INT32 clientCheckRetMsgHeader( const CHAR *pSendBuf, const CHAR *pRecvBuf )
+{
+   INT32 rc = SDB_OK ;
+   INT32 sendOpCode = 0 ;
+   INT32 recvOpCode = 0 ;
+   if ( NULL == pSendBuf || NULL == pRecvBuf )
+   {
+      rc = SDB_INVALIDARG ;
+      goto done ;
+   }
+   sendOpCode = ((MsgHeader*)pSendBuf)->opCode ;
+   recvOpCode = GET_REQUEST_TYPE(((MsgHeader*)pRecvBuf)->opCode) ;
+   if ( sendOpCode != recvOpCode )
+   {
+      rc = SDB_UNEXPECTED_RESULT ;
+      goto error ;
+   }
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 INT32 clientBuildUpdateMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                              const CHAR *CollectionName, SINT32 flag,
                              UINT64 reqID,

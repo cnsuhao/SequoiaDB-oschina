@@ -42,7 +42,7 @@ using namespace std ;
 
 namespace engine
 {
-   class _sptCmdRunner ;
+   class _ossCmdRunner ;
 
    class _sptUsrCmd : public SDBObject
    {
@@ -85,7 +85,7 @@ namespace engine
                          bson::BSONObj &detail ) ;
 
    private:
-      INT32 _setRVal( _sptCmdRunner *runner,
+      INT32 _setRVal( _ossCmdRunner *runner,
                       _sptReturnVal &rval,
                       BOOLEAN setToRVal,
                       bson::BSONObj &detail ) ;

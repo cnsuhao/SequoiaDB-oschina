@@ -98,6 +98,7 @@ namespace engine
    {
       _pCatCB->getMainController()->detachCB( cb ) ;
       _pEduCB = NULL ;
+      _changeEvent.signal() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_ACTIVE, "catNodeManager::_onActiveEvent" )

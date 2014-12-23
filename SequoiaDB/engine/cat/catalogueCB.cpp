@@ -465,7 +465,7 @@ namespace engine
             {
                _catMainCtrl.getChangeEvent()->signal() ;
             }
-            _catMainCtrl.getChangeEvent()->wait() ;
+            _catMainCtrl.getChangeEvent()->wait( OSS_ONE_SEC * 120 ) ;
          }
       }
    }

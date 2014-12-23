@@ -32,7 +32,7 @@
 *******************************************************************************/
 
 #include "sptUsrSystem.hpp"
-#include "sptCmdRunner.hpp"
+#include "ossCmdRunner.hpp"
 #include "ossUtil.hpp"
 #include "utilStr.hpp"
 #include "ossSocket.hpp"
@@ -104,7 +104,7 @@ namespace engine
       BSONObjBuilder builder ;
       string host ;
       stringstream cmd ;
-      _sptCmdRunner runner ;
+      _ossCmdRunner runner ;
       UINT32 exitCode = 0 ;
       rc = arg.getString( 0, host ) ;
       if ( SDB_OUT_OF_BOUND == rc )
@@ -180,7 +180,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       UINT32 exitCode = 0 ;
-      _sptCmdRunner runner ;
+      _ossCmdRunner runner ;
       string outStr ;
       BSONObjBuilder builder ;
 
@@ -864,7 +864,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       UINT32 exitCode = 0 ;
-      _sptCmdRunner runner ;
+      _ossCmdRunner runner ;
       string outStr ;
       BSONObjBuilder builder ;
 
@@ -1142,7 +1142,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       UINT32 exitCode = 0 ;
-      _sptCmdRunner runner ;
+      _ossCmdRunner runner ;
       string outStr ;
       BSONObjBuilder builder ;
 
@@ -1270,7 +1270,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       UINT32 exitCode = 0 ;
-      _sptCmdRunner runner ;
+      _ossCmdRunner runner ;
       string outStr ;
       BSONObjBuilder builder ;
 
@@ -1794,7 +1794,7 @@ namespace engine
    {
       INT32 rc        = SDB_OK ;
       UINT32 exitCode = 0 ;
-      _sptCmdRunner runner ;
+      _ossCmdRunner runner ;
       string outStr ;
       stringstream ss ;
       const CHAR *netFlowCMD = "cat /proc/net/dev | grep -v Receive |"
