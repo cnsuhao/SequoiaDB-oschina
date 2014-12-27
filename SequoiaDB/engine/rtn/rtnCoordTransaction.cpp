@@ -79,7 +79,7 @@ namespace engine
 
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
-      replyHeader.header.opCode        = MSG_BS_TRANS_BEGIN_RSP;
+      replyHeader.header.opCode        = MSG_BS_TRANS_COMMIT_RSP;
       replyHeader.header.requestID     = pHeader->requestID;
       replyHeader.header.routeID.value = 0;
       replyHeader.header.TID           = pHeader->TID;
@@ -322,7 +322,7 @@ namespace engine
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
-      replyHeader.header.opCode        = MSG_BS_TRANS_BEGIN_RSP;
+      replyHeader.header.opCode        = MSG_BS_TRANS_ROLLBACK_RSP;
       replyHeader.header.routeID.value = 0;
       replyHeader.contextID            = -1;
       replyHeader.flags                = SDB_OK;

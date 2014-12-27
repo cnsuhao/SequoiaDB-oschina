@@ -28,6 +28,7 @@ import java.util.List;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 
+import com.sequoiadb.base.SequoiadbConstants.Operation;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.exception.SDBErrorLookup;
 import com.sequoiadb.net.IConnection;
@@ -236,12 +237,13 @@ public class CollectionSpace {
 		sdbMessage.setCollectionFullName(commandString);
 		sdbMessage.setFlags(0);
 		sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
-		sdbMessage.setRequestID(0);
+		sdbMessage.setRequestID(sequoiadb.getNextRequstID());
 		sdbMessage.setSkipRowsCount(-1);
 		sdbMessage.setReturnRowsCount(-1);
 		sdbMessage.setSelector(dummyObj);
 		sdbMessage.setOrderBy(dummyObj);
 		sdbMessage.setHint(dummyObj);
+		sdbMessage.setOperationCode(Operation.OP_QUERY);
 
 		byte[] request = SDBMessageHelper.buildQueryRequest(sdbMessage, sequoiadb.endianConvert);
 		connection.sendMessage(request);
@@ -249,6 +251,7 @@ public class CollectionSpace {
 		ByteBuffer byteBuffer = connection.receiveMessage(sequoiadb.endianConvert);
 		
 		SDBMessage rtnSDBMessage = SDBMessageHelper.msgExtractReply(byteBuffer);
+		SDBMessageHelper.checkMessage(sdbMessage, rtnSDBMessage);
 		return rtnSDBMessage;
 	}
 }

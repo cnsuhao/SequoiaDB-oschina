@@ -261,7 +261,7 @@ namespace engine
 
    done :
       PD_TRACE_EXITRC( SDB_SDBSTOP_MAIN, rc ) ;
-      return  ( rc == 0 ) ? 0 : 1 ;
+      return ( rc >= 0 ) ? rc : utilRC2ShellRC( rc ) ;
    }
 
 }

@@ -191,6 +191,9 @@ namespace engine
 
          INT32             _processRestMsg( HTTP_PARSE_COMMON command,
                                             const CHAR *pFilePath ) ;
+
+         INT32             _fetchOneContext( SINT64 &contextID, 
+                                             rtnContextBuf &contextBuff ) ;
          INT32             _processRestMsg1( restAdaptor *pAdaptor, 
                                              HTTP_PARSE_COMMON command, 
                                              const CHAR *pFilePath ) ;

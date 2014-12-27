@@ -418,6 +418,34 @@ namespace engine
       return msg ;
    }
 
+   INT32 _pmdRestSession::_fetchOneContext( SINT64 &contextID, 
+                                            rtnContextBuf &contextBuff )
+   {
+      INT32 rc = SDB_OK ;
+      rtnContext *pContext = _pRTNCB->contextFind( contextID ) ;
+      if ( NULL == pContext )
+      {
+         contextID = -1 ;
+      }
+      else
+      {
+         rc = pContext->getMore( -1, contextBuff, _pEDUCB ) ;
+         if ( rc || pContext->eof() )
+         {
+            _pRTNCB->contextDelete( contextID, _pEDUCB ) ;
+            contextID = -1 ;
+            if ( SDB_DMS_EOC != rc )
+            {
+               PD_LOG( PDERROR, "getmore failed:rc=%d,contextID=%u", rc, 
+                       contextID ) ;
+            }
+         }
+      }
+
+      rc = SDB_OK ;
+      return rc ;
+   }
+
    INT32 _pmdRestSession::_processRestMsg1( restAdaptor *pAdaptor, 
                                             HTTP_PARSE_COMMON command, 
                                             const CHAR *pFilePath ) 
@@ -461,19 +489,30 @@ namespace engine
       }
       else 
       {
+         rtnContextBuf fetchOneBuff ;
          if ( -1 != contextID )
          {
-            pAdaptor->setChunkModal( this ) ;
+            _fetchOneContext( contextID, fetchOneBuff ) ;
+            if ( -1 != contextID )
+            {
+               pAdaptor->setChunkModal( this ) ;
+            }
          }
 
          BSONObj tmp = BSON( OM_REST_RES_RETCODE << rc ) ;
          pAdaptor->setOPResult( this, rc, tmp ) ;
-
          if ( 0 != contextBuff.recordNum() )
          {
             pAdaptor->appendHttpBody( this, contextBuff.data(), 
                                       contextBuff.size(), 
                                       contextBuff.recordNum() ) ;
+         }
+
+         if ( 0 != fetchOneBuff.recordNum() )
+         {
+            pAdaptor->appendHttpBody( this, fetchOneBuff.data(), 
+                                      fetchOneBuff.size(), 
+                                      fetchOneBuff.recordNum() ) ;
          }
 
          if ( -1 != contextID )
@@ -483,27 +522,28 @@ namespace engine
             {
                rtnContextBuf tmpContextBuff ;
                rc = pContext->getMore( -1, tmpContextBuff, _pEDUCB ) ;
-               if ( rc )
+               if ( SDB_OK == rc )
+               {
+                  rc = pAdaptor->appendHttpBody( this, tmpContextBuff.data(), 
+                                              tmpContextBuff.size(), 
+                                              tmpContextBuff.recordNum() ) ;
+                  if ( SDB_OK != rc )
+                  {
+                     PD_LOG( PDERROR, "append http body failed:rc=%d", rc ) ;
+                     goto error ;
+                  }
+               }
+               else 
                {
                   _pRTNCB->contextDelete( contextID, _pEDUCB ) ;
                   contextID = -1 ;
                   if ( SDB_DMS_EOC != rc )
                   {
                      PD_LOG( PDERROR, "getmore failed:rc=%d", rc ) ;
-                     goto error ;
                   }
 
                   rc = SDB_OK ;
                   break ;
-               }
-
-               rc = pAdaptor->appendHttpBody( this, tmpContextBuff.data(), 
-                                              tmpContextBuff.size(), 
-                                              tmpContextBuff.recordNum() ) ;
-               if ( SDB_OK != rc )
-               {
-                  PD_LOG( PDERROR, "append http body failed:rc=%d", rc ) ;
-                  goto error ;
                }
             }
          }

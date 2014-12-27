@@ -32,11 +32,11 @@ import com.sequoiadb.hadoop.util.SequoiadbConfigUtil;
 /**
  * 
  * 
- * @className锛歋dbSplit
+ * @className閿涙瓔dbSplit
  * 
- * @author锛�gaoshengjie
+ * @author閿涳拷gaoshengjie
  * 
- * @createtime:2013骞�2鏈�1鏃�涓婂崍10:46:36
+ * @createtime:2013楠烇拷2閺堬拷1閺冿拷娑撳﹤宕�0:46:36
  * 
  * @changetime:TODO
  * 
@@ -109,7 +109,7 @@ public class SdbSplitFactory {
 			throw lastException;
 		}
 
-		log.info("start get data blocks");
+		log.debug("start get data blocks");
 
 		if (collectionSpaceName == null || collectionName == null) {
 			throw new IllegalArgumentException(
@@ -146,7 +146,7 @@ public class SdbSplitFactory {
 				log.warn("selector string is error");
 			}
     	}
-    	log.info("explain");
+    	log.debug("explain");
     	DBCursor explainCurl=collection.explain(queryBson, selectorBson, null, null, 0, 0, 0,new BasicBSONObject("Run",false));
     	Set<String> subCls=new HashSet<String>();
     	while(explainCurl.hasNext()){
@@ -166,7 +166,7 @@ public class SdbSplitFactory {
     		}
 
     	}
-    	log.info("input split");
+    	log.debug("input split");
     	List<InputSplit> splits = new ArrayList<InputSplit>();
     	Iterator<String> clName=subCls.iterator();
     	while(clName.hasNext()){
@@ -184,7 +184,7 @@ public class SdbSplitFactory {
 		DBCursor cursor = collection.getQueryMeta(null, null, null, 0, -1, 0);
 		while (cursor.hasNext()) {
 			BSONObject obj = cursor.getNext();
-			log.info("meta record:" + obj.toString());
+			log.debug("meta record:" + obj.toString());
 
 			String hostname = (String) obj.get("HostName");
 			int port = Integer.parseInt((String) obj.get("ServiceName"));

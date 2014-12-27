@@ -198,17 +198,34 @@ public class SequoiadbConstants {
 	public final static long DEFAULT_CONTEXTID = -1;
 
 	public enum Operation {
-		OP_REPLY(1), OP_MSG(1000), OP_UPDATE(2001), OP_INSERT(2002),
-		RESERVED(2003), OP_QUERY(2004), OP_GETMORE(2005), OP_DELETE(2006),
-		OP_KILL_CONTEXT(2007), OP_DISCONNECT(2008), MSG_BS_INTERRUPTE(2009),
-		OP_AGGREGATE(2019), MSG_AUTH_VERIFY(7000), MSG_AUTH_CRTUSR(7001),
-		MSG_AUTH_DELUSR(7002), TRANS_BEGIN_REQ(2010), TRANS_COMMIT_REQ(2011),
-		TRANS_ROLLBACK_REQ(2012), MSG_BS_LOB_OPEN_REQ(8001), 
-		MSG_BS_LOB_WRITE_REQ(8002), MSG_BS_LOB_READ_REQ(8003),
-		MSG_BS_LOB_REMOVE_REQ(8004), MSG_BS_LOB_UPDATE_REQ(8005),
-		MSG_BS_LOB_CLOSE_REQ(8006);
+		OP_REPLY(1), 
+		OP_MSG(1000),              OP_MSG_RES(1000|Operation.RES_FLAG), 
+		OP_UPDATE(2001),           OP_UPDATE_RES(2001|Operation.RES_FLAG), 
+		OP_INSERT(2002),           OP_INSERT_RES(2002|Operation.RES_FLAG), 
+		MSG_BS_SQL_REQ(2003),      MSG_BS_SQL_RES(2003|Operation.RES_FLAG), 
+		OP_QUERY(2004),            OP_QUERY_RES(2004|Operation.RES_FLAG), 
+		OP_GETMORE(2005),          OP_GETMORE_RES(2005|Operation.RES_FLAG), 
+		OP_DELETE(2006),           OP_DELETE_RES(2006|Operation.RES_FLAG), 
+		OP_KILL_CONTEXT(2007),     OP_KILL_CONTEXT_RES(2007|Operation.RES_FLAG), 
+		OP_DISCONNECT(2008),       //not res
+		MSG_BS_INTERRUPTE(2009),   //not res
+		OP_AGGREGATE(2019),        OP_AGGREGATE_RES(2019|Operation.RES_FLAG), 
+		MSG_AUTH_VERIFY(7000),     MSG_AUTH_VERIFY_RES(7000|Operation.RES_FLAG), 
+		MSG_AUTH_CRTUSR(7001),     MSG_AUTH_CRTUSR_RES(7001|Operation.RES_FLAG), 
+		MSG_AUTH_DELUSR(7002),     MSG_AUTH_DELUSR_RES(7002|Operation.RES_FLAG), 
+		TRANS_BEGIN_REQ(2010),     TRANS_BEGIN_RES(2010|Operation.RES_FLAG), 
+		TRANS_COMMIT_REQ(2011),    TRANS_COMMIT_RES(2011|Operation.RES_FLAG), 
+		TRANS_ROLLBACK_REQ(2012),  TRANS_ROLLBACK_RES(2012|Operation.RES_FLAG), 
+		MSG_BS_LOB_OPEN_REQ(8001), MSG_BS_LOB_OPEN_RES(8001|Operation.RES_FLAG), 
+		MSG_BS_LOB_WRITE_REQ(8002),  MSG_BS_LOB_WRITE_RES(8002|Operation.RES_FLAG), 
+		MSG_BS_LOB_READ_REQ(8003),   MSG_BS_LOB_READ_RES(8003|Operation.RES_FLAG), 
+		MSG_BS_LOB_REMOVE_REQ(8004), MSG_BS_LOB_REMOVE_RES(8004|Operation.RES_FLAG), 
+		MSG_BS_LOB_UPDATE_REQ(8005), MSG_BS_LOB_UPDATE_RES(8005|Operation.RES_FLAG), 
+		MSG_BS_LOB_CLOSE_REQ(8006),  MSG_BS_LOB_CLOSE_RES(8006|Operation.RES_FLAG),
+		MSG_NULL(999999); 
 
 		private int operationCode;
+		public static final int RES_FLAG = 0x80000000;
 
 		private Operation(int code) {
 			operationCode = code;
@@ -219,7 +236,7 @@ public class SequoiadbConstants {
 		}
 
 		public static Operation getByValue(int inVal) {
-			Operation rtnOper = Operation.RESERVED;
+			Operation rtnOper = Operation.MSG_NULL;
 			for (Operation oper : Operation.values()) {
 				if (oper.getOperationCode() == inVal) {
 					rtnOper = oper;

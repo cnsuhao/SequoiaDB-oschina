@@ -37,6 +37,7 @@ import org.bson.types.Code;
 import org.bson.types.CodeWScope;
 import org.bson.util.JSON;
 
+import com.sequoiadb.base.SequoiadbConstants.Operation;
 import com.sequoiadb.base.SequoiadbConstants.PreferInstanceType;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.net.ConfigOptions;
@@ -55,6 +56,7 @@ public class Sequoiadb {
 	private String userName;
 	private String password;
 	boolean endianConvert;
+	private long requestID = 0;
 
 	public final static int SDB_PAGESIZE_4K = 4096;
 	public final static int SDB_PAGESIZE_8K = 8192;
@@ -342,12 +344,16 @@ public class Sequoiadb {
 	private void auth()
 	{
 		endianConvert = requestSysInfo();
-		byte[] request = SDBMessageHelper.buildAuthMsg(userName, password, 0,
-				(byte) 0, endianConvert);
+		byte[] request = SDBMessageHelper.buildAuthMsg(userName, password, 
+		        getNextRequstID(), (byte) 0, endianConvert);
 		connection.sendMessage(request);
 
 		ByteBuffer byteBuffer = connection.receiveMessage(endianConvert);
 		SDBMessage rtn = SDBMessageHelper.msgExtractReply(byteBuffer);
+		if ( rtn.getOperationCode() != Operation.MSG_AUTH_VERIFY_RES) {
+            throw new BaseException("SDB_UNKNOWN_MESSAGE", 
+                    rtn.getOperationCode());
+        }
 		int flags = rtn.getFlags();
 		if (flags != 0)
 		{
@@ -369,11 +375,15 @@ public class Sequoiadb {
 			throw new BaseException("SDB_INVALIDARG");
 		}
 		byte[] request = SDBMessageHelper.buildAuthMsg(username, password,
-				(long) 0, (byte) 1, endianConvert);
+				getNextRequstID(), (byte) 1, endianConvert);
 		connection.sendMessage(request);
 
 		ByteBuffer byteBuffer = connection.receiveMessage(endianConvert);
 		SDBMessage rtn = SDBMessageHelper.msgExtractReply(byteBuffer);
+		if ( rtn.getOperationCode() != Operation.MSG_AUTH_CRTUSR_RES) {
+            throw new BaseException("SDB_UNKNOWN_MESSAGE", 
+                    rtn.getOperationCode());
+        }
 		int flags = rtn.getFlags();
 		if (flags != 0) {
 			throw new BaseException(flags, username, password);
@@ -389,12 +399,16 @@ public class Sequoiadb {
 	 *            The connection password
 	 */
 	public void removeUser(String username, String password) throws BaseException {
-		byte[] request = SDBMessageHelper.buildAuthMsg(username, password, (long)0,
-				(byte) 2, endianConvert);
+		byte[] request = SDBMessageHelper.buildAuthMsg(username, password, 
+		        getNextRequstID(), (byte) 2, endianConvert);
 		connection.sendMessage(request);
 
 		ByteBuffer byteBuffer = connection.receiveMessage(endianConvert);
 		SDBMessage rtn = SDBMessageHelper.msgExtractReply(byteBuffer);
+		if ( rtn.getOperationCode() != Operation.MSG_AUTH_DELUSR_RES) {
+            throw new BaseException("SDB_UNKNOWN_MESSAGE", 
+                    rtn.getOperationCode());
+        }
 		int flags = rtn.getFlags();
 		if (flags != 0) {
 			throw new BaseException(flags, username, password);
@@ -737,13 +751,17 @@ public class Sequoiadb {
 	 */
 	public void execUpdate(String sql) throws BaseException {
 		SDBMessage sdb = new SDBMessage();
-		sdb.setRequestID(0);
+		sdb.setRequestID(getNextRequstID());
 		sdb.setNodeID(SequoiadbConstants.ZERO_NODEID);
 		byte[] request = SDBMessageHelper.buildSqlMsg(sdb, sql, endianConvert);
 		connection.sendMessage(request);
 
 		ByteBuffer byteBuffer = connection.receiveMessage(endianConvert);
 		SDBMessage rtn = SDBMessageHelper.msgExtractReply(byteBuffer);
+		if ( rtn.getOperationCode() != Operation.MSG_BS_SQL_RES) {
+            throw new BaseException("SDB_UNKNOWN_MESSAGE", 
+                    rtn.getOperationCode());
+        }
 		int flags = rtn.getFlags();
 		if (flags != 0) {
 			throw new BaseException(flags, sql);
@@ -759,13 +777,17 @@ public class Sequoiadb {
 	 */
 	public DBCursor exec(String sql) throws BaseException {
 		SDBMessage sdb = new SDBMessage();
-		sdb.setRequestID(0);
+		sdb.setRequestID(getNextRequstID());
 		sdb.setNodeID(SequoiadbConstants.ZERO_NODEID);
 		byte[] request = SDBMessageHelper.buildSqlMsg(sdb, sql, endianConvert);
 		connection.sendMessage(request);
 
 		ByteBuffer byteBuffer = connection.receiveMessage(endianConvert);
 		SDBMessage rtn = SDBMessageHelper.msgExtractReply(byteBuffer);
+		if ( rtn.getOperationCode() != Operation.MSG_BS_SQL_RES) {
+            throw new BaseException("SDB_UNKNOWN_MESSAGE", 
+                    rtn.getOperationCode());
+        }
 		int flags = rtn.getFlags();
 		if (flags != 0) {
 			if (flags == SequoiadbConstants.SDB_DMS_EOC)
@@ -902,11 +924,17 @@ public class Sequoiadb {
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	public void beginTransaction() throws BaseException {
-		byte[] request = SDBMessageHelper.buildTransactionRequest(SequoiadbConstants.Operation.TRANS_BEGIN_REQ, endianConvert);
+		byte[] request = SDBMessageHelper.buildTransactionRequest(
+		        SequoiadbConstants.Operation.TRANS_BEGIN_REQ, getNextRequstID(), 
+		        endianConvert);
 		connection.sendMessage(request);
 		
 		ByteBuffer byteBuffer = connection.receiveMessage(endianConvert);
 		SDBMessage rtn = SDBMessageHelper.msgExtractReply(byteBuffer);
+		if ( rtn.getOperationCode() != Operation.TRANS_BEGIN_RES) {
+            throw new BaseException("SDB_UNKNOWN_MESSAGE", 
+                    rtn.getOperationCode());
+        }
 		int flags = rtn.getFlags();
 		if(flags != 0)
 			throw new BaseException(flags);
@@ -920,11 +948,16 @@ public class Sequoiadb {
 	 */
 	public void commit() throws BaseException {
 		byte[] request = SDBMessageHelper.buildTransactionRequest(
-				SequoiadbConstants.Operation.TRANS_COMMIT_REQ, endianConvert);
+				SequoiadbConstants.Operation.TRANS_COMMIT_REQ, 
+				getNextRequstID(), endianConvert);
 		connection.sendMessage(request);
 
 		ByteBuffer byteBuffer = connection.receiveMessage(endianConvert);
 		SDBMessage rtn = SDBMessageHelper.msgExtractReply(byteBuffer);
+		if ( rtn.getOperationCode() != Operation.TRANS_COMMIT_RES) {
+            throw new BaseException("SDB_UNKNOWN_MESSAGE", 
+                    rtn.getOperationCode());
+        }
 		int flags = rtn.getFlags();
 		if(flags != 0)
 			throw new BaseException(flags);
@@ -938,11 +971,16 @@ public class Sequoiadb {
 	 */
 	public void rollback() throws BaseException {
 		byte[] request = SDBMessageHelper.buildTransactionRequest(
-				SequoiadbConstants.Operation.TRANS_ROLLBACK_REQ, endianConvert);
+				SequoiadbConstants.Operation.TRANS_ROLLBACK_REQ, 
+				getNextRequstID(), endianConvert);
 		connection.sendMessage(request);
 
 		ByteBuffer byteBuffer = connection.receiveMessage(endianConvert);
 		SDBMessage rtn = SDBMessageHelper.msgExtractReply(byteBuffer);
+		if ( rtn.getOperationCode() != Operation.TRANS_ROLLBACK_RES) {
+            throw new BaseException("SDB_UNKNOWN_MESSAGE", 
+                    rtn.getOperationCode());
+        }
 		int flags = rtn.getFlags();
 		if(flags != 0)
 			throw new BaseException(flags);
@@ -1333,7 +1371,8 @@ public class Sequoiadb {
 	 */
 	public void closeAllCursors() throws BaseException {
 		byte[] request = SDBMessageHelper.buildTransactionRequest(
-				SequoiadbConstants.Operation.MSG_BS_INTERRUPTE, endianConvert);
+				SequoiadbConstants.Operation.MSG_BS_INTERRUPTE, 
+				getNextRequstID(), endianConvert);
 		connection.sendMessage(request);
 	}	
 	
@@ -1566,6 +1605,10 @@ public class Sequoiadb {
 			throw new BaseException(flags, rgName);
 		}
 	}
+	
+	long getNextRequstID() {
+	    return requestID++;
+	}
 
 	/**
 	 * @fn void activateReplicaGroup(String rgName)
@@ -1758,9 +1801,13 @@ public class Sequoiadb {
 		sdbMessage.setPadding((short) 0);
 		sdbMessage.setFlags(flag);
 		sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
+		if ( 0 == reqID) {
+		    reqID = getNextRequstID();
+		}
 		sdbMessage.setRequestID(reqID);
 		sdbMessage.setSkipRowsCount(skipNum);
 		sdbMessage.setReturnRowsCount(returnNum);
+		sdbMessage.setOperationCode(Operation.OP_QUERY);
 
 		byte[] request = SDBMessageHelper.buildQueryRequest(sdbMessage,
 				endianConvert);
@@ -1768,6 +1815,7 @@ public class Sequoiadb {
 
 		ByteBuffer byteBuffer = connection.receiveMessage(endianConvert);
 		SDBMessage rtnSDBMessage = SDBMessageHelper.msgExtractReply(byteBuffer);
+		SDBMessageHelper.checkMessage(sdbMessage, rtnSDBMessage);
 
 		return rtnSDBMessage;
 	}
@@ -1804,9 +1852,13 @@ public class Sequoiadb {
 		sdbMessage.setPadding((short) 0);
 		sdbMessage.setFlags(flag);
 		sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
+		if(0 == reqID) {
+		    reqID = getNextRequstID();
+		}
 		sdbMessage.setRequestID(reqID);
 		sdbMessage.setSkipRowsCount(skipNum);
 		sdbMessage.setReturnRowsCount(returnNum);
+		sdbMessage.setOperationCode(Operation.OP_QUERY);
 
 		byte[] request = SDBMessageHelper.buildQueryRequest(sdbMessage,
 				endianConvert);
@@ -1814,6 +1866,7 @@ public class Sequoiadb {
 
 		ByteBuffer byteBuffer = connection.receiveMessage(endianConvert);
 		SDBMessage rtnSDBMessage = SDBMessageHelper.msgExtractEvalReply(byteBuffer);
+		SDBMessageHelper.checkMessage(sdbMessage, rtnSDBMessage);
 
 		return rtnSDBMessage;
 	}
@@ -1838,12 +1891,13 @@ public class Sequoiadb {
 		sdbMessage.setPadding((short) 0);
 		sdbMessage.setFlags(0);
 		sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
-		sdbMessage.setRequestID(0);
+		sdbMessage.setRequestID(getNextRequstID());
 		sdbMessage.setSkipRowsCount(-1);
 		sdbMessage.setReturnRowsCount(-1);
 		sdbMessage.setSelector(dummyObj);
 		sdbMessage.setOrderBy(dummyObj);
 		sdbMessage.setHint(dummyObj);
+		sdbMessage.setOperationCode(Operation.OP_QUERY);
 
 		byte[] request = SDBMessageHelper.buildQueryRequest(sdbMessage,
 				endianConvert);
@@ -1856,6 +1910,7 @@ public class Sequoiadb {
 			byteBuffer.order(ByteOrder.BIG_ENDIAN);
 		}
 		SDBMessage rtnSDBMessage = SDBMessageHelper.msgExtractReply(byteBuffer);
+		SDBMessageHelper.checkMessage(sdbMessage, rtnSDBMessage);
 
 		return rtnSDBMessage;
 	}
@@ -1878,6 +1933,10 @@ public class Sequoiadb {
 
 		ByteBuffer byteBuffer = connection.receiveMessage(endianConvert);
 		SDBMessage rtnSDBMessage = SDBMessageHelper.msgExtractReply(byteBuffer);
+		if ( rtnSDBMessage.getOperationCode() != Operation.OP_KILL_CONTEXT_RES) {
+            throw new BaseException("SDB_UNKNOWN_MESSAGE", 
+                    rtnSDBMessage.getOperationCode());
+        }
 		int flags = rtnSDBMessage.getFlags();
 		if (flags != 0) {
 			throw new BaseException(flags);

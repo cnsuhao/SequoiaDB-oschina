@@ -130,7 +130,9 @@ namespace engine
 
    INT32 _ossCmdRunner::exec( const CHAR *cmd, UINT32 &exit,
                               BOOLEAN isBackground,
-                              INT64 timeout )
+                              INT64 timeout,
+                              BOOLEAN needResize,
+                              OSSHANDLE *pHandle )
    {
       INT32 rc = SDB_OK ;
       SDB_ASSERT( NULL != cmd, "can not be null" ) ;
@@ -139,13 +141,18 @@ namespace engine
       CHAR *arguments = NULL ;
       INT32 argLen = 0 ;
       ossResultCode res ;
-      INT32 flags = OSS_EXEC_SSAVE | OSS_EXEC_NORESIZEARGV |
-                    OSS_EXEC_NODETACHED ;
+      INT32 flags = OSS_EXEC_SSAVE | OSS_EXEC_NODETACHED ;
 
       if ( isBackground )
       {
-         flags = OSS_EXEC_NORESIZEARGV ;
+         flags = 0 ;
       }
+
+      if ( !needResize )
+      {
+         flags |= OSS_EXEC_NORESIZEARGV ;
+      }
+
       res.exitcode = 0 ;
       res.termcode = 0 ;
       _timeout     = timeout ;
@@ -169,7 +176,7 @@ namespace engine
       _readResult = SDB_OK ;
       _outStr = "" ;
       rc = ossExec( arguments, arguments, NULL, flags,
-                    _id, res, NULL, &_out, this ) ;
+                    _id, res, NULL, &_out, this, pHandle ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to exec cmd:%s, rc:%d",
@@ -227,6 +234,10 @@ namespace engine
          rc = ossReadNamedPipe( _out, buff, OSS_MAX_PATHSIZE, &readLen ) ;
          if ( SDB_OK != rc )
          {
+            if ( SDB_TIMEOUT == rc )
+            {
+               continue ;
+            }
             if ( SDB_EOF != rc )
             {
                PD_LOG( PDERROR, "failed to read data from pipe:%d", rc ) ;

@@ -143,7 +143,6 @@ public class SequoiadbWriter<K, V> extends RecordWriter<K, V> {
 
 	@Override
 	public void write(K key, V value) throws IOException, InterruptedException {
-		log.info("write");
 		BSONObject bson = null;
 
 		if (value != null) {
@@ -176,6 +175,7 @@ public class SequoiadbWriter<K, V> extends RecordWriter<K, V> {
 			} else {
 				this.dbCollection.bulkInsert(lstBsonBuffer, DBCollection.FLG_INSERT_CONTONDUP);
 				lstBsonBuffer.clear();
+				lstBsonBuffer.add(bson);
 			}
 		}else if ( this.writeType.equalsIgnoreCase("upsert") ){
 			BsonDeal bsonDeal = new BsonDeal( bson );

@@ -60,7 +60,7 @@ namespace engine
       replyHeader.numReturned = 0;
       replyHeader.startFrom = 0;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
-      replyHeader.header.opCode = MSG_BS_QUERY_RES;
+      replyHeader.header.opCode = MSG_BS_AGGREGATE_RSP;
       replyHeader.header.requestID = pHeader->requestID;
       replyHeader.header.routeID.value = 0;
       replyHeader.header.TID = pHeader->TID;

@@ -9,6 +9,7 @@ import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 import org.bson.types.ObjectId;
 
+import com.sequoiadb.base.SequoiadbConstants.Operation;
 import com.sequoiadb.exception.BaseException;
 import com.sequoiadb.net.IConnection;
 import com.sequoiadb.util.SDBMessageHelper;
@@ -32,6 +33,7 @@ public class DBCursor {
 	private byte times;
 	private long contextId;
 	boolean endianConvert;
+	private Sequoiadb sequoiadb;
 
 	DBCursor() {
 		hasMore = false;
@@ -44,11 +46,13 @@ public class DBCursor {
 		reqId = 0;
 		contextId = -1;
 		endianConvert = false;
+		sequoiadb = null;
 	}
 
 	DBCursor(SDBMessage rtnSDBMessage, DBCollection dbc) {
 		this.dbc = dbc;
-		endianConvert = dbc.getSequoiadb().endianConvert;
+		sequoiadb = dbc.getSequoiadb();
+		endianConvert = sequoiadb.endianConvert;
 		connection = dbc.getConnection();
 		sdbMessage = rtnSDBMessage;
 		sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
@@ -70,6 +74,7 @@ public class DBCursor {
 
 	DBCursor(SDBMessage rtnSDBMessage, Sequoiadb sdb) {
 		this.connection = sdb.getConnection();
+		sequoiadb = sdb;
 		sdbMessage = rtnSDBMessage;
 		sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
 		sdbMessage.setNumReturned(-1); // return data count
@@ -273,6 +278,7 @@ public class DBCursor {
 		}
 		
 		sdbMessage.setRequestID(reqId);
+		sdbMessage.setOperationCode(Operation.OP_GETMORE);
 		byte[] request = SDBMessageHelper.buildGetMoreRequest(sdbMessage,
 				endianConvert);
 		connection.sendMessage(request);
@@ -285,6 +291,11 @@ public class DBCursor {
 		} else {
 			rtnSDBMessage = SDBMessageHelper.msgExtractReplyRaw(byteBuffer);
 		}
+		
+		if ( rtnSDBMessage.getOperationCode() != Operation.OP_GETMORE_RES) {
+            throw new BaseException("SDB_UNKNOWN_MESSAGE", 
+                    rtnSDBMessage.getOperationCode());
+        }
 
 		int flags = rtnSDBMessage.getFlags();
 		if (flags == SequoiadbConstants.SDB_DMS_EOC // in case end of collection or wrong contextId
@@ -310,12 +321,13 @@ public class DBCursor {
 		if (connection == null && contextId == -1)
 			return;
 		long[] contextIds = new long[] { contextId };
-		byte[] request = SDBMessageHelper.buildKillCursorMsg(0, contextIds,
-				endianConvert);
+		byte[] request = SDBMessageHelper.buildKillCursorMsg(
+		        sequoiadb.getNextRequstID(), contextIds, endianConvert);
 		connection.sendMessage(request);
 
 		ByteBuffer byteBuffer = connection.receiveMessage(endianConvert);
 		SDBMessage rtnSDBMessage = SDBMessageHelper.msgExtractReply(byteBuffer);
+		assert( rtnSDBMessage.getOperationCode() == Operation.OP_KILL_CONTEXT_RES);
 		assert (rtnSDBMessage.getFlags() == 0);
 
 		connection = null;

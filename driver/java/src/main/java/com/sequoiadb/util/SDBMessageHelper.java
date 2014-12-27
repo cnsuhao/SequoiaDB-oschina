@@ -93,6 +93,7 @@ public class SDBMessageHelper {
 			short padding = sdbMessage.getPadding();
 			int flags = sdbMessage.getFlags();
 			long requestID = sdbMessage.getRequestID();
+			int opCode = sdbMessage.getOperationCode().getOperationCode();
 			long skipRowsCount = sdbMessage.getSkipRowsCount();
 			long returnRowsCount = sdbMessage.getReturnRowsCount();
 			byte[] collByteArray = collectionName.getBytes("UTF-8");
@@ -120,7 +121,7 @@ public class SDBMessageHelper {
 	
 			List<byte[]> fieldList = new ArrayList<byte[]>();
 			fieldList.add(assembleHeader(messageLength, requestID, nodeID,
-					Operation.OP_QUERY.getOperationCode(), endianConvert));
+					opCode, endianConvert));
 	
 			ByteBuffer buf = ByteBuffer.allocate(32);
 			if (endianConvert) {
@@ -200,17 +201,16 @@ public class SDBMessageHelper {
 		return msgInByteArray;
 	}
 
-	public static byte[] buildTransactionRequest(Operation opCode,
+	public static byte[] buildTransactionRequest(Operation opCode, long reqID,
 			boolean endianConvert) {
-		long reqId = 0;
 		int messageLength = MESSAGE_HEADER_LENGTH;
-		byte[] msg = assembleHeader(messageLength, reqId,
+		byte[] msg = assembleHeader(messageLength, reqID,
 				SequoiadbConstants.ZERO_NODEID, opCode.getOperationCode(),
 				endianConvert);
 		return msg;
 	}
 
-	public static int buildBulkInsertRequest(IoBuffer bulk_buffer,
+	public static int buildBulkInsertRequest(IoBuffer bulk_buffer, long reqID,
 			String collectionFullName, List<BSONObject> insertor, int flag)
 			throws BaseException {
 		try {
@@ -221,7 +221,7 @@ public class SDBMessageHelper {
 			bulk_buffer.putInt(-1); // messageLength
 			bulk_buffer.putInt(Operation.OP_INSERT.getOperationCode()); // operationCode
 			bulk_buffer.put(SequoiadbConstants.ZERO_NODEID); // NodeID
-			bulk_buffer.putLong(0); // requestID
+			bulk_buffer.putLong(reqID); // requestID
 	
 			bulk_buffer.putInt(0); // version
 			bulk_buffer.putShort((short) 0); // W
@@ -263,7 +263,7 @@ public class SDBMessageHelper {
 		}
 	}
 
-	public static int buildInsertRequest(IoBuffer bulk_buffer,
+	public static int buildInsertRequest(IoBuffer bulk_buffer, long reqID,
 			String collectionFullName, BSONObject insertor)
 			throws BaseException {
 		try {
@@ -274,7 +274,7 @@ public class SDBMessageHelper {
 			bulk_buffer.putInt(-1); // messageLength
 			bulk_buffer.putInt(Operation.OP_INSERT.getOperationCode()); // operationCode
 			bulk_buffer.put(SequoiadbConstants.ZERO_NODEID); // NodeID
-			bulk_buffer.putLong(0); // requestID
+			bulk_buffer.putLong(reqID); // requestID
 	
 			bulk_buffer.putInt(0); // version
 			bulk_buffer.putShort((short) 0); // W
@@ -324,6 +324,7 @@ public class SDBMessageHelper {
 			int flags = sdbMessage.getFlags();
 			long requestID = sdbMessage.getRequestID();
 			byte[] nodeID = sdbMessage.getNodeID();
+			int opCode = sdbMessage.getOperationCode().getOperationCode();
 	
 			byte[] collByteArray = collectionName.getBytes("UTF-8");
 			int collectionNameLength = collByteArray.length;
@@ -343,7 +344,7 @@ public class SDBMessageHelper {
 	
 			List<byte[]> fieldList = new ArrayList<byte[]>();
 			fieldList.add(assembleHeader(messageLength, requestID, nodeID,
-					Operation.OP_DELETE.getOperationCode(), endianConvert));
+					opCode, endianConvert));
 	
 			ByteBuffer buf = ByteBuffer.allocate(16);
 			if (endianConvert) {
@@ -391,6 +392,7 @@ public class SDBMessageHelper {
 			int flags = sdbMessage.getFlags();
 			long requestID = sdbMessage.getRequestID();
 			byte[] nodeID = sdbMessage.getNodeID();
+			int opCode = sdbMessage.getOperationCode().getOperationCode();
 	
 			byte[] collByteArray = collectionName.getBytes("UTF-8");
 			int collectionNameLength = collByteArray.length;
@@ -413,7 +415,7 @@ public class SDBMessageHelper {
 	
 			List<byte[]> fieldList = new ArrayList<byte[]>();
 			fieldList.add(assembleHeader(messageLength, requestID, nodeID,
-					Operation.OP_UPDATE.getOperationCode(), endianConvert));
+			        opCode, endianConvert));
 	
 			ByteBuffer buf = ByteBuffer.allocate(16);
 			if (endianConvert) {
@@ -478,7 +480,7 @@ public class SDBMessageHelper {
 					(MESSAGE_HEADER_LENGTH + sqlLength + 1), 4);
 			List<byte[]> fieldList = new ArrayList<byte[]>();
 			fieldList.add(assembleHeader(messageLength, requestID, nodeID,
-					Operation.RESERVED.getOperationCode(), endianConvert));
+					Operation.MSG_BS_SQL_REQ.getOperationCode(), endianConvert));
 			for (int i = 0; i < sqlLength; i++) {
 				newSqlBytes[i] = sqlBytes[i];
 			}
@@ -497,7 +499,7 @@ public class SDBMessageHelper {
 	 * return buildBulkInsertRequest(bulk_buffer,collectionFullName,insertor,0);
 	 * }
 	 */
-	public static int buildAggrRequest(IoBuffer bulk_buffer,
+	public static int buildAggrRequest(IoBuffer bulk_buffer, long reqID,
 			                           String collectionFullName,
 			                           List<BSONObject> insertor)
 			throws BaseException {
@@ -508,7 +510,7 @@ public class SDBMessageHelper {
 			bulk_buffer.putInt(-1); // messageLength
 			bulk_buffer.putInt(Operation.OP_AGGREGATE.getOperationCode()); // operationCode
 			bulk_buffer.put(SequoiadbConstants.ZERO_NODEID); // NodeID
-			bulk_buffer.putLong(0); // requestID
+			bulk_buffer.putLong(reqID); // requestID
 	
 			bulk_buffer.putInt(0); // version
 			bulk_buffer.putShort((short) 0); // W
@@ -630,7 +632,7 @@ public class SDBMessageHelper {
     }
 	
 	public static byte[] generateRemoveLobRequest( BSONObject removeObj,
-	        boolean endianConvert) {
+	        long reqID, boolean endianConvert) {
 	    byte bRevemoObj[] = bsonObjectToByteArray( removeObj );
         int totalLen = MESSAGE_OPLOB_LENGTH 
                         + Helper.roundToMultipleXLength( bRevemoObj.length, 4 );
@@ -649,7 +651,7 @@ public class SDBMessageHelper {
         
         addLobMsgHeader( buff, totalLen, 
                 Operation.MSG_BS_LOB_REMOVE_REQ.getOperationCode(), 
-                SequoiadbConstants.ZERO_NODEID, 0 );
+                SequoiadbConstants.ZERO_NODEID, reqID );
         
         addLobOpMsg( buff, SequoiadbConstants.DEFAULT_VERSION, 
                    SequoiadbConstants.DEFAULT_W, (short)0, 
@@ -699,6 +701,11 @@ public class SDBMessageHelper {
         sdbMessage.setObjectList(objList);
 
         return sdbMessage;
+    }
+	
+	public static SDBMessage msgExtractLobRemoveReply(ByteBuffer byteBuffer)
+            throws BaseException {
+	    return msgExtractLobOpenReply(byteBuffer);
     }
 	
 	public static SDBMessage msgExtractLobReadReply(ByteBuffer byteBuffer)
@@ -832,13 +839,13 @@ public class SDBMessageHelper {
 		long contextId = sdbMessage.getContextIDList().get(0);
 		int numReturned = sdbMessage.getNumReturned();
 		byte[] nodeID = sdbMessage.getNodeID();
+		int opCode = sdbMessage.getOperationCode().getOperationCode();
 
 		int messageLength = MESSAGE_OPGETMORE_LENGTH;
 
 		List<byte[]> fieldList = new ArrayList<byte[]>();
 		fieldList.add(assembleHeader(messageLength, requestID,
-				SequoiadbConstants.ZERO_NODEID,
-				Operation.OP_GETMORE.getOperationCode(), endianConvert));
+				SequoiadbConstants.ZERO_NODEID, opCode, endianConvert));
 		ByteBuffer buf = ByteBuffer.allocate(12);
 		if (endianConvert) {
 			buf.order(ByteOrder.LITTLE_ENDIAN);
@@ -1235,5 +1242,25 @@ public class SDBMessageHelper {
 		}
 		return length;
 	}
+
+    public static void checkMessage(SDBMessage req, SDBMessage res) {
+        checkMsgOpCode(req.getOperationCode(), res.getOperationCode());
+    }
+    
+    public static void checkMsgOpCode(Operation reqOpCode, Operation resOpCode) {
+        int reqCode = reqOpCode.getOperationCode();
+        int resCode = resOpCode.getOperationCode();
+        if ((reqCode|Operation.RES_FLAG) != resCode) {
+            throw new BaseException("SDB_UNKNOWN_MESSAGE", 
+                    ("request=" + reqOpCode + " response=" + resOpCode));
+        }
+    }
+    
+    public static void checkMsgReqID(long reqID, long resID) {
+        if (reqID != resID) {
+            throw new BaseException("SDB_UNKNOWN_MESSAGE", "reqID is different"
+                    + "reqID=" + reqID + " resID=" + resID);
+        }
+    }
 
 }

@@ -246,7 +246,7 @@ namespace engine
       _rtnCoordLobStream stream ;
 
       replyHeader.header.messageLength = sizeof( MsgOpReply ) ;
-      replyHeader.header.opCode = MSG_BS_LOB_CLOSE_RES ;
+      replyHeader.header.opCode = MSG_BS_LOB_REMOVE_RES ;
       replyHeader.header.requestID = baseHeader->requestID ;
       replyHeader.header.routeID.value = 0 ;
       replyHeader.header.TID = baseHeader->TID ;

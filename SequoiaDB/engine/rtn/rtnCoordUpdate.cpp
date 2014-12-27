@@ -65,7 +65,7 @@ namespace engine
 
       MsgHeader*pHeader                = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
-      replyHeader.header.opCode        = MSG_BS_DELETE_RES;
+      replyHeader.header.opCode        = MSG_BS_UPDATE_RES;
       replyHeader.header.requestID     = pHeader->requestID;
       replyHeader.header.routeID.value = 0;
       replyHeader.header.TID           = pHeader->TID;

@@ -27,11 +27,11 @@ import com.sequoiadb.hadoop.util.SequoiadbConfigUtil;
 /**
  * 
  * 
- * @className锛歋equoiadbInputFormat
+ * @className閿涙瓔equoiadbInputFormat
  * 
- * @author锛�gaoshengjie
+ * @author閿涳拷gaoshengjie
  * 
- * @createtime:2013骞�2鏈�1鏃�涓婂崍10:14:14
+ * @createtime:2013楠烇拷2閺堬拷1閺冿拷娑撳﹤宕�0:14:14
  * 
  * @changetime:TODO
  * 
@@ -70,7 +70,7 @@ public class SequoiadbInputFormat extends
 	public List<InputSplit> getSplits(JobContext jobContext)
 			throws IOException, InterruptedException {
 		List<InputSplit>  inputSplits = SdbSplitFactory.getSplits(jobContext);
-		log.info("inputSplits.size"+inputSplits.size());
+		log.debug("inputSplits.size"+inputSplits.size());
 		return inputSplits;
 	}
 
