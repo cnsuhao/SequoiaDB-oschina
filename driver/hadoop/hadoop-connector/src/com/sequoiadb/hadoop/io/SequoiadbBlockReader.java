@@ -26,11 +26,11 @@ import com.sequoiadb.hadoop.util.SequoiadbConfigUtil;
 /**
  * 
  * 
- * @className锛歋equoiadbReader
+ * @className閿涙瓔equoiadbReader
  * 
- * @author锛�gaoshengjie
+ * @author閿涳拷gaoshengjie
  * 
- * @createtime:2013骞�2鏈�0鏃�涓嬪崍4:33:34
+ * @createtime:2013楠烇拷2閺堬拷0閺冿拷娑撳宕�:33:34
  * 
  * @changetime:TODO
  * 
@@ -66,6 +66,12 @@ public class SequoiadbBlockReader extends RecordReader<Object, BSONWritable> {
     	
     	String collectionName = this.sdbBlockSplit.getCollectionName();
 		String collectionSpaceName = this.sdbBlockSplit.getCollectionSpaceName();
+		
+		
+		if(collectionSpaceName == null)
+			throw new IllegalArgumentException(" the input collection space is null");
+		if(collectionName == null)
+			throw new IllegalArgumentException(" the collection is null");
 
     	this.sequoiadb = new Sequoiadb(this.sdbBlockSplit.getSdbAddr().getHost(), this.sdbBlockSplit.getSdbAddr().getPort(),user,passwd);
     	CollectionSpace collectionSpace=sequoiadb.getCollectionSpace(collectionSpaceName);
@@ -90,7 +96,7 @@ public class SequoiadbBlockReader extends RecordReader<Object, BSONWritable> {
     	BSONObject selectorBson = null;
     	BSONObject orderbyBson = null;
 
-    	if ( queryStr != null){  //鏍煎紡鏈夐棶棰�
+    	if ( queryStr != null){  //閺嶇厧绱￠張澶愭６妫帮拷
     		try {
     			queryBson = (BSONObject) JSON.parse( queryStr );
 			} catch (Exception e) {
@@ -99,7 +105,7 @@ public class SequoiadbBlockReader extends RecordReader<Object, BSONWritable> {
 			}
     		log.debug( "queryBson = " + queryBson.toString() );
     	}
-    	if ( selectorStr != null){ //鏍煎紡鏈夐棶棰�
+    	if ( selectorStr != null){ //閺嶇厧绱￠張澶愭６妫帮拷
     		try {
     			selectorBson = (BSONObject) JSON.parse( selectorStr );
     			selectorBson.put("_id", null);

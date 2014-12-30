@@ -61,7 +61,7 @@ namespace engine
    #define JUDGE_RC( rc ) if ( SDB_OK != rc ) { goto error ; }
 
    #define PMD_OPTION_BRK_TIME_DEFAULT (5000)
-   #define PMD_MAX_PREF_POOL           (200)
+   #define PMD_MAX_PREF_POOL           (0) // modify 200 to 0
    #define PMD_MAX_SUB_QUERY           (10)
    #define PMD_MIN_SORTBUF_SZ          (RTN_SORT_MIN_BUFSIZE)
    #define PMD_DEFAULT_SORTBUF_SZ      (256)
@@ -71,7 +71,7 @@ namespace engine
    #define PMD_DFT_REPL_BUCKET_SIZE    (32)
    #define PMD_DFT_INDEX_SCAN_STEP     (100)
    #define PMD_DFT_START_SHIFT_TIME    (600)
-   #define PMD_DFT_NUMPAGECLEAN        (1)
+   #define PMD_DFT_NUMPAGECLEAN        (0)
    #define PMD_MAX_NUMPAGECLEAN        (50)
    #define PMD_DFT_PAGECLEANINTERVAL   (10000)
    #define PMD_MIN_PAGECLEANINTERVAL   (1000)
@@ -1297,7 +1297,8 @@ namespace engine
                PMD_MAX_PREF_POOL ) ;
       rdvMinMax( pEX, _maxPrefPool, 0, 1000, TRUE ) ;
       rdxUInt( pEX, PMD_OPTION_MAX_SUB_QUERY, _maxSubQuery, FALSE, TRUE,
-               PMD_MAX_SUB_QUERY ) ;
+               PMD_MAX_SUB_QUERY <= _maxPrefPool ?
+               PMD_MAX_SUB_QUERY : _maxPrefPool ) ;
       rdvMinMax( pEX, _maxSubQuery, 0, _maxPrefPool, TRUE ) ;
       rdxUInt( pEX, PMD_OPTION_MAX_REPL_SYNC, _maxReplSync, FALSE, TRUE,
                PMD_DEFAULT_MAX_REPLSYNC ) ;

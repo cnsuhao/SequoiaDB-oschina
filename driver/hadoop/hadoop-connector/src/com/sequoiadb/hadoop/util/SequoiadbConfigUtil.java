@@ -11,11 +11,11 @@ import org.apache.hadoop.mapreduce.Reducer;
 /**
  * 
  * 
- * @className：SequoiadbConfigUtil
+ * @className锛歋equoiadbConfigUtil
  * 
- * @author： gaoshengjie
+ * @author锛�gaoshengjie
  * 
- * @createtime:2013年12月10日 下午2:51:46
+ * @createtime:2013骞�2鏈�0鏃�涓嬪崍2:51:46
  * 
  * @changetime:TODO
  * 
@@ -51,10 +51,10 @@ public class SequoiadbConfigUtil {
 	public static final String JOB_OUTPUT_PASSWD = "sequoiadb.output.passwd";
 	
 	public static final String JOB_IN_COLLECTIONSPACE = "sequoiadb.in.collectionspace";
-	public static final String JOB_IN_COLLECTION = "sequoiadb.in.collect";
+	public static final String JOB_IN_COLLECTION = "sequoiadb.in.collection";
 
 	public static final String JOB_OUT_COLLECTIONSPACE = "sequoiadb.out.collectionspace";
-	public static final String JOB_OUT_COLLECTION = "sequoiadb.out.collect";
+	public static final String JOB_OUT_COLLECTION = "sequoiadb.out.collection";
 	                                               
 	public static final String JOB_QUERY_STRING = "sequoiadb.query.json";
 	public static final String JOB_SELECTOR_STRING = "sequoiadb.selector.json";
@@ -156,8 +156,7 @@ public class SequoiadbConfigUtil {
 	}
 	
 	public static String  getPreferenceInstance( Configuration conf ){
-		
-		return conf.get(JOB_PREFEREDINSTANCE,null);
+		return conf.get(JOB_PREFEREDINSTANCE,"anyone");
 	}
 	public static String getInputUser(Configuration conf){
 		return conf.get(JOB_INPUT_USER,null);

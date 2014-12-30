@@ -75,6 +75,11 @@ public class SequoiadbWriter<K, V> extends RecordWriter<K, V> {
 				sdbConnAddr.getPort(), user, passwd);
 		
 		CollectionSpace space=null;
+		if(collectionSpaceName == null)
+			throw new IllegalArgumentException(" the output collection space is null");
+		if(collectionName == null)
+			throw new IllegalArgumentException(" the output collection is null");
+		
 		if(sequoiadb.isCollectionSpaceExist(collectionSpaceName)){
 			space = sequoiadb.getCollectionSpace(collectionSpaceName);	
 		}else{

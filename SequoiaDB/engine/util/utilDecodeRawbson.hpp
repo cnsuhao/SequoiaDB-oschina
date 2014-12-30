@@ -59,6 +59,8 @@ class utilDecodeBson : public SDBObject
 private:
    CHAR _delChar ;
    CHAR _delField ;
+   BOOLEAN _includeBinary ;
+   BOOLEAN _includeRegex ;
 public:
    std::vector<fieldResolve *> _vFields ;
 private:
@@ -73,7 +75,9 @@ private:
 public:
    utilDecodeBson() ;
    ~utilDecodeBson() ;
-   INT32 init( CHAR delChar, CHAR delField ) ;
+   INT32 init( CHAR delChar, CHAR delField,
+               BOOLEAN includeBinary,
+               BOOLEAN includeRegex ) ;
    INT32 parseFields( CHAR *pFields, INT32 size ) ;
    INT32 parseCSVSize( CHAR *pbson, INT32 *pCSVSize ) ;
    INT32 parseJSONSize( CHAR *pbson, INT32 *pJSONSize ) ;

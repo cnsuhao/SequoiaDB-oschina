@@ -58,6 +58,8 @@ struct migExprtArg : public SDBObject
    EXPRTTYPE type ;
    BOOLEAN   include ;
    BOOLEAN   errorStop ;
+   BOOLEAN   includeBinary ;
+   BOOLEAN   includeRegex ;
    CHAR     *pHostname ;
    CHAR     *pSvcname ;
    CHAR     *pUser ;
@@ -72,6 +74,8 @@ struct migExprtArg : public SDBObject
                    type(MIGEXPRT_CSV),
                    include(TRUE),
                    errorStop(TRUE),
+                   includeBinary(FALSE),
+                   includeRegex(FALSE),
                    pHostname(NULL),
                    pSvcname(NULL),
                    pUser(NULL),

@@ -437,7 +437,7 @@ void pdLog( PDLEVEL level, const CHAR* func, const CHAR* file,
       rc = pdLogFileWrite ( PD_DIAGLOG, sysInfo ) ;
       if ( rc )
       {
-         ossPrintf ( "Failed to write into log file, errno = %d"OSS_NEWLINE, rc ) ;
+         ossPrintf ( "Failed to write into log file, rc: %d"OSS_NEWLINE, rc ) ;
          ossPrintf ( "%s"OSS_NEWLINE, sysInfo ) ;
       }
    }

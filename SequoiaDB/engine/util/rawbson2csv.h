@@ -52,9 +52,13 @@
 SDB_EXTERN_C_START
 
 SDB_EXPORT INT32 getCSVSize( CHAR delChar, CHAR delField,
-                             CHAR *pbson, INT32 *pCSVSize ) ;
+                             CHAR *pbson, INT32 *pCSVSize,
+                             BOOLEAN includeBinary,
+                             BOOLEAN includeRegex ) ;
 SDB_EXPORT INT32 bson2csv( CHAR delChar, CHAR delField, CHAR *pbson,
-                           CHAR **ppBuffer, INT32 *pCSVSize ) ;
+                           CHAR **ppBuffer, INT32 *pCSVSize,
+                           BOOLEAN includeBinary,
+                           BOOLEAN includeRegex ) ;
 SDB_EXTERN_C_END
 
 #endif

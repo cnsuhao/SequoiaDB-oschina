@@ -46,6 +46,8 @@
 #include "msg.h"
 
 #define MIG_STR_POINT "."
+#define MIG_STR_SPACE 32
+#define MIG_STR_TABLE '\t'
 
 migExport::migExport () : _gConnection(0),
                           _gCollectionSpace(0),
@@ -658,7 +660,65 @@ INT32 migExport::init( migExprtArg *pMigArg )
    }
    _isOpen = TRUE ;
 
-   rc = _decodeBson.init( _pMigArg->delChar, _pMigArg->delField ) ;
+   if ( _pMigArg->delChar == _pMigArg->delField )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "delchar does not like delfield" ) ;
+      goto error ;
+   }
+   else if ( MIG_STR_SPACE == _pMigArg->delChar )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "delchar can not be a tab" ) ;
+      goto error ;
+   }
+   else if ( MIG_STR_TABLE == _pMigArg->delChar )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "delchar can not be a space" ) ;
+      goto error ;
+   }
+
+   if ( _pMigArg->delField == _pMigArg->delRecord )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "delfield does not like delrecord" ) ;
+      goto error ;
+   }
+   else if ( MIG_STR_TABLE == _pMigArg->delField )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "delfield can not be a tab" ) ;
+      goto error ;
+   }
+   else if ( MIG_STR_SPACE == _pMigArg->delField )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "delfield can not be a space" ) ;
+      goto error ;
+   }
+
+   if ( _pMigArg->delRecord == _pMigArg->delChar )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "delrecord does not like delchar" ) ;
+      goto error ;
+   }
+   else if ( MIG_STR_TABLE == _pMigArg->delRecord )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "delrecord can not be a tab" ) ;
+      goto error ;
+   }
+   else if ( MIG_STR_SPACE == _pMigArg->delRecord )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "delrecord can not be a space" ) ;
+      goto error ;
+   }
+
+   rc = _decodeBson.init( _pMigArg->delChar, _pMigArg->delField,
+                          _pMigArg->includeBinary, _pMigArg->includeRegex ) ;
    if ( rc )
    {
       PD_LOG ( PDERROR, "Failed to call init, rc=%d", rc ) ;

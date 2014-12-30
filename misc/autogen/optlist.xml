@@ -456,13 +456,13 @@
       <name>PMD_OPTION_MAX_PREF_POOL</name>
       <long>maxprefpool</long>
       <description>
-         <en>The maximum number of prefetchers, default:200, value range:[0,1000]</en>
-         <cn>数据预取代理池最大数量,默认值:200,取值范围:[0,1000]</cn>
+         <en>The maximum number of prefetchers, default:0, value range:[0,1000]</en>
+         <cn>数据预取代理池最大数量,默认值:0,取值范围:[0,1000]</cn>
       </description>
       <type>int</type>
       <detail>
-         <en>The maximum number of prefetchers, default:200, value range:[0,1000]</en>
-         <cn>数据预取代理池最大数量,默认值:200,取值范围:[0,1000]</cn>
+         <en>The maximum number of prefetchers, default:0, value range:[0,1000]</en>
+         <cn>数据预取代理池最大数量,默认值:0,取值范围:[0,1000]</cn>
       </detail>
       <typeofweb>num</typeofweb>
    </opt>
@@ -708,17 +708,17 @@
       <name>PMD_OPTION_NUMPAGECLEANERS</name>
       <long>numpagecleaners</long>
       <description>
-         <en>Number of page cleaners, default 1, value range:[0, 50]</en>
+         <en>Number of page cleaners, default 0, value range:[0, 50]</en>
          <cn>启动脏页清除器的数量，默认为1，取值范围：[0, 50]</cn>
       </description>
       <detail>
          <en>The number of page cleaner threads to start during database startup.<fig></fig>
-             0 means do not start any page cleaners, default 1, value range:[0, 50].<fig></fig></en>
+             0 means do not start any page cleaners, default 0, value range:[0, 50].<fig></fig></en>
          <cn>数据库启动时需要开启的脏页清除器数量<fig></fig>
              0意味着不启动任何脏页清除器，默认为1，取值范围：[0, 50]。<fig></fig></cn>
       </detail>
       <type>int</type>
-      <default>1</default>
+      <default>0</default>
       <typeofweb>num</typeofweb>
    </opt>
 

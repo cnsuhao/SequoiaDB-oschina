@@ -47,6 +47,9 @@
 #define RELATIVE_DAY 31
 #define RELATIVE_HOUR 24
 #define RELATIVE_MIN_SEC 60
+#define CSV_STR_LEFTBRACKET    "("
+#define CSV_STR_RIGHTBRACKET   ")"
+#define CSV_STR_BACKSLASH      "/"
 
 static void local_time ( time_t *Time, struct tm *TM )
 {
@@ -189,12 +192,15 @@ error:
 }
 
 INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
-                    CHAR **ppBuffer, INT32 *pCSVSize )
+                    CHAR **ppBuffer, INT32 *pCSVSize,
+                    BOOLEAN includeBinary,
+                    BOOLEAN includeRegex )
 {
    INT32 rc = SDB_OK ;
    bson_type type = bson_iterator_type( pIt ) ;
    INT32 tempSize = 0 ;
    INT32 base64Size = 0 ;
+   INT32 binType = 0 ;
    CHAR temp[128] = { 0 } ;
    const CHAR *pTemp = NULL ;
    CHAR *pBase64 = NULL ;
@@ -221,7 +227,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
       }
       if ( type == BSON_TIMESTAMP )
       {
-         ts = bson_iterator_timestamp( pIt );
+         ts = bson_iterator_timestamp( pIt ) ;
          timer = (time_t)ts.t;
          local_time( &timer, &psr ) ;
          tempSize = ossSnprintf ( temp, 64,
@@ -241,7 +247,7 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
       }
       else if ( type == BSON_DATE )
       {
-         timer = bson_iterator_date( pIt );
+         timer = bson_iterator_date( pIt ) / 1000 ;
          local_time( &timer, &psr ) ;
          tempSize = ossSnprintf ( temp, 64, "%04d-%02d-%02d",
                                   psr.tm_year + 1900,
@@ -303,14 +309,38 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
       }
       else if ( type == BSON_BINDATA )
       {
+         if( TRUE == includeBinary )
+         {
+            rc = _appendString( delChar, CSV_STR_LEFTBRACKET, 1, ppBuffer, pCSVSize ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            binType = (INT32)bson_iterator_bin_type( pIt ) ;
+            tempSize = ossSnprintf ( temp, 64, "%d", binType ) ;
+            rc = _appendString( delChar, &temp, tempSize, ppBuffer, pCSVSize ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            rc = _appendString( delChar, CSV_STR_RIGHTBRACKET, 1, ppBuffer, pCSVSize ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
          pTemp = bson_iterator_bin_data( pIt ) ;
-         tempSize = bson_iterator_bin_len ( pIt ) - 1 ;
+         tempSize = bson_iterator_bin_len ( pIt ) ;
          base64Size = getEnBase64Size ( tempSize ) ;
          pBase64 = (CHAR *)SDB_OSS_MALLOC( base64Size ) ;
+         if( NULL == pBase64 )
+         {
+            rc = SDB_OOM ;
+            goto error ;
+         }
          ossMemset( pBase64, 0, base64Size ) ;
          if ( !base64Encode( pTemp, tempSize, pBase64, base64Size ) )
          {
-            SAFE_OSS_FREE( pBase64 ) ;
             rc = SDB_OOM ;
             goto error ;
          }
@@ -318,19 +348,42 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
                              ppBuffer, pCSVSize ) ;
          if ( rc )
          {
-            SAFE_OSS_FREE( pBase64 ) ;
             goto error ;
          }
-         SAFE_OSS_FREE( pBase64 ) ;
       }
       else if ( type == BSON_REGEX )
       {
+         if( TRUE == includeRegex )
+         {
+            rc = _appendString( delChar, CSV_STR_BACKSLASH, 1,
+                                ppBuffer, pCSVSize ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+         }
          pTemp = bson_iterator_regex( pIt ) ;
          rc = _appendString( delChar, pTemp, ossStrlen( pTemp ),
                              ppBuffer, pCSVSize ) ;
          if ( rc )
          {
             goto error ;
+         }
+         if( TRUE == includeRegex )
+         {
+            rc = _appendString( delChar, CSV_STR_BACKSLASH, 1,
+                                ppBuffer, pCSVSize ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
+            pTemp = bson_iterator_regex_opts( pIt ) ;
+            rc = _appendString( delChar, pTemp, ossStrlen( pTemp ),
+                                ppBuffer, pCSVSize ) ;
+            if ( rc )
+            {
+               goto error ;
+            }
          }
       }
       else if ( type == BSON_OID )
@@ -357,16 +410,21 @@ INT32 _appendValue( CHAR delChar, bson_iterator *pIt,
       }
    }
 done:
+   SAFE_OSS_FREE( pBase64 ) ;
    return rc ;
 error:
    goto done ;
 }
 
 INT32 getCSVSize ( CHAR delChar, CHAR delField,
-                   CHAR *pbson, INT32 *pCSVSize )
+                   CHAR *pbson, INT32 *pCSVSize,
+                   BOOLEAN includeBinary,
+                   BOOLEAN includeRegex )
 {
    INT32 rc = SDB_OK ;
-   rc = bson2csv( delChar, delField, pbson, NULL, pCSVSize ) ;
+   rc = bson2csv( delChar, delField, pbson, NULL, pCSVSize,
+                  includeBinary,
+                  includeRegex ) ;
    if ( rc )
    {
       goto error ;
@@ -379,7 +437,9 @@ error:
 }
 
 INT32 bson2csv( CHAR delChar, CHAR delField, CHAR *pbson,
-                CHAR **ppBuffer, INT32 *pCSVSize )
+                CHAR **ppBuffer, INT32 *pCSVSize,
+                BOOLEAN includeBinary,
+                BOOLEAN includeRegex )
 {
    INT32 rc = SDB_OK ;
    BOOLEAN isFirst = TRUE ;
@@ -412,7 +472,9 @@ INT32 bson2csv( CHAR delChar, CHAR delField, CHAR *pbson,
       {
          continue ;
       }
-      rc = _appendValue( delChar, &it, ppBuffer, pCSVSize ) ;
+      rc = _appendValue( delChar, &it, ppBuffer, pCSVSize,
+                         includeBinary,
+                         includeRegex ) ;
       if ( rc )
       {
          goto error ;

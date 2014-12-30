@@ -59,6 +59,8 @@
 #define OPTION_FILENAME          "file"
 #define OPTION_TYPE              FIELD_NAME_LTYPE
 #define OPTION_ERRORSTOP         "errorstop"
+#define OPTION_INCLUDEBINARY     "includebinary"
+#define OPTION_INCLUDEREGEX      "includeregex"
 
 #define DEFAULT_HOSTNAME         "localhost"
 #define DEFAULT_SVCNAME          "11810"
@@ -100,12 +102,14 @@ INT32 on_main( void *pData )
    utilSdbObj.getArgString( OPTION_FILENAME,     &exprtArg.pFile ) ;
    utilSdbObj.getArgString( OPTION_FIELD,        &exprtArg.pFields ) ;
    
-   utilSdbObj.getArgChar( OPTION_DELCHAR,      &exprtArg.delChar ) ;
-   utilSdbObj.getArgChar( OPTION_DELFIELD,     &exprtArg.delField ) ;
-   utilSdbObj.getArgChar( OPTION_DELRECORD,    &exprtArg.delRecord ) ;
+   utilSdbObj.getArgChar( OPTION_DELCHAR,        &exprtArg.delChar ) ;
+   utilSdbObj.getArgChar( OPTION_DELFIELD,       &exprtArg.delField ) ;
+   utilSdbObj.getArgChar( OPTION_DELRECORD,      &exprtArg.delRecord ) ;
 
-   utilSdbObj.getArgBool( OPTION_ERRORSTOP,    &exprtArg.errorStop ) ;
-   utilSdbObj.getArgBool( OPTION_INCLUDED,     &exprtArg.include ) ;
+   utilSdbObj.getArgBool( OPTION_ERRORSTOP,      &exprtArg.errorStop ) ;
+   utilSdbObj.getArgBool( OPTION_INCLUDED,       &exprtArg.include ) ;
+   utilSdbObj.getArgBool( OPTION_INCLUDEBINARY,  &exprtArg.includeBinary ) ;
+   utilSdbObj.getArgBool( OPTION_INCLUDEREGEX,   &exprtArg.includeRegex ) ;
 
    if ( !exprtArg.pFields && exprtArg.type == MIGEXPRT_CSV )
    {
@@ -140,20 +144,22 @@ INT32 on_end( void *pData )
    return SDB_OK ;
 }
 
-#define EXPLAIN_HOSTNAME         "host name ( default: localhost )"
-#define EXPLAIN_SVCNAME          "service name ( default: 11810 )"
+#define EXPLAIN_HOSTNAME         "host name, default: localhost )"
+#define EXPLAIN_SVCNAME          "service name, default: 11810 )"
 #define EXPLAIN_USER             "username"
 #define EXPLAIN_PASSWORD         "password"
-#define EXPLAIN_DELCHAR          "string delimiter ( default: \" )( csv only )"
-#define EXPLAIN_DELFIELD         "field delimiter ( default: , )( csv only )"
-#define EXPLAIN_DELRECORD        "record delimiter ( default: '\\n' )( csv only )"
+#define EXPLAIN_DELCHAR          "string delimiter, default: '\"' ( csv only )"
+#define EXPLAIN_DELFIELD         "field delimiter, default: ','  ( csv only )"
+#define EXPLAIN_DELRECORD        "record delimiter, default: '\\n' ( csv only )"
 #define EXPLAIN_COLLECTSPACE     "collection space name"
 #define EXPLAIN_COLLECTION       "collection name"
 #define EXPLAIN_FIELDS           "field names, separated by command (',')"
-#define EXPLAIN_INCLUDE          "whether to include field names of the file ( default: true )( csv only )"
+#define EXPLAIN_INCLUDE          "whether to include field names of the file, default: true ( csv only )"
 #define EXPLAIN_FILENAME         "output file name"
 #define EXPLAIN_TYPE             "type of file to load, default: csv (json,csv)"
 #define EXPLAIN_ERRORSTOP        "whether stop by hitting error, default false"
+#define EXPLAIN_INCLUDEBINARY    "whether to output a compelete binary, default false( csv only )"
+#define EXPLAIN_INCLUDEREGEX     "whether to output a compelete regex, default false( csv only )"
 
 INT32 main ( INT32 argc, CHAR **argv )
 {
@@ -183,6 +189,8 @@ INT32 main ( INT32 argc, CHAR **argv )
    APPENDARGSTRING( utilSdbObj, OPTION_FIELD,        OPTION_FIELD,             EXPLAIN_FIELDS,           FALSE, -1,                  NULL ) ;
    APPENDARGBOOL  ( utilSdbObj, OPTION_INCLUDED,     OPTION_INCLUDED,          EXPLAIN_INCLUDE,          FALSE, TRUE ) ;
    APPENDARGBOOL  ( utilSdbObj, OPTION_ERRORSTOP,    OPTION_ERRORSTOP,         EXPLAIN_ERRORSTOP,        FALSE, FALSE  ) ;
+   APPENDARGBOOL  ( utilSdbObj, OPTION_INCLUDEBINARY,OPTION_INCLUDEBINARY,     EXPLAIN_INCLUDEBINARY,    FALSE, FALSE  ) ;
+   APPENDARGBOOL  ( utilSdbObj, OPTION_INCLUDEREGEX, OPTION_INCLUDEREGEX,      EXPLAIN_INCLUDEREGEX,     FALSE, FALSE  ) ;
 
    rc = utilSdbObj.init( setting, NULL ) ;
    if ( rc )

@@ -59,7 +59,7 @@
 		<echo message="jdk.name is ${jdk.name}" />
     <javac srcdir="${base.dir}/src"
            destdir="${base.dir}/build"
-           debug="true"
+           debug="on"
            executable="${base.dir}/../../java/${jdk.name}/bin/javac"
            fork="yes" >
        <compilerarg value="-Xlint:unchecked" />

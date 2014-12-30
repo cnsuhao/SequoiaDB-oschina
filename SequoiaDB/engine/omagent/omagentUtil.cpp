@@ -41,6 +41,7 @@
 #include "utilNodeOpr.hpp"
 #include "ossSocket.hpp"
 #include "utilCommon.hpp"
+#include "ossCmdRunner.hpp"
 
 namespace engine
 {
@@ -295,12 +296,9 @@ namespace engine
                         BOOLEAN useCurUser )
    {
       INT32 rc                = SDB_OK ;
-      CHAR *pArgumentBuffer   = NULL ;
-      INT32 argBuffLen        = 0 ;
-
-      list< const CHAR* > argv ;
-      ossResultCode result ;
-      OSSPID tmppid ;
+      ossCmdRunner runner ;
+      string cmdline ;
+      UINT32 exit = 0 ;
 
       rc = ossAccess ( pCfgPath ) ;
       if ( rc )
@@ -309,31 +307,25 @@ namespace engine
          goto error ;
       }
 
-      argv.push_back ( pExecName ) ;
-      argv.push_back ( SDBCM_OPTION_PREFIX PMD_OPTION_CONFPATH ) ;
-      argv.push_back ( pCfgPath ) ;
+      cmdline += pExecName ;
+      cmdline += " " ;
+      cmdline += SDBCM_OPTION_PREFIX PMD_OPTION_CONFPATH ;
+      cmdline += " " ;
+      cmdline += pCfgPath ;
       if ( useCurUser )
       {
-         argv.push_back( SDBCM_OPTION_PREFIX PMD_OPTION_CURUSER ) ;
-      }
-      rc = ossBuildArguments( &pArgumentBuffer, argBuffLen, argv ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDERROR, "Failed to build sdbstart arguments, rc: %d",
-                  rc ) ;
-         goto error ;
+         cmdline += " " ;
+         cmdline += SDBCM_OPTION_PREFIX PMD_OPTION_CURUSER ;
       }
 
-      rc = ossExec ( pArgumentBuffer, pArgumentBuffer, NULL,
-                     OSS_EXEC_SSAVE, tmppid, result, NULL, NULL ) ;
+      rc = runner.exec( cmdline.c_str(), exit, FALSE, OSS_ONE_SEC * 900 ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to execute %s, rc: %d",
-                  pArgumentBuffer, rc ) ;
+         PD_LOG ( PDERROR, "Failed to execute command[%s], rc: %d",
+                  cmdline.c_str(), rc ) ;
          goto error ;
       }
-      if ( result.termcode == OSS_EXIT_NORMAL &&
-           result.exitcode == SDB_OK  )
+      if ( exit == SDB_OK  )
       {
          UTIL_VEC_NODES nodes ;
 
@@ -352,14 +344,22 @@ namespace engine
       }
       else
       {
-         rc = utilShellRC2RC( result.exitcode ) ;
+         rc = utilShellRC2RC( exit ) ;
+      }
+
+      if ( rc )
+      {
+         string outString ;
+         runner.read( outString ) ;
+         string nodeOut = omPickNodeOutString( outString, pSvcName ) ;
+         if ( !nodeOut.empty() )
+         {
+            PD_LOG( PDERROR, "node[%s] start failed, out info:%s%s",
+                    pSvcName, OSS_NEWLINE, nodeOut.c_str() ) ;
+         }
       }
 
    done:
-      if ( pArgumentBuffer )
-      {
-         SDB_OSS_FREE( pArgumentBuffer ) ;
-      }
       return rc ;
    error:
       goto done ;
@@ -465,4 +465,45 @@ namespace engine
       return rc ;
    }
 
+   string omPickNodeOutString( const string &out, const CHAR *pSvcname )
+   {
+      string nodeStr = out ;
+      CHAR finder[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      const CHAR *pStr = out.c_str() ;
+      const CHAR *pStr1 = NULL ;
+      const CHAR *pStr2 = NULL ;
+
+      ossSnprintf( finder, OSS_MAX_PATHSIZE, "%s: ", pSvcname ) ;
+      pStr1 = ossStrstr( pStr, finder ) ;
+      if ( pStr1 )
+      {
+         pStr1 += ossStrlen( finder ) ;
+
+         ossStrcpy( finder, " bytes out==>" ) ;
+         pStr2 = ossStrstr( pStr1, finder ) ;
+         if ( pStr2 )
+         {
+            UINT32 len = ossStrlen( finder ) ;
+            ossMemset( finder, 0, sizeof( finder ) ) ;
+            ossStrncpy( finder, pStr1, pStr2 - pStr1 ) ;
+            pStr2 += len ;
+
+            const CHAR *pStr3 = ossStrstr( pStr2 + ossAtoi( finder ),
+                                           "<==" ) ;
+            if ( pStr3 )
+            {
+               nodeStr = out.substr( pStr2 - pStr, pStr3 - pStr2 ) ;
+            }
+            else
+            {
+               nodeStr = out.substr( pStr2 - pStr, ossAtoi( finder ) ) ;
+            }
+            utilStrTrim( nodeStr ) ;
+         }
+      }
+
+      return nodeStr ;
+   }
+
 }
+

@@ -92,6 +92,9 @@ namespace engine
                                          BOOLEAN &isRuning,
                                          OSSPID &pid ) ;
 
+   string         omPickNodeOutString( const string &out,
+                                       const CHAR *pSvcname ) ;
+
 }
 
 #endif // OMAGENT_UTIL_HPP_

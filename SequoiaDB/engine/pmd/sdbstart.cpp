@@ -438,10 +438,15 @@ namespace engine
             {
                string outString ;
                runner->read( outString ) ;
+               utilStrTrim( outString ) ;
                if ( !outString.empty() )
                {
-                  ossPrintf( "%s: %s"OSS_NEWLINE, info._svcname.c_str(),
-                              outString.c_str() ) ;
+                  ossPrintf( "%s: %u bytes out==>%s%s%s<=="OSS_NEWLINE,
+                             info._svcname.c_str(),
+                             outString.length() + ossStrlen( OSS_NEWLINE ) * 2,
+                             OSS_NEWLINE,
+                             outString.c_str(),
+                             OSS_NEWLINE ) ;
                }
                break ;
             }
