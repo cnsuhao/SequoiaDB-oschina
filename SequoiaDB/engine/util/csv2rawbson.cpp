@@ -42,14 +42,18 @@
 #include "time.h"
 #include <math.h>
 #include "../client/base64c.h"
+#include "base64c.h"
 
-#define CSV_STR_TABLE   '\t'
-#define CSV_STR_CR      '\r'
-#define CSV_STR_LF      '\n'
-#define CSV_STR_COMMA   ','
-#define CSV_STR_QUOTES  '"'
-#define CSV_STR_SPACE   32
-#define CSV_STR_SLASH   '\\'
+#define CSV_STR_TABLE          '\t'
+#define CSV_STR_CR             '\r'
+#define CSV_STR_LF             '\n'
+#define CSV_STR_COMMA          ','
+#define CSV_STR_QUOTES         '"'
+#define CSV_STR_SPACE          32
+#define CSV_STR_SLASH          '\\'
+#define CSV_STR_BACKSLASH      '/'
+#define CSV_STR_LEFTBRACKET    '('
+#define CSV_STR_RIGHTBRACKET   ')'
 
 #define TIME_FORMAT "%d-%d-%d-%d.%d.%d.%d"
 #define DATE_FORMAT "%d-%d-%d"
@@ -67,66 +71,70 @@ const CHAR *_pCSVTYPESTR[] = {
    CSV_STR_INT,         CSV_STR_INTEGER,        CSV_STR_LONG,
    CSV_STR_BOOL,        CSV_STR_BOOLEAN,        CSV_STR_DOUBLE,
    CSV_STR_STRING,      CSV_STR_TIMESTAMP,      CSV_STR_DATE,
-   CSV_STR_NULL
+   CSV_STR_NULL,        CSV_STR_OID,            CSV_STR_REGEX,
+   CSV_STR_BINARY,      CSV_STR_NUMBER
 } ;
 
 const INT32 _CSVTYPESTRSIZE[] = {
    CSV_STR_INT_SIZE,    CSV_STR_INTEGER_SIZE,   CSV_STR_LONG_SIZE,
    CSV_STR_BOOL_SIZE,   CSV_STR_BOOLEAN_SIZE,   CSV_STR_DOUBLE_SIZE,
    CSV_STR_STRING_SIZE, CSV_STR_TIMESTAMP_SIZE, CSV_STR_DATE_SIZE,
-   CSV_STR_NULL_SIZE,   CSV_STR_TRUE_SIZE,      CSV_STR_FALSE_SIZE,
-   CSV_STR_DEFAULT_SIZE
+   CSV_STR_NULL_SIZE,   CSV_STR_OID_SIZE,       CSV_STR_REGEX_SIZE,
+   CSV_STR_BINARY_SIZE, CSV_STR_NUMBER_SIZE
 } ;
 
 const INT32 _CSVTYPENUM[] = {
    0,    0,    1,
    2,    2,    3,
    4,    5,    6,
-   7
+   7,    8,    9,
+   10,   11
 } ;
 
-CHAR *csvParser::_trimLeft ( CHAR *pCursor, INT32 &size )
+inline CHAR *csvParser::_trimLeft ( CHAR *pCursor, INT32 &size )
 {
+   INT32 tempSize = size ;
    for ( INT32 i = 0; i < size; ++i )
    {
       switch( *pCursor )
       {
       case CSV_STR_TABLE:
-      case CSV_STR_CR:
-      case CSV_STR_LF:
       case CSV_STR_SPACE:
          ++pCursor ;
+         --tempSize ;
          break ;
       case 0:
       default:
-         size -= i ;
+         size = tempSize ;
          return pCursor ;
       }
    }
+   size = tempSize ;
    return pCursor ;
 }
 
-CHAR *csvParser::_trimRight ( CHAR *pCursor, INT32 &size )
+inline CHAR *csvParser::_trimRight ( CHAR *pCursor, INT32 &size )
 {
+   INT32 tempSize = size ;
    for ( INT32 i = 1; i <= size; ++i )
    {
       switch( *( pCursor + ( size - i ) ) )
       {
       case CSV_STR_TABLE:
-      case CSV_STR_CR:
-      case CSV_STR_LF:
       case CSV_STR_SPACE:
+         --tempSize ;
          break ;
       case 0:
       default:
-         size -= ( i - 1 ) ;
+         size = tempSize ;
          return pCursor ;
       }
    }
+   size = tempSize ;
    return pCursor ;
 }
 
-CHAR *csvParser::_trim ( CHAR *pCursor, INT32 &size )
+inline CHAR *csvParser::_trim ( CHAR *pCursor, INT32 &size )
 {
    pCursor = _trimLeft( pCursor, size ) ;
    pCursor = _trimRight( pCursor, size ) ;
@@ -165,8 +173,7 @@ INT32 csvParser::_parseValue( _valueData &valueData, CHAR *pBuffer, INT32 size )
       valueData.stringSize = size ;
       goto done ;
    }
-   else if ( _delChar != *pBuffer &&
-             _delChar != *(pBuffer + size - 1) )
+   else
    {
       if ( size == CSV_STR_TRUE_SIZE &&
            ossStrncasecmp( pBuffer, CSV_STR_TRUE, CSV_STR_TRUE_SIZE ) == 0 )
@@ -226,8 +233,8 @@ INT32 csvParser::_parseValue( _valueData &valueData,
    switch( fieldData.type )
    {
    case CSV_TYPE_INT:
-      rc = _value2str( pBuffer, size,
-                      &pBuffer, size ) ;
+      rc = _valueEscape( pBuffer, size,
+                        &pBuffer, size ) ;
       if ( rc )
       {
          goto error ;
@@ -259,8 +266,8 @@ INT32 csvParser::_parseValue( _valueData &valueData,
       }
       break ;
    case CSV_TYPE_LONG:
-      rc = _value2str( pBuffer, size,
-                      &pBuffer, size ) ;
+      rc = _valueEscape( pBuffer, size,
+                        &pBuffer, size ) ;
       if ( rc )
       {
          goto error ;
@@ -302,8 +309,8 @@ INT32 csvParser::_parseValue( _valueData &valueData,
       }
       break ;
    case CSV_TYPE_BOOL:
-      rc = _value2str( pBuffer, size,
-                      &pBuffer, size ) ;
+      rc = _valueEscape( pBuffer, size,
+                        &pBuffer, size ) ;
       if ( rc )
       {
          goto error ;
@@ -359,8 +366,8 @@ INT32 csvParser::_parseValue( _valueData &valueData,
       }
       break ;
    case CSV_TYPE_DOUBLE:
-      rc = _value2str( pBuffer, size,
-                      &pBuffer, size ) ;
+      rc = _valueEscape( pBuffer, size,
+                        &pBuffer, size ) ;
       if ( rc )
       {
          goto error ;
@@ -395,8 +402,8 @@ INT32 csvParser::_parseValue( _valueData &valueData,
       valueData.type = CSV_TYPE_NULL ;
       break ;
    case CSV_TYPE_STRING:
-      rc = _value2str( pBuffer, size,
-                      &pBuffer, size ) ;
+      rc = _valueEscape( pBuffer, size,
+                        &pBuffer, size ) ;
       if ( rc )
       {
          goto error ;
@@ -405,8 +412,8 @@ INT32 csvParser::_parseValue( _valueData &valueData,
       valueData.stringSize = size ;
       break ;
    case CSV_TYPE_TIMESTAMP:
-      rc = _value2str( pBuffer, size,
-                      &pBuffer, size ) ;
+      rc = _valueEscape( pBuffer, size,
+                        &pBuffer, size ) ;
       if ( rc )
       {
          goto error ;
@@ -434,8 +441,8 @@ INT32 csvParser::_parseValue( _valueData &valueData,
       }
       break ;
    case CSV_TYPE_DATE:
-      rc = _value2str( pBuffer, size,
-                      &pBuffer, size ) ;
+      rc = _valueEscape( pBuffer, size,
+                        &pBuffer, size ) ;
       if ( rc )
       {
          goto error ;
@@ -459,6 +466,102 @@ INT32 csvParser::_parseValue( _valueData &valueData,
             {
                valueData.type = CSV_TYPE_NULL ;
             }
+         }
+      }
+      break ;
+   case CSV_TYPE_OID:
+      rc = _valueEscape( pBuffer, size,
+                        &pBuffer, size ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      if( size != 24 )
+      {
+         if ( fieldData.hasDefVal )
+         {
+            valueData.pVarString = fieldData.pVarString ; ;
+            valueData.stringSize = fieldData.stringSize ; ;
+         }
+         else
+         {
+            valueData.type = CSV_TYPE_NULL ;
+         }
+      }
+      else
+      {
+         valueData.pVarString = pBuffer ;
+         valueData.stringSize = size ;
+      }
+      break ;
+   case CSV_TYPE_REGEX:
+      rc = _valueEscape( pBuffer, size,
+                        &pBuffer, size ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _string2regex( valueData.varRegex, pBuffer, size ) ;
+      if( rc )
+      {
+         rc = SDB_OK ;
+         if ( fieldData.hasDefVal )
+         {
+            valueData.varRegex = fieldData.varRegex ;
+         }
+         else
+         {
+            valueData.type = CSV_TYPE_NULL ;
+         }
+      }
+      break ;
+   case CSV_TYPE_BINARY:
+      rc = _valueEscape( pBuffer, size,
+                        &pBuffer, size ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _string2binary( valueData.varBinary, pBuffer, size ) ;
+      if( rc )
+      {
+         rc = SDB_OK ;
+         if ( fieldData.hasDefVal )
+         {
+            valueData.varBinary = fieldData.varBinary ;
+         }
+         else
+         {
+            valueData.type = CSV_TYPE_NULL ;
+         }
+      }
+      else
+      {
+         valueData.varBinary.isOwnmem = TRUE ;
+      }
+      break ;
+   case CSV_TYPE_NUMBER:
+      rc =  _parseNumber ( pBuffer, size,
+                           valueData.type,
+                          &valueData.varInt,
+                          &valueData.varLong,
+                          &valueData.varDouble ) ;
+      if( rc )
+      {
+         goto error ;
+      }
+      if( CSV_TYPE_STRING == valueData.type )
+      {
+         if ( fieldData.hasDefVal )
+         {
+            valueData.varInt = fieldData.varInt ;
+            valueData.varLong = fieldData.varLong ;
+            valueData.varDouble = fieldData.varDouble ;
+            valueData.type = fieldData.subType ;
+         }
+         else
+         {
+            valueData.type = CSV_TYPE_NULL ;
          }
       }
       break ;
@@ -653,29 +756,10 @@ CHAR *csvParser::_skipSpace( CHAR *pBuffer, INT32 &size )
    return pBuffer ;
 }
 
-INT32 csvParser::_field2str( CHAR *pBuffer, INT32 size,
-                             CHAR **ppOutBuf, INT32 &newSize )
+INT32 csvParser::_headerEscape( CHAR *pBuffer, INT32 size,
+                                CHAR **ppOutBuf, INT32 &newSize )
 {
    INT32 rc = SDB_OK ;
-   CHAR *pNewBuffer = NULL ;
-
-   if ( size == 0 )
-   {
-      *ppOutBuf = NULL ;
-      newSize = 0 ;
-      goto done ;
-   }
-
-   pNewBuffer = (CHAR *)SDB_OSS_MALLOC( size + 1 ) ;
-   if ( !pNewBuffer )
-   {
-      PD_LOG ( PDERROR, "Failed to allocate memory for %d bytes",
-               size ) ;
-      rc = SDB_OOM ;
-      goto error ;
-   }
-   ossMemset( pNewBuffer, 0, size + 1 ) ;
-
    if ( size > 1 &&
         ( ( _isHeaderline && pBuffer[0] == _delChar &&
             pBuffer[size-1] == _delChar ) ||
@@ -684,37 +768,24 @@ INT32 csvParser::_field2str( CHAR *pBuffer, INT32 size,
    {
       size -= 2 ;
       ++pBuffer ;
-      newSize = size ;
-      for ( INT32 i = 0, k = 0; i < size; ++i, ++k )
+      for ( INT32 i = 0; i < size - 1; ++i )
       {
          if ( ( _isHeaderline && pBuffer[i] == _delChar ) ||
               ( !_isHeaderline && pBuffer[i] == CSV_STR_SLASH ) )
          {
-            ++i ;
-            --newSize ;
-         }
-         else
-         {
-            pNewBuffer[k] = pBuffer[i] ;
+            ossMemmove( pBuffer + i, pBuffer + i + 1, size - i - 1 ) ;
+            --size ;
          }
       }
    }
-   else
-   {
-      ossMemcpy( pNewBuffer, pBuffer, size ) ;
-      newSize = size ;
-   }
-
-   *ppOutBuf = pNewBuffer ;
-
-done:
+   newSize = size ;
+   pBuffer[newSize] = '\0' ;
+   *ppOutBuf = pBuffer ;
    return rc ;
-error:
-   goto done ;
 }
 
-INT32 csvParser::_value2str( CHAR *pBuffer, INT32 size,
-                             CHAR **ppOutBuf, INT32 &newSize )
+INT32 csvParser::_valueEscape( CHAR *pBuffer, INT32 size,
+                               CHAR **ppOutBuf, INT32 &newSize )
 {
    INT32 rc = SDB_OK ;
    if ( size > 1 &&
@@ -726,29 +797,20 @@ INT32 csvParser::_value2str( CHAR *pBuffer, INT32 size,
       {
          if ( pBuffer[i] == _delChar )
          {
-            if( pBuffer[i+1] == _delChar )
-            {
-               ossMemmove( pBuffer + i, pBuffer + i + 1, size - i - 1 ) ;
-               --size ;
-            }
-            else
-            {
-               rc = SDB_INVALIDARG ;
-               PD_LOG ( PDERROR, "CSV format error, only one side of \
-the field appears delChar, rc = %d", rc ) ;
-               goto error ;
-            }
+            ossMemmove( pBuffer + i, pBuffer + i + 1, size - i - 1 ) ;
+            --size ;
          }
       }
    }
-   *ppOutBuf = pBuffer ;
    newSize = size ;
-done:
+   pBuffer[newSize] = '\0' ;
+   *ppOutBuf = pBuffer ;
    return rc ;
-error:
-   goto done ;
 }
 
+/*
+ * pBuffer is "field [space] type [space] default value \0" 
+ */
 INT32 csvParser::_parseField( _fieldData &fieldData, CHAR *pBuffer, INT32 size )
 {
    INT32 rc = SDB_OK ;
@@ -815,7 +877,7 @@ INT32 csvParser::_parseField( _fieldData &fieldData, CHAR *pBuffer, INT32 size )
                         {
                            rc = SDB_INVALIDARG ;
                            PD_LOG ( PDERROR,
-                                    "The default value %.s is not of int type",
+                                    "The default value %*s is not of int type",
                                     valueSize, pValue ) ;
                            goto error ;
                         }
@@ -826,11 +888,19 @@ INT32 csvParser::_parseField( _fieldData &fieldData, CHAR *pBuffer, INT32 size )
                                            valueSize ) ;
                         if ( rc )
                         {
-                           rc = SDB_INVALIDARG ;
-                           PD_LOG ( PDERROR,
-                                    "The default value %.s is not of long type",
-                                    valueSize, pValue ) ;
-                           goto error ;
+                           INT32 varInt = 0 ;
+                           rc = _string2int( varInt,
+                                             pValue,
+                                             valueSize ) ;
+                           if ( rc )
+                           {
+                              rc = SDB_INVALIDARG ;
+                              PD_LOG ( PDERROR,
+                                       "The default value %*s is not of long type",
+                                       valueSize, pValue ) ;
+                              goto error ;
+                           }
+                           fieldData.varLong = (INT64)varInt ;
                         }
                         break ;
                      case CSV_TYPE_BOOL:
@@ -841,7 +911,7 @@ INT32 csvParser::_parseField( _fieldData &fieldData, CHAR *pBuffer, INT32 size )
                         {
                            rc = SDB_INVALIDARG ;
                            PD_LOG ( PDERROR,
-                                    "The default value %.s is not of bool type",
+                                    "The default value %*s is not of bool type",
                                     valueSize, pValue ) ;
                            goto error ;
                         }
@@ -854,7 +924,7 @@ INT32 csvParser::_parseField( _fieldData &fieldData, CHAR *pBuffer, INT32 size )
                         {
                            rc = SDB_INVALIDARG ;
                            PD_LOG ( PDERROR,
-                                    "The default value %.s is not of double type",
+                                    "The default value %*s is not of double type",
                                     valueSize, pValue ) ;
                            goto error ;
                         }
@@ -865,8 +935,8 @@ INT32 csvParser::_parseField( _fieldData &fieldData, CHAR *pBuffer, INT32 size )
                                  "The null type has no default value" ) ;
                         goto error ;
                      case CSV_TYPE_STRING:
-                        rc = _field2str( pValue, valueSize,
-                                        &pValue, valueSize ) ;
+                        rc = _headerEscape( pValue, valueSize,
+                                           &pValue, valueSize ) ;
                         if ( rc )
                         {
                            goto error ;
@@ -875,8 +945,8 @@ INT32 csvParser::_parseField( _fieldData &fieldData, CHAR *pBuffer, INT32 size )
                         fieldData.stringSize = valueSize ;
                         break ;
                      case CSV_TYPE_TIMESTAMP:
-                        rc = _field2str( pValue, valueSize,
-                                        &pValue, valueSize ) ;
+                        rc = _headerEscape( pValue, valueSize,
+                                           &pValue, valueSize ) ;
                         if ( rc )
                         {
                            goto error ;
@@ -888,14 +958,14 @@ INT32 csvParser::_parseField( _fieldData &fieldData, CHAR *pBuffer, INT32 size )
                         {
                            rc = SDB_INVALIDARG ;
                            PD_LOG ( PDERROR,
-                                    "The default value %.s is not of timestamp type",
+                                    "The default value %*s is not of timestamp type",
                                     valueSize, pValue ) ;
                            goto error ;
                         }
                         break ;
                      case CSV_TYPE_DATE:
-                        rc = _field2str( pValue, valueSize,
-                                        &pValue, valueSize ) ;
+                        rc = _headerEscape( pValue, valueSize,
+                                           &pValue, valueSize ) ;
                         if ( rc )
                         {
                            goto error ;
@@ -907,8 +977,81 @@ INT32 csvParser::_parseField( _fieldData &fieldData, CHAR *pBuffer, INT32 size )
                         {
                            rc = SDB_INVALIDARG ;
                            PD_LOG ( PDERROR,
-                                    "The default value %.s is not of date type",
+                                    "The default value %*s is not of date type",
                                     valueSize, pValue ) ;
+                           goto error ;
+                        }
+                        break ;
+                     case CSV_TYPE_OID:
+                        rc = _headerEscape( pValue, valueSize,
+                                           &pValue, valueSize ) ;
+                        if ( rc )
+                        {
+                           goto error ;
+                        }
+                        if( valueSize != 24 )
+                        {
+                           rc = SDB_INVALIDARG ;
+                           PD_LOG ( PDERROR,
+                                    "The default value %*s is not of date type",
+                                    valueSize, pValue ) ;
+                           goto error ;
+                        }
+                        fieldData.pVarString = pValue ;
+                        fieldData.stringSize = valueSize ;
+                        break ;
+                     case CSV_TYPE_REGEX:
+                        rc = _headerEscape( pValue, valueSize,
+                                           &pValue, valueSize ) ;
+                        if ( rc )
+                        {
+                           goto error ;
+                        }
+                        rc = _string2regex( fieldData.varRegex,
+                                            pValue,
+                                            valueSize ) ;
+                        if ( rc )
+                        {
+                           rc = SDB_INVALIDARG ;
+                           PD_LOG ( PDERROR,
+                                    "The default value %*s is not of date type",
+                                    valueSize, pValue ) ;
+                           goto error ;
+                        }
+                        break ;
+                     case CSV_TYPE_BINARY:
+                        rc = _headerEscape( pValue, valueSize,
+                                           &pValue, valueSize ) ;
+                        if ( rc )
+                        {
+                           goto error ;
+                        }
+                        rc = _string2binary( fieldData.varBinary,
+                                             pValue,
+                                             valueSize ) ;
+                        if ( rc )
+                        {
+                           rc = SDB_INVALIDARG ;
+                           PD_LOG ( PDERROR,
+                                    "The default value %*s is not of date type",
+                                    valueSize, pValue ) ;
+                           goto error ;
+                        }
+                        break ;
+                     case CSV_TYPE_NUMBER:
+                        rc = _headerEscape( pValue, valueSize,
+                                           &pValue, valueSize ) ;
+                        if ( rc )
+                        {
+                           goto error ;
+                        }
+                        rc = _parseNumber( pBuffer, size,
+                                           fieldData.subType,
+                                          &fieldData.varInt,
+                                          &fieldData.varLong,
+                                          &fieldData.varDouble ) ;
+                        if ( rc )
+                        {
                            goto error ;
                         }
                         break ;
@@ -967,19 +1110,16 @@ the format is:  field [type] [default <default value>]" ) ;
    }
 
 finish:
-   rc = _field2str( pField, fieldSize,
-                   &pField, fieldSize ) ;
+   rc = _headerEscape( pField, fieldSize,
+                      &pField, fieldSize ) ;
    if ( rc )
    {
       goto error ;
    }
-
 done:
    fieldData.pField = pField ;
    return rc ;
 error:
-   SAFE_OSS_FREE( fieldData.pVarString ) ;
-   SAFE_OSS_FREE( fieldData.pField ) ;
    goto done ;
 }
 
@@ -1309,7 +1449,162 @@ error:
    goto done ;
 }
 
-INT32 csvParser::_string2null( CHAR *pBuffer, INT32 size )
+INT32 csvParser::_string2regex( _csvRegex &value, CHAR *pBuffer, INT32 size )
+{
+   INT32 rc = SDB_OK ;
+   if( 0 < size )
+   {
+      if( CSV_STR_BACKSLASH == pBuffer[0] )
+      {
+         for( INT32 i = 1; i < size; ++i )
+         {
+            if( CSV_STR_BACKSLASH == pBuffer[i] )
+            {
+               pBuffer[i] = '\0' ;
+               if( i + 1 >= size )
+               {
+                  value.pPattern = pBuffer + 1 ;
+               }
+               else
+               {
+                  value.pPattern = pBuffer + 1 ;
+                  value.pOptions = pBuffer + i + 1 ;
+               }
+               goto done ;
+            }
+         }
+         PD_LOG ( PDERROR, "The regex format error, /pattern/<options>, %*s",
+                  size, pBuffer ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else
+      {
+         value.pPattern = pBuffer ;
+      }
+   }
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 csvParser::_string2binary( _csvBinary &value, CHAR *pBuffer, INT32 size )
+{
+   INT32 rc = SDB_OK ;
+   INT32 binaryType = 0 ;
+   INT32 base64Len = 0 ;
+   CSV_TYPE numberType = CSV_TYPE_INT ;
+   CHAR *pStr = NULL ;
+   CHAR *pType = NULL ;
+   CHAR *pDeStr = NULL ;
+   if( 0 < size )
+   {
+      if( CSV_STR_LEFTBRACKET == pBuffer[0] )
+      {
+         for( INT32 i = 1; i < size; ++i )
+         {
+            if( CSV_STR_RIGHTBRACKET == pBuffer[i] )
+            {
+               if( i + 1 >= size )
+               {
+                  rc = SDB_INVALIDARG ;
+                  PD_LOG ( PDERROR, "Binary format error, %*s, rc=%d",
+                           size, pBuffer, rc ) ;
+                  goto error ;
+               }
+               else
+               {
+                  pStr = pBuffer + i + 1 ;
+                  pType = pBuffer + 1 ;
+                  if( i == 1 )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG ( PDERROR, "Binary format error, %*s, rc=%d",
+                              size, pBuffer, rc ) ;
+                     goto error ;
+                  }
+                  rc = _parseNumber( pType, i - 1, numberType,
+                                    &binaryType, NULL, NULL ) ;
+                  if( rc || numberType != CSV_TYPE_INT || binaryType < 0 )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG ( PDERROR, "Binary format error, %*s, rc=%d",
+                              size, pBuffer, rc ) ;
+                     goto error ;
+                  }
+                  base64Len = getDeBase64Size( pStr ) ;
+                  if( base64Len == 0 )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG ( PDERROR, "Binary format error, %*s, rc=%d",
+                              size, pBuffer, rc ) ;
+                     goto error ;
+                  }
+                  pDeStr = (CHAR *)SDB_OSS_MALLOC( base64Len ) ;
+                  if ( !pDeStr )
+                  {
+                     PD_LOG ( PDERROR, "Failed to allocate memory for %d bytes",
+                              base64Len ) ;
+                     rc = SDB_OOM ;
+                     goto error ;
+                  }
+                  ossMemset( pDeStr, 0, base64Len ) ;
+                  if ( !base64Decode( pStr, pDeStr, base64Len ) )
+                  {
+                     rc = SDB_INVALIDARG ;
+                     PD_LOG ( PDERROR, "Binary format error, %*s, rc=%d",
+                              size, pBuffer, rc ) ;
+                     goto error ;
+                  }
+                  value.strSize = base64Len - 1 ;
+                  value.pStr = pDeStr ;
+                  value.type = binaryType ;
+                  goto done ;
+               }
+            }
+         }
+      }
+      else
+      {
+         base64Len = getDeBase64Size( pBuffer ) ;
+         if( base64Len == 0 )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG ( PDERROR, "Binary format error, %*s, rc=%d",
+                     size, pBuffer, rc ) ;
+            goto error ;
+         }
+         pDeStr = (CHAR *)SDB_OSS_MALLOC( base64Len ) ;
+         if ( !pDeStr )
+         {
+            PD_LOG ( PDERROR, "Failed to allocate memory for %d bytes",
+                     base64Len ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         ossMemset( pDeStr, 0, base64Len ) ;
+         if ( !base64Decode( pStr, pDeStr, base64Len ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG ( PDERROR, "Binary format error, %*s, rc=%d",
+                     size, pBuffer, rc ) ;
+            goto error ;
+         }
+         value.strSize = base64Len - 1 ;
+         value.pStr = pDeStr ;
+         value.type = 0 ;
+         goto done ;
+      }
+   }
+done:
+   return rc ;
+error:
+   SAFE_OSS_FREE( pDeStr ) ;
+   goto done ;
+}
+
+/*INT32 csvParser::_string2null( CHAR *pBuffer, INT32 size )
 {
    INT32 rc = SDB_OK ;
    if ( size == CSV_STR_NULL_SIZE &&
@@ -1327,13 +1622,14 @@ done:
    return rc ;
 error:
    goto done ;
-}
+}*/
 
 csvParser::csvParser() : _addField(FALSE),
                          _completion(FALSE),
                          _delChar(0),
                          _delField(0),
-                         _delRecord(0)
+                         _delRecord(0),
+                         _pCsvHeader(NULL)
                          
                          
 {
@@ -1343,20 +1639,19 @@ csvParser::~csvParser()
 {
    std::vector<_fieldData *>::iterator it ;
    _fieldData *pFieldData = NULL ;
-
    for( it = _vField.begin(); it != _vField.end(); ++it )
    {
       pFieldData = *it ;
       if ( pFieldData )
       {
-         SAFE_OSS_FREE( pFieldData->pField ) ;
-         if ( pFieldData->type == CSV_TYPE_STRING )
+         if ( CSV_TYPE_BINARY == pFieldData->type )
          {
-            SAFE_OSS_FREE ( pFieldData->pVarString ) ;
+            SAFE_OSS_FREE( pFieldData->varBinary.pStr ) ;
          }
          SAFE_OSS_DELETE( pFieldData ) ;
       }
    }
+   SAFE_OSS_FREE( _pCsvHeader ) ;
 }
 
 INT32 csvParser::init( BOOLEAN autoAddField,
@@ -1368,34 +1663,60 @@ INT32 csvParser::init( BOOLEAN autoAddField,
 {
    INT32 rc = SDB_OK ;
 
-   /*if ( isHeaderline  )
-   {
-      if( ( delChar == CSV_STR_SPACE || delChar == CSV_STR_TABLE ) ||
-          ( delField == CSV_STR_SPACE || delField == CSV_STR_TABLE ) ||
-          ( delRecord == CSV_STR_SPACE || delRecord == CSV_STR_TABLE ) )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG ( PDERROR, "when the fields are the first line of the file, \
-can not specify delchar, delfield,delrecord as 0x20 or 0x09" ) ;
-         goto error ;
-      }
-   }*/
    if ( delChar == delField )
    {
       rc = SDB_INVALIDARG ;
       PD_LOG ( PDERROR, "delchar does not like delfield" ) ;
       goto error ;
    }
-   if ( delChar == delRecord )
+   else if( delChar == CSV_STR_SPACE )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "delchar can not be a space" ) ;
+      goto error ;
+   }
+   else if( delChar == CSV_STR_TABLE )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "delchar can not be a tab" ) ;
+      goto error ;
+   }
+
+   if ( delRecord == delChar )
    {
       rc = SDB_INVALIDARG ;
       PD_LOG ( PDERROR, "delchar does not like delrecord" ) ;
       goto error ;
    }
+   else if( delRecord == CSV_STR_SPACE )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "delrecord can not be a space" ) ;
+      goto error ;
+   }
+   else if( delRecord == CSV_STR_TABLE )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "delrecord can not be a tab" ) ;
+      goto error ;
+   }
+
    if ( delField == delRecord )
    {
       rc = SDB_INVALIDARG ;
       PD_LOG ( PDERROR, "delfield does not like delrecord" ) ;
+      goto error ;
+   }
+   else if( delField == CSV_STR_SPACE )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "delfield can not be a space" ) ;
+      goto error ;
+   }
+   else if( delField == CSV_STR_TABLE )
+   {
+      rc = SDB_INVALIDARG ;
+      PD_LOG ( PDERROR, "delfield can not be a tab" ) ;
       goto error ;
    }
 
@@ -1419,9 +1740,22 @@ INT32 csvParser::parseHeader( CHAR *pHeader, INT32 size )
    INT32   tempRc     = SDB_OK ;
    INT32   fieldSize  = 0 ;
    BOOLEAN isString   = FALSE;
-   CHAR   *pCursor    = pHeader ;
-   CHAR   *leftField  = pHeader ;
+   CHAR   *pCursor    = NULL ;
+   CHAR   *leftField  = NULL ;
    _fieldData *pFieldData = NULL ;
+   
+   _pCsvHeader = (CHAR *)SDB_OSS_MALLOC( size + 1 ) ;
+   if ( !_pCsvHeader )
+   {
+      PD_LOG ( PDERROR, "Failed to allocate memory for %d bytes",
+               size + 1 ) ;
+      rc = SDB_OOM ;
+      goto error ;
+   }
+   ossMemset( _pCsvHeader, 0, size + 1 ) ;
+   ossMemcpy( _pCsvHeader, pHeader, size ) ;
+   pCursor = _pCsvHeader ;
+   leftField = _pCsvHeader ;
 
    do
    {
@@ -1522,7 +1856,7 @@ if need the space string field, please use \"" ) ;
 
          if ( tempRc == SDB_UTIL_CSV_FIELD_END )
          {
-            break ;
+            goto done ;
          }
          else
          {
@@ -1544,52 +1878,12 @@ error:
    goto done ;
 }
 
-INT32 csvParser::_appendBson( void *bsonObj, CSV_TYPE csvType,
-                              const CHAR *pKey, void *pValue, INT32 valueSize )
+INT32 csvParser::_appendBsonNull( void *bsonObj, const CHAR *pKey )
 {
    INT32 rc = SDB_OK ;
-   CHAR *pBuffer = NULL ;
    bson *pObj = (bson *)bsonObj ;
-   switch( csvType )
-   {
-   case CSV_TYPE_INT:
-      bson_append_int( pObj, pKey, *((INT32 *)pValue) ) ;
-      break ;
-   case CSV_TYPE_LONG:
-      bson_append_long( pObj, pKey, *((INT64 *)pValue) ) ;
-      break ;
-   case CSV_TYPE_BOOL:
-      bson_append_bool( pObj, pKey, *((BOOLEAN *)pValue) ) ;
-      break ;
-   case CSV_TYPE_DOUBLE:
-      bson_append_double( pObj, pKey, *((FLOAT64 *)pValue) ) ;
-      break ;
-   case CSV_TYPE_STRING:
-      pBuffer = (CHAR *)pValue ;
-      rc = _value2str( pBuffer, valueSize,
-                      &pBuffer, valueSize ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-      bson_append_string_n( pObj, pKey, pBuffer, valueSize ) ;
-      break ;
-   case CSV_TYPE_TIMESTAMP:
-      bson_append_timestamp( pObj, pKey, (bson_timestamp_t *)pValue ) ;
-      break ;
-   case CSV_TYPE_DATE:
-      bson_append_date( pObj, pKey, *((bson_date_t *)pValue) ) ;
-      break ;
-   case CSV_TYPE_NULL:
-      bson_append_null( pObj, pKey ) ;
-      break ;
-   default:
-      break ;
-   }
-done:
+   bson_append_null( pObj, pKey ) ;
    return rc ;
-error:
-   goto done ;
 }
 
 INT32 csvParser::_appendBson( void *bsonObj, _fieldData *pFieldData )
@@ -1625,6 +1919,22 @@ INT32 csvParser::_appendBson( void *bsonObj, _fieldData *pFieldData )
    case CSV_TYPE_NULL:
       bson_append_null( pObj, pFieldData->pField ) ;
       break ;
+   case CSV_TYPE_OID:
+      bson_oid_t bot ;
+      bson_oid_from_string ( &bot, pFieldData->pVarString ) ;
+      bson_append_oid( pObj, pFieldData->pField, &bot ) ;
+      break ;
+   case CSV_TYPE_REGEX:
+      bson_append_regex( pObj, pFieldData->pField,
+                         pFieldData->varRegex.pPattern,
+                         pFieldData->varRegex.pOptions ) ;
+      break ;
+   case CSV_TYPE_BINARY:
+      bson_append_binary( pObj, pFieldData->pField,
+                          pFieldData->varBinary.type,
+                          pFieldData->varBinary.pStr,
+                          pFieldData->varBinary.strSize ) ;
+      break ;
    default:
       break ;
    }
@@ -1651,8 +1961,8 @@ INT32 csvParser::_appendBson( void *bsonObj, const CHAR *pKey,
       bson_append_double( pObj, pKey, pValueData->varDouble ) ;
       break ;
    case CSV_TYPE_STRING:
-      rc = _value2str( pValueData->pVarString, pValueData->stringSize,
-                      &pValueData->pVarString, pValueData->stringSize ) ;
+      rc = _valueEscape( pValueData->pVarString, pValueData->stringSize,
+                        &pValueData->pVarString, pValueData->stringSize ) ;
       if ( rc )
       {
          goto error ;
@@ -1671,6 +1981,25 @@ INT32 csvParser::_appendBson( void *bsonObj, const CHAR *pKey,
    case CSV_TYPE_NULL:
       bson_append_null( pObj, pKey ) ;
       break ;
+   case CSV_TYPE_OID:
+      bson_oid_t bot ;
+      bson_oid_from_string ( &bot, pValueData->pVarString ) ;
+      bson_append_oid( pObj, pKey, &bot ) ;
+      break ;
+   case CSV_TYPE_REGEX:
+      bson_append_regex( pObj, pKey,
+                         pValueData->varRegex.pPattern,
+                         pValueData->varRegex.pOptions ) ;
+      break ;
+   case CSV_TYPE_BINARY:
+      bson_append_binary( pObj, pKey,
+                          pValueData->varBinary.type,
+                          pValueData->varBinary.pStr,
+                          pValueData->varBinary.strSize ) ;
+      if( TRUE == pValueData->varBinary.isOwnmem )
+      {
+         SAFE_OSS_FREE( pValueData->varBinary.pStr ) ;
+      }
    default:
       break ;
    }
@@ -1716,8 +2045,7 @@ INT32 csvParser::csv2bson( CHAR *pBuffer, INT32 size, CHAR **ppRawbson )
                                    CSV_STR_FIELD_MAX_SIZE,
                                    CSV_STR_FIELD "%d",
                                    autoFieldNum ) ;
-                     rc = _appendBson( &obj, CSV_TYPE_NULL,
-                                       fieldName, NULL, 0 ) ;
+                     rc = _appendBsonNull( &obj, fieldName ) ;
                      if ( rc )
                      {
                         goto error ;
@@ -1737,8 +2065,7 @@ INT32 csvParser::csv2bson( CHAR *pBuffer, INT32 size, CHAR **ppRawbson )
                   }
                   else
                   {
-                     rc = _appendBson( &obj, CSV_TYPE_NULL,
-                                       _vField.at(fieldNum)->pField, NULL, 0 ) ;
+                     rc = _appendBsonNull( &obj, _vField.at(fieldNum)->pField ) ;
                      if ( rc )
                      {
                         goto error ;
@@ -1831,7 +2158,7 @@ the field appears delChar, rc = %d", rc ) ;
                                 CSV_STR_FIELD_MAX_SIZE,
                                 CSV_STR_FIELD "%d",
                                 autoFieldNum ) ;
-                  rc = _appendBson( &obj, CSV_TYPE_NULL, fieldName, NULL, 0 ) ;
+                  rc = _appendBsonNull( &obj, fieldName ) ;
                   if ( rc )
                   {
                      goto error ;
@@ -1851,8 +2178,7 @@ the field appears delChar, rc = %d", rc ) ;
                }
                else
                {
-                  rc = _appendBson( &obj, CSV_TYPE_NULL,
-                                    _vField.at(fieldNum)->pField, NULL, 0 ) ;
+                  rc = _appendBsonNull( &obj, _vField.at(fieldNum)->pField ) ;
                   if ( rc )
                   {
                      goto error ;
@@ -1944,8 +2270,7 @@ the field appears delChar, rc = %d", rc ) ;
          }
          else
          {
-            rc = _appendBson( &obj, CSV_TYPE_NULL,
-                              _vField.at(fieldNum)->pField, NULL, 0 ) ;
+            rc = _appendBsonNull( &obj, _vField.at(fieldNum)->pField ) ;
             if ( rc )
             {
                goto error ;

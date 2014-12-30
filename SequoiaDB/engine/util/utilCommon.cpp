@@ -327,7 +327,7 @@ namespace engine
          }
          ++pEntry ;
       }
-      if ( src <= 0 )
+      if ( (INT32)src <= 0 )
       {
          return src ;
       }

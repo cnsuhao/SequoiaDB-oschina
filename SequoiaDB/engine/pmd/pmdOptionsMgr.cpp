@@ -253,7 +253,7 @@ namespace engine
       }
       else if ( PMD_CFG_DATA_CMD == _dataType )
       {
-         _strStream << pFieldName << " = " << value << "\n" ;
+         _strStream << pFieldName << " = " << value << OSS_NEWLINE ;
       }
       else
       {
@@ -273,7 +273,7 @@ namespace engine
       }
       else if ( PMD_CFG_DATA_CMD == _dataType )
       {
-         _strStream << pFieldName << " = " << pValue << "\n" ;
+         _strStream << pFieldName << " = " << pValue << OSS_NEWLINE ;
       }
       else
       {
@@ -326,7 +326,8 @@ namespace engine
          {
             if ( FALSE == it->second._hasMapped )
             {
-               _strStream << it->first << " = " << it->second._value << "\n" ;
+               _strStream << it->first << " = " << it->second._value
+                          << OSS_NEWLINE ;
             }
             ++it ;
          }

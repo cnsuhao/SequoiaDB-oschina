@@ -52,9 +52,10 @@
 #define CSV_STR_TIMESTAMP  "timestamp"
 #define CSV_STR_DATE       "date"
 #define CSV_STR_NULL       "null"
-#define CSV_STR_UNDEFINED  "undefined"
-#define CSV_STR_MINKEY     "minKey"
-#define CSV_STR_MAXKEY     "maxKey"
+#define CSV_STR_OID        "oid"
+#define CSV_STR_REGEX      "regex"
+#define CSV_STR_BINARY     "binary"
+#define CSV_STR_NUMBER     "number"
 
 /* type value */
 #define CSV_STR_TRUE       "true"
@@ -75,9 +76,10 @@
 #define CSV_STR_TIMESTAMP_SIZE   ( sizeof( CSV_STR_TIMESTAMP ) - 1 )
 #define CSV_STR_DATE_SIZE        ( sizeof( CSV_STR_DATE ) - 1 )
 #define CSV_STR_NULL_SIZE        ( sizeof( CSV_STR_NULL ) - 1 )
-#define CSV_STR_UNDEFINED_SIZE   ( sizeof( CSV_STR_UNDEFINED ) - 1 )
-#define CSV_STR_MINKEY_SIZE      ( sizeof( CSV_STR_MINKEY ) - 1 )
-#define CSV_STR_MAXKEY_SIZE      ( sizeof( CSV_STR_MAXKEY ) - 1 )
+#define CSV_STR_OID_SIZE         ( sizeof( CSV_STR_OID ) - 1 )
+#define CSV_STR_REGEX_SIZE       ( sizeof( CSV_STR_REGEX ) - 1 )
+#define CSV_STR_BINARY_SIZE      ( sizeof( CSV_STR_BINARY ) - 1 )
+#define CSV_STR_NUMBER_SIZE      ( sizeof( CSV_STR_NUMBER ) - 1 )
 
 #define CSV_STR_TRUE_SIZE        ( sizeof( CSV_STR_TRUE ) - 1 )
 #define CSV_STR_FALSE_SIZE       ( sizeof( CSV_STR_FALSE ) - 1 )
@@ -97,6 +99,10 @@ enum CSV_TYPE
    CSV_TYPE_TIMESTAMP,
    CSV_TYPE_DATE,
    CSV_TYPE_NULL,
+   CSV_TYPE_OID,
+   CSV_TYPE_REGEX,
+   CSV_TYPE_BINARY,
+   CSV_TYPE_NUMBER,
    CSV_TYPE_AUTO
 } ;
 
@@ -108,9 +114,22 @@ private:
       INT32 i ; /* increment */
       INT32 t ; /* time in seconds */
    } ;
+   struct _csvRegex : public SDBObject
+   {
+      CHAR *pPattern ;
+      CHAR *pOptions ;
+   } ;
+   struct _csvBinary : public SDBObject
+   {
+      INT32 strSize ;
+      BOOLEAN isOwnmem ;
+      CHAR type ;
+      CHAR *pStr ;      
+   } ;
    struct _fieldData : public SDBObject
    {
       CSV_TYPE type ;
+      CSV_TYPE subType ;
       INT32 stringSize ;
       INT32 varInt ;
       BOOLEAN varBool ;
@@ -120,7 +139,10 @@ private:
       CHAR *pVarString ;
       CHAR *pField ;
       _csvTimestamp varTimestamp ;
+      _csvRegex varRegex ;
+      _csvBinary varBinary ;
       _fieldData() : type(CSV_TYPE_INT),
+                     subType(CSV_TYPE_INT),
                      stringSize(0),
                      varInt(0),
                      varBool(FALSE),
@@ -133,6 +155,12 @@ private:
       {
          varTimestamp.i = 0 ;
          varTimestamp.t = 0 ;
+         varRegex.pPattern = NULL ;
+         varRegex.pOptions = NULL ;
+         varBinary.strSize = 0 ;
+         varBinary.isOwnmem = FALSE ;
+         varBinary.type = 0 ;
+         varBinary.pStr = NULL ;
       }
    } ;
    struct _valueData : public SDBObject
@@ -145,6 +173,8 @@ private:
       FLOAT64 varDouble ;
       CHAR *pVarString ;
       _csvTimestamp varTimestamp ;
+      _csvRegex varRegex ;
+      _csvBinary varBinary ;
       _valueData() : type(CSV_TYPE_INT),
                      stringSize(0),
                      varInt(0),
@@ -155,6 +185,12 @@ private:
       {
          varTimestamp.i = 0 ;
          varTimestamp.t = 0 ;
+         varRegex.pPattern = NULL ;
+         varRegex.pOptions = NULL ;
+         varBinary.strSize = 0 ;
+         varBinary.isOwnmem = FALSE ;
+         varBinary.type = 0 ;
+         varBinary.pStr = NULL ;
       }
    } ;
 private:
@@ -164,6 +200,7 @@ private:
    CHAR    _delChar ;
    CHAR    _delField ;
    CHAR    _delRecord ;
+   CHAR   *_pCsvHeader ;
    std::vector<_fieldData *> _vField ;
 private:
    CHAR *_trimLeft ( CHAR *pCursor, INT32 &size ) ;
@@ -182,21 +219,21 @@ private:
    INT32 _string2timestamp2( _csvTimestamp &value, CHAR *pBuffer, INT32 size );
    INT32 _string2date( INT64 &value, CHAR *pBuffer, INT32 size ) ;
    INT32 _string2date2( INT64 &value, CHAR *pBuffer, INT32 size ) ;
-   INT32 _string2null( CHAR *pBuffer, INT32 size ) ;
+   INT32 _string2regex( _csvRegex &value, CHAR *pBuffer, INT32 size ) ;
+   INT32 _string2binary( _csvBinary &value, CHAR *pBuffer, INT32 size ) ;
    CHAR *_findSpace( CHAR *pBuffer, INT32 &size ) ;
    CHAR *_skipSpace( CHAR *pBuffer, INT32 &size ) ;
-   INT32 _field2str( CHAR *pBuffer, INT32 size,
-                     CHAR **ppOutBuf, INT32 &newSize ) ;
-   INT32 _value2str( CHAR *pBuffer, INT32 size,
-                     CHAR **ppOutBuf, INT32 &newSize ) ;
+   INT32 _headerEscape( CHAR *pBuffer, INT32 size,
+                        CHAR **ppOutBuf, INT32 &newSize ) ;
+   INT32 _valueEscape( CHAR *pBuffer, INT32 size,
+                       CHAR **ppOutBuf, INT32 &newSize ) ;
 private:
    INT32 _parseValue( _valueData &valueData,
                       _fieldData &fieldData,
                       CHAR *pBuffer, INT32 size ) ;
    INT32 _parseValue( _valueData &valueData, CHAR *pBuffer, INT32 size ) ;
    INT32 _parseField( _fieldData &fieldData, CHAR *pBuffer, INT32 size ) ;
-   INT32 _appendBson( void *bsonObj, CSV_TYPE csvType,
-                      const CHAR *pKey, void *pValue, INT32 valueSize ) ;
+   INT32 _appendBsonNull( void *bsonObj, const CHAR *pKey ) ;
    INT32 _appendBson( void *bsonObj, _fieldData *pFieldData ) ;
    INT32 _appendBson( void *bsonObj, const CHAR *pKey,
                       _valueData *pValueData ) ;
