@@ -115,6 +115,7 @@ INT32 migImport::_getCS( CHAR *pCSName )
                                 &_gCollectionSpace ) ;
    if ( SDB_DMS_CS_NOTEXIST == rc )
    {
+      ossPrintf( "Collection space %s does not exist"OSS_NEWLINE, pCSName ) ;
       PD_LOG ( PDERROR, "Collection space %s does not exist",
                pCSName ) ;
       goto error ;
@@ -138,6 +139,7 @@ INT32 migImport::_getCL( CHAR *pCLName )
                             &_gCollection ) ;
    if ( SDB_DMS_NOTEXIST == rc )
    {
+      ossPrintf( "Collection %s does not exist"OSS_NEWLINE, pCLName ) ;
       PD_LOG ( PDERROR, "Collection %s does not exist"OSS_NEWLINE,
                pCLName ) ;
       goto error ;

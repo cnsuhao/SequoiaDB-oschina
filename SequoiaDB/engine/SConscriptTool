@@ -18,7 +18,8 @@ inspectFiles = [
 
 migFiles = [
       "mig/migExport.cpp",
-      "mig/migImport.cpp"
+      "mig/migImport.cpp",
+      "mig/migCommon.cpp"
       ]
 
 migLobFiles = [

@@ -1162,3 +1162,176 @@ _kstkEsp(0),_kstkEip(0)
    }
 }
 #endif //#if defined (_LINUX)
+
+ossIPInfo::ossIPInfo()
+:_ipNum(0), _ips(NULL)
+{
+   INT32 rc = _init() ;
+   if ( SDB_OK != rc )
+   {
+      PD_LOG( PDERROR, "failed to get ip-info, errno = %d", ossGetLastError()) ;
+   }
+}
+
+ossIPInfo::~ossIPInfo()
+{
+   SAFE_OSS_FREE( _ips ) ;
+   _ipNum = 0 ;
+}
+
+#if defined (_LINUX)
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <unistd.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+INT32 ossIPInfo::_init()
+{
+   struct ifconf ifc = {0} ;
+   struct ifreq* buf = NULL ;
+   struct ifreq* ifr = NULL ;
+   INT32 sock = -1 ;
+   INT32 rc = SDB_OK ;
+
+   sock = socket( AF_INET, SOCK_DGRAM, 0 ) ;
+   if ( -1 == sock )
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+   rc = ioctl( sock, SIOCGIFCONF, &ifc ) ;
+   if ( 0 != rc )
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+   if ( 0 == ifc.ifc_len )
+   {
+      goto done ;
+   }
+
+   buf = (struct ifreq*)SDB_OSS_MALLOC( ifc.ifc_len ) ;
+   if ( NULL == buf )
+   {
+      rc = SDB_OOM ;
+      goto error ;
+   }
+
+   ifc.ifc_req = buf ;
+   rc = ioctl( sock, SIOCGIFCONF, &ifc ) ;
+   if ( 0 != rc )
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+   _ipNum = ifc.ifc_len / sizeof( struct ifreq ) ;
+   _ips = (ossIP*)SDB_OSS_MALLOC( _ipNum * sizeof(ossIP) ) ;
+   if ( NULL == _ips )
+   {
+      rc = SDB_OOM ;
+      goto error ;
+   }
+   ossMemset( _ips, 0, _ipNum * sizeof(ossIP) ) ;
+
+   ifr = buf ;
+   for ( INT32 i = 0; i < _ipNum; i++ )
+   {
+      ossIP* ip = &_ips[i] ;
+      ossStrncpy( ip->ipName, ifr->ifr_name, OSS_MAX_IP_NAME ) ;
+      ossStrncpy( ip->ipAddr,
+                  inet_ntoa(((struct sockaddr_in*)&(ifr->ifr_addr))->sin_addr),
+                  OSS_MAX_IP_ADDR ) ;
+      ifr++ ;
+   }
+
+done:
+   if ( -1 != sock )
+   {
+      close( sock ) ;
+   }
+   SAFE_OSS_FREE( ifc.ifc_req ) ;
+   return rc ;
+error:
+   goto done ;
+}
+#elif defined (_WINDOWS)
+#include <winsock2.h>
+#include <iphlpapi.h>
+#pragma comment(lib, "IPHLPAPI.lib")
+
+INT32 ossIPInfo::_init()
+{
+   PIP_ADAPTER_INFO adapterInfo = NULL ;
+   ULONG bufLen = sizeof( IP_ADAPTER_INFO ) ;
+   INT32 retVal = 0 ;
+   INT32 rc = SDB_OK ;
+
+   adapterInfo = (PIP_ADAPTER_INFO)SDB_OSS_MALLOC( bufLen ) ;
+   if ( !adapterInfo )
+   {
+      rc = SDB_OOM ;
+      goto error ;
+   }
+
+   retVal = GetAdaptersInfo( adapterInfo, &bufLen ) ;
+   if ( ERROR_BUFFER_OVERFLOW == retVal )
+   {
+      SDB_OSS_FREE( adapterInfo ) ;
+
+      adapterInfo = (PIP_ADAPTER_INFO)SDB_OSS_MALLOC( bufLen ) ;
+      if ( !adapterInfo )
+      {
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      retVal = GetAdaptersInfo( adapterInfo, &bufLen ) ;
+   }
+
+   if ( NO_ERROR != retVal )
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+   _ipNum = bufLen / sizeof( IP_ADAPTER_INFO ) ;
+   _ips = (ossIP*)SDB_OSS_MALLOC( _ipNum * sizeof(ossIP) ) ;
+   if ( NULL == _ips )
+   {
+      rc = SDB_OOM ;
+      goto error ;
+   }
+   ossMemset( _ips, 0, _ipNum * sizeof(ossIP) ) ;
+
+   PIP_ADAPTER_INFO adapter = adapterInfo ;
+   for ( INT32 i = 0; adapter != NULL; i++ )
+   {
+      if ( MIB_IF_TYPE_ETHERNET != adapter->Type )
+      {
+         continue;
+      }
+
+      ossIP* ip = &_ips[i] ;
+      ossSnprintf( ip->ipName, OSS_MAX_IP_NAME, "eth%d", adapter->Index ) ;
+      ossStrncpy( ip->ipAddr,
+                  adapter->IpAddressList.IpAddress.String,
+                  OSS_MAX_IP_ADDR ) ;
+
+      adapter = adapter->Next ;
+   }
+
+done:
+   SAFE_OSS_FREE( adapterInfo ) ;
+   return rc ;
+error:
+   goto done ;
+}
+#else
+#error "unsupported os"
+#endif
+

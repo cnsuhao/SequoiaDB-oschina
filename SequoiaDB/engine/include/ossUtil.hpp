@@ -874,6 +874,31 @@ public:
 };
 #endif   //#if defined (_LINUX)
 
+#define OSS_MAX_IP_NAME 15
+#define OSS_MAX_IP_ADDR 15
+#define OSS_LOOPBACK_IP "127.0.0.1"
+
+typedef struct _ossIP
+{
+   char  ipName[OSS_MAX_IP_NAME + 1];
+   char  ipAddr[OSS_MAX_IP_ADDR + 1];
+} ossIP;
+
+class ossIPInfo
+{
+private:
+   INT32   _ipNum;
+   ossIP*  _ips;
+
+public:
+   ossIPInfo();
+   ~ossIPInfo();
+   inline INT32 getIPNum() const { return _ipNum; }
+   inline ossIP* getIPs() const { return _ips; }
+
+private:
+   INT32 _init();
+};
 
 #endif  //OSSUTIL_HPP_
 

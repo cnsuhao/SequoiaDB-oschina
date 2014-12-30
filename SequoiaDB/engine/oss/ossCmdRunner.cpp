@@ -37,14 +37,7 @@
 
 #include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
-
-#if defined (_LINUX)
-#define SPT_SHELL_CALL                 "/bin/sh"
-#define SPT_SHELL_ARG                  "-c"
-#elif defined (_WINDOWS)
-#define SPT_SHELL_CALL                 "cmd"
-#define SPT_SHELL_ARG                  "/c"
-#endif // _LINUX
+#include <boost/program_options/parsers.hpp>
 
 #define SPT_CMD_RUNNER_MAX_READ_BUF    ( 4 * 1024 * 1024 )
 
@@ -158,10 +151,15 @@ namespace engine
       _timeout     = timeout ;
 
 #if defined( _LINUX )
-      argv.push_back( SPT_SHELL_CALL ) ;
-      argv.push_back( SPT_SHELL_ARG ) ;
-#endif // _LINUX
+      std::vector<std::string> vecArgs ;
+      vecArgs = boost::program_options::split_unix( cmd ) ;
+      for ( UINT32 i = 0 ; i < vecArgs.size() ; ++i )
+      {
+         argv.push_back( vecArgs[ i ].c_str() ) ;
+      }
+#else
       argv.push_back( cmd ) ;
+#endif // _LINUX
 
       rc = ossBuildArguments( &arguments, argLen, argv ) ;
       if ( rc )

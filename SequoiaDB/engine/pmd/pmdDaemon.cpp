@@ -297,10 +297,10 @@ namespace engine
                                                 sizeof( pmdDMNProcInfo ),
                                                 _shmMid );
 #if defined (_LINUX)
-      PD_CHECK( _procInfo != NULL && _shmMid >= 0, SDB_OOM, error, PDERROR,
+      PD_CHECK( _procInfo != NULL && _shmMid >= 0, SDB_OOM, error, PDWARNING,
                "failed to get share-memory(key:%u)", shmKey );
 #elif defined (_WINDOWS)
-      PD_CHECK( _procInfo != NULL && _shmMid != 0, SDB_OOM, error, PDERROR,
+      PD_CHECK( _procInfo != NULL && _shmMid != 0, SDB_OOM, error, PDWARNING,
                "failed to get share-memory(key:%s)", shmKey );
 #else
       rc = SDB_OOM;

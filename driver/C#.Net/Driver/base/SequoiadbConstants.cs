@@ -152,35 +152,33 @@ namespace SequoiaDB
 
     internal enum Operation : int
     {
-        OP_REPLY = 1,
-        OP_MSG = 1000,
-        OP_UPDATE = 2001,
-        OP_INSERT = 2002,
-        RESERVD = 2003,
-        OP_SQL = RESERVD,
-        OP_QUERY = 2004,
-        OP_GETMORE = 2005,
-        OP_DELETE = 2006,
-        OP_KILL_CONTEXT = 2007,
-        OP_DISCONNECT = 2008,
+        OP_MSG                    = 1000,
+        OP_UPDATE                 = 2001,
+        OP_INSERT                 = 2002,
+        OP_SQL                    = 2003,
+        OP_QUERY                  = 2004,
+        OP_GETMORE                = 2005,
+        OP_DELETE                 = 2006,
+        OP_KILL_CONTEXT           = 2007,
+        OP_DISCONNECT             = 2008,
 
-        OP_KILL_ALL_CONTEXTS = 2009,
-        OP_TRANS_BEGIN = 2010,
-        OP_TRANS_COMMIT = 2011,
-        OP_TRANS_ROLLBACK = 2012,
+        OP_KILL_ALL_CONTEXTS      = 2009,
+        OP_TRANS_BEGIN            = 2010,
+        OP_TRANS_COMMIT           = 2011,
+        OP_TRANS_ROLLBACK         = 2012,
 
-	    OP_AGGREGATE = 2019,
+	    OP_AGGREGATE              = 2019,
 
-        MSG_AUTH_VERIFY_REQ = 7000,
-        MSG_AUTH_CRTUSR_REQ = 7001,
-        MSG_AUTH_DELUSR_REQ = 7002,
+        MSG_AUTH_VERIFY_REQ       = 7000,
+        MSG_AUTH_CRTUSR_REQ       = 7001,
+        MSG_AUTH_DELUSR_REQ       = 7002,
 
-        MSG_BS_LOB_OPEN_REQ = 8001, 
-		MSG_BS_LOB_WRITE_REQ = 8002,
-        MSG_BS_LOB_READ_REQ = 8003,
-		MSG_BS_LOB_REMOVE_REQ = 8004,
-        MSG_BS_LOB_UPDATE_REQ = 8005,
-		MSG_BS_LOB_CLOSE_REQ = 8006
+        MSG_BS_LOB_OPEN_REQ       = 8001, 
+		MSG_BS_LOB_WRITE_REQ      = 8002,
+        MSG_BS_LOB_READ_REQ       = 8003,
+		MSG_BS_LOB_REMOVE_REQ     = 8004,
+        MSG_BS_LOB_UPDATE_REQ     = 8005,
+		MSG_BS_LOB_CLOSE_REQ      = 8006
     };
 
     internal enum PreferInstanceType : int

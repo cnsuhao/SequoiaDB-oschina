@@ -66,14 +66,14 @@
 		</if>
 
 
-		<javac srcdir="${source.dir}" destdir="${open.source.target.dir}" debug="true" classpath="" fork="yes" executable="${javac.base.dir}/java/${jdk.name}/bin/javac">
+		<javac srcdir="${source.dir}" destdir="${open.source.target.dir}" debug="on" classpath="" fork="yes" executable="${javac.base.dir}/java/${jdk.name}/bin/javac">
 			<classpath>
 				<fileset dir="${library.dir}" includes="*.jar" excludes="hive-exec-0.12.0-cdh5.0.0-beta-2.jar" />
 				<pathelement location="${java.driver.jar}"/>
 			</classpath>
 		</javac>
 		
-		<javac srcdir="${source.dir}" destdir="${cdh.target.dir}" debug="true" classpath="" fork="yes" executable="${javac.base.dir}/java/${jdk.name}/bin/javac">
+		<javac srcdir="${source.dir}" destdir="${cdh.target.dir}" debug="on" classpath="" fork="yes" executable="${javac.base.dir}/java/${jdk.name}/bin/javac">
 			<classpath>
 				<fileset dir="${library.dir}" includes="*.jar" excludes="hive-exec-0.12.0.jar" />
 				<pathelement location="${java.driver.jar}"/>

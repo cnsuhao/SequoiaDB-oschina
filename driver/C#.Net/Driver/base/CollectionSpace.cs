@@ -155,6 +155,7 @@ namespace SequoiaDB
 
             BsonDocument cObj = new BsonDocument();
             cObj.Add(SequoiadbConstants.FIELD_NAME, contextName);
+            sdbMessage.OperationCode = Operation.OP_QUERY;
             sdbMessage.Matcher = cObj;
             sdbMessage.CollectionFullName = commandString;
             sdbMessage.Flags = 0;
@@ -169,6 +170,7 @@ namespace SequoiaDB
             byte[] request = SDBMessageHelper.BuildQueryRequest(sdbMessage, isBigEndian);
             connection.SendMessage(request);
             SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
+            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
 
             return rtnSDBMessage;
         }
@@ -179,6 +181,7 @@ namespace SequoiaDB
             BsonDocument dummyObj = new BsonDocument();
             IConnection connection = sdb.Connection;
             SDBMessage sdbMessage = new SDBMessage();
+            sdbMessage.OperationCode = Operation.OP_QUERY;
             sdbMessage.CollectionFullName = command;
             sdbMessage.Version = 0;
             sdbMessage.W = 0;
@@ -227,9 +230,9 @@ namespace SequoiaDB
 
             byte[] request = SDBMessageHelper.BuildQueryRequest(sdbMessage, isBigEndian);
             connection.SendMessage(request);
-            SDBMessage rtn = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
-
-            return rtn;
+            SDBMessage rtnMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
+            rtnMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnMessage);
+            return rtnMessage;
         }
    }
 }

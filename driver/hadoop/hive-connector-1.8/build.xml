@@ -38,7 +38,7 @@
 
 		<echo message="os.name=${os.name}, os.arch=${os.arch}" />
     
-		<javac srcdir="${source.dir}" destdir="${open.source.target.dir}" debug="true" classpath="" fork="yes" >
+		<javac srcdir="${source.dir}" destdir="${open.source.target.dir}" debug="on" classpath="" fork="yes" >
 			<classpath>
 				<fileset dir="${library.dir}" includes="*.jar" />
 				<pathelement location="${java.driver.jar}"/>

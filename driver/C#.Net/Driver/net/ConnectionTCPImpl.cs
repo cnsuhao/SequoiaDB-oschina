@@ -14,7 +14,7 @@ namespace SequoiaDB
         private ConfigOptions options;
         private ServerAddress hostAddress;
 
-        private readonly Logger logger = new Logger("IConnection");
+        //private readonly Logger logger = new Logger("IConnectionICPImpl");
 
         public ConnectionTCPImpl(ServerAddress addr, ConfigOptions opts)
         {
@@ -26,17 +26,17 @@ namespace SequoiaDB
         {
             if (connection != null)
                 return;
-
             TimeSpan sleepTime = new TimeSpan(0,0,0,0,100);
-            TimeSpan maxAutoConnectRetryTime = new TimeSpan(0, 0, 0, options.MaxAutoConnectRetryTime);
-
+            TimeSpan maxAutoConnectRetryTime = new TimeSpan(0, 0, 0, 0, options.MaxAutoConnectRetryTime);
             DateTime start = DateTime.Now;
+
             while (true)
             {
                 IOException lastError = null;
                 IPEndPoint addr = hostAddress.HostAddress;
-                try {
-                    connection = TimeOutSocket.Connect(addr, options.ConnectTimeout);
+                try 
+                {
+                    connection = new TimeOutSocket().Connect(addr, options.ConnectTimeout);
                     connection.NoDelay = (!options.UseNagle);
                     connection.SendTimeout = options.SendTimeout;
                     connection.ReceiveTimeout = options.ReceiveTimeout;
@@ -44,11 +44,10 @@ namespace SequoiaDB
                     output = connection.GetStream();
                     return;
                 }
-                catch (IOException ioe)
+                catch(Exception e)
                 {
-                    lastError = new IOException("couldn't connect to ["
-                            + addr.ToString() + "] exception:" + ioe);
-                    logger.Error("connect fail to : " + addr.ToString(), ioe);
+                    lastError = new IOException("Couldn't connect to ["
+                            + addr.ToString() + "] exception:" + e);
                     Close();
                 }
 
@@ -57,9 +56,6 @@ namespace SequoiaDB
                     throw lastError;
                 if (sleepTime + executeTime > maxAutoConnectRetryTime)
                     sleepTime = maxAutoConnectRetryTime - executeTime;
-
-                logger.Info("Going to sleep and retry " + sleepTime
-                    + " ms later...");
                 try
                 {
                     Thread.Sleep(sleepTime);
@@ -67,12 +63,11 @@ namespace SequoiaDB
                 catch (Exception){}
                 sleepTime = sleepTime + sleepTime;
             }
-
         }
 
         public void Close()
         {
-            if (connection.Connected)
+            if (connection !=null && connection.Connected)
             {
                 input.Close();
                 output.Close();
@@ -135,7 +130,6 @@ namespace SequoiaDB
                     }
                     catch (System.Exception)
                     {
-                        logger.Error("Expect 4-byte message length but got:::" + rtn);
                         Close();
                         throw new IOException("Expect 4-byte message length");
                     }

@@ -155,7 +155,11 @@ namespace engine
          BOOLEAN           _isCommand( const CHAR *pCheckName ) ;
          void              _sendRes2Agent( NET_HANDLE handle, 
                                            MsgHeader *pSrcMsg, 
-                                           INT32 flag, BSONObj response ) ;
+                                           INT32 flag, BSONObj &obj ) ;
+         void              _sendRes2Agent( NET_HANDLE handle, 
+                                           MsgHeader *pSrcMsg, 
+                                           INT32 flag, 
+                                           rtnContextBuf &buffObj ) ;
 
 
       protected:

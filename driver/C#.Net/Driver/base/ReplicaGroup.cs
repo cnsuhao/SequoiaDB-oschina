@@ -389,6 +389,7 @@ namespace SequoiaDB
             IConnection connection = sdb.Connection;
             BsonDocument dummyObj = new BsonDocument();
             SDBMessage sdbMessage = new SDBMessage();
+            sdbMessage.OperationCode = Operation.OP_QUERY;
 
             // arg1
             if (null == arg1)
@@ -436,7 +437,7 @@ namespace SequoiaDB
             byte[] request = SDBMessageHelper.BuildQueryRequest(sdbMessage, isBigEndian);
             connection.SendMessage(request);
             SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
-
+            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             return rtnSDBMessage;
         }
 

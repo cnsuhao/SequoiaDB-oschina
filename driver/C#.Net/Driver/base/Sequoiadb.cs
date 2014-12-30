@@ -16,14 +16,13 @@ namespace SequoiaDB
      */
     public class Sequoiadb
    {
-        private readonly Logger logger = new Logger("Sequoiadb");
-
         private ServerAddress serverAddress = null;
         private ServerAddress[] serverAddresses = null;
         private IConnection connection = null;
         private string userName = "";
         private string password = "";
         internal bool isBigEndian = false ;
+        //private static readonly Logger logger = new Logger("Sequoiadb");
 
         public IConnection Connection
         {
@@ -239,11 +238,15 @@ namespace SequoiaDB
             // wether connection is ok or not
             try
             {
-                long[] contextIds = new long[] { -1 };
-                byte[] request = SDBMessageHelper.BuildKillCursorMsg(contextIds, isBigEndian);
+                SDBMessage sdbMessage = new SDBMessage();
+                sdbMessage.OperationCode = Operation.OP_KILL_CONTEXT;
+                sdbMessage.ContextIDList = new List<long>();
+                sdbMessage.ContextIDList.Add(-1);
+                byte[] request = SDBMessageHelper.BuildKillCursorMsg(sdbMessage, isBigEndian);
 
                 connection.SendMessage(request);
                 SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
+                rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
                 flags = rtnSDBMessage.Flags;
                 if (flags != 0)
                 {
@@ -269,15 +272,18 @@ namespace SequoiaDB
         {
             if (username == null || password == null)
                 throw new BaseException("SDB_INVALIDARG");
+            SDBMessage sdbMessage = new SDBMessage();
+            sdbMessage.OperationCode = Operation.MSG_AUTH_CRTUSR_REQ;
+            sdbMessage.RequestID = 0 ;
             MD5 md5 = MD5.Create();
             byte[] data = md5.ComputeHash(Encoding.Default.GetBytes(password));
             StringBuilder builder = new StringBuilder();
             for (int i = 0; i < data.Length; i++)
                 builder.Append(data[i].ToString("x2"));
-            byte[] request = SDBMessageHelper.BuildAuthCrtMsg(0, username, builder.ToString(), isBigEndian);
+            byte[] request = SDBMessageHelper.BuildAuthCrtMsg(sdbMessage, username, builder.ToString(), isBigEndian);
             connection.SendMessage(request);
             SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
-
+            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
                 throw new BaseException(flags);
@@ -295,15 +301,18 @@ namespace SequoiaDB
         {
             if (username == null || password == null)
                 throw new BaseException("SDB_INVALIDARG");
+            SDBMessage sdbMessage = new SDBMessage();
+            sdbMessage.OperationCode = Operation.MSG_AUTH_DELUSR_REQ;
+            sdbMessage.RequestID = 0;
             MD5 md5 = MD5.Create();
             byte[] data = md5.ComputeHash(Encoding.Default.GetBytes(password));
             StringBuilder builder = new StringBuilder();
             for (int i = 0; i < data.Length; i++)
                 builder.Append(data[i].ToString("x2"));
-            byte[] request = SDBMessageHelper.BuildAuthDelMsg(0, username, builder.ToString(), isBigEndian);
+            byte[] request = SDBMessageHelper.BuildAuthDelMsg(sdbMessage, username, builder.ToString(), isBigEndian);
             connection.SendMessage(request);
             SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
-
+            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
                 throw new BaseException(flags);
@@ -317,9 +326,13 @@ namespace SequoiaDB
          */
         public void TransactionBegin()
         {
-            byte[] request = SDBMessageHelper.BuildTransactionRequest(Operation.OP_TRANS_BEGIN, isBigEndian);
+            SDBMessage sdbMessage = new SDBMessage();
+            sdbMessage.OperationCode = Operation.OP_TRANS_BEGIN ;
+            sdbMessage.RequestID = 0;
+            byte[] request = SDBMessageHelper.BuildTransactionRequest(sdbMessage, isBigEndian);
             connection.SendMessage(request);
             SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
+            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
                 throw new BaseException(flags);
@@ -333,9 +346,13 @@ namespace SequoiaDB
          */
         public void TransactionCommit()
         {
-            byte[] request = SDBMessageHelper.BuildTransactionRequest(Operation.OP_TRANS_COMMIT, isBigEndian);
+            SDBMessage sdbMessage = new SDBMessage();
+            sdbMessage.OperationCode = Operation.OP_TRANS_COMMIT;
+            sdbMessage.RequestID = 0;
+            byte[] request = SDBMessageHelper.BuildTransactionRequest(sdbMessage, isBigEndian);
             connection.SendMessage(request);
             SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
+            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
                 throw new BaseException(flags);
@@ -349,9 +366,13 @@ namespace SequoiaDB
          */
         public void TransactionRollback()
         {
-            byte[] request = SDBMessageHelper.BuildTransactionRequest(Operation.OP_TRANS_ROLLBACK, isBigEndian);
+            SDBMessage sdbMessage = new SDBMessage();
+            sdbMessage.OperationCode = Operation.OP_TRANS_ROLLBACK;
+            sdbMessage.RequestID = 0;
+            byte[] request = SDBMessageHelper.BuildTransactionRequest(sdbMessage, isBigEndian);
             connection.SendMessage(request);
             SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
+            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
                 throw new BaseException(flags);
@@ -538,12 +559,14 @@ namespace SequoiaDB
         public DBCursor Exec(string sql)
         {
             SDBMessage sdbMessage = new SDBMessage();
+            sdbMessage.OperationCode = Operation.OP_SQL;
             sdbMessage.RequestID = 0;
             sdbMessage.NodeID = SequoiadbConstants.ZERO_NODEID;
 
             byte[] request = SDBMessageHelper.BuildSqlMsg(sdbMessage, sql, isBigEndian);
             connection.SendMessage(request);
             SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
+            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
             {
@@ -551,8 +574,6 @@ namespace SequoiaDB
                     return null;
                 else
                 {
-                    if (logger.IsDebugEnabled)
-                        logger.Debug("Return flags==>" + String.Format("0:X", flags) + "<==");
                     throw new BaseException(flags);
                 }
             }
@@ -572,12 +593,14 @@ namespace SequoiaDB
         public void ExecUpdate(string sql)
         {
             SDBMessage sdbMessage = new SDBMessage();
+            sdbMessage.OperationCode = Operation.OP_SQL;
             sdbMessage.RequestID = 0;
             sdbMessage.NodeID = SequoiadbConstants.ZERO_NODEID;
 
             byte[] request = SDBMessageHelper.BuildSqlMsg(sdbMessage, sql, isBigEndian);
             connection.SendMessage(request);
             SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
+            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
                 throw new BaseException(flags);
@@ -665,8 +688,6 @@ namespace SequoiaDB
                     return null;
                 else
                 {
-                    if (logger.IsDebugEnabled)
-                        logger.Debug("Return flags==>" + String.Format("0:X", flags) + "<==");
                     throw new BaseException(flags);
                 }
 
@@ -803,8 +824,6 @@ namespace SequoiaDB
                     return null;
                 else
                 {
-                    if (logger.IsDebugEnabled)
-                        logger.Debug("Return flags==>" + String.Format("0:X", flags) + "<==");
                     throw new BaseException(flags);
                 }
 
@@ -1129,7 +1148,9 @@ namespace SequoiaDB
         public void CloseAllCursors()
         {
             // TODO: it's better for us to use DBCursor::Close() to close all the cursor
-            byte[] request = SDBMessageHelper.BuildKillAllContextsRequest(Operation.OP_KILL_ALL_CONTEXTS, isBigEndian);
+            SDBMessage sdbMessage = new SDBMessage();
+            sdbMessage.OperationCode = Operation.OP_KILL_ALL_CONTEXTS;
+            byte[] request = SDBMessageHelper.BuildKillAllContextsRequest(sdbMessage, isBigEndian);
             connection.SendMessage(request);
         }
 
@@ -1470,6 +1491,7 @@ namespace SequoiaDB
 
             cObj.Add(SequoiadbConstants.FIELD_NAME, csName);
             cObj.Add(options);
+            sdbMessage.OperationCode = Operation.OP_QUERY;
             sdbMessage.Matcher = cObj;
             sdbMessage.CollectionFullName = commandString;
 
@@ -1488,7 +1510,7 @@ namespace SequoiaDB
             byte[] request = SDBMessageHelper.BuildQueryRequest(sdbMessage, isBigEndian);
             connection.SendMessage(request);
             SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
-
+            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             return rtnSDBMessage;
         }
 
@@ -1505,6 +1527,7 @@ namespace SequoiaDB
             }
             else
                 sdbMessage.Matcher = dummyObj;
+            sdbMessage.OperationCode = Operation.OP_QUERY;
             sdbMessage.CollectionFullName = commandString;
 
             sdbMessage.Version = 0;
@@ -1522,7 +1545,7 @@ namespace SequoiaDB
             byte[] request = SDBMessageHelper.BuildQueryRequest(sdbMessage, isBigEndian);
             connection.SendMessage(request);
             SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
-
+            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             return rtnSDBMessage;
         }
 
@@ -1531,6 +1554,7 @@ namespace SequoiaDB
         {
             BsonDocument dummyObj = new BsonDocument();
             SDBMessage sdbMessage = new SDBMessage();
+            sdbMessage.OperationCode = Operation.OP_QUERY;
             sdbMessage.CollectionFullName = command;
             sdbMessage.Version = 0;
             sdbMessage.W = 0;
@@ -1581,9 +1605,9 @@ namespace SequoiaDB
             if(connection == null)
                 throw new BaseException("SDB_NETWORK");
             connection.SendMessage(request);
-            SDBMessage rtn = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
-
-            return rtn;
+            SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
+            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
+            return rtnSDBMessage;
         }
 
         private List<BsonDocument> GetMoreCommand(SDBMessage rtnSDBMessage)
@@ -1595,6 +1619,7 @@ namespace SequoiaDB
             while (hasMore)
             {
                 SDBMessage sdbMessage = new SDBMessage();
+                sdbMessage.OperationCode = Operation.OP_GETMORE;
                 sdbMessage.NodeID = SequoiadbConstants.ZERO_NODEID;
                 sdbMessage.ContextIDList = contextIDs;
                 sdbMessage.RequestID = requestID;
@@ -1603,7 +1628,7 @@ namespace SequoiaDB
                 byte[] request = SDBMessageHelper.BuildGetMoreRequest(sdbMessage, isBigEndian);
                 connection.SendMessage(request);
                 rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
-
+                rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
                 int flags = rtnSDBMessage.Flags;
                 if (flags != 0)
                 {
@@ -1611,8 +1636,6 @@ namespace SequoiaDB
                         hasMore = false;
                     else
                     {
-                        if (logger.IsDebugEnabled)
-                            logger.Debug("Return flags==>" + String.Format("0:X", flags) + "<==");
                         throw new BaseException(flags);
                     }
                 }
@@ -1636,15 +1659,18 @@ namespace SequoiaDB
 
         private void Auth()
         {
+            SDBMessage sdbMessage = new SDBMessage();
+            sdbMessage.OperationCode = Operation.MSG_AUTH_VERIFY_REQ;
+            sdbMessage.RequestID = 0;
             MD5 md5 = MD5.Create();
             byte[] data = md5.ComputeHash(Encoding.Default.GetBytes(password));
             StringBuilder builder = new StringBuilder();
             for (int i = 0; i < data.Length; i++)
                 builder.Append(data[i].ToString("x2"));
-            byte[] request = SDBMessageHelper.BuildAuthMsg(0, userName, builder.ToString(), isBigEndian);
+            byte[] request = SDBMessageHelper.BuildAuthMsg(sdbMessage, userName, builder.ToString(), isBigEndian);
             connection.SendMessage(request);
             SDBMessage rtnSDBMessage = SDBMessageHelper.MsgExtractReply(connection.ReceiveMessage(isBigEndian), isBigEndian);
-
+            rtnSDBMessage = SDBMessageHelper.CheckRetMsgHeader(sdbMessage, rtnSDBMessage);
             int flags = rtnSDBMessage.Flags;
             if (flags != 0)
                 throw new BaseException(flags);

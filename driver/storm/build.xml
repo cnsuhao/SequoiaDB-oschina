@@ -16,7 +16,7 @@
 
 	<target name="compile" depends="clean">
 		<mkdir dir="${target.dir}" />
-		<javac srcdir="${source.dir}" destdir="${target.dir}" debug="true" fork="true">
+		<javac srcdir="${source.dir}" destdir="${target.dir}" debug="on" fork="true">
 			<classpath>
 				<fileset dir="${library.dir}" includes="*.jar" />
 			</classpath>

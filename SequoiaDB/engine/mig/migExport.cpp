@@ -154,6 +154,7 @@ INT32 migExport::_getCS( const CHAR *pCSName )
                                 &_gCollectionSpace ) ;
    if ( SDB_DMS_CS_NOTEXIST == rc )
    {
+      ossPrintf( "Collection space %s does not exist"OSS_NEWLINE, pCSName ) ;
       PD_LOG ( PDERROR, "Collection space %s does not exist",
                pCSName ) ;
       goto error ;
@@ -177,6 +178,7 @@ INT32 migExport::_getCL( const CHAR *pCLName )
                             &_gCollection ) ;
    if ( SDB_DMS_NOTEXIST == rc )
    {
+      ossPrintf( "Collection %s does not exist"OSS_NEWLINE, pCLName ) ;
       PD_LOG ( PDERROR, "Collection %s does not exist"OSS_NEWLINE,
                pCLName ) ;
       goto error ;
@@ -450,17 +452,9 @@ INT32 migExport::_exportCL( const CHAR *pCSName,
    rc = _getCL( pCLName ) ;
    if ( rc )
    {
-      if ( rc == SDB_DMS_NOTEXIST )
-      {
-         rc = SDB_OK ;
-         goto done ;
-      }
-      else
-      {
-         PD_LOG ( PDERROR, "Failed to get collection, rc = %d",
-                  rc ) ;
-         goto error ;
-      }
+      PD_LOG ( PDERROR, "Failed to get collection, rc = %d",
+               rc ) ;
+      goto error ;
    }
    rc = _query() ;
    if ( rc )

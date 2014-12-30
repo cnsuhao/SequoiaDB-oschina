@@ -99,5 +99,6 @@ namespace SequoiaDB
                 buf.IsBigEndian = true;
             return buf.PopLong();
         }
+
     }
 }
