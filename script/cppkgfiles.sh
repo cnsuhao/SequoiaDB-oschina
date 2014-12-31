@@ -171,12 +171,12 @@ done < $sdb_path/driver/php5/php_ver_linux.list
 #**********************************
 #TODO: where is notice.txt from?
 #**********************************
-echo "collect the files of \"license\""
-src_dir_lcns="$sdb_path/license"
-dest_dir_lcns="$pkg_src_tmp/license"
-mkdir -p $dest_dir_lcns
-copy_file $src_dir_lcns/license_en.txt $dest_dir_lcns
-copy_file $src_dir_lcns/license_zh.txt $dest_dir_lcns
+#echo "collect the files of \"license\""
+#src_dir_lcns="$sdb_path/license"
+#dest_dir_lcns="$pkg_src_tmp/license"
+#mkdir -p $dest_dir_lcns
+#copy_file $src_dir_lcns/license_en.txt $dest_dir_lcns
+#copy_file $src_dir_lcns/license_zh.txt $dest_dir_lcns
 
 #########################################
 # folder: samples
