@@ -111,6 +111,7 @@ namespace engine
       string cmd ;
       string ev ;
       UINT32 timeout = 0 ;
+      UINT32 useShell = TRUE ;
       ossCmdRunner runner ;
 
       rc = arg.getString( 0, cmd ) ;
@@ -143,10 +144,20 @@ namespace engine
       }
       rc = SDB_OK ;
 
+      rc = arg.getNative( 3, (void*)&useShell, SPT_NATIVE_INT32 ) ;
+      if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "useShell should be a number" ) ;
+         goto error ;
+      }
+      rc = SDB_OK ;
+
       _strOut = "" ;
       _retCode = 0 ;
       rc = runner.exec( cmd.c_str(), _retCode, FALSE,
-                        0 == timeout ? -1 : (INT64)timeout ) ;
+                        0 == timeout ? -1 : (INT64)timeout,
+                        FALSE, NULL, useShell ? TRUE : FALSE ) ;
       if ( SDB_OK != rc )
       {
          stringstream ss ;
@@ -188,6 +199,7 @@ namespace engine
       string cmd ;
       string ev ;
       ossCmdRunner runner ;
+      UINT32 useShell = TRUE ;
 
       rc = arg.getString( 0, cmd ) ;
       if ( SDB_OK != rc )
@@ -210,9 +222,19 @@ namespace engine
          cmd += ev ;
       }
 
+      rc = arg.getNative( 2, (void*)&useShell, SPT_NATIVE_INT32 ) ;
+      if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
+      {
+         rc = SDB_INVALIDARG ;
+         detail = BSON( SPT_ERR << "useShell should be a number" ) ;
+         goto error ;
+      }
+      rc = SDB_OK ;
+
       _strOut = "" ;
       _retCode = 0 ;
-      rc = runner.exec( cmd.c_str(), _retCode, TRUE ) ;
+      rc = runner.exec( cmd.c_str(), _retCode, TRUE, -1, FALSE, NULL,
+                        useShell ? TRUE : FALSE ) ;
       if ( SDB_OK != rc )
       {
          stringstream ss ;
@@ -252,8 +274,9 @@ namespace engine
       stringstream ss ;
       ss << "Cmd functions:" << endl
          << " var cmd = new Cmd()" << endl
-         << "   run( cmd, [args], [timeout] )  timeout(ms), default 0: never timeout" << endl
-         << "   start( cmd, [args] )" << endl
+         << "   run( cmd, [args], [timeout], [useShell] )  timeout(ms), default 0: never timeout" << endl
+         << "        useShell 0/1, default 1" << endl
+         << "   start( cmd, [args], [useShell] )  useShell 0/1, default 1" << endl
          << "   getLastRet()" << endl
          << "   getLastOut()" << endl ;
       rval.setStringVal( "", ss.str().c_str() ) ;

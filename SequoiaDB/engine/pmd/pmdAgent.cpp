@@ -1191,6 +1191,7 @@ namespace engine
       pmdKRCB *krcb              = pmdGetKRCB() ;
       monDBCB *mondbcb           = krcb->getMonDBCB () ;
       SDB_ROLE dbrole            = krcb->getDBRole () ;
+      INT32 opCode               = 0 ;
 
       ossSocket sock ( &s, PMD_AGENT_SOCKET_DFT_TIMEOUT ) ;
       sock.disableNagle () ;
@@ -1337,6 +1338,7 @@ namespace engine
          cb->incEventCount () ;
 
          pReceiveBuffer[packetLength] = 0 ;
+         opCode = ((MsgHeader*)pReceiveBuffer)->opCode ;
          if ( SDB_OK != ( rc = eduMgr->activateEDU ( cb )) )
          {
             goto error ;
@@ -1379,7 +1381,7 @@ namespace engine
                replyHeader.numReturned = buffObj.recordNum() ;
                replyHeader.header.messageLength += buffObj.size() ;
             }
-
+            replyHeader.header.opCode = MAKE_REPLY_TYPE(opCode) ;
             sendRC = SDB_OK ;
             sendRC = pmdSend ( (CHAR*)&replyHeader, sizeof(replyHeader),
                                &sock, cb ) ;

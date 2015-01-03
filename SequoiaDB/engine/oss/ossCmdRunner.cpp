@@ -125,7 +125,8 @@ namespace engine
                               BOOLEAN isBackground,
                               INT64 timeout,
                               BOOLEAN needResize,
-                              OSSHANDLE *pHandle )
+                              OSSHANDLE *pHandle,
+                              BOOLEAN addShellPrefix )
    {
       INT32 rc = SDB_OK ;
       SDB_ASSERT( NULL != cmd, "can not be null" ) ;
@@ -151,11 +152,20 @@ namespace engine
       _timeout     = timeout ;
 
 #if defined( _LINUX )
-      std::vector<std::string> vecArgs ;
-      vecArgs = boost::program_options::split_unix( cmd ) ;
-      for ( UINT32 i = 0 ; i < vecArgs.size() ; ++i )
+      if ( addShellPrefix )
       {
-         argv.push_back( vecArgs[ i ].c_str() ) ;
+         argv.push_back( "/bin/sh" ) ;
+         argv.push_back( "-c" ) ;
+         argv.push_back( cmd ) ;
+      }
+      else
+      {
+         std::vector<std::string> vecArgs ;
+         vecArgs = boost::program_options::split_unix( cmd ) ;
+         for ( UINT32 i = 0 ; i < vecArgs.size() ; ++i )
+         {
+            argv.push_back( vecArgs[ i ].c_str() ) ;
+         }
       }
 #else
       argv.push_back( cmd ) ;

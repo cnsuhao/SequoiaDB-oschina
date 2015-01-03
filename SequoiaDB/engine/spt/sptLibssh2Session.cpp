@@ -464,12 +464,16 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       SINT64 need = len ;
+      SINT64 write = 0 ;
+
       while ( 0 < need )
       {
-         SINT64 once = libssh2_channel_write( channel, buf, len ) ;
+         const CHAR *writeBuf = buf + write ;
+         SINT64 once = libssh2_channel_write( channel, writeBuf, need ) ;
          if ( 0 <= once )
          {
             need -= once ;
+            write += once ;
          }
          else
          {
@@ -491,11 +495,13 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       SINT64 totalLen = len ;
+      SINT64 read = 0 ;
       SDB_ASSERT( 0 < len, "impossible" ) ;
 
       while ( 0 < totalLen )
       {
-         SINT64 once = libssh2_channel_read( channel, buf, totalLen ) ;
+         CHAR *readBuf = buf + read ;
+         SINT64 once = libssh2_channel_read( channel, readBuf, totalLen ) ;
          if ( 0 == once )
          {
             continue ;
@@ -503,6 +509,7 @@ namespace engine
          else if ( 0 < once )
          {
             totalLen -= once ;
+            read += once ;
          }
          else
          {

@@ -60,7 +60,8 @@ namespace engine
                   BOOLEAN isBackground = FALSE,
                   INT64 timeout = -1,
                   BOOLEAN needResize = FALSE,
-                  OSSHANDLE *pHandle = NULL ) ;
+                  OSSHANDLE *pHandle = NULL,
+                  BOOLEAN addShellPrefix = FALSE ) ;
 
       INT32 done() ;
 

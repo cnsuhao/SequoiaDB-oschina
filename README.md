@@ -175,6 +175,8 @@ Package RPM Prerequisites:
 
 Package RPM:
 -----------------
+	# root permission is required
+	# for RHEL and CentOS only
         python script/package.py
         # the RPM-package will output in package/output/RPMS/
 
@@ -202,7 +204,7 @@ Running:
 		> db.help() ;
 
 
-	To run in cluster mode, please refer SequoiaDB Infomation Center.
+	To run in cluster mode, please refer SequoiaDB Information Center.
 
 
 Documentation:
