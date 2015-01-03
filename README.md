@@ -175,8 +175,8 @@ Package RPM Prerequisites:
 
 Package RPM:
 -----------------
-	# root permission is required
-	# for RHEL and CentOS only
+        # root permission is required
+        # for RHEL and CentOS only
         python script/package.py
         # the RPM-package will output in package/output/RPMS/
 

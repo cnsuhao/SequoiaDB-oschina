@@ -1057,3 +1057,35 @@ LINENOISE License:
  *    Effect: clear the whole screen
  * 
  */
+
+------------------------------------------------------------------------------
+ECharts:
+
+// Copyright 2006 Google Inc.
+
+//   http://www.apache.org/licenses/LICENSE-2.0
+
+// (c) 2010-2013 Thomas Fuchs
+
+// Zepto.js may be freely distributed under the MIT license.
+
+/*!
+ * ZRender, a lightweight canvas library with a MVC architecture, data-driven
+ * and provides an event model like DOM.
+ *
+ * Copyright (c) 2013, Baidu Inc.
+ * All rights reserved.
+ *
+ * LICENSE
+ * https://github.com/ecomfe/zrender/blob/master/LICENSE.txt
+ */
+
+/*!
+ * ECharts, a javascript interactive chart library.
+ *
+ * Copyright (c) 2014, Baidu Inc.
+ * All rights reserved.
+ *
+ * LICENSE
+ * https://github.com/ecomfe/echarts/blob/master/LICENSE.txt
+ */
