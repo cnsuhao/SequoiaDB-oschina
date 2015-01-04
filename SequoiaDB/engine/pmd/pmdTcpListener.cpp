@@ -106,14 +106,7 @@ namespace engine
             continue ;
          }
 
-         if ( SDB_ROLE_COORD != dbrole )
-         {
-            rc = eduMgr->startEDU ( EDU_TYPE_AGENT, pData, &agentEDU ) ;
-         }
-         else
-         {
-            rc = eduMgr->startEDU ( EDU_TYPE_COORDAGENT, pData, &agentEDU ) ;
-         }
+         rc = eduMgr->startEDU ( EDU_TYPE_AGENT, pData, &agentEDU ) ;
 
          if ( rc )
          {

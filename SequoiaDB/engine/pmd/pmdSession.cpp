@@ -349,6 +349,7 @@ namespace engine
       const CHAR *pBody = NULL ;
       INT32 bodyLen     = 0 ;
       rtnContextBuf contextBuff ;
+      INT32 opCode      = msg->opCode ;
 
       rc = _onMsgBegin( msg ) ;
       if ( SDB_OK == rc )
@@ -385,7 +386,8 @@ namespace engine
             bodyLen = (INT32)_errorInfo.objsize() ;
             _replyHeader.numReturned = 1 ;
          }
-         _replyHeader.flags = rc ;
+         _replyHeader.header.opCode = MAKE_REPLY_TYPE(opCode) ;
+         _replyHeader.flags         = rc ;
          _replyHeader.header.messageLength = sizeof( _replyHeader ) +
                                              bodyLen ;
 

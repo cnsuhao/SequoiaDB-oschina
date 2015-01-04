@@ -1168,370 +1168,61 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDAGENTENTPNT, "pmdAgentEntryPoint" )
    INT32 pmdAgentEntryPoint ( pmdEDUCB *cb, void *pData )
    {
-      INT32 rc                   = SDB_OK ;
-      PD_TRACE_ENTRY ( SDB_PMDAGENTENTPNT );
-      BSONObj *pErrorObj         = NULL ;
-      INT32 sendRC               = SDB_OK ;
-      UINT32 probe               = 0 ;
-      EDUID myEDUID              = cb->getID () ;
-      pmdEDUMgr * eduMgr         = cb->getEDUMgr() ;
-      BOOLEAN disconnect         = FALSE ;
-      CHAR *pReceiveBuffer       = NULL ;
-      rtnContextBuf buffObj ;
-      MsgOpReply replyHeader ;
-      MsgOpReply authReply ;
-      ossMemset ( &replyHeader, 0, sizeof(replyHeader)) ;
-      SINT32 receiveBufferSize   = ossRoundUpToMultipleX (
-            PMD_AGENT_RECIEVE_BUFFER_SZ, SDB_PAGE_SIZE ) ;
-      SINT32 packetLength        = 0 ;
-      SDB_ASSERT ( pData, "Null pointer passed to pmdAgentEntryPoint" ) ;
-      SOCKET s                   = *(( SOCKET *) &pData ) ;
-      CHAR clientName [ PMD_EDU_NAME_LENGTH + 1] = {0} ;
-      UINT16 clientPort          = 0 ;
-      pmdKRCB *krcb              = pmdGetKRCB() ;
-      monDBCB *mondbcb           = krcb->getMonDBCB () ;
-      SDB_ROLE dbrole            = krcb->getDBRole () ;
-      INT32 opCode               = 0 ;
-
-      ossSocket sock ( &s, PMD_AGENT_SOCKET_DFT_TIMEOUT ) ;
-      sock.disableNagle () ;
-
-      clientPort = sock.getPeerPort () ;
-      cb->setClientSock ( &sock ) ;
-      rc = sock.getPeerAddress ( clientName, PMD_EDU_NAME_LENGTH ) ;
-      if ( rc )
-      {
-         PD_LOG ( PDWARNING, "Failed to get address from socket" ) ;
-      }
-      else
-      {
-         cb->setClientInfo ( clientName, clientPort ) ;
-         PD_LOG ( PDEVENT, "Connection is received from %s port %d",
-                  clientName, clientPort ) ;
-      }
-
-      pReceiveBuffer = (CHAR*)SDB_OSS_MALLOC ( sizeof(CHAR) *
-                                               receiveBufferSize ) ;
-      if ( !pReceiveBuffer )
-      {
-         rc = SDB_OOM ;
-         probe = 10 ;
-         goto error ;
-      }
-
-      if ( SDB_ROLE_COORD == dbrole )
-      {
-         CoordCB *pCoordCB = krcb->getCoordCB() ;
-         netMultiRouteAgent *pRouteAgent = pCoordCB->getRouteAgent() ;
-         rc = pRouteAgent->addSession( cb );
-         PD_RC_CHECK( rc, PDERROR,"failed to add session(rc=%d)", rc );
-      }
-      mondbcb->addReceiveNum () ;
-
-      ossMemset ( &authReply, 0, sizeof(authReply)) ;
-      rc = pmdAuthenticate( sock, pReceiveBuffer,
-                            cb, receiveBufferSize, authReply, dbrole ) ;
-      if ( SDB_APP_FORCED == rc )
-      {
-         goto done ;
-      }
-      else
-      {
-         INT32 sendRC = pmdSend ( (CHAR*)&authReply, sizeof(authReply),
-                                   &sock, cb ) ;
-         if ( sendRC )
-         {
-            rc = sendRC ;
-            if ( SDB_APP_FORCED != sendRC )
-            {
-               probe = 70 ;
-            }
-         }
-         if ( rc )
-         {
-            goto error ;
-         }
-      }
-
-      while ( !disconnect )
-      {
-         cb->resetInterrupt () ;
-         cb->resetInfo ( EDU_INFO_ERROR ) ;
-
-         rc = pmdRecv ( pReceiveBuffer, sizeof (SINT32),
-                        &sock, cb ) ;
-         if ( rc )
-         {
-            if ( SDB_APP_FORCED == rc )
-            {
-               disconnect = TRUE ;
-               cb->disconnect() ;
-               continue ;
-            }
-            probe = 20 ;
-            goto error ;
-         }
-
-         if ( *(UINT32*)(pReceiveBuffer) == MSG_SYSTEM_INFO_LEN )
-         {
-            rc = pmdHandleSysInfoRequest ( pReceiveBuffer,
-                                           receiveBufferSize,
-                                           sock, cb ) ;
-            if ( rc )
-            {
-               if ( SDB_APP_FORCED == rc )
-               {
-                  disconnect = TRUE ;
-                  continue ;
-               }
-               probe = 25 ;
-               goto error ;
-            }
-            continue ;
-         }
-         packetLength = *(SINT32*)(pReceiveBuffer) ;
-         PD_LOG ( PDDEBUG, "Received packet size = %d", packetLength ) ;
-         if ( packetLength < (SINT32)sizeof (SINT32) )
-         {
-            probe = 30 ;
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-         if ( receiveBufferSize < packetLength + 1 )
-         {
-            PD_LOG ( PDDEBUG, "Receive buffer size is too small: %d vs %d, "
-                     "increasing...", receiveBufferSize, packetLength ) ;
-            INT32 newSize = ossRoundUpToMultipleX ( packetLength+1,
-                                                    SDB_PAGE_SIZE ) ;
-            if ( newSize < 0 )
-            {
-               probe = 40 ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-            SDB_OSS_FREE ( pReceiveBuffer ) ;
-            pReceiveBuffer = (CHAR*)SDB_OSS_MALLOC ( newSize ) ;
-            if ( !pReceiveBuffer )
-            {
-               rc = SDB_OOM ;
-               probe = 50 ;
-               goto error ;
-            }
-            *(SINT32*)(pReceiveBuffer) = packetLength ;
-            receiveBufferSize = newSize ;
-         }
-
-         rc = pmdRecv ( &pReceiveBuffer[sizeof (SINT32)],
-                        packetLength-sizeof (SINT32),
-                        &sock, cb ) ;
-         if ( rc )
-         {
-            if ( SDB_APP_FORCED == rc )
-            {
-               disconnect = TRUE ;
-               continue ;
-            }
-            probe = 55 ;
-            goto error ;
-         }
-
-         cb->incEventCount () ;
-
-         pReceiveBuffer[packetLength] = 0 ;
-         opCode = ((MsgHeader*)pReceiveBuffer)->opCode ;
-         if ( SDB_OK != ( rc = eduMgr->activateEDU ( cb )) )
-         {
-            goto error ;
-         }
-
-         if ( SDB_ROLE_COORD == dbrole )
-         {
-            rc = pmdProcessCoordAgentRequest ( pReceiveBuffer, packetLength,
-                                               buffObj, &disconnect, cb,
-                                               replyHeader, &pErrorObj ) ;
-         }
-
-         if ( SDB_ROLE_STANDALONE == dbrole ||
-              SDB_ROLE_CATALOG == dbrole ||
-              SDB_ROLE_DATA == dbrole ||
-              SDB_COORD_UNKNOWN_OP_REQ == rc )
-         {
-            rc = pmdProcessAgentRequest ( pReceiveBuffer, packetLength,
-                                          buffObj, &disconnect, cb,
-                                          replyHeader ) ;
-         }
-
-         if ( rc )
-         {
-            if ( SDB_APP_INTERRUPT == rc )
-            {
-               PD_LOG ( PDINFO, "Agent is interrupt" ) ;
-            }
-            else if ( SDB_DMS_EOC != rc )
-            {
-               PD_LOG ( PDERROR, "Error processing Agent request, rc=%d", rc ) ;
-            }
-         }
-
-         if ( MSG_BS_INTERRUPTE != GET_REQUEST_TYPE(replyHeader.header.opCode)
-              && !disconnect )
-         {
-            if ( buffObj.recordNum() > 0 )
-            {
-               replyHeader.numReturned = buffObj.recordNum() ;
-               replyHeader.header.messageLength += buffObj.size() ;
-            }
-            replyHeader.header.opCode = MAKE_REPLY_TYPE(opCode) ;
-            sendRC = SDB_OK ;
-            sendRC = pmdSend ( (CHAR*)&replyHeader, sizeof(replyHeader),
-                               &sock, cb ) ;
-            if ( sendRC )
-            {
-               rc = sendRC ;
-               if ( SDB_APP_FORCED == sendRC )
-               {
-                  disconnect = TRUE ;
-                  continue ;
-               }
-               probe = 70 ;
-               goto error ;
-            }
-
-            if ( buffObj.size() > 0 )
-            {
-               sendRC = pmdSend ( buffObj.data(), buffObj.size(), &sock, cb ) ;
-               buffObj.release() ; // release lock for data prepare
-               if ( sendRC )
-               {
-                  rc = sendRC ;
-                  if ( SDB_APP_FORCED == rc )
-                  {
-                     disconnect = TRUE ;
-                     continue ;
-                  }
-                  probe = 90 ;
-                  goto error ;
-               }
-            }
-         }
-         if ( SDB_OK != ( rc = eduMgr->waitEDU ( cb )) )
-         {
-            goto error ;
-         }
-         if ( pErrorObj )
-         {
-            SDB_OSS_DEL pErrorObj ;
-            pErrorObj = NULL ;
-         }
-      }
-
-   done :
-      if ( pReceiveBuffer )
-      {
-         SDB_OSS_FREE ( pReceiveBuffer ) ;
-      }
-
-      if ( SDB_ROLE_STANDALONE == dbrole )
-      {
-         rc = rtnTransRollback( cb, krcb->getDPSCB() );
-         if ( rc != SDB_OK )
-         {
-            PD_LOG ( PDERROR, "Failed to rollback(rc=%d)", rc );
-         }
-      }
-      else if ( SDB_ROLE_COORD == dbrole )
-      {
-         rtnCoordOperator *pRollbackOperator = NULL;
-         BSONObj *err = NULL ;
-         pRollbackOperator = pmdGetKRCB()->getCoordCB()->getProcesserFactory(
-            )->getOperator( MSG_BS_TRANS_ROLLBACK_REQ ) ;
-         if ( pRollbackOperator )
-         {
-            CHAR *pResultBuff = NULL ;
-            pRollbackOperator->execute( NULL, 0, &pResultBuff, cb,
-                                        replyHeader, &err ) ;
-            SDB_ASSERT( pResultBuff == NULL, "Result buff must be NULL" ) ;
-            SDB_ASSERT( NULL == err, "impossible" ) ;
-         }
-      }
-
-      {
-         pmdKRCB *krcb = pmdGetKRCB() ;
-         SDB_RTNCB *rtnCB = krcb->getRTNCB() ;
-         SINT64 contextID = -1 ;
-         while ( -1 != (contextID = cb->contextPeek() ) )
-            rtnCB->contextDelete( contextID, NULL ) ;
-      }
-
-      if ( SDB_ROLE_COORD == dbrole )
-      {
-         netMultiRouteAgent *pRouteAgent = pmdGetKRCB()->getCoordCB(
-            )->getRouteAgent() ;
-         pRouteAgent->delSession( cb->getTID() ) ;
-      }
-
-      cb->setClientSock( NULL ) ;
-      sock.close () ;
-
-      if ( pErrorObj )
-      {
-         SDB_OSS_DEL pErrorObj ;
-         pErrorObj = NULL ;
-      }
-
-      PD_TRACE_EXITRC ( SDB_PMDAGENTENTPNT, rc );
-      return rc;
-   error :
-      switch ( rc )
-      {
-      case SDB_SYS :
-         PD_LOG ( PDERROR, "EDU id %d cannot be found, probe %d", myEDUID,
-                  probe ) ;
-         break ;
-      case SDB_EDU_INVAL_STATUS :
-         PD_LOG ( PDERROR, "EDU status is not valid, probe %d", probe ) ;
-         break ;
-      case SDB_INVALIDARG :
-         PD_LOG ( PDERROR, "Invalid argument receieved by agent, probe %d",
-                  probe ) ;
-         break ;
-      case SDB_OOM :
-         PD_LOG ( PDERROR, "Failed to allocate memory by agent, probe %d", probe ) ;
-         break ;
-      case SDB_NETWORK :
-         PD_LOG ( PDERROR, "Network error occured[%s:%u], probe %d",
-                  clientName, clientPort, probe ) ;
-         break ;
-      case SDB_NETWORK_CLOSE :
-         PD_LOG ( PDDEBUG, "Remote connection closed[%s:%u]",
-                  clientName, clientPort ) ;
-         rc = SDB_OK ;
-         break ;
-      default :
-         PD_LOG ( PDERROR, "Internal error, probe %d", probe ) ;
-      }
-      goto done ;
+      return SDB_INVALIDARG ;
    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_PMDLOCALAGENTENTPNT, "pmdLocalAgentEntryPoint" )
    INT32 pmdLocalAgentEntryPoint( pmdEDUCB *cb, void *arg )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_PMDLOCALAGENTENTPNT );
+      pmdCoordProcessor coordProcessor ;
 
       SOCKET s = *(( SOCKET *) &arg ) ;
-
       pmdLocalSession localSession( s ) ;
       localSession.attach( cb ) ;
 
-      pmdDataProcessor dataProcessor ;
-      dataProcessor.attachSession( &localSession ) ;
-      localSession.attachProcessor( &dataProcessor ) ;
-
-      rc = localSession.run() ;
-
-      localSession.detachProcessor() ;
-      dataProcessor.detachSession() ;
+      if ( pmdGetDBRole() == SDB_ROLE_COORD )
+      {
+         coordProcessor.attachSession( &localSession ) ;
+         localSession.attachProcessor( &coordProcessor ) ;
+         rc = localSession.run() ;
+         localSession.detachProcessor() ;
+         coordProcessor.detachSession() ;
+      }
+      else
+      {
+         pmdDataProcessor dataProcessor ;
+         dataProcessor.attachSession( &localSession ) ;
+         localSession.attachProcessor( &dataProcessor ) ;
+         rc = localSession.run() ;
+         localSession.detachProcessor() ;
+         dataProcessor.detachSession() ;
+      }
 
       localSession.detach() ;
 
