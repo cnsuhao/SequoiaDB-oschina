@@ -864,6 +864,7 @@ namespace engine
                      break ;
                   case Bool :
                      ss << ( e.boolean() ? "TRUE" : "FALSE" ) ;
+                     break ;
                   default :
                      PD_LOG ( PDERROR, "Unexpected type[%d] for %s",
                               e.type(), e.toString().c_str() ) ;
@@ -981,6 +982,7 @@ namespace engine
          goto error ;
       }
       {
+         pmdOptionsCB nodeOptions ;
          stringstream ss ;
          ss << PMD_OPTION_SVCNAME << "=" << pSvcName << endl ;
          ss << PMD_OPTION_DBPATH << "=" << dbPath << endl ;
@@ -995,6 +997,14 @@ namespace engine
             goto error ;
          }
          createCfgFile = TRUE ;
+
+         rc = nodeOptions.initFromFile( cfgFile, FALSE ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Extract node[%s] config failed, rc: %d",
+                    pSvcName, rc ) ;
+            goto error ;
+         }
       }
 
       if ( isModify || !arg2 )

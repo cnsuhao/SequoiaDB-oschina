@@ -43,6 +43,8 @@ function main()
    }
    catch ( e )
    {
+      if ( SDB_CLS_GRP_NOT_EXIST == e )
+         return RET_JSON ;
       errMsg = "Failed to remove coord group" ;
       exception_handle( e, errMsg ) ;
    }

@@ -633,6 +633,7 @@ namespace engine
          {
             BSONObjBuilder builder ;
             builder.append( OM_REST_RES_RETCODE, SDB_INVALIDARG ) ;
+            builder.append( OM_REST_RES_DESP, getErrDesp( SDB_INVALIDARG ) ) ;
             builder.append( OM_REST_RES_DETAIL, "command is null" ) ;
             pAdptor->setOPResult( this, SDB_INVALIDARG, builder.obj() ) ;
             pAdptor->sendResponse( this, HTTP_OK ) ;
@@ -647,8 +648,10 @@ namespace engine
             BSONObjBuilder builder ;
             builder.append( OM_REST_RES_RETCODE, 
                             SDB_PMD_SESSION_NOT_EXIST ) ;
-            builder.append( OM_REST_RES_LOCAL, "/"OM_REST_LOGIN_HTML ) ;
-            pAdptor->setOPResult( this, SDB_AUTH_AUTHORITY_FORBIDDEN, 
+            builder.append( OM_REST_RES_DESP, 
+                            getErrDesp( SDB_PMD_SESSION_NOT_EXIST ) ) ;
+            builder.append( OM_REST_RES_DETAIL, "" ) ;
+            pAdptor->setOPResult( this, SDB_PMD_SESSION_NOT_EXIST, 
                                   builder.obj() ) ;
             pAdptor->sendResponse( this, HTTP_OK ) ;
             PD_LOG( PDEVENT, "OM: redirect to:%s", OM_REST_LOGIN_HTML ) ;
@@ -782,6 +785,7 @@ namespace engine
             string errorInfo ;
             errorInfo = string("command is unreconigzed:") + pSubCommand ;
             builder.append( OM_REST_RES_RETCODE, SDB_INVALIDARG ) ;
+            builder.append( OM_REST_RES_DESP, getErrDesp( SDB_INVALIDARG ) ) ;
             builder.append( OM_REST_RES_DETAIL, errorInfo.c_str() ) ;
             pAdptor->setOPResult( this, SDB_INVALIDARG, builder.obj() ) ;
             pAdptor->sendResponse( this, HTTP_OK ) ;

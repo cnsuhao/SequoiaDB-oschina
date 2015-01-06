@@ -107,7 +107,6 @@ namespace engine
          }
 
          rc = eduMgr->startEDU ( EDU_TYPE_AGENT, pData, &agentEDU ) ;
-
          if ( rc )
          {
             PD_LOG( ( rc == SDB_QUIESCED ? PDWARNING : PDERROR ),

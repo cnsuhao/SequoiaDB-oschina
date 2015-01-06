@@ -3879,6 +3879,7 @@ namespace engine
          else if ( 0 < _skip )
          {
             --_skip ;
+            --i ;
             continue ;
          }
          else if ( 0 == _limit )
@@ -3906,7 +3907,11 @@ namespace engine
          }
       }
 
-      if ( !isEmpty() )
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+      else if ( !isEmpty() )
       {
          rc = SDB_OK ;
       }

@@ -917,8 +917,6 @@ namespace engine
                                                rtnContextBuf &contextBuff )
    {
       INT32 rc = SDB_OK ;
-      BSONObj *_pErrorObj = NULL ;
-      CHAR *_pResultBuff  = NULL ;
       if ( NULL != _pErrorObj )
       {
          SDB_OSS_DEL _pErrorObj ;

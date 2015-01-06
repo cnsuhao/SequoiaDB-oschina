@@ -96,7 +96,6 @@ namespace engine
          MsgOpReply           _replyHeader ;
          BOOLEAN              _needReply ;
          BOOLEAN              _needRollback ;
-         rtnContextBuf        _contextBuff ;
 
          BSONObj              _errorInfo ;
 

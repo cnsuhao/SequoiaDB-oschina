@@ -64,10 +64,7 @@ namespace engine
       @pData: must be the _netRouteAgent pointer
    */
    INT32 pmdAsyncNetEntryPoint ( pmdEDUCB *cb, void *pData ) ;
-
    INT32 pmdLocalAgentEntryPoint( pmdEDUCB *cb, void *arg ) ;
-   INT32 pmdAgentEntryPoint ( pmdEDUCB *cb, void *arg ) ;
-   INT32 pmdHTTPAgentEntryPoint ( pmdEDUCB *cb, void *arg ) ;
    INT32 pmdRestAgentEntryPoint ( pmdEDUCB *cb, void *pData ) ;
    INT32 pmdTcpListenerEntryPoint ( pmdEDUCB *cb, void *arg ) ;
    INT32 pmdHTTPListenerEntryPoint ( pmdEDUCB *cb, void *arg ) ;

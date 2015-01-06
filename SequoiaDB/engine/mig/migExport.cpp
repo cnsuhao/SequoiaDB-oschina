@@ -44,6 +44,7 @@
 #include "migTrace.hpp"
 #include "msgDef.h"
 #include "msg.h"
+#include "jstobs.h"
 
 #define MIG_STR_POINT "."
 #define MIG_STR_SPACE 32
@@ -299,7 +300,39 @@ error:
 INT32 migExport::_query()
 {
    INT32 rc = SDB_OK ;
-   rc = sdbQuery ( _gCollection, NULL, NULL, NULL, NULL, 0, -1,
+   bson condition ;
+   bson sort ;
+   bson_init ( &condition ) ;
+   if( _pMigArg->pFiter )
+   {
+      if ( !jsonToBson2 ( &condition, _pMigArg->pFiter, 0, 1 ) )
+      {
+         rc = SDB_INVALIDARG ;
+         ossPrintf ( "fiter format error"OSS_NEWLINE ) ;
+         PD_LOG ( PDERROR, "fiter format error" ) ;
+         goto error ;
+      }
+   }
+   else
+   {
+      bson_empty( &condition ) ;
+   }
+   if( _pMigArg->pSort )
+   {
+      bson_init ( &sort ) ;
+      if ( !jsonToBson2 ( &sort, _pMigArg->pSort, 0, 1 ) )
+      {
+         rc = SDB_INVALIDARG ;
+         ossPrintf ( "sort format error"OSS_NEWLINE ) ;
+         PD_LOG ( PDERROR, "sort format error" ) ;
+         goto error ;
+      }
+   }
+   else
+   {
+      bson_empty( &sort ) ;
+   }
+   rc = sdbQuery ( _gCollection, &condition, NULL, &sort, NULL, 0, -1,
                    &_gCursor ) ;
    if ( rc )
    {
@@ -314,6 +347,8 @@ INT32 migExport::_query()
       }
    }
 done:
+   bson_destroy ( &sort ) ;
+   bson_destroy ( &condition ) ;
    return rc ;
 error:
    goto done ;

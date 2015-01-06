@@ -68,6 +68,8 @@ struct migExprtArg : public SDBObject
    CHAR     *pCLName ;
    CHAR     *pFile ;
    CHAR     *pFields ;
+   CHAR     *pFiter ;
+   CHAR     *pSort ;
    migExprtArg() : delChar(0),
                    delField(0),
                    delRecord(0),
@@ -83,7 +85,9 @@ struct migExprtArg : public SDBObject
                    pCSName(NULL),
                    pCLName(NULL),
                    pFile(NULL),
-                   pFields(NULL)
+                   pFields(NULL),
+                   pFiter(NULL),
+                   pSort(NULL)
    {
    }
 } ;

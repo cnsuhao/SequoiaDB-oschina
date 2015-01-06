@@ -1703,7 +1703,7 @@ namespace engine
          if ( NULL == p )
          {
             std::cerr << "ERROR: Failed to get real path for "
-                      <<  vm[PMD_OPTION_CONFPATH].as<string>() << endl ;
+                      <<  vm[PMD_OPTION_CONFPATH].as<string>().c_str() << endl ;
             rc = SDB_INVALIDPATH ;
             goto error;
          }

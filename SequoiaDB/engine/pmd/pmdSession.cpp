@@ -330,8 +330,6 @@ namespace engine
 
    void _pmdLocalSession::_onMsgEnd( INT32 result, MsgHeader *msg )
    {
-      _contextBuff.release() ;
-
       if ( result && SDB_DMS_EOC != result )
       {
          PD_LOG( PDWARNING, "Session[%s] process msg[opCode=%d, len: %d, "

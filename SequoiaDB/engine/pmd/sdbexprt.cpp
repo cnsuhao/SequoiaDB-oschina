@@ -65,6 +65,8 @@ namespace engine
    #define OPTION_ERRORSTOP         "errorstop"
    #define OPTION_INCLUDEBINARY     "includebinary"
    #define OPTION_INCLUDEREGEX      "includeregex"
+   #define OPTION_FILTER            "filter"
+   #define OPTION_SORT              "sort"
    
    #define DEFAULT_HOSTNAME         "localhost"
    #define DEFAULT_SVCNAME          "11810"
@@ -105,6 +107,8 @@ namespace engine
       utilSdbObj.getArgString( OPTION_COLLECTION,   &exprtArg.pCLName ) ;
       utilSdbObj.getArgString( OPTION_FILENAME,     &exprtArg.pFile ) ;
       utilSdbObj.getArgString( OPTION_FIELD,        &exprtArg.pFields ) ;
+      utilSdbObj.getArgString( OPTION_FILTER,       &exprtArg.pFiter ) ;
+      utilSdbObj.getArgString( OPTION_SORT,         &exprtArg.pSort ) ;
       
       utilSdbObj.getArgChar( OPTION_DELCHAR,        &exprtArg.delChar ) ;
       utilSdbObj.getArgChar( OPTION_DELFIELD,       &exprtArg.delField ) ;
@@ -164,6 +168,8 @@ namespace engine
    #define EXPLAIN_ERRORSTOP        "whether stop by hitting error, default false"
    #define EXPLAIN_INCLUDEBINARY    "whether to output a compelete binary, default false( csv only )"
    #define EXPLAIN_INCLUDEREGEX     "whether to output a compelete regex, default false( csv only )"
+   #define EXPLAIN_FILTER           "the matching rule(e.g. --filter '{ age: 18 }')"
+   #define EXPLAIN_SORT             "the ordered rule(e.g. --sort '{ name: 1 }')"
    
    INT32 mainEntry ( INT32 argc, CHAR **argv )
    {
@@ -194,6 +200,8 @@ namespace engine
       APPENDARGBOOL  ( utilSdbObj, OPTION_ERRORSTOP,    OPTION_ERRORSTOP,         EXPLAIN_ERRORSTOP,        FALSE, FALSE  ) ;
       APPENDARGBOOL  ( utilSdbObj, OPTION_INCLUDEBINARY,OPTION_INCLUDEBINARY,     EXPLAIN_INCLUDEBINARY,    FALSE, FALSE  ) ;
       APPENDARGBOOL  ( utilSdbObj, OPTION_INCLUDEREGEX, OPTION_INCLUDEREGEX,      EXPLAIN_INCLUDEREGEX,     FALSE, FALSE  ) ;
+      APPENDARGSTRING( utilSdbObj, OPTION_FILTER,       OPTION_FILTER,            EXPLAIN_FILTER,           FALSE, -1,                  NULL ) ;
+      APPENDARGSTRING( utilSdbObj, OPTION_SORT,         OPTION_SORT,              EXPLAIN_SORT,             FALSE, -1,                  NULL ) ;
    
       rc = utilSdbObj.init( setting, NULL ) ;
       if ( rc )

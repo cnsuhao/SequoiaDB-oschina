@@ -2080,7 +2080,6 @@ SDB_EXPORT INT32 sdbCreateReplicaCataGroup ( sdbConnectionHandle cHandle,
    BSON_APPEND( configuration, PMD_OPTION_SVCNAME, pServiceName, string ) ;
    BSON_APPEND( configuration, PMD_OPTION_DBPATH, pDatabasePath, string ) ;
 
-
    if ( configure )
    {
       bson_iterator it ;
@@ -2095,40 +2094,7 @@ SDB_EXPORT INT32 sdbCreateReplicaCataGroup ( sdbConnectionHandle cHandle,
             continue ;
          }
 
-         switch ( (signed int)bson_iterator_type ( &it ) )
-         {
-         case BSON_INT :
-         {
-            CHAR temp[32] = {0} ;
-            ossSnprintf ( temp, sizeof(temp),
-                          "%d", bson_iterator_int ( &it ) ) ;
-            BSON_APPEND( configuration, key, temp, string );
-            break ;
-         }
-         case BSON_LONG :
-         {
-            CHAR temp[32] = {0} ;
-            ossSnprintf ( temp, sizeof(temp),
-                          "%lld", (INT64)bson_iterator_long ( &it ) ) ;
-            BSON_APPEND( configuration, key, temp, string );
-            break ;
-         }
-         case BSON_STRING :
-            BSON_APPEND( configuration, key,
-               bson_iterator_string ( &it ), string ) ;
-            break ;
-         case BSON_DOUBLE :
-         {
-            CHAR temp[64] = {0} ;
-            ossSnprintf ( temp, sizeof(temp),
-                          "%f", bson_iterator_double ( &it ) ) ;
-            BSON_APPEND( configuration, key, temp, string ) ;
-            break ;
-         }
-         default :
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
+         bson_append_element( &configuration, NULL, &it ) ;
       } // while
    } // if ( configure )
    BSON_FINISH ( configuration ) ;
@@ -2193,63 +2159,8 @@ SDB_EXPORT INT32 sdbCreateNode ( sdbReplicaGroupHandle cHandle,
          {
             continue ;
          }
-         switch ( (signed int)bson_iterator_type ( &it ) )
-         {
-         case BSON_INT :
-         {
-            CHAR temp[32] = {0} ;
-            ossSnprintf ( temp, sizeof(temp),
-                          "%d", bson_iterator_int ( &it ) ) ;
-            BSON_APPEND( configuration, key, temp, string ) ;
-            break ;
-         }
-         case BSON_LONG :
-         {
-            CHAR temp[32] = {0} ;
-            ossSnprintf ( temp, sizeof(temp),
-                          "%lld", (INT64)bson_iterator_long ( &it ) ) ;
-            BSON_APPEND( configuration, key, temp, string );
-            break ;
-         }
-         case BSON_STRING :
-            BSON_APPEND( configuration, key,
-                         bson_iterator_string ( &it ), string ) ;
-            break ;
-         case BSON_DOUBLE :
-         {
-            CHAR temp[64] = {0} ;
-            ossSnprintf ( temp, sizeof(temp),
-                          "%f", bson_iterator_double ( &it ) ) ;
-            BSON_APPEND( configuration, key, temp, string ) ;
-            break ;
-         }
-         case BSON_BOOL :
-         {
-            CHAR temp[6] = { 0 } ;
-            if ( bson_iterator_bool( &it ) )
-            {
-               ossSnprintf( temp, sizeof( temp ),
-                            "%s", "true" ) ;
-            }
-            else
-            {
-               ossSnprintf( temp, sizeof( temp ),
-                            "%s", "false" ) ;
-            }
-            BSON_APPEND( configuration, key,
-                         temp, string ) ;
-            break ;
-         }
-         default :
-            rc = SDB_INVALIDARG ;
-            goto error ;
-         }
-       /*
-         if ( rc )
-         {
-            rc = SDB_SYS ;
-            goto error ;
-         }*/
+
+         bson_append_element( &configuration, NULL, &it ) ;
       } // while
    } // if ( configure )
    BSON_FINISH ( configuration ) ;
