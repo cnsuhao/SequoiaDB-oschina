@@ -85,6 +85,7 @@ namespace engine
       pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
       EDUID eduID = PMD_INVALID_EDUID ;
 
+      // dps log writer
       rc = pEDUMgr->startEDU( EDU_TYPE_LOGGW, (void*)this, &eduID ) ;
       if ( rc )
       {
@@ -92,6 +93,7 @@ namespace engine
          goto error ;
       }
       pEDUMgr->regSystemEDU( EDU_TYPE_LOGGW, eduID ) ;
+      // dps trans rollback task
       rc = pEDUMgr->startEDU( EDU_TYPE_DPSROLLBACK, NULL, &eduID ) ;
       if ( rc )
       {
@@ -140,6 +142,7 @@ namespace engine
          }
          _pEventHandler->onWriteLog( offset ) ;
       }
+      // reset
       info.resetInfoEx() ;
    }
 
@@ -152,6 +155,7 @@ namespace engine
       return SDB_OK ;
    }
 
+   // record a row
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_RECDROW, "_dpsLogWrapper::recordRow" )
    INT32 _dpsLogWrapper::recordRow( const CHAR *row, UINT32 len )
    {

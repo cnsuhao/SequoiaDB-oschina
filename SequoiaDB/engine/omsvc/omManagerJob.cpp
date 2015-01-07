@@ -123,6 +123,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       if ( _version != newVersion )
       {
+         // if version changed, generate the hosttable in _vHostTable
+         // and record which host need to update in _mapTargetAgents
          rc = _updateNotifier() ;
          if ( SDB_OK != rc )
          {
@@ -311,6 +313,7 @@ namespace engine
 
       VEC_SUB_SESSIONPTR subSessionVec ;
 
+      // if all agent have update hosttable, do nothing
       if ( _mapTargetAgents.size() == 0 )
       {
          goto done ;
@@ -393,6 +396,7 @@ namespace engine
             continue ;
          }
 
+         // this agent add hostname success, no need to send request anymore
          {
             string host ;
             string service ;
@@ -588,10 +592,13 @@ namespace engine
          if ( count % 10 == 0 )
          {
             map< string, UINT32 > mapClusterVersion ;
+            // get all cluster's hostname version
             _shareVersion->getVersionMap( mapClusterVersion );
 
+            // notify agent to update /etc/hosts if cluster's version changed
             _checkUpdateCluster( mapClusterVersion ) ;
 
+            // delete if cluster is not exist
             _checkDeleteCluster( mapClusterVersion ) ;
          }
 

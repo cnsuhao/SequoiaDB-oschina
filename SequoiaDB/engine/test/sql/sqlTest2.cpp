@@ -105,6 +105,7 @@ TEST(sqlTest, parse_1)
                   qgm = e ;
                }
 
+               // optimizer
                qgmOptTree tree( qgm ) ;
                optQgmOptimizer optimizer ;
                rc = optimizer.adjust( tree ) ;

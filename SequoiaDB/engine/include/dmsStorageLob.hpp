@@ -43,6 +43,7 @@ namespace engine
 {
    #define DMS_BME_OFFSET        DMS_MME_OFFSET
 
+   /// must be power of 2
    const UINT32 DMS_BUCKETS_NUM =   16777216 ; // 16MB
    #define DMS_BUCKETS_MODULO       16777215
 
@@ -116,6 +117,8 @@ namespace engine
                     _pmdEDUCB *cb,
                     SDB_DPSCB *dpscb ) ;
 
+      /// user should make sure that the length of
+      ///  buf is enough
       INT32 read( const dmsLobRecord &record,
                   dmsMBContext *mbContext,
                   _pmdEDUCB *cb,
@@ -179,8 +182,10 @@ namespace engine
                       dmsMBContext *mbContext,
                       DMS_LOB_PAGEID &page ) ;
 
+      /// only release space of page. will not change other meta data.
       INT32 _releasePage( DMS_LOB_PAGEID page ) ;
 
+      /// release space of page and change other meta data.
       INT32 _removePage( DMS_LOB_PAGEID page,
                          const _dmsLobDataMapBlk *blk,
                          const UINT32 *bucket ) ;

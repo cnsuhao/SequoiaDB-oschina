@@ -29,11 +29,13 @@ final class StringPool {
    * Returns a string equal to {@code new String(array, start, length)}.
    */
   public String get(char[] array, int start, int length) {
+    // Compute an arbitrary hash of the content
     int hashCode = 0;
     for (int i = start; i < start + length; i++) {
       hashCode = (hashCode * 31) + array[i];
     }
 
+    // Pick a bucket using Doug Lea's supplemental secondaryHash function (from HashMap)
     hashCode ^= (hashCode >>> 20) ^ (hashCode >>> 12);
     hashCode ^= (hashCode >>> 7) ^ (hashCode >>> 4);
     int index = hashCode & (pool.length - 1);

@@ -123,6 +123,7 @@ namespace engine
       _initialized = TRUE ;
    done:
       return ;
+      /// do noting
    }
 
    _qgmPlUpdate::~_qgmPlUpdate()

@@ -328,6 +328,7 @@ namespace engine
          MAPMETA                    _mapMeta ;
          DEQSESSION                 _deqCacheSessions ;
 
+         // Delay delete sessions
          DEQSESSION                 _deqDeletingSessions ;
          ossSpinXLatch              _deqDeletingMutex ;
 
@@ -339,6 +340,7 @@ namespace engine
          UINT32                     _sessionTimerID ;
          UINT32                     _timerInterval ;
 
+         // for _quit edu by edu mgr, not by session mgr
          UINT32                     _forceChecktimer ;
          std::deque< UINT64 >       _forceSessions ;
          ossSpinXLatch              _forceLatch ;

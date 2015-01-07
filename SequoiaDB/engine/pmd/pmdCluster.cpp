@@ -55,6 +55,7 @@ namespace engine
          goto error ;
       }
 
+      // just sit here do nothing at the moment
       while ( !cb->isDisconnected() )
       {
          if ( !pNtyQue->timed_wait_and_pop( lsnInfo, OSS_ONE_SEC ) )

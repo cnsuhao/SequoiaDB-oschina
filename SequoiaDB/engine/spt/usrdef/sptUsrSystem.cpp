@@ -288,6 +288,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       vector<string> splited ;
+      /// not performance sensitive.
       boost::algorithm::split( splited, buf, boost::is_any_of("\n:") ) ;
       vector<string>::iterator itr = splited.begin() ;
       const string *distributor = NULL ;
@@ -436,6 +437,7 @@ namespace engine
       string err ;
       VEC_HOST_ITEM vecItems ;
 
+      // hostname
       rc = arg.getString( 0, hostname ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -454,6 +456,7 @@ namespace engine
          goto error ;
       }
 
+      // ip
       rc = arg.getString( 1, ip ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -478,6 +481,7 @@ namespace engine
          goto error ;
       }
 
+      // isReplace
       if ( arg.argc() > 2 )
       {
          rc = arg.getNative( 2, (void*)&isReplace, SPT_NATIVE_INT32 ) ;
@@ -525,6 +529,7 @@ namespace engine
             info._ip = ip ;
             vecItems.push_back( info ) ;
          }
+         // write
          rc = _writeHostsFile( vecItems, err ) ;
          if ( rc )
          {
@@ -548,6 +553,7 @@ namespace engine
       string err ;
       VEC_HOST_ITEM vecItems ;
 
+      // hostname
       rc = arg.getString( 0, hostname ) ;
       if ( rc == SDB_OUT_OF_BOUND )
       {
@@ -580,12 +586,14 @@ namespace engine
             sptHostItem &item = *it ;
             if( item._lineType == LINE_HOST && hostname == item._host )
             {
+               // del
                it = vecItems.erase( it ) ;
                hasDel = TRUE ;
                continue ;
             }
             ++it ;
          }
+         // write
          if ( hasDel )
          {
             rc = _writeHostsFile( vecItems, err ) ;
@@ -644,6 +652,7 @@ namespace engine
       }
       isOpen = TRUE ;
 
+      // read file
       rc = ossReadN( &file, fileSize, pBuff, hasRead ) ;
       if ( rc )
       {
@@ -660,6 +669,7 @@ namespace engine
          goto error ;
       }
 
+      // remove last empty
       if ( vecItems.size() > 0 )
       {
          VEC_HOST_ITEM::iterator itr = vecItems.end() - 1 ;
@@ -701,6 +711,7 @@ namespace engine
          ossDelete( tmpFile.c_str() ) ;
       }
 
+      // 1. first back up the file
       if ( SDB_OK == ossAccess( HOSTS_FILE ) )
       {
          if ( SDB_OK == ossRenamePath( HOSTS_FILE, tmpFile.c_str() ) )
@@ -709,6 +720,7 @@ namespace engine
          }
       }
 
+      // 2. Create the file
       rc = ossOpen ( HOSTS_FILE, OSS_READWRITE|OSS_SHAREWRITE|OSS_REPLACE,
                      OSS_RU|OSS_WU|OSS_RG|OSS_RO, file ) ;
       if ( rc )
@@ -718,6 +730,7 @@ namespace engine
       }
       isOpen = TRUE ;
 
+      // 3. write data
       {
          VEC_HOST_ITEM::iterator it = vecItems.begin() ;
          UINT32 count = 0 ;
@@ -741,6 +754,7 @@ namespace engine
          }
       }
 
+      // 4. remove tmp
       if ( SDB_OK == ossAccess( tmpFile.c_str() ) )
       {
          ossDelete( tmpFile.c_str() ) ;
@@ -794,6 +808,7 @@ namespace engine
 
          for ( vector<string>::iterator itr2 = columns.begin();
                itr2 != columns.end();
+                /// do not ++
                )
          {
             if ( itr2->empty() )
@@ -806,6 +821,8 @@ namespace engine
             }
          }
 
+         /// xxx.xxx.xxx.xxx xxxx
+         /// xxx.xxx.xxx.xxx xxxx.xxxx xxxx
          if ( 2 != columns.size() && 3 != columns.size() )
          {
             item._ip = *itr ;
@@ -999,6 +1016,7 @@ namespace engine
 
          for ( vector<string>::iterator itr2 = columns.begin();
                itr2 != columns.end();
+               /// do not ++      
                )
          {
             if ( itr2->empty() )
@@ -1011,6 +1029,7 @@ namespace engine
             }
          }
 
+         /// eg: 4  Intel(R) Xeon(R) CPU E5-2620 0 @ 2.00GHz
          if ( columns.size() < 4 )
          {
             rc = SDB_SYS ;
@@ -1049,6 +1068,7 @@ namespace engine
                           << SPT_USR_SYSTEM_FREQ << frequency ) ;
       
       builder.append( SPT_USR_SYSTEM_CPUS, arrBuilder.arr() ) ;
+      // if we can't extract cpu info, just fill empty, do not return error 
       rc = SDB_OK ;
       return rc ;
    error:
@@ -1078,6 +1098,7 @@ namespace engine
 
          for ( vector<string>::iterator itr2 = columns.begin();
                itr2 != columns.end();
+               /// do not ++      
                )
          {
             if ( itr2->empty() )
@@ -1090,6 +1111,7 @@ namespace engine
             }
          }
 
+         /// eg: 3200 AMD Athlon(tm) II X2 B26 Processor 2
          if ( columns.size() < 3 )
          {
             rc = SDB_SYS ;
@@ -1217,6 +1239,7 @@ namespace engine
 
       for ( vector<string>::iterator itr = splited.begin();
             itr != splited.end();
+            /// do not ++   
           )
       {
          if ( itr->empty() )
@@ -1228,6 +1251,8 @@ namespace engine
             ++itr ;
          }
       }
+      /// Mem:       8194232    2373776    5820456          0     387924     992756
+      /// choose total used free
       if ( splited.size() < 4 )
       {
          rc = SDB_SYS ;
@@ -1353,6 +1378,7 @@ namespace engine
 
          for ( vector<string>::iterator itr2 = columns.begin();
                itr2 != columns.end();
+               /// do not ++      
                )
          {
             if ( itr2->empty() )
@@ -1460,6 +1486,7 @@ namespace engine
 
          for ( vector<string>::iterator itr2 = columns.begin();
                itr2 != columns.end();
+               /// do not ++      
                )
          {
             if ( itr2->empty() )
@@ -1483,6 +1510,7 @@ namespace engine
          freeSpace = columns[ 4 ] ;
          mount = columns[ 2 ] ;
 
+         // build
          SINT64 totalNum = 0 ;
          SINT64 usedNumber = 0 ;
          SINT64 avaNumber = 0 ;
@@ -1571,6 +1599,7 @@ namespace engine
       }
       pAdapterInfo = (PIP_ADAPTER_INFO)pBuff ;
 
+      // first call GetAdapterInfo to get ulOutBufLen size
       dwRetVal = GetAdaptersInfo( pAdapterInfo, &ulOutbufLen ) ;
       if ( dwRetVal == ERROR_BUFFER_OVERFLOW )
       {
@@ -1712,6 +1741,9 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
+      //card rx_byte   rx_packet rx_err rx_drop tx_byte tx_packet tx_err tx_drop
+      //lo   14755559460 44957591  0      0       14755559460 44957591 0 0
+      //eth1 4334054313  11529654  0      0       9691246348  3513633  0 0
             try
             {
                BSONObjBuilder innerBuilder ;
@@ -1876,6 +1908,7 @@ namespace engine
          }
       }
 
+      // get the seconds since 1970.1.1:0:0:0(Calendar Time)
       myTime = time( NULL ) ;
       uRetCode = GetIfTable( pTable, &size, TRUE ) ;
       if ( NO_ERROR != uRetCode )
@@ -2052,7 +2085,9 @@ namespace engine
          result = TRUE ;
       }
       builder.appendBool( SPT_USR_SYSTEM_USABLE, result ) ;
+      //rval.setStringVal( "", builder.obj().toString( FALSE, TRUE ).c_str() ) ;
       rval.setBSONObj( "", builder.obj() ) ;
+      //close the socket
       sock.close() ;
       }
 

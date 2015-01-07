@@ -125,6 +125,7 @@ namespace engine
       SDB_ASSERT ( context, "context pointer can't be NULL" ) ;
       {
          RTNCB_XLOCK
+         // if hit max signed 64 bit integer?
          if ( _contextHWM+1 < 0 )
          {
             return SDB_SYS ;

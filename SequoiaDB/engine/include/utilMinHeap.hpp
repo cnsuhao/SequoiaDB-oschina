@@ -78,6 +78,7 @@ namespace engine
          return 0 != _dataSize ;
       }
 
+      /// if need to release mem, add a function named resize().
       void clear()
       {
          _dataSize = 0 ;

@@ -188,6 +188,7 @@ namespace engine
 
          INT32    getReference() const ;
 
+      // prefetch
       public:
          void     enablePrefetch ( _pmdEDUCB *cb,
                                    rtnPrefWatcher *pWatcher = NULL ) ;
@@ -225,18 +226,22 @@ namespace engine
          _mthSelector            _selector ;
          _mthMatcher             *_matcher ;
          BOOLEAN                 _ownedMatcher ;
+         // status
          BOOLEAN                 _hitEnd ;
          BOOLEAN                 _isOpened ;
 
       private:
          INT64                   _contextID ;
          UINT64                  _eduID ;
+         // buffer
          CHAR                   *_pResultBuffer ;
          INT32                   _resultBufferSize ;
          INT32                   _bufferCurrentOffset ;
          INT32                   _bufferEndOffset ;
          INT64                   _bufferNumRecords ;
+         // control param
          INT64                   _totalRecords ;
+         // mutex
          ossRWMutex              _dataLock ;
          ossRWMutex              _prefetchLock ;
          UINT32                  _prefetchID ;
@@ -331,13 +336,17 @@ namespace engine
          _optAccessPlan             *_plan ;
          optScanType                _scanType ;
 
+         // rest number of records to expect, -1 means select all
          SINT64                     _numToReturn ;
+         // rest number of records need to skip
          SINT64                     _numToSkip ;
 
+         // TBSCAN
          dmsExtentID                _extentID ;
          dmsExtentID                _lastExtLID ;
          BOOLEAN                    _segmentScan ;
          std::vector< dmsExtentID > _segments ;
+         // Index scan
          _rtnIXScanner              *_scanner ;
          std::vector< BSONObj >     _indexBlocks ;
          std::vector< dmsRecordID > _indexRIDs ;
@@ -455,7 +464,9 @@ namespace engine
          virtual INT32  _prepareData( _pmdEDUCB *cb ) ;
 
       private:
+         // rest number of records to expect, -1 means select all
          SINT64                     _numToReturn ;
+         // rest number of records need to skip
          SINT64                     _numToSkip ;
 
          BSONObj                    _orderby ;
@@ -582,7 +593,9 @@ namespace engine
          INT32    _getPrepareNodesData( _pmdEDUCB *cb, BOOLEAN waitAll ) ;
 
       private:
+         // rest number of records to expect, -1 means select all
          SINT64                     _numToReturn ;
+         // rest number of records need to skip
          SINT64                     _numToSkip ;
 
          SUB_CONTEXT_MAP            _subContextMap ;
@@ -715,6 +728,7 @@ namespace engine
    };
    typedef class _rtnContextMainCL rtnContextMainCL;
 
+/// _rtnContextSort is in rtnContextSort.hpp
 
    class _qgmPlan ;
 
@@ -896,9 +910,11 @@ namespace engine
       INT64 _queryContextID ;
       BOOLEAN _needRun ;
 
+      /// info before explain
       BSONObj _beginMon ;
       ossTimestamp _beginTime ;
 
+      /// info after explain
       BSONObj _endMon ;
       ossTimestamp _endTime ;
       INT64 _recordNum ;

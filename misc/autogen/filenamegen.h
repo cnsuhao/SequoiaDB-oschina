@@ -8,6 +8,7 @@
 #include <iostream>
 #include <sstream>
 
+// output file path
 #define FILENAMEPATH "../filenames.lst"
 #define SOURCEPATH "../../SequoiaDB/engine/"
 #define SKIPPATH ".svn"

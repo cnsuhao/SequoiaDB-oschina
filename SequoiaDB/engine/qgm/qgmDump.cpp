@@ -98,6 +98,7 @@ namespace engine
       ++id ;
       UINT32 subEle1 = 0 ;
       UINT32 subEle2 = 0 ;
+      // first assign names
       switch ( op->type() )
       {
       case QGM_PLAN_TYPE_INSERT :
@@ -174,11 +175,13 @@ namespace engine
                  "expected elements: %d or %d\n"
                  "actual elements: %d",
                  ele->_opName, subEle1, subEle2, op->inputSize() ) ;
+      // if there's no child, the total length is self length + edge
       if ( op->inputSize() == 0 )
       {
          ele->_totalWidth = ele->_selfWidth + 2 ;
          if ( op->type() == QGM_PLAN_TYPE_SCAN )
          {
+            // special case for scan since we are also dump the collection name
             ele->_pCLName = ossStrdup (
                   ((qgmPlScan*)op)->collection().toString().c_str() ) ;
             PD_CHECK ( ele->_pCLName, SDB_OOM, error, PDERROR,
@@ -231,6 +234,14 @@ namespace engine
       INT32 tempRC = SDB_DMS_EOC ;
       INT32 slen = 0 ;
       INT32 temp = 0 ;
+      // each element takes 5 lines
+      //          ( id )
+      //          <type>
+      //            |
+      //       +----+----+
+      //       |         |
+      // if the requested line is not part of us, let's push down to the
+      // children
       if ( line >= 5 )
       {
          std::vector<_qgmOperatorElement*>::iterator it ;
@@ -255,6 +266,8 @@ namespace engine
       switch ( line % 5 )
       {
       case 0 :
+         // print id
+         // calculate offset to current pos
          slen = ossStrlen ( ele->_opID ) ;
          temp = ele->_pos - currentOffset - slen/2 ;
          for ( INT32 i = 0; i < temp; ++i )
@@ -272,6 +285,8 @@ namespace engine
          currentOffset += slen ;
          break ;
       case 1 :
+         // print type
+         // calculate offset to current pos
          slen = ossStrlen ( ele->_opName ) ;
          temp = ele->_pos - currentOffset - slen/2 ;
          for ( INT32 i = 0; i < temp; ++i )
@@ -289,6 +304,7 @@ namespace engine
          currentOffset += slen ;
          break ;
       case 2 :
+         // print |
          temp = ele->_pos - currentOffset ;
          for ( INT32 i = 0; i < temp; ++i )
          {
@@ -305,6 +321,7 @@ namespace engine
          QGM_DUMP_BUFFER_SIZE_CHECK
          break ;
       case 3 :
+         // print +-----+
          for ( UINT32 i = 0; i < ele->_children.size(); i++ )
          {
             _qgmOperatorElement *child = ele->_children[i] ;
@@ -346,6 +363,7 @@ namespace engine
          }
          break ;
       case 4 :
+         // print |
          for ( UINT32 i = 0; i < ele->_children.size(); i++ )
          {
             _qgmOperatorElement *child = ele->_children[i] ;
@@ -409,9 +427,11 @@ namespace engine
    {
       INT32 rc           = SDB_OK ;
       INT32 slen         = 0 ;
+      // 128 bytes is good enough for (<id>) <type>
       CHAR idBuffer[128] = {0} ;
       const CHAR *pField = "" ;
       std::string ps = "" ;
+      // print operator id and details
       ossSnprintf ( idBuffer, sizeof(idBuffer), "(%d) ", id ) ;
       ++id ;
       switch ( op->type() )
@@ -465,6 +485,7 @@ namespace engine
       QGM_DUMP_BUFFER_SIZE_CHECK
       pBuffer += slen ;
 
+      // print the actual op
       ps = op->toString() ;
       pField = ps.c_str() ;
       slen = ps.size() ;
@@ -477,6 +498,7 @@ namespace engine
       bufferSize -= ossStrlen ( OSS_NEWLINE ) ;
       pBuffer += ossStrlen ( OSS_NEWLINE ) ; ;
       QGM_DUMP_BUFFER_SIZE_CHECK
+      // recursive
       for ( UINT32 i = 0; i < op->inputSize(); ++i )
       {
          rc = qgmDumpDetails ( op->input ( i ), pBuffer,

@@ -62,9 +62,13 @@ namespace engine
    class _pmdEDUCB ;
    class _dmsStorageUnit ;
 
+   // for each collection space, there is one CSCB associate with it
    class _SDB_DMS_CSCB : public SDBObject
    {
    public:
+      //ossSpinSLatch _mutex ;
+      // maximum sequence id for the collection space
+      // currently 1 sequence per collection space
       UINT32 _topSequence ;
       CHAR   _name [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] ;
       _dmsStorageUnit *_su ;
@@ -118,7 +122,9 @@ namespace engine
       std::vector<ossRWMutex*>            _latchVec ;
       std::vector<dmsStorageUnitID>       _freeList ;
 
+      // represent the last page clean timestamp for a given storage unit
       typedef std::pair<ossTick,dmsStorageUnitID>  _pageCleanHistory ;
+      // stores a list of page clean history
       std::list<_pageCleanHistory>                 _pageCleanHistoryList ;
       std::set<dmsStorageUnitID>                   _pageCleanHistorySet ;
 

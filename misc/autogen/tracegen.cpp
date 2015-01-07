@@ -121,32 +121,46 @@ void TraceGen::_extractFromFile ( std::ofstream *fout,
    UINT32 one = 1 ;
    while ( ( p = fgets ( lineBuffer, sizeof(lineBuffer), pFile ) ) != NULL )
    {
+      // skip head space and tab
       while ( *p != 0 && ( *p == ' ' || *p == '\t' || *p == '/' ) )
          ++p ;
+      // compare the string with eye catcher
       if ( ossStrncmp ( p, TRACEEYECATCHER, TRACEEYECATCHERLEN ) == 0 )
       {
          // it's PD_TRACE_DECLARE_FUNCTION macro
+         // skip everything until (
          while ( *p != 0 && *p != '(' )
             ++p ;
          ++p ;
+         // skip space and tab
          while ( *p != 0 && ( *p == ' ' || *p == '\t' ) )
             ++p ;
+         // get ID
          pAlias = p ;
+         // skip everything until space or ,
          while ( *p != 0 && *p != ' ' && *p != '\t' && *p != ',' )
             ++p ;
          *p = '\0' ;
          ++p ;
+         // skip everything until "
          while ( *p != 0 && *p != '"' )
             ++p ;
          ++p ;
          pValue = p ;
+         // skip everything until "
          while ( *p != 0 && *p != '"' )
             ++p ;
          *p = '\0' ;
 
+         // now pAlias is pointing to first part and pValue points to second
+         // part
+         // eg:
          // PD_TRACE_DECLARE_FUNCTION ( SDB_PDLOG, "pdLog" )
+         // pAlias is pointing to SDB_PDLOG
+         // pValue is pointing to pdLog
          UINT32 componentID = one<<compid ;
          UINT64 uniqueID = ((UINT64)componentID)<<32 | seqNum ;
+         // convert to 64 bit
          CHAR hexBuffer[512] = {0} ;
          ossSnprintf ( hexBuffer, sizeof(hexBuffer), "#define %-50s 0x%llxL", pAlias, uniqueID ) ;
          *fout << hexBuffer << endl ;
@@ -180,6 +194,7 @@ void TraceGen::_genList ( const CHAR *pPath,
       {
          if ( fs::is_regular_file ( dir_iter->status() ) )
          {
+            // if we are not in any component, let's simply go to next
             if ( -1 == compid )
                continue ;
             const std::string filePath = dir_iter->path().string() ;
@@ -194,17 +209,22 @@ void TraceGen::_genList ( const CHAR *pPath,
          else if ( fs::is_directory ( dir_iter->status() ) )
          {
             const std::string dirName = dir_iter->path().filename().string() ;
+            // if we are not in any component yet
             if ( -1 == compid )
             {
+               // extract the file name from last /
                const CHAR *pathSep = OSS_FILE_SEP ;
                const CHAR *pFileName = ossStrrchr ( dirName.c_str(),
                                                     pathSep[0] ) ;
+               // check if / exist, if not let's just use full string
                if ( !pFileName )
                   pFileName = dirName.c_str() ;
                else
                   pFileName++ ;
+               // loop through the components we want to extract
                for ( INT32 i = 0; i < _pdTraceComponentNum; i++ )
                {
+                  // compare last dir with our components
                   if ( ossStrcmp ( pFileName,
                                    pdGetTraceComponent(i) ) == 0 )
                   {
@@ -252,6 +272,7 @@ void TraceGen::_genList ( const CHAR *pPath,
             } // if ( -1 == compid )
             else
             {
+               // if we are already in component, let's simply get into subdir
                if ( ossStrncmp ( dir_iter->path().filename().string().c_str(),
                                  SKIPPATH, ossStrlen(SKIPPATH)) != 0 )
                   _genList ( dir_iter->path().string().c_str(),

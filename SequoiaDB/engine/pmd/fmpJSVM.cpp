@@ -67,6 +67,7 @@ _fmpJSVM::_fmpJSVM()
 _fmpJSVM::~_fmpJSVM()
 {
    SAFE_OSS_DELETE( _scope ) ;
+   /// cursor was get from JSObject, do not free it.
    _cursor = NULL ;
 }
 
@@ -336,6 +337,7 @@ INT32 _fmpJSVM::eval( const BSONObj &func,
       }
       else if ( JSObjIsBsonobj( _scope->context(), obj ) )
       {
+         /// raw should not be freed by local.
          CHAR *raw = NULL ;
          rc = getBsonRawFromBsonClass( _scope->context(), obj, &raw ) ;
          if ( SDB_OK != rc || NULL == raw )
@@ -436,6 +438,8 @@ INT32 _fmpJSVM::fetch( BSONObj &res )
 done:
    if ( NULL != raw )
    {
+      /// raw was allocate by bson.
+      /// can not use SDB_OSS_FREE.
       free( raw ) ;
    }
    return rc ;

@@ -52,6 +52,7 @@ public final class ConstructorConstructor {
     final Type type = typeToken.getType();
     final Class<? super T> rawType = typeToken.getRawType();
 
+    // first try an instance creator
 
     @SuppressWarnings("unchecked") // types must agree
     final InstanceCreator<T> creator = (InstanceCreator<T>) instanceCreators.get(type);
@@ -73,6 +74,7 @@ public final class ConstructorConstructor {
       return defaultImplementation;
     }
 
+    // finally try unsafe
     return newUnsafeAllocator(type, rawType);
   }
 
@@ -89,8 +91,11 @@ public final class ConstructorConstructor {
             Object[] args = null;
             return (T) constructor.newInstance(args);
           } catch (InstantiationException e) {
+            // TODO: JsonParseException ?
             throw new RuntimeException("Failed to invoke " + constructor + " with no args", e);
           } catch (InvocationTargetException e) {
+            // TODO: don't wrap if cause is unchecked!
+            // TODO: JsonParseException ?
             throw new RuntimeException("Failed to invoke " + constructor + " with no args",
                 e.getTargetException());
           } catch (IllegalAccessException e) {
@@ -153,6 +158,7 @@ public final class ConstructorConstructor {
           }
         };
       }
+      // TODO: SortedMap ?
     }
 
     return null;

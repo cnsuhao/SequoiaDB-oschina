@@ -97,6 +97,14 @@ namespace engine
                                          string &sdbPasswd, 
                                          string &sdbUserGroup ) ;
 
+         INT32           _queryTable( const string &tableName, 
+                                      const BSONObj &selector, 
+                                      const BSONObj &matcher,
+                                      const BSONObj &order, 
+                                      const BSONObj &hint, SINT32 flag,
+                                      SINT64 numSkip, SINT64 numReturn, 
+                                      list<BSONObj> &records ) ;
+
       protected:
          restAdaptor*    _restAdaptor ;
          pmdRestSession* _restSession ;
@@ -274,8 +282,6 @@ namespace engine
       private:
          INT32           _getCheckHostList( string &clusterName, 
                                           list<omScanHostInfo> &hostInfoList ) ;
-         INT32           _doBasicCheck( list<omScanHostInfo> &hostInfoList, 
-                                        list<BSONObj> &hostResult ) ;
          INT32           _doCheck( list<omScanHostInfo> &hostInfoList, 
                                         list<BSONObj> &hostResult ) ;
 
@@ -337,6 +343,7 @@ namespace engine
          virtual INT32   doCommand() ;
 
       protected:
+                         // overwrite
          INT32           _getRestHostList( string &clusterName, 
                                            list<BSONObj> &hostInfo ) ;
 
@@ -359,6 +366,7 @@ namespace engine
          INT32           _getPacketFullPath( char *path ) ;
          INT32           _checkHostExistence( list<BSONObj> &hostInfoList ) ;
 
+         //***********************
          INT32           _addHost2( const string &clusterName, 
                                     list<BSONObj> &hostInfoList, 
                                     UINT64 &taskID ) ;
@@ -366,6 +374,7 @@ namespace engine
                                                list<BSONObj> &hostInfoList, 
                                                BSONObj &conf ) ;
          INT32           _addHostByAgent( BSONObj &conf, UINT64 taskID ) ;
+         //************************
    };
 
    class omListHostCommand : public omCreateClusterCommand

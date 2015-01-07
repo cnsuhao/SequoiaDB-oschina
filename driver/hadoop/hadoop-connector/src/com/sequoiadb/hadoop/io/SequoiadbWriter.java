@@ -68,6 +68,7 @@ public class SequoiadbWriter<K, V> extends RecordWriter<K, V> {
 	private int bulkNum;
 	private String writeType = null;
 
+	// this function for SequoiadbOutputFormat.class
 	public SequoiadbWriter(String collectionSpaceName, String collectionName,
 			SdbConnAddr sdbConnAddr, String user, String passwd, int bulkNum, String writeType) {
 		super();
@@ -103,6 +104,7 @@ public class SequoiadbWriter<K, V> extends RecordWriter<K, V> {
 		log.debug("writeType = " + this.writeType);
 	}
 	
+	// this function for SequoiadbMergeFormat.class
 	public SequoiadbWriter(String collectionSpaceName, String collectionName,
 			SdbConnAddr sdbConnAddr, String user, String passwd, String writeType) {
 		super();
@@ -148,6 +150,7 @@ public class SequoiadbWriter<K, V> extends RecordWriter<K, V> {
 
 	@Override
 	public void write(K key, V value) throws IOException, InterruptedException {
+//		log.info("write");
 		BSONObject bson = null;
 
 		if (value != null) {
@@ -159,6 +162,7 @@ public class SequoiadbWriter<K, V> extends RecordWriter<K, V> {
 				try {
 					bson = BasicBSONObject.typeToBson(value);
 				} catch (Exception e) {
+					// TODO Auto-generated catch block
 					log.error("Failed convert value to bson", e);
 				}
 			}

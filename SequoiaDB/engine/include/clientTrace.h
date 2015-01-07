@@ -29,6 +29,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef clientTRACE_H__
 #define clientTRACE_H__
+// Component: client
 #define SDB_CLIENT__SETCOLLECTIONINCUR                     0x400000000675L
 #define SDB_CURSORIMPL__SETCONNECTIONINCUR                 0x400000000676L
 #define SDB_CLIENT__KILLCURSOR                             0x400000000677L

@@ -40,6 +40,7 @@
 #include "core.hpp"
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/date_time/posix_time/posix_time_types.hpp>
+// include core.hpp first to get _WINDOWS macro defines
 #include "oss.hpp"
 #include "pd.hpp"
 #if defined (_WINDOWS)
@@ -56,6 +57,7 @@ typedef volatile ossLockType ossLock ;
 #define OSS_LOCK_LOCKED   1
 #define OSS_LOCK_UNLOCKED 0
 
+// Atomic operations, also used in ossAtomicXLatch
 #define ossLockPeek(pLock) *(volatile const ossLock *)pLock
 /*
 static OSS_INLINE ossLockType ossLockPeek( volatile const ossLock * const pLock )
@@ -70,6 +72,7 @@ static OSS_INLINE ossLockType ossLockGetStatus(volatile const ossLock * const pL
    return ossAtomicFetch32( ( volatile SINT32 * )pLock ) ;
 }*/
 
+// Tries to accquire a lock
 #define ossLockTestGet(pLock) ossCompareAndSwap32( pLock, OSS_LOCK_UNLOCKED, \
                                                    OSS_LOCK_LOCKED )
 /*
@@ -78,6 +81,7 @@ static OSS_INLINE BOOLEAN ossLockTestGet( volatile ossLock * const  pLock )
    return ( ossCompareAndSwap32( pLock, OSS_LOCK_UNLOCKED, OSS_LOCK_LOCKED ) ) ;
 }*/
 
+// must be called before using an atomic lock
 #define ossLockInit(pLock) *(volatile ossLock *)pLock=OSS_LOCK_UNLOCKED
 /*
 static OSS_INLINE void ossLockInit( volatile ossLock * const pLock )
@@ -129,6 +133,7 @@ static OSS_INLINE void ossLockGet( volatile ossLock * const pLock )
 {
    while( ! ossLockTestGet( pLock ) )
    {
+      //ossWait( 1 ) ;
    }
 }*/
 
@@ -216,6 +221,8 @@ public :
    virtual BOOLEAN try_get() = 0 ;
 } ;
 
+// Latch using atomic counter
+// Performance slower than ossSpinXLatch
 class _ossAtomicXLatch : public ossXLatch
 {
 private :
@@ -236,7 +243,10 @@ public :
 
    void get()
    {
+      //if ( ! ossLockTestGet( &lock ) )
+      //{
          ossLockGet( &lock ) ;
+      //}
    }
 
    void release()
@@ -248,27 +258,35 @@ typedef class _ossAtomicXLatch ossAtomicXLatch ;
 
 class _ossSpinXLatch : public ossXLatch
 {
+// _WIN32 is for both 32/64 bit windows
+// _WIN64 is only for 64 bit windows
 #if defined(_WIN32)
 private :
    boost::mutex _lock ;
+   //CRITICAL_SECTION _cs ;
 public:
    _ossSpinXLatch ()
    {
+      //InitializeCriticalSectionAndSpinCount( &_cs, 4000 ) ;
    }
    ~_ossSpinXLatch ()
    {
+      //DeleteCriticalSection ( &_cs ) ;
    }
    void get ()
    {
       _lock.lock () ;
+      //EnterCriticalSection ( &_cs ) ;
    }
    void release ()
    {
       _lock.unlock () ;
+      //LeaveCriticalSection ( &_cs ) ;
    }
    BOOLEAN try_get ()
    {
       return (BOOLEAN) _lock.try_lock () ;
+      //return TryEnterCriticalSection ( &_cs ) ;
    }
 /*#elif defined (__USE_XOPEN2K)
 private :
@@ -284,20 +302,24 @@ public :
    }
    void get()
    {
+      // can we get lock immediately?
       if ( pthread_spin_trylock ( &_lock ) == 0 )
          return ;
+      // if not, let's try a loop
       for ( int i=0; i<1000; i++ )
       {
          if ( pthread_spin_trylock ( &_lock ) == 0 )
             return ;
          ossYield() ;
       }
+      // still can't? let's yield in each loop to prevent high cpu
       for ( int i=0; i<1000; i++ )
       {
          if ( pthread_spin_trylock ( &_lock ) == 0 )
             return ;
          pthread_yield () ;
       }
+      // man! still can't get latch!! sleep 1 ms after each try
       while ( pthread_spin_trylock( &_lock ) != 0 )
          usleep ( 1000 ) ;
    }
@@ -311,6 +333,7 @@ public :
    }
 #elif  defined (__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4)
 private :
+   // must be volatile
    volatile int _lock;
 public :
    _ossSpinXLatch ()
@@ -320,14 +343,19 @@ public :
    ~_ossSpinXLatch (){}
    void get ()
    {
+      // if the lock was not held,
+      // and know it was not held before request, then we get the latch
       if( !_lock && !__sync_lock_test_and_set ( &_lock, 1 ) )
          return ;
+      // now we know _lock was held by someone else
       for ( int i=0; i<1000; i++ )
       {
          if ( !__sync_lock_test_and_set ( &_lock, 1 ) )
             return ;
          ossYield () ;
       }
+      // when the original state of the lock staying in "held",
+      // we keep loop with 1ms interval
       while ( __sync_lock_test_and_set(&_lock, 1) )
          usleep ( 1000 ) ;
    }
@@ -374,6 +402,8 @@ typedef class _ossSpinXLatch ossSpinXLatch ;
 class _ossSpinSLatch : public ossSLatch
 {
 #if defined (_WINDOWS) && defined (USE_SRW)
+// SRW functions only available in Windows Vista
+// and above, so can't use in Windows XP mode
 private :
    SRWLOCK _lock ;
 public:
@@ -407,6 +437,7 @@ public:
       return TryAcquireSRWLockExclusive ( &_lock ) ;
    }
 #else
+   // by default let's use boost library
 private :
    boost::shared_mutex _m;
 public :
@@ -501,6 +532,7 @@ private :
    ossXLatch *_xlatch ;
    OSS_LATCH_MODE _mode ;
 public :
+   // by default we get exclusive latch
    _ossScopedLock ( ossSLatch *latch ) :
          _slatch ( NULL ), _xlatch ( NULL ), _mode ( EXCLUSIVE )
    {

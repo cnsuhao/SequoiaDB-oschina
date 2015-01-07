@@ -29,6 +29,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef netTRACE_H__
 #define netTRACE_H__
+// Component: net
 #define SDB__NETRT_ROUTE                                   0x8000000350L
 #define SDB__NETRT_ROUTE2                                  0x8000000351L
 #define SDB__NETRT_UPDATE                                  0x8000000352L

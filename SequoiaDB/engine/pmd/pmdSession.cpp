@@ -106,6 +106,7 @@ namespace engine
 
    void _pmdLocalSession::_onDetach ()
    {
+      // rollback transaction
       if ( DPS_INVALID_TRANS_ID != eduCB()->getTransID() )
       {
          INT32 rc = rtnTransRollback( eduCB(), _pDPSCB ) ;
@@ -116,6 +117,7 @@ namespace engine
          }
       }
 
+      // delete all context
       INT64 contextID = -1 ;
       while ( -1 != ( contextID = eduCB()->contextPeek() ) )
       {
@@ -143,9 +145,11 @@ namespace engine
 
       while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
       {
+         // clear interrupt flag
          _pEDUCB->resetInterrupt() ;
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
 
+         // recv msg
          rc = recvData( (CHAR*)&msgSize, sizeof(UINT32) ) ;
          if ( rc )
          {
@@ -157,6 +161,7 @@ namespace engine
             break ;
          }
 
+         // if system info msg
          if ( msgSize == (UINT32)MSG_SYSTEM_INFO_LEN )
          {
             rc = _recvSysInfoMsg( msgSize, &pBuff, buffSize ) ;
@@ -170,6 +175,7 @@ namespace engine
                break ;
             }
          }
+         // error msg
          else if ( msgSize < sizeof(MsgHeader) || msgSize > SDB_MAX_MSG_LENGTH )
          {
             PD_LOG( PDERROR, "Session[%s] recv msg size[%d] is less than "
@@ -179,6 +185,7 @@ namespace engine
             rc = SDB_INVALIDARG ;
             break ;
          }
+         // other msg
          else
          {
             pBuff = getBuff( msgSize + 1 ) ;
@@ -189,6 +196,7 @@ namespace engine
             }
             buffSize = getBuffLen() ;
             *(UINT32*)pBuff = msgSize ;
+            // recv the rest msg
             rc = recvData( pBuff + sizeof(UINT32), msgSize - sizeof(UINT32) ) ;
             if ( rc )
             {
@@ -200,19 +208,23 @@ namespace engine
                break ;
             }
  
+            // increase process event count
             _pEDUCB->incEventCount() ;
             pBuff[ msgSize ] = 0 ;
+            // activate edu
             if ( SDB_OK != ( rc = pmdEDUMgr->activateEDU( _pEDUCB ) ) )
             {
                PD_LOG( PDERROR, "Session[%s] activate edu failed, rc: %d",
                        sessionName(), rc ) ;
                break ;
             }
+            // process msg
             rc = _processMsg( (MsgHeader*)pBuff ) ;
             if ( rc )
             {
                break ;
             }
+            // wait edu
             if ( SDB_OK != ( rc = pmdEDUMgr->waitEDU( _pEDUCB ) ) )
             {
                PD_LOG( PDERROR, "Session[%s] wait edu failed, rc: %d",
@@ -245,6 +257,7 @@ namespace engine
       buffLen = getBuffLen() ;
       *(INT32*)(*ppBuff) = msgSize ;
 
+      // recv recvSize1
       rc = recvData( *ppBuff + sizeof(UINT32), recvSize - sizeof( UINT32 ) ) ;
       if ( rc )
       {
@@ -275,6 +288,7 @@ namespace engine
       PD_RC_CHECK ( rc, PDERROR, "Session[%s] failed to extract sys info "
                     "request, rc = %d", sessionName(), rc ) ;
 
+      // reply
       rc = msgBuildSysInfoReply ( (CHAR**)&pReply, &replySize ) ;
       PD_RC_CHECK ( rc, PDERROR, "Session[%s] failed to build sys info reply, "
                     "rc = %d", sessionName(), rc ) ;
@@ -292,6 +306,7 @@ namespace engine
 
    INT32 _pmdLocalSession::_onMsgBegin( MsgHeader *msg )
    {
+      // set reply header ( except flags, length )
       _replyHeader.contextID          = -1 ;
       _replyHeader.numReturned        = 0 ;
       _replyHeader.startFrom          = 0 ;
@@ -323,6 +338,7 @@ namespace engine
          _needRollback = FALSE ;
       }
 
+      // start operator
       MON_START_OP( _pEDUCB->getMonAppCB() ) ;
 
       return SDB_OK ;
@@ -338,6 +354,7 @@ namespace engine
                  msg->requestID, result ) ;
       }
 
+      // end operator
       MON_END_OP( _pEDUCB->getMonAppCB() ) ;
    }
 
@@ -349,6 +366,7 @@ namespace engine
       rtnContextBuf contextBuff ;
       INT32 opCode      = msg->opCode ;
 
+      // prepare
       rc = _onMsgBegin( msg ) ;
       if ( SDB_OK == rc )
       {
@@ -384,11 +402,13 @@ namespace engine
             bodyLen = (INT32)_errorInfo.objsize() ;
             _replyHeader.numReturned = 1 ;
          }
+         // fill the return opCode
          _replyHeader.header.opCode = MAKE_REPLY_TYPE(opCode) ;
          _replyHeader.flags         = rc ;
          _replyHeader.header.messageLength = sizeof( _replyHeader ) +
                                              bodyLen ;
 
+         // send response
          INT32 rcTmp = _reply( &_replyHeader, pBody, bodyLen ) ;
          if ( rcTmp )
          {
@@ -398,6 +418,7 @@ namespace engine
          }
       }
 
+      // end
       _onMsgEnd( rc, msg ) ;
       rc = SDB_OK ;
 
@@ -414,6 +435,7 @@ namespace engine
                   (SINT32)(sizeof(MsgOpReply) + bodyLen),
                   "Invalid msg" ) ;
 
+      // response header
       rc = sendData( (const CHAR*)responseMsg, sizeof(MsgOpReply) ) ;
       if ( rc )
       {
@@ -421,6 +443,7 @@ namespace engine
                  sessionName(), rc ) ;
          goto error ;
       }
+      // response body
       if ( pBody )
       {
          rc = sendData( pBody, bodyLen ) ;

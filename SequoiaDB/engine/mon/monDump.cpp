@@ -292,6 +292,7 @@ namespace engine
       PD_TRACE_EXIT ( SDB_MONAPPENDVERSION ) ;
    }
 
+   // dump all contexts for a given EDUCB
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDUMPCONTEXTSFROMCB, "monDumpContextsFromCB" )
    INT32 monDumpContextsFromCB ( pmdEDUCB *cb, rtnContextDump *context,
                                  SDB_RTNCB *rtncb, BOOLEAN simple )
@@ -400,6 +401,8 @@ namespace engine
       goto done ;
    }
 
+   // walk through all contexts in runtime control block and group by EDU ID,
+   // and then build one or more records
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDUMPALLCONTEXTS, "monDumpAllContexts" )
    INT32 monDumpAllContexts ( SDB_RTNCB *rtncb,
                               rtnContextDump *context,
@@ -625,10 +628,12 @@ namespace engine
       SDB_ASSERT ( context, "context can't be NULL" ) ;
       PD_TRACE_ENTRY ( SDB_MONDUMPMONSYSTEM ) ;
 
+      // cpu
       INT64 cpuUser ;
       INT64 cpuSys ;
       INT64 cpuIdle ;
       INT64 cpuOther ;
+      // memory
       INT32 memLoadPercent  = 0 ;
       INT64 memTotalPhys    = 0 ;
       INT64 memAvailPhys    = 0 ;
@@ -636,16 +641,19 @@ namespace engine
       INT64 memAvailPF      = 0 ;
       INT64 memTotalVirtual = 0 ;
       INT64 memAvailVirtual = 0 ;
+      // disk
       INT64 diskTotalBytes  = 0 ;
       INT64 diskFreeBytes   = 0 ;
       const CHAR *dbPath    = pmdGetOptionCB()->getDbPath () ;
 
+      // cpu
       rc = ossGetCPUInfo ( cpuUser, cpuSys, cpuIdle, cpuOther ) ;
        if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get cpu info, rc = %d", rc ) ;
          goto error ;
       }
+      // memory
       rc = ossGetMemoryInfo ( memLoadPercent,
                               memTotalPhys, memAvailPhys,
                               memTotalPF, memAvailPF,
@@ -656,18 +664,21 @@ namespace engine
          goto error ;
       }
 
+      // disk
       rc = ossGetDiskInfo ( dbPath, diskTotalBytes, diskFreeBytes ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to get disk info, rc = %d", rc ) ;
          goto error ;
       }
+      // generate BSON return obj
       try
       {
          BSONObj obj ;
          BSONObjBuilder ob ;
 
          monAppendSystemInfo ( ob ) ;
+         // cpu
          {
             BSONObjBuilder cpuOb ;
             cpuOb.append ( FIELD_NAME_USER, ((FLOAT64)cpuUser)/1000 ) ;
@@ -676,6 +687,7 @@ namespace engine
             cpuOb.append ( FIELD_NAME_OTHER, ((FLOAT64)cpuOther)/1000 ) ;
             ob.append ( FIELD_NAME_CPU, cpuOb.obj () ) ;
          }
+         // memory
          {
             BSONObjBuilder memOb ;
             memOb.append ( FIELD_NAME_LOADPERCENT, memLoadPercent ) ;
@@ -687,6 +699,7 @@ namespace engine
             memOb.append ( FIELD_NAME_FREEVIRTUAL, memAvailVirtual ) ;
             ob.append ( FIELD_NAME_MEMORY, memOb.obj () ) ;
          }
+         // disk
          {
             BSONObjBuilder diskOb ;
             INT32 loadPercent = 0 ;
@@ -813,6 +826,7 @@ namespace engine
       goto done ;
    }
 
+   // dump the session information for a given control block
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDUMPSESSIONFROMCB, "monDumpSessionFromCB" )
    INT32 monDumpSessionFromCB ( pmdEDUCB *cb, rtnContextDump *context,
                                 BOOLEAN addInfo, BOOLEAN simple )
@@ -912,6 +926,7 @@ namespace engine
       goto done ;
    }
 
+   // walk through all sessions and create return records
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDUMPALLSESSIONS, "monDumpAllSessions" )
    INT32 monDumpAllSessions ( pmdEDUCB *cb, rtnContextDump *context,
                               BOOLEAN addInfo, BOOLEAN simple )
@@ -1032,21 +1047,25 @@ namespace engine
    {
       PD_TRACE_ENTRY ( SDB_MONDMSCOLLECTIONFLAGTOSTRING ) ;
       PD_TRACE1 ( SDB_MONDMSCOLLECTIONFLAGTOSTRING, PD_PACK_USHORT(flag) ) ;
+      // free flag is 0x0000
       if ( DMS_IS_MB_FREE(flag) )
       {
          out = "Free" ;
          goto done ;
       }
+      // normal flag is 0x0001
       if ( DMS_IS_MB_NORMAL(flag) )
       {
          out = "Normal" ;
          goto done ;
       }
+      // drop flag is 0x0002
       if ( DMS_IS_MB_DROPPED(flag) )
       {
          out = "Dropped" ;
          goto done ;
       }
+      // reorg
       if ( DMS_IS_MB_OFFLINE_REORG_SHADOW_COPY(flag) )
       {
          out = "Offline Reorg Shadow Copy Phase" ;
@@ -1072,6 +1091,7 @@ namespace engine
       return ;
    }
 
+   // dump information for all collections
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDUMPALLCOLLECTIONS, "monDumpAllCollections" )
    INT32 monDumpAllCollections( SDB_DMSCB *dmsCB, rtnContextDump *context,
                                 BOOLEAN addInfo, BOOLEAN details,
@@ -1156,6 +1176,7 @@ namespace engine
       goto done ;
    }
 
+   // dump information for all collection spaces
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDUMPALLCOLLECTIONSPACES, "monDumpAllCollectionSpaces" )
    INT32 monDumpAllCollectionSpaces ( SDB_DMSCB *dmsCB, rtnContextDump *context,
                                       BOOLEAN addInfo, BOOLEAN details,
@@ -1182,6 +1203,7 @@ namespace engine
             if ( details )
             {
                BSONArrayBuilder ab ;
+               // do not list detailed collections if we are on temp cs
                if ( ossStrcmp ( cs._name, SDB_DMSTEMP_NAME ) != 0 )
                {
                   std::vector<CHAR*>::const_iterator it1 ;
@@ -1248,6 +1270,7 @@ namespace engine
       goto done ;
    }
 
+   // dump information for all storage units
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDUMPALLSTORAGEUNITS, "monDumpAllStorageUnits" )
    INT32 monDumpAllStorageUnits ( SDB_DMSCB *dmsCB, rtnContextDump *context )
    {
@@ -1300,6 +1323,7 @@ namespace engine
       goto done ;
    }
 
+   // dump information for all collections
    // PD_TRACE_DECLARE_FUNCTION ( SDB_MONDUMPINDEXES, "monDumpIndexes" )
    INT32 monDumpIndexes( vector<monIndex> &indexes, rtnContextDump *context )
    {
@@ -1461,12 +1485,14 @@ namespace engine
             BSONArrayBuilder blockArrBd ;
             BSONObj obj ;
 
+            // add node info
             rc = monAppendSystemInfo( builder, MON_MASK_HOSTNAME|
                                       MON_MASK_SERVICE_NAME|MON_MASK_NODEID ) ;
             PD_RC_CHECK( rc, PDERROR, "Append system info failed, rc: %d",
                          rc ) ;
 
             builder.append( FIELD_NAME_SCANTYPE, VALUE_NAME_TBSCAN ) ;
+            // add datablocks         
             std::vector<dmsExtentID>::iterator it = datablocks.begin() ;
             while ( it != datablocks.end() &&
                     datablockNum < MAX_DATABLOCK_A_RECORD_NUM )
@@ -1527,6 +1553,7 @@ namespace engine
             BSONArrayBuilder blockArrBd ;
             BSONObj obj ;
 
+            // add node info
             rc = monAppendSystemInfo( builder, MON_MASK_HOSTNAME|
                                       MON_MASK_SERVICE_NAME|MON_MASK_NODEID ) ;
             PD_RC_CHECK( rc, PDERROR, "Append system info failed, rc: %d",
@@ -1536,6 +1563,7 @@ namespace engine
             builder.append( FIELD_NAME_INDEXNAME, indexName ) ;
             builder.append( FIELD_NAME_INDEXLID, indexLID ) ;
             builder.append( FIELD_NAME_DIRECTION, direction ) ;
+            // add indexblocks         
             while ( ( ( 1 == direction && indexPos + 1 < idxBlocks.size() ) ||
                       ( -1 == direction && indexPos > 0 ) ) &&
                     indexblockNum < MAX_INDEXBLOCK_A_RECORD_NUM )
@@ -1712,10 +1740,12 @@ namespace engine
                {
                   if ( MSG_NULL == moncb._cmdType )
                   {
+                     // it is query
                      ob.append( FIELD_NAME_LASTOPTYPE, "query" ) ;
                   }
                   else
                   {
+                     // it is command
                   }
                   break ;
                }

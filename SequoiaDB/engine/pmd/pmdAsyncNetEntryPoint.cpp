@@ -56,6 +56,7 @@ namespace engine
          goto error ;
       }
 
+      //start run
       PD_LOG ( PDEVENT, "Run %s[Type: %d] ...", getEDUName( cb->getType() ),
                cb->getType() ) ;
 

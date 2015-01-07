@@ -38,7 +38,9 @@
 #include "core.hpp"
 #include "oss.hpp"
 
+/// safe to share grammar across threads.
 #define BOOST_SPIRIT_THREADSAFE
+/// set the start limit
 #define BOOST_SPIRIT_GRAMMAR_STARTRULE_TYPE_LIMIT 20
 
 #include <boost/spirit/include/classic_ast.hpp>
@@ -65,6 +67,7 @@ typedef SQL_CONTAINER::const_iterator SQL_CON_ITR ;
 
    struct _sqlGrammar : public grammar<_sqlGrammar>, SDBObject
    {
+         /// sql type start
       const static INT32 SQL = 0 ;
       const static INT32 SELECT = 1 ;
       const static INT32 INSERT = 2 ;
@@ -78,7 +81,9 @@ typedef SQL_CONTAINER::const_iterator SQL_CON_ITR ;
       const static INT32 DROPINDEX = 10 ;    //--10
       const static INT32 LISTCS = 11 ;
       const static INT32 LISTCL = 12 ;
+         /// sql type end
 
+         /// term start
       const static INT32   WHERE = 13 ;
       const static INT32   SET = 14 ;
       const static INT32   AND = 15 ;
@@ -118,20 +123,28 @@ typedef SQL_CONTAINER::const_iterator SQL_CON_ITR ;
       const static INT32   LIKE = 49 ;
       const static INT32   SPLITBY = 50 ;
 
+      /// do not use IN coz windows
       const static INT32   INN = 50;
       const static INT32   NOT = 51;
       const static INT32   NULLL = 52;
       const static INT32   IS = 53;
+         /// trem end
 
+         /// factor start
       const static INT32   DBATTR = 1000 ;
+         /// factor end
 
+         /// base type start
       const static INT32   DIGITAL = 1001 ;
       const static INT32   STR = 1002 ;
+         /// base type end
       const static INT32   SQLMAX = 1003 ;
 
       template <typename ScannerT>
       struct definition
       {
+         /// we define all the rules here.
+         /// it can be defined in different files if necessary.
 
          SQL_RULE(SQL) sql ;
          SQL_RULE(SELECT) select ;
@@ -193,6 +206,7 @@ typedef SQL_CONTAINER::const_iterator SQL_CON_ITR ;
          SQL_RULE(DIGITAL) digital ;
          SQL_RULE(STR) str ;
 
+         /// logical rule for parsing.
          rule<ScannerT> graph ;
          rule<ScannerT> wCondition ;
          rule<ScannerT> oCondition ;
@@ -407,6 +421,7 @@ typedef SQL_CONTAINER::const_iterator SQL_CON_ITR ;
                        >> no_node_d[rbrackets];
                        
 
+            /// lt and gt must be behind the others.
             wFactor = ( dbattr
                         >> SQL_BLANKORNO
                         >> root_node_d[(eg|lte|gte
@@ -541,6 +556,7 @@ typedef SQL_CONTAINER::const_iterator SQL_CON_ITR ;
                              >> dbattr))
                    | select ;
 
+            ////
 
             select = no_node_d[as_lower_d[str_p("select")]]
                      >> SQL_BLANK
@@ -614,6 +630,11 @@ typedef SQL_CONTAINER::const_iterator SQL_CON_ITR ;
                     >> SQL_BLANK
                     >> leaf_node_d[dbattr] ;
 
+            /// hope to get: |--(id:6)
+            ///                  |--(value:foo, id:44)
+            /// but have no idea how.
+            /// now we get:  |--(value:foo, id:6)
+            /// the same to crtcs, crtcl, dropcl.
             dropcs = no_node_d[as_lower_d[str_p("drop")]]
                      >> SQL_BLANK
                      >>no_node_d[as_lower_d[str_p("collectionspace")]]

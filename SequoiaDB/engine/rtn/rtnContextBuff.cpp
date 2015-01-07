@@ -221,6 +221,7 @@ namespace engine
 
    _rtnContextBuf& _rtnContextBuf::operator=( const _rtnContextBuf &right )
    {
+      // release cur
       release () ;
 
       _rtnObjBuff::operator=( right ) ;
@@ -232,6 +233,7 @@ namespace engine
       _pOrgBuff = right._pOrgBuff ;
       _startFrom = right._startFrom ;
 
+      // increase counter
       if ( !_released && NULL != _pBuffCounter )
       {
          ++(*_pBuffCounter) ;

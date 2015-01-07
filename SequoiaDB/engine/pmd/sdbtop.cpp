@@ -45,6 +45,7 @@
 #include "curses.h"
 #include "sptCommon.hpp"
 #include "utilPath.hpp"
+//#include <time.h>
 #include <sys/time.h>
 #include <string>
 #include <vector>
@@ -82,6 +83,7 @@ namespace po = boost::program_options;
 #define DIVIDINGCHAR "-"
 #define OUTPUT_FORMATTING "%.3f"
 
+//zoomMode
 #define ZOOM_MODE_ALL "ZOOM_MODE_ALL"
 #define ZOOM_MODE_NONE "ZOOM_MODE_NONE"
 
@@ -101,9 +103,11 @@ namespace po = boost::program_options;
 #define ZOOM_MODE_COL "ZOOM_MODE_COL"
 #define ZOOM_MODE_ROW "ZOOM_MODE_ROW"
 
+//occupyMode
 #define OCCUPY_MODE_NONE "OCCUPY_MODE_NONE"
 #define OCCUPY_MODE_WINDOW_BELOW "OCCUPY_MODE_WINDOW_BELOW"
 
+//jumpType
 #define JUMPTYPE_PANEL "JUMPTYPE_PANEL"
 #define JUMPTYPE_FUNC "JUMPTYPE_FUNC"
 #define JUMPTYPE_FIXED "JUMPTYPE_FIXED"
@@ -118,17 +122,23 @@ namespace po = boost::program_options;
 #define JUMPTYPE_NO_FILTER_NUMBER "JUMPTYPE_NO_FILTER_NUMBER"
 #define JUMPTYPE_REFRESHINTERVAL "JUMPTYPE_REFRESHINTERVAL"
 
+//sortingWay
 #define SORTINGWAY_ASC "1"
 #define SORTINGWAY_DESC "-1"
 
+//bodyPanelType
 #define BODYTYPE_MAIN "BODYTYPE_MAIN"
 #define BODYTYPE_NORMAL "BODYTYPE_NORMAL"
 #define BODYTYPE_HELP_DYNAMIC "BODYTYPE_HELP_DYNAMIC"
 
+//string globalStyle;// TABLE OR LIST
+//string groupStyle;// TABLE OR LIST
+//string nodeStyle;// TABLE OR LIST
 
 #define TABLE "TABLE"
 #define LIST "LIST"
 
+//displayType
 #define DISPLAYTYPE_NULL "DISPLAYTYPE_NULL"
 #define DISPLAYTYPE_STATICTEXT_HELP_Header "DISPLAYTYPE_STATICTEXT_HELP_Header"
 #define DISPLAYTYPE_STATICTEXT_LICENSE "DISPLAYTYPE_STATICTEXT_LICENSE"
@@ -137,11 +147,14 @@ namespace po = boost::program_options;
 #define DISPLAYTYPE_DYNAMIC_EXPRESSION "DISPLAYTYPE_DYNAMIC_EXPRESSION"
 #define DISPLAYTYPE_DYNAMIC_SNAPSHOT "DISPLAYTYPE_DYNAMIC_SNAPSHOT"
 
+//DISPLAYTYPE_DYNAMIC_SNAPSHOT
 #define SERIALNUMBER_LENGTH 4
 
+//expressionType
 #define STATIC_EXPRESSION "STATIC_EXPRESSION"
 #define DYNAMIC_EXPRESSION "DYNAMIC_EXPRESSION"
 
+//expression
 #define EXPRESSION_BODY_LABELNAME "EXPRESSION_BODY_LABELNAME"
 #define EXPRESSION_VERSION "EXPRESSION_VERSION"
 #define EXPRESSION_REFRESH_QUIT_HELP "EXPRESSION_REFRESH_QUIT_HELP"
@@ -156,6 +169,7 @@ namespace po = boost::program_options;
 #define EXPRESSION_SORTINGFIELD "EXPRESSION_SORTINGFIELD"
 #define EXPRESSION_SNAPSHOTMODE_INPUTNAME "EXPRESSION_SNAPSHOTMODE_INPUTNAME"
 
+//AutoSetType
 #define UPPER_LEFT "UPPER_LEFT"
 #define MIDDLE_LEFT "MIDDLE_LEFT"
 #define LOWER_LEFT "LOWER_LEFT"
@@ -166,10 +180,12 @@ namespace po = boost::program_options;
 #define MIDDLE_RIGHT "MIDDLE_RIGHT"
 #define LOWER_RIGHT "LOWER_RIGHT"
 
+//alignment
 #define LEFT "LEFT"
 #define CENTER "CENTER"
 #define RIGHT "RIGHT"
 
+//sourceSnapShot
 #define SDB_SNAP_NULL "SDB_SNAP_NULL"
 #define SDB_SNAP_CONTEXTS_TOP "SDB_SNAP_CONTEXTS_TOP"
 #define SDB_SNAP_CONTEXTS_CURRENT_TOP "SDB_SNAP_CONTEXTS_CURRENT_TOP"
@@ -182,6 +198,7 @@ namespace po = boost::program_options;
 #define SDB_SNAP_CATALOG_TOP "SDB_SNAP_CATALOG_TOP"
 
 
+//displayModeChooser // DELTA or ABSOLUTE or AVERAGE
 #define DELTA "DELTA"
 #define ABSOLUTE "ABSOLUTE"
 #define AVERAGE "AVERAGE"
@@ -193,6 +210,7 @@ const string DISPLAYMODECHOOSER[DISPLAYMODENUMBER] = { ABSOLUTE,
 
 #define ANYVALUE 0
 
+//snapshotModeChooser // GLOBAL or GROUP or NODE
 #define GLOBAL "GLOBAL"
 #define GROUP "GROUP"
 #define NODE "NODE"
@@ -203,10 +221,27 @@ const string DISPLAYMODECHOOSER[DISPLAYMODENUMBER] = { ABSOLUTE,
 
 #define SDB_SDBTOP_DONE 1
 
+//forcedToRefresh_Local
+//forcedToRefresh_Global
 #define REFRESH 0
 #define NOTREFRESH 1
 
+//foreGroundColor
+//backGroundColor
+//all had included in ncurses.h , don't redefine
+//#define COLOR_BLACK   0
+//#define COLOR_RED 1
+//#define COLOR_GREEN  2
+//#define COLOR_YELLOW 3
+//#define COLOR_BLUE   4
+//#define COLOR_MAGENTA   5
+//#define COLOR_CYAN   6
+//#define COLOR_WHITE  7
 #define COLOR_MULTIPLE 8
+//if keypad( stdscr, TRUE ) ;
+//#define BUTTON_LEFT 4476699
+//#define BUTTON_RIGHT 4411163
+//if keypad( stdscr, TRUE ) ;
 #define BUTTON_LEFT 4479771
 #define BUTTON_RIGHT 4414235
 #define BUTTON_TAB 9
@@ -226,6 +261,7 @@ const string DISPLAYMODECHOOSER[DISPLAYMODENUMBER] = { ABSOLUTE,
 #define PREFIX_FORMAT   "  %c   -  "
 
 
+// read xml need
 #define REFERUPPERLEFT_X "referUpperLeft_X"
 #define REFERUPPERLEFT_Y "referUpperLeft_Y"
 #define LENGTH_X "length_X"
@@ -336,7 +372,9 @@ const string DISPLAYMODECHOOSER[DISPLAYMODENUMBER] = { ABSOLUTE,
 #define FOOTERS "Footers"
 #define FOOTERLENGTH "footerLength"
 
+//DISPLAYTYPE_STATICTEXT_HELP_Header outputText
 CHAR* HELP_Header = "[Help for SDBTOP]";
+//DISPLAYTYPE_STATICTEXT_HELP_Header outputText
 CHAR* LICENSE_Footer =
       "Licensed Materials - Property of SequoiaDB"OSS_NEWLINE
       "Copyright SequoiaDB Corp. 2013-2014 All Rights Reserved.";
@@ -392,6 +430,7 @@ struct Colours
    INT32 backGroundColor ;
 } ;
 
+// used to point to  static text like CHAR* Hello_Body
 struct StaticTextOutPut
 {
    CHAR *outputText ;
@@ -399,12 +438,17 @@ struct StaticTextOutPut
    Colours colour ;
 } ;
 
+// used to save expression from sdbtop.xml
+// if expressionType is STATIC_EXPRESSION ,the result is text
+// if expressionType is DYNAMIC_EXPRESSION ,
+// use expression to calculate the result by function getExpression()
 struct ExpValueStruct
 {
    string text ;
    string expression ;
 } ;
 
+// store expression infomation from sdbtop.xml
 class ExpressionContent : public SDBObject
 {
 public:
@@ -412,26 +456,35 @@ public:
 
    INT32 expressionLength ;
 
+   //store expression
    ExpValueStruct expressionValue ;
 
+   // when print the result of expression
+   // use it decide the result aligment
    string alignment ;
 
    Colours colour ;
 
+   // decide which row to print it on the terminal
    INT32 rowLocation ;
 } ;
 
+// store content infomation if displaycontent is dynamic expression
 struct DynamicExpressionOutPut
 {
    ExpressionContent *content ;
 
+   // decide all expression content position on the terminal
    string autoSetType ;
 
+   // save how many expression
    INT32 expressionNumber ;
 
+   // the limit of all ExpressionContent.rowLocation
    INT32 rowNumber ;
 } ;
 
+// store Max and Min value which used to give an alarm
 struct FiledWarningValue
 {
    INT64 absoluteMaxLimitValue ;
@@ -445,21 +498,27 @@ struct FiledWarningValue
 } ;
 
 
+// use it to save the snapshot'field of sequoiadb infomation
 class FieldStruct : public SDBObject
 {
 public:
 
+   //store the name when displayMode is ABSOLUTE or DELTA or AVERAGE
    string deltaName ;
    string absoluteName ;
    string averageName ;
 
    string sourceField ;
+   // the max length of every field value which would print on terminal
    INT32 contentLength ;
+   // the way that how to print field
    string alignment ;
+   // the colour of every displayMode
    Colours deltaColour ;
    Colours absoluteColour ;
    Colours averageColour ;
 
+   //used to judge the field whether to do
    BOOLEAN canSwitch ;
 
    FiledWarningValue warningValue ;
@@ -467,19 +526,33 @@ public:
 
 struct DynamicSnapshotOutPut
 {
+   // store the field metadata which can't move when use the direction key
    FieldStruct* fixedField ;
+   // store the field metadata which would move when use the direction key
    FieldStruct* mobileField ;
+   // store the actual number of fixed field come from sdbtop.xml
    INT32 actualFixedFieldLength ;
+   // store the actual number of mobile field come from sdbtop.xml
    INT32 actualMobileFieldLength ;
+   // fieldLength should longer than actualFixedFieldLength +
+   // actualMobileFieldLength
    INT32 fieldLength ;
+   // the format to put global's snapshot on terminal
    string globalAutoSetType ;
+   // the format to put group's snapshot on terminal
    string groupAutoSetType ;
+   // the format to put node's snapshot on terminal
    string nodeAutoSetType ;
    string baseField ;
    INT32 tableCellLength ;
+   // TABLE OR LIST
    string globalStyle ;
+   // TABLE OR LIST
    string groupStyle ;
+   // TABLE OR LIST
    string nodeStyle ;
+   // if globalStyle is TABLE,
+   // then use globalRow and globalCol
    INT32 globalRow ;
    INT32 globalCol ;
    INT32 groupRow ;
@@ -490,27 +563,40 @@ struct DynamicSnapshotOutPut
 
 struct DynamicHelp
 {
+   //use table format to display help infomation
+   //the row of table which is extracted from sdbtop.xml
    INT32 tableRow ;
+   //the col of table which is extracted from sdbtop.xml
    INT32 tableColumn ;
+   //the length of table's cell
    INT32 cellLength ;
+   //e.g s -   Sessions
+   // the colour of "s - "
    Colours prefixColour ;
+   // the colour of " Sessions"
    Colours contentColour ;
+   // indicate how to show the table on terminal
    string autoSetType ;
 } ;
 
 struct DisplayContent
 {
+   // if the content is write fixed in program use this type
    StaticTextOutPut staticTextOutPut ;
+   // the other three type is indicated in sdbtop.xml
    DynamicExpressionOutPut dyExOutPut ;
    DynamicSnapshotOutPut dySnapshotOutPut ;
    DynamicHelp dynamicHelp ;
 } ;
 
+//store the window position infomation
 struct Position
 {
+   // the position of the upper left corner
    INT32 referUpperLeft_X ;
    INT32 referUpperLeft_Y ;
 
+   // the length and hight of the window
    INT32 length_X ;
    INT32 length_Y ;
 } ;
@@ -518,17 +604,23 @@ struct Position
 class NodeWindow : public SDBObject
 {
 public:
+   // if terminal row is longer than actualWindowMinRow
+   // the window wouldn't display on the terminal
    INT32 actualWindowMinRow ;
    INT32 actualWindowMinColumn ;
 
+   // use it to decide which part of the position should be change
+   // when terminal change
    string zoomMode ;
 
+   // use it to decide which type of displayContent to display
    string displayType ;
 
    DisplayContent displayContent ;
 
    Position position ;
 
+   // how to occupy the other window
    string occupyMode;
 };
 
@@ -538,12 +630,16 @@ struct Panel
    INT32 numOfSubWindow ;
 };
 
+//store the hotKey infomation
 class HotKey : public SDBObject
 {
 public:
 
+   // the value of hotKey
    INT64 button ;
+   // the purpose of hotKey
    string jumpType ;
+   // the name of hotKey display on the terminal
    string jumpName ;
 } ;
 
@@ -551,12 +647,16 @@ class KeySuite : public SDBObject
 {
 public:
 
+   // used to distinguish every keySuit
    INT64 mark ;
 
+   // the number of hotKey of the keySuite
    INT32 hotKeyLength ;
    
+   // the number of hotKey of the keySuite from conf
    INT32 hotKeyLengthFromConf ;
    
+   // hotKey list
    HotKey *hotKey ;
 } ;
 
@@ -570,22 +670,36 @@ public:
 class BodyMap : public SDBObject
 {
 public:
+   // use it to match its own header from the list of header
    INT32 headerKey ;
+   // the body metadata
    Panel value ;
+   // use it to match its own header from the list of header
    INT32 footerKey ;
+   // flag value which used to match
    string labelName ;
+   // use it to match its own keysuite from the list of header
    INT64 hotKeySuiteType ;
+   //
    string sourceSnapShot ;
+   // its own type , which use to distinguish between main panel and help panel
    string bodyPanelType ;
+   // use it to match its own help panel from the list of header
    string helpPanelType ;
 } ;
 
+// used to store dynamic infomation
 struct InputPanel
 {
+   // ABSOLUTE or DELTA or AVERAGE .......pos of  DISPLAYMODECHOOSER[]
    INT32 displayModeChooser ;
+   // GLOBAL or GROUP or NODE
    string snapshotModeChooser;
+   // save the groupname if user input it
    string groupName ;
    string nodeName ;
+   // used to realize direction operation
+   // indicate which field to print firstly
    INT32 fieldPosition ;
    BOOLEAN isFirstGetSnapshot ;
    vector<BSONObj> last_Snapshot ;
@@ -597,8 +711,11 @@ struct InputPanel
    map<string, string> cur_deltaMap ;
    map<string, string> cur_averageMap ;
    string confPath ;
+   // store the refresh time interval
    INT32 refreshInterval ;
+   // refrsh the panel but don't get the new result snapshot
    BOOLEAN forcedToRefresh_Local ;
+   // refrsh the panel after get the refresh snapshot
    BOOLEAN forcedToRefresh_Global ;
    BodyMap* activatedPanel ;
    Colours colourOfTheMax ;
@@ -613,9 +730,13 @@ struct InputPanel
 
 struct RootWindow
 {
+   // the row of referWindow which used to refer to zoom
    INT32 referWindowRow ;
+   // the col of referWindow which used to refer to zoom
    INT32 referWindowColumn ;
+   // min row of terminal
    INT32 actualWindowMinRow ;
+   // min col of terminal
    INT32 actualWindowMinColumn ;
    HeadTailMap *header ;
    INT32 headerLength ;
@@ -772,6 +893,9 @@ static OSS_INLINE std::string getDividingLine( const string &dividingChar,
    return line ;
 }
 
+// transform string to numerical
+// in addition to numerical,
+// if the string contain other character, return error
 INT32 strToNum( const CHAR *str, INT32 &number )
 {
    INT32 rc           = SDB_OK ;
@@ -780,6 +904,7 @@ INT32 strToNum( const CHAR *str, INT32 &number )
    number    = 0 ;
    while( str[pos] )
    {
+      // check it is positive number or negative number
       if( 0 == pos )
       {
          if( '-' == str[pos] )
@@ -803,6 +928,7 @@ INT32 strToNum( const CHAR *str, INT32 &number )
       number = number + str[pos] -'0' ;
       ++pos;
    }
+   // change to negative number
    if( !isPositive )
    {
       number *= -1 ;
@@ -813,6 +939,8 @@ error :
    goto done ;
 }
 
+// calculate the button key which go through sdbtop
+// from keyBuffer which is used to save the input
 INT32 getSdbTopKey( const CHAR *keyBuffer, INT64 &key )
 {
    INT32 rc         = SDB_OK ;
@@ -820,6 +948,7 @@ INT32 getSdbTopKey( const CHAR *keyBuffer, INT64 &key )
    bufLength = ( UINT32 )ossStrlen( keyBuffer ) ;
    if( 0 < bufLength )
    {
+      //check the button whether it is direction button
       if( 3 <= bufLength && 91 == keyBuffer[bufLength-2]
                          && 27 == keyBuffer[bufLength-3] )
       {
@@ -836,6 +965,7 @@ INT32 getSdbTopKey( const CHAR *keyBuffer, INT64 &key )
             key = 0 ;
          }
       }
+      //check the button whether it is F1 ~ F12
       else if( 5 <= bufLength && 53 == keyBuffer[bufLength-2]
                               && 49 == keyBuffer[bufLength-3]
                               && 91 == keyBuffer[bufLength-4]
@@ -867,6 +997,8 @@ error :
    goto done ;
 }
 
+// use this function before call ncurses::mvprintw()
+// formationg(cut off) pSrc by fixedLength
 static OSS_INLINE INT32 formattingOutput( CHAR *pBuffer, const INT32 fixedLength,
                                       const CHAR *pSrc )
 {
@@ -874,11 +1006,13 @@ static OSS_INLINE INT32 formattingOutput( CHAR *pBuffer, const INT32 fixedLength
    INT32 i  = 0 ;
    try
    {
+      // copy pSrc to pBuffer under the length of printfLength
       for( i = 0; i < fixedLength && '\0' != pSrc[i]; ++i )
       {
          pBuffer[i] = pSrc[i] ;
       }
       pBuffer[i] = '\0' ;
+      // re-assignment the printfLength of actual length
    }
    catch( std::exception &e )
    {
@@ -903,6 +1037,7 @@ static OSS_INLINE INT32 MVPRINTW( const INT32 start_row, INT32 start_col,
    INT32 rc           = SDB_OK ;
    INT32 col_offset   = 0 ;
    INT32 printfLength = ossStrlen( printf_str ) ;
+   //how to print the content of its scope
    if( LEFT == alignment )
    {
       mvprintw( start_row, start_col, printf_str ) ;
@@ -934,6 +1069,7 @@ error :
    goto done ;
 }
 
+// store the position infomation which is come from sdbtop.xml
 INT32 storePosition( ptree pt_position, Position& position )
 {
    INT32 rc = SDB_OK ;
@@ -963,10 +1099,12 @@ error :
    goto done ;
 }
 
+// store information from sdbtop.xml in DynamicExpressionOutPut
 INT32 storeDE( ptree pt_display,
                DynamicExpressionOutPut &dEContent )
 {
    INT32 rc                     = SDB_OK ;
+   //the sum of all expression
    INT32 exNumber               = 0 ;
    ExpressionContent *pEContent = NULL ;
    try
@@ -1065,10 +1203,12 @@ error:
    goto done ;
 }
 
+// store information from sdbtop.xml in DynamicSnapshotOutPut
 INT32 storeDS( ptree pt_display,
                DynamicSnapshotOutPut & dSContent)
 {
    INT32 rc              = SDB_OK ;
+   // store how much fixedField and mobileField space had to be used
    INT32 actualFixedNum  = 0;
    INT32 actualMobileNum = 0;
    FieldStruct *fixed    = NULL ;
@@ -1635,6 +1775,7 @@ error :
    goto done ;
 }
 
+// store information from sdbtop.xml in Bodies
 INT32 storeBodies( ptree pt_BDs, RootWindow &root )
 {
    INT32 rc         = SDB_OK ;
@@ -1754,6 +1895,7 @@ error :
    goto done ;
 }
 
+// store information from sdbtop.xml in KeySuites
 INT32 storeFooters( ptree pt_FTs, RootWindow &root )
 {
    INT32 rc            = SDB_OK ;
@@ -1820,6 +1962,7 @@ error :
    goto done ;
 }
 
+// store information from sdbtop.xml in KeySuites
 INT32 storeKeySuites( ptree pt_KSs, RootWindow &root )
 {
    INT32 rc             = SDB_OK ;
@@ -2222,6 +2365,7 @@ Event::~Event()
       SDBTOP_SAFE_DELETE( root.footer ) ;
 }
 
+//find the current actived panel by the bodyPanelType
 INT32 Event::assignActivatedPanel( BodyMap **activatedPanel,
                                    string bodyPanelType )
 {
@@ -2247,6 +2391,7 @@ error :
    goto done ;
 }
 
+//find the current actived panel by the bodyLabelName
 INT32 Event::assignActivatedPanelByLabelName( BodyMap **activatedPanel,
                                               string labelName )
 {
@@ -2272,6 +2417,8 @@ error :
    goto done ;
 }
 
+// find the current actived header and footer from the  actived body
+// compare ctivatedPanel->footerKey and headerKey to get it
 INT32 Event::getActivatedHeadTailMap( BodyMap *activatedPanel,
                                       HeadTailMap **header,
                                       HeadTailMap **footer )
@@ -2337,6 +2484,9 @@ error :
    goto done ;
 }
 
+// calculate the window position on the terminal from virtual terminal
+// zoomMode decide how to change the size of the referPostion
+// occupyMode decide whether occupy the remainging window'size
 INT32 Event::getActualPosition( Position &actualPosition,
                                 Position &referPosition,
                                 const string zoomMode,
@@ -2360,6 +2510,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
       goto error ;
    }
    SCALE_ROW = (FLOAT32)row / (FLOAT32)root.referWindowRow ;
+   // change X,Y,ROW,COL
    if( zoomMode == ZOOM_MODE_ALL )
    {
       actualPosition.length_X =
@@ -2375,6 +2526,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
             ( INT32 )( referPosition.referUpperLeft_Y * ( FLOAT32 )row /
             ( FLOAT32)root.referWindowRow ) ;
    }
+   // don't change anything
    else if( zoomMode == ZOOM_MODE_NONE )
    {
       actualPosition.length_X = referPosition.length_X ;
@@ -2382,6 +2534,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
       actualPosition.referUpperLeft_X = referPosition.referUpperLeft_X ;
       actualPosition.referUpperLeft_Y = referPosition.referUpperLeft_Y ;
    }
+   // only change X,Y
    else if( zoomMode == ZOOM_MODE_POS )
    {
       actualPosition.length_X = referPosition.length_X ;
@@ -2393,6 +2546,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
             ( INT32 )( referPosition.referUpperLeft_Y * ( FLOAT32 )row /
             ( FLOAT32 )root.referWindowRow ) ;
    }
+   // only change X,Y,ROW
    else if( zoomMode == ZOOM_MODE_ROW_POS )
    {
       actualPosition.length_X = referPosition.length_X ;
@@ -2405,6 +2559,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
             ( INT32 )( referPosition.referUpperLeft_Y * ( FLOAT32 )row /
             ( FLOAT32)root.referWindowRow ) ;
    }
+   // only change XY,COL
    else if( zoomMode == ZOOM_MODE_COL_POS )
    {
       actualPosition.length_X =
@@ -2418,6 +2573,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
             ( INT32 )( referPosition.referUpperLeft_Y * ( FLOAT32 )row /
             ( FLOAT32 )root.referWindowRow ) ;
    }
+   // only change X
    else if( zoomMode == ZOOM_MODE_POS_X )
    {
       actualPosition.length_X = referPosition.length_X ;
@@ -2427,6 +2583,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
             (FLOAT32)root.referWindowColumn ) ;
       actualPosition.referUpperLeft_Y= referPosition.referUpperLeft_Y ;
    }
+   // only change X,ROW
    else if( zoomMode == ZOOM_MODE_ROW_POS_X )
    {
       actualPosition.length_X = referPosition.length_X ;
@@ -2437,6 +2594,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
             ( FLOAT32 )root.referWindowColumn ) ;
       actualPosition.referUpperLeft_Y= referPosition.referUpperLeft_Y ;
    }
+   // only change X,COL
    else if( zoomMode == ZOOM_MODE_COL_POS_X )
    {
       actualPosition.length_X =
@@ -2448,6 +2606,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
             ( FLOAT32 )root.referWindowColumn ) ;
       actualPosition.referUpperLeft_Y = referPosition.referUpperLeft_Y ;
    }
+   // only change Y
    else if( zoomMode == ZOOM_MODE_POS_Y )
    {
       actualPosition.length_X = referPosition.length_X ;
@@ -2457,6 +2616,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
             ( INT32 )( referPosition.referUpperLeft_Y * ( FLOAT32 )row /
             ( FLOAT32 )root.referWindowRow ) ;
    }
+   // only change Y,ROW
    else if( zoomMode == ZOOM_MODE_ROW_POS_Y )
    {
       actualPosition.length_X = referPosition.length_X ;
@@ -2467,6 +2627,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
             ( INT32 )( referPosition.referUpperLeft_Y * ( FLOAT32 )row /
             ( FLOAT32 )root.referWindowRow ) ;
    }
+   // only change Y,COL
    else if( zoomMode == ZOOM_MODE_COL_POS_Y )
    {
       actualPosition.length_X =
@@ -2489,6 +2650,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
       actualPosition.referUpperLeft_X = referPosition.referUpperLeft_X ;
       actualPosition.referUpperLeft_Y = referPosition.referUpperLeft_Y ;
    }
+   // only change COL
    else if( zoomMode == ZOOM_MODE_COL )
    {
       actualPosition.length_X =
@@ -2498,6 +2660,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
       actualPosition.referUpperLeft_X = referPosition.referUpperLeft_X ;
       actualPosition.referUpperLeft_Y = referPosition.referUpperLeft_Y ;
    }
+   // only change ROW
    else if( zoomMode == ZOOM_MODE_ROW )
    {
       actualPosition.length_X = referPosition.length_X ;
@@ -2507,6 +2670,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
       actualPosition.referUpperLeft_X = referPosition.referUpperLeft_X ;
       actualPosition.referUpperLeft_Y = referPosition.referUpperLeft_Y ;
    }
+   // error, can't distinguish this zoomMode
    else
    {
       rc = SDB_ERROR ;
@@ -2518,8 +2682,10 @@ INT32 Event::getActualPosition( Position &actualPosition,
       rc = SDB_ERROR ;
       goto error ;
    }
+   // whether change ROW or COL
    if( occupyMode != OCCUPY_MODE_NONE )
    {
+      // change ROW , expand it to the remaining terminal
       if( occupyMode == OCCUPY_MODE_WINDOW_BELOW )
       {
          actualPosition.length_Y = row - actualPosition.referUpperLeft_Y ;
@@ -2543,6 +2709,7 @@ error :
 }
 
 
+// get the keySuite of actived body panel
 INT32 Event::getActivatedKeySuite( KeySuite **keySuite )
 {
    INT32 rc = SDB_OK ;
@@ -2551,17 +2718,21 @@ INT32 Event::getActivatedKeySuite( KeySuite **keySuite )
    {
       for( i = 0; i < root.keySuiteLength; ++i )
       {
+         // if the actived body panel's hotKeySuiteType
+         // equal to the mark of keySuite, we find it
          if( root.keySuite[i].mark ==
              root.input.activatedPanel->hotKeySuiteType )
          {
             break ;
          }
       }
+      // find it under scope
       if( i != root.keySuiteLength )
       {
          keySuite[0] = root.keySuite ;
          goto done ;
       }
+      // don't find under scope
       else
       {
          *keySuite = NULL ;
@@ -2585,12 +2756,14 @@ error :
    goto done ;
 }
 
+// print value in the terminal
 INT32 Event::mvprintw_SDBTOP( const string &expression, INT32 expressionLength,
                               const string &alignment, INT32 start_row,
                               INT32 start_col )
 {
    INT32 rc           = SDB_OK ;
    
+   // before print on the terminal, format it
    rc = formattingOutput( sdbtopBuffer, expressionLength, expression.c_str() ) ;
    if( rc )
    {
@@ -2614,12 +2787,14 @@ error :
    goto done ;
 }
 
+// print value in the terminal
 INT32 Event::mvprintw_SDBTOP( const char *expression, INT32 expressionLength,
                               const string &alignment, INT32 start_row,
                               INT32 start_col )
 {
    INT32 rc           = SDB_OK ;
 
+   // before print on the terminal, format it
    rc = formattingOutput( sdbtopBuffer, expressionLength, expression ) ;
    if( rc )
    {
@@ -2643,12 +2818,19 @@ error :
    goto done ;
 }
 
+// get colour pairnumber
 void Event::getColourPN( Colours colour, INT32 &colourPairNumber )
 {
    colourPairNumber = colour.foreGroundColor + colour.backGroundColor *
                                                COLOR_MULTIPLE ;
 }
 
+// "result" store the specific field value of "bsonobj"
+// "sourceField" is the position of the specific field on the "bsonobj"
+// "canSwitch" decide the way to get the field value of "bsonobj"
+// if "canSwitch" is true, baseField distinguish field 
+// between last snapshot and current snapshot
+// waringValue is the scope of every value
 INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
                                    const string &sourceField,
                                    const string &displayMode,
@@ -2668,13 +2850,23 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
    const INT64 averageMinLimitValue  = waringValue.averageMinLimitValue ;
    const INT64 deltaMaxLimitValue    = waringValue.deltaMaxLimitValue ;
    const INT64 deltaMinLimitValue    = waringValue.deltaMinLimitValue ;
+   // use it to save the result when BSONType is numberic
    FLOAT64 elementDouble             = 0.0f ;
+   // element come from current bsonobj with sourceField
    BSONElement element ;
+   // element come from last bsonobj with sourceField
    BSONElement last_element ;
+   // element come from current bsonobj with baseField
    BSONElement baseElement  ;
+   // compare to baseElement
    BSONElement baseElement_last ;
+   // new_ come from baseElement.toString
+   // use new_+sourceFieldbuf to distinguish every BSONObj
+   // e.g. cadmin:56000:9+TotalDataRead
    string new_                       = NULLSTRING ;
+   // compare to new_, check out the same BSONobj
    string old_                       = NULLSTRING ;
+   // specific colour if some event have been trigger
    INT32 maxPairNumber               = 0 ;
    INT32 minPairNumber               = 0 ;
    INT32 changePairNumber            = 0 ;
@@ -2684,8 +2876,12 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
    try
    {
       element = bsonobj.getFieldDotted( sourceFieldbuf ) ;
+      // if we the element can't switch the displayMode
+      // or baseField is NULLSTRING,
+      // so we deal with the element on the same way
       if( !canSwitch )
       {
+         // numerucal type need to deal with special way
          if( element.isNumber() )
          {
             elementDouble = element.Number() ;
@@ -2699,11 +2895,13 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
                             OUTPUT_FORMATTING, elementDouble ) ;
                result = sdbtopBuffer ;
             }
+            // absoluteMaxLimitValue == 0, don't deal with
             if( absoluteMaxLimitValue != 0 &&
                 elementDouble > absoluteMaxLimitValue )
             {
                colourPairNumber = maxPairNumber ;
             }
+            // absoluteMinLimitValue == 0, don't deal with
             else if( absoluteMinLimitValue != 0 &&
                      elementDouble < absoluteMinLimitValue )
             {
@@ -2718,8 +2916,11 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
       }
       else
       {
+         // before compare with last snapshot , get the baseElement
+         // judge whether is the same bsonobj on the basis of baseElement
          baseElement = bsonobj.getFieldDotted( baseFieldbuf ) ;
          new_ = baseElement.toString( FALSE ) ;
+         //judge the element whether exist in last snapshot
          while( pos_last < input.last_Snapshot.size() )
          {
             baseElement_last =
@@ -2730,8 +2931,11 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
                break ;
             ++pos_last ;
          }
+         //when can't match element in the last snapshot
          if( pos_last == input.last_Snapshot.size() )
          {
+            //to deal with the result when displayMode is DELTA or AVERAGE
+            //but not found in the last snapshot
             if( DELTA == displayMode || AVERAGE == displayMode )
             {
                ossSnprintf( sdbtopBuffer, BUFFERSIZE, "%d", 0 ) ;
@@ -2739,6 +2943,8 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
                input.cur_deltaMap[new_+sourceField] = sdbtopBuffer ;
                input.cur_averageMap[new_+sourceField] = sdbtopBuffer ;
             }
+            //to deal with the result when displayMode is ABSOLUTE
+            //but not found in the last snapshot
             else if( ABSOLUTE == displayMode )
             {
                if( element.isNumber() )
@@ -2755,11 +2961,13 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
                                   OUTPUT_FORMATTING, elementDouble ) ;
                      result = sdbtopBuffer ;
                   }
+                  // absoluteMaxLimitValue == 0, don't deal with
                   if( absoluteMaxLimitValue != 0 &&
                       elementDouble > absoluteMaxLimitValue )
                   {
                      colourPairNumber = maxPairNumber ;
                   }
+                  // absoluteMinLimitValue == 0, don't deal with
                   else if( absoluteMinLimitValue != 0 &&
                            elementDouble < absoluteMinLimitValue )
                   {
@@ -2783,11 +2991,24 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
                goto error ;
             }
          }
+         // had found it on the last snapshot
          else
          {
+            //BSONObjIterator iter(abc);
+            //while(iter.more())
+            //{
+               //BSONElement be;
+               //if (be.type()  == Array)
+               //{
+                  //BSONObj obj = be.embeddedObject() ;
+               //}
+            //}
             last_element =
                   input.last_Snapshot[pos_last].getFieldDotted(
                         sourceFieldbuf ) ;
+            // to deal with the result when displayMode is DELTA
+            // DELTA value is the result of that
+            // current value subtract last value
             if( DELTA == displayMode )
             {
                if( element.isNumber() )
@@ -2827,6 +3048,7 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
                }
                input.cur_deltaMap[new_+sourceField] = result ;
             }
+            //to deal with the result when displayMode is ABSOLUTE
             else if( ABSOLUTE == displayMode )
             {
                if( element.isNumber() )
@@ -2866,6 +3088,10 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
                }
                input.cur_absoluteMap[new_+sourceField] = result ;
             }
+            //to deal with the result when displayMode is AVERAGE
+            // DELTA value is the result of that
+            // current value subtract last value, and then use the result
+            // divided by the time interval
             else if( AVERAGE == displayMode )
             {
                if( element.isNumber() )
@@ -2923,6 +3149,7 @@ INT32 Event::getResultFromBSONObj( const BSONObj &bsonobj,
       goto error ;
    }
    
+   // trim "\""
    doubleQuotesTrim( result ) ;
 done :
    return rc ;
@@ -2930,6 +3157,8 @@ error :
    goto done ;
 }
 
+// get the result which will be print on the terminal from expression
+// use "expression" to map the value which write fixed in program
 INT32 Event::getExpression( string& expression, string& result )
 {
    INT32 rc  = SDB_OK ;
@@ -3017,6 +3246,12 @@ error :
    goto done ;
 }
 
+// get result from sequoiadb's snapshot ,
+// and store it on the root.input.cur_Snapshot ,the last snapshot'result will
+// store on the root.input.last_Snapshot
+// root.input.filterCondition, root.input.sortingWay ,
+// root.input.snapshotModeChooser and root.input.filterNumber will impact the
+// way to get the result from sequoiadb's snapshot
 INT32 Event::getCurSnapshot()
 {
    INT32 rc             = SDB_OK ;
@@ -3036,6 +3271,7 @@ INT32 Event::getCurSnapshot()
    BSONObj orderByObj ;
    string::size_type pos ;
    fromjson( selector, selectorObj ) ;
+   // choose the snapshot type
    if( root.input.activatedPanel[0].sourceSnapShot ==
             SDB_SNAP_CONTEXTS_TOP )
    {
@@ -3081,6 +3317,7 @@ INT32 Event::getCurSnapshot()
    {
       snapType = SDB_SNAP_CATALOG ;
    }
+   // wrong snapshot type fill in sdbtop.xml, error
    else
    {
       if( root.input.activatedPanel[0].bodyPanelType != BODYTYPE_NORMAL )
@@ -3098,10 +3335,12 @@ INT32 Event::getCurSnapshot()
       rc = SDB_ERROR ;
       goto error ;
    }
+   // don't need to sorting
    if( NULLSTRING == root.input.sortingWay )
    {
       orderBy += "}" ;
    }
+   // get the sorting Way and sorting condition in the from of json
    else if( SORTINGWAY_ASC == root.input.sortingWay ||
             SORTINGWAY_DESC == root.input.sortingWay )
    {
@@ -3111,6 +3350,7 @@ INT32 Event::getCurSnapshot()
       else
          orderBy += "}" ;
    }
+   // can't distinguish the sorting way, error
    else
    {
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
@@ -3121,8 +3361,11 @@ INT32 Event::getCurSnapshot()
       rc = SDB_ERROR ;
       goto error ;
    }
+   // transform sorting Way and sorting condition to bsonobj
    fromjson( orderBy, orderByObj ) ;
 
+   // judge whether input filterCondition
+   // if had input , store it in conditionPre and conditionCon
    if( NULLSTRING != root.input.filterCondition )
    {
       pos = root.input.filterCondition.find( ":" ) ;
@@ -3136,6 +3379,9 @@ INT32 Event::getCurSnapshot()
          root.input.filterCondition = NULLSTRING;
       }
    }
+   // according to snapshotModeChooser ( GLOBAL,GROUP or NODE),
+   // get the filterCondition in the form of json , and then
+   // transform it to bsonobj and getsnapshot from sequoiadb server
    if( GLOBAL == root.input.snapshotModeChooser )
    {
       if( NULLSTRING != root.input.filterCondition )
@@ -3208,6 +3454,8 @@ INT32 Event::getCurSnapshot()
       goto error ;
    }
 
+   // deal with history date(), clean all the vector which used to
+   // store all current DELTA value, ABSOLUTE value or AVERAGE value
    root.input.last_absoluteMap.clear() ;
    root.input.last_absoluteMap = root.input.cur_absoluteMap ;
    root.input.cur_absoluteMap.clear() ;
@@ -3220,10 +3468,13 @@ INT32 Event::getCurSnapshot()
    root.input.last_averageMap = root.input.cur_averageMap ;
    root.input.cur_averageMap.clear() ;
 
+   // deal with history date, clean all the vector which used to
+   // store all current BSONobj from snaoshot
    root.input.last_Snapshot.clear() ;
    root.input.last_Snapshot = root.input.cur_Snapshot ;
    root.input.cur_Snapshot.clear() ;
    filterNum = root.input.filterNumber ;
+   // filter data before filterNum change to zero
    while( !( rc = cursor.next( bsonobj ) ) )
    {
       if( 0 < filterNum )
@@ -3244,6 +3495,8 @@ INT32 Event::getCurSnapshot()
                    errStrBuf, rc ) ;
       goto error ;
    }
+   // if rc == SDB_DMS_EOC,
+   // show that reading is finished, turn rc in SDB_OK
    if( SDB_DMS_EOC == rc )
    {
       rc = SDB_OK ;
@@ -3259,6 +3512,9 @@ error :
    goto done ;
 }
 
+// berfore print the window'content on the terminal
+// autoSetType decide how to fix start_row and start_col
+// fixed_row and fixed_col store the fixed result
 INT32 Event::fixedOutputLocation( INT32 start_row, INT32 start_col,
                                   INT32 &fixed_row, INT32 &fixed_col,
                                   INT32 referRowLength, INT32 referColLength,
@@ -3329,6 +3585,7 @@ error :
    goto done ;
 }
 
+// get the title and colour of the field which will print on the terminal
 INT32 Event::getFieldNameAndColour( const FieldStruct &fieldStruct,
                                     const string &displayMode,
                                     string &fieldName, Colours &fieldColour )
@@ -3375,8 +3632,14 @@ error :
    goto done ;
 }
 
+// refresh infomation on the terminal
+// when displayType is DISPLAYTYPE_DYNAMIC_HELP
 INT32 Event::refreshDH( DynamicHelp &DH, Position &position )
 {
+// step 1: get the activatedPanel's keySuite
+// step 2: print hotkey of the keySuite in its specific row
+// step 3: if on the end of keySuite or on the bottom of window, mvprint over
+// step 4: if mvprint isn't over , locate the next row, and then goto step 2
    INT32 rc                = SDB_OK ;
    INT32 Y                 = position.referUpperLeft_Y ;
    INT32 X                 = position.referUpperLeft_X ;
@@ -3385,6 +3648,7 @@ INT32 Event::refreshDH( DynamicHelp &DH, Position &position )
    INT32 pos_X             = start_X ;
    KeySuite *keySuite      = NULL ;
    HotKey *hotkey          = NULL ;
+   // indicate which hotkey need to print
    INT32 hotKey_pos        = 0 ;
    INT32 rowNumber         = 0 ;
    INT32 sum               = 0 ;
@@ -3420,6 +3684,7 @@ INT32 Event::refreshDH( DynamicHelp &DH, Position &position )
    {
       goto error ;
    }
+   // calculate the Y position which used to print first row help field
    rc = fixedOutputLocation( Y, X, start_Y, start_X,
                              position.length_Y - DH.tableRow, 0,
                              DH.autoSetType) ;
@@ -3431,18 +3696,21 @@ INT32 Event::refreshDH( DynamicHelp &DH, Position &position )
    {
       start_Y += rowNumber ;
       sum = 0 ;
+      // get the sum of every help field length in specific row
       for( colNumber = 0; colNumber< DH.tableColumn; ++ colNumber )
       {
          if( sum > position.length_X )
             break ;
          sum += cellLength ;
       }
+      // calculate the X position which used to print first help field
       rc = fixedOutputLocation( start_Y, X, start_Y, start_X, 0,
                                 position.length_X - sum, DH.autoSetType) ;
       if( rc )
       {
          goto error ;
       }
+      // print every help field infomation in specific row
       for( colNumber = 0; colNumber< DH.tableColumn; ++ colNumber )
       {
          if( hotKey_pos >= keySuite->hotKeyLength )
@@ -3454,6 +3722,9 @@ INT32 Event::refreshDH( DynamicHelp &DH, Position &position )
          hotkey = &keySuite->hotKey[hotKey_pos];
          pos_X = start_X ;
          ossMemset( pPrintfstr, 0, cellLength );
+         //printf prefix e.g.the prefix of s -   Sessions is s -
+         // judge the string whether write fixed in program
+         // if find , save it in the printfstr
          if( JUMPTYPE_FIXED == hotkey->jumpType )
          {
             if( BUTTON_TAB == hotkey->button )
@@ -3480,6 +3751,7 @@ INT32 Event::refreshDH( DynamicHelp &DH, Position &position )
             ossSnprintf( pPrintfstr, cellLength, PREFIX_FORMAT,
                         ( CHAR )hotkey->button ) ;
          printStr = pPrintfstr ;
+         // get the colour of the prefix string and print it on terminal
          getColourPN( DH.prefixColour, pairNumber ) ;
          attron( COLOR_PAIR( pairNumber ) ) ;
          rc = mvprintw_SDBTOP( printStr, printStr.length(), LEFT,
@@ -3490,6 +3762,7 @@ INT32 Event::refreshDH( DynamicHelp &DH, Position &position )
          }
          attroff( COLOR_PAIR( pairNumber ) ) ;
          pos_X += printStr.length() ;
+         //printf content e.g.the content of s -   Sessions is Session
          ossMemset( pPrintfstr, 0, cellLength ) ;
          getColourPN( DH.contentColour, pairNumber ) ;
          attron( COLOR_PAIR( pairNumber ) ) ;
@@ -3514,8 +3787,17 @@ error :
    goto done ;
 }
 
+// refresh infomation on the terminal
+// when displayType is DISPLAYTYPE_DYNAMIC_EXPRESSION
 INT32 Event::refreshDE( DynamicExpressionOutPut &DE, Position &position )
 {
+// step 1: get total length of all expressions'result which can
+// print on the specific row 
+// step 2: use total length to fix position and print
+// the specific expression's reult in the specific row
+// step 3: if on the end of expression list or
+// on the bottom of window, mvprint over
+// step 4: if mvprint isn't over , locate the next row, and then goto step 1
    INT32 rc                        = SDB_OK ;
    INT32 Y                         = position.referUpperLeft_Y ;
    INT32 X                         = position.referUpperLeft_X ;
@@ -3528,6 +3810,7 @@ INT32 Event::refreshDE( DynamicExpressionOutPut &DE, Position &position )
    INT32 expressionNumber          = 0 ;
    INT32 rowNumber                 = 0 ;
    ExpressionContent *EC           = NULL ;
+   // calculate the Y position which used to print first row expression
    rc = fixedOutputLocation( Y, X,
                              start_Y, start_X,
                              position.length_Y - DE.rowNumber,
@@ -3537,6 +3820,8 @@ INT32 Event::refreshDE( DynamicExpressionOutPut &DE, Position &position )
    {
       goto error ;
    }
+   // according rowNumber to decide
+   // which expression print on terminal firstly
    for( rowNumber = 0;
        rowNumber < DE.rowNumber && rowNumber < position.length_Y ;
        ++rowNumber )
@@ -3546,10 +3831,14 @@ INT32 Event::refreshDE( DynamicExpressionOutPut &DE, Position &position )
       expressionLength = 0 ;
       pairNumber = 0 ;
       result = NULLSTRING ;
+      // the follow cycle would calculate the sum of
+      // expression length in specific row
       for( expressionNumber = 0; expressionNumber < DE.expressionNumber;
            ++expressionNumber )
       {
          EC = &DE.content[expressionNumber] ;
+         // acording to the expressionType to get the result which
+         // is used to print on the terminal
          if( STATIC_EXPRESSION == EC->expressionType )
          {
             result = EC->expressionValue.text ;
@@ -3581,6 +3870,8 @@ INT32 Event::refreshDE( DynamicExpressionOutPut &DE, Position &position )
          ++Sum ; // add space
       }
 
+      // use the sum to calculate the X value which use to print the first
+      // expression
       rc = fixedOutputLocation( start_Y, X, start_Y, start_X,
                                 0, position.length_X -Sum ,
                                 DE.autoSetType) ;
@@ -3596,6 +3887,8 @@ INT32 Event::refreshDE( DynamicExpressionOutPut &DE, Position &position )
          {
             continue ;
          }
+         // acording to the expressionType to get the result which
+         // is used to print on the terminal
          if( STATIC_EXPRESSION == EC->expressionType )
          {
             result = EC->expressionValue.text ;
@@ -3633,16 +3926,24 @@ error :
    goto done ;
 }
 
+// when displayType is DISPLAYTYPE_DYNAMIC_SNAPSHOT and Style is Table
 INT32 Event::refreshDS_Table( DynamicSnapshotOutPut &DS, INT32 ROW, INT32 COL,
                               Position &position, string autoSetType )
 {
+// step 1: print the fixed snapshot field title and then print the mobile
+//         snapshot field title
+// step 2: print the content which is stored in vector one row by one row
+// step 3: if on the end of content vector or reach the bottom of window,
+//         mvprint over;
    INT32 rc = SDB_OK ;
    BSONObj bsonobj ;
    string baseField              = DS.baseField ;
    INT32 rowNumber               = 0;
    FieldStruct* Fixed            = NULL ;
    FieldStruct* Mobile           = NULL ;
+   // actualFixedFieldLength
    INT32 FLength                 = 0 ;
+   // actualMobileFieldLength
    INT32 MLength                 = 0 ;
    InputPanel &input             = root.input ;
    INT32 Y                       = position.referUpperLeft_Y ;
@@ -3653,15 +3954,23 @@ INT32 Event::refreshDS_Table( DynamicSnapshotOutPut &DS, INT32 ROW, INT32 COL,
    INT32 start_Y                 = Y ;
    INT32 start_X                 = X ;
 
+   // indicate one row can display how many field can be displayed
    INT32 index_COL               = 0 ;
 
+   // indicate which field would be displayed
    INT32 pos_Field               = 0 ;
+   // use it to sign the end position of
+   // fixedFieldStruct or mobileFieldStruct on every row
    INT32 end_fixed_mobile        = 0 ;
+   // use it to sign the start position of
+   // fixedFieldStruct or mobileFieldStruct on every row
    INT32 start_fixed_mobile      = 0 ;
    string displayMode            = 
          DISPLAYMODECHOOSER[input.displayModeChooser] ;
 
+   // store the field title
    string fieldName              = NULLSTRING ;
+    // store the field colour
    Colours fieldColour ;
    INT32 pairNumber              = 0 ;
    string result                 =  NULLSTRING ;
@@ -3670,6 +3979,9 @@ INT32 Event::refreshDS_Table( DynamicSnapshotOutPut &DS, INT32 ROW, INT32 COL,
    fieldColour.foreGroundColor   = 0 ;
    FLength = DS.actualFixedFieldLength ;
    MLength = DS.actualMobileFieldLength ;
+   // the height of the table should be ROW*2
+   // one row to save title of talble
+   // other row to save the value which need to display
    rc = fixedOutputLocation( Y, X, start_Y, start_X, length_Y - ROW * 2, 0,
                              autoSetType ) ;
    if( rc )
@@ -3677,17 +3989,22 @@ INT32 Event::refreshDS_Table( DynamicSnapshotOutPut &DS, INT32 ROW, INT32 COL,
       goto error ;
    }
 
+   // calculate how much field will display in one row
    for( index_COL = 0; index_COL <= COL; ++index_COL )
    {
       if(( index_COL + 1 ) * cellLength > length_X )
          break ;
    }
+   // adapt to the terminal
    ROW = ROW * COL / index_COL ;
+   // adapt to the terminal
    COL = index_COL ;
 
+   // row by row to print the field on terminal
    for( rowNumber = 0; rowNumber < ROW; ++rowNumber )
    {
       start_Y += rowNumber ;
+      // can't display outside the scope of the specified window
       if( start_Y - Y >= length_Y )
       {
          break ;
@@ -3701,9 +4018,11 @@ INT32 Event::refreshDS_Table( DynamicSnapshotOutPut &DS, INT32 ROW, INT32 COL,
       }
       index_COL = 0 ;
       start_fixed_mobile = end_fixed_mobile ;
+      // print the title on the screen
       while( 1 )
       {
          Fixed = &DS.fixedField[end_fixed_mobile] ;
+         // if field can't completely display
          if( start_X + cellLength - X > length_X )
          {
             break ;
@@ -3712,10 +4031,12 @@ INT32 Event::refreshDS_Table( DynamicSnapshotOutPut &DS, INT32 ROW, INT32 COL,
          {
             break ;
          }
+         // only display the specified number field on one row
          if( index_COL >= COL )
          {
             break ;
          }
+         // get the title and its colour
          rc = getFieldNameAndColour( Fixed[0], displayMode,
                                      fieldName, fieldColour) ;
          if( rc )
@@ -3739,10 +4060,12 @@ INT32 Event::refreshDS_Table( DynamicSnapshotOutPut &DS, INT32 ROW, INT32 COL,
       while( 1 )
       {
          Mobile = &DS.mobileField[end_fixed_mobile - FLength] ;
+         // if field can't completely display
          if( start_X + cellLength - X > length_X )
             break ;
          if( end_fixed_mobile - FLength >= MLength )
             break ;
+         // only display the specified number field on one row
          if( index_COL >= COL )
             break ;
          rc = getFieldNameAndColour( Mobile[0], displayMode,
@@ -3766,12 +4089,14 @@ INT32 Event::refreshDS_Table( DynamicSnapshotOutPut &DS, INT32 ROW, INT32 COL,
          ++index_COL ;
       }
 
+      // title can't cover field's content
       start_Y += 1 ;
       if( start_Y - Y >= length_Y )
       {
          goto done ;
       }
 
+      // print the content which is stored in vector
       for( pos_snapshot = 0;
            pos_snapshot < input.cur_Snapshot.size();
            ++pos_snapshot )
@@ -3787,10 +4112,13 @@ INT32 Event::refreshDS_Table( DynamicSnapshotOutPut &DS, INT32 ROW, INT32 COL,
          while( 1 )
          {
             Fixed = &DS.fixedField[pos_Field] ;
+            // if field can't completely display
             if( start_X + cellLength - X > length_X )
                break ;
+            // if reach the end of fixedField, break
             if( pos_Field >= FLength )
                break ;
+            // if reach the scope of field which could display in the row
             if( pos_Field >= end_fixed_mobile)
                break ;
             getFieldNameAndColour( Fixed[0], displayMode, fieldName,
@@ -3820,8 +4148,10 @@ INT32 Event::refreshDS_Table( DynamicSnapshotOutPut &DS, INT32 ROW, INT32 COL,
          while( 1 )
          {
             Mobile = &DS.mobileField[pos_Field - FLength] ;
+            // if field can't completely display
             if( start_X + cellLength - X > length_X )
                break ;
+            // if reach the scope of field which could display in the row
             if( pos_Field >= end_fixed_mobile )
                break ;
             getFieldNameAndColour( Mobile[0], displayMode, fieldName,
@@ -3862,14 +4192,26 @@ error :
    goto done ;
 }
 
+// when displayType is DISPLAYTYPE_DYNAMIC_SNAPSHOT and Style is List
 INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
                              const string &autoSetType )
 {
+// step 1: adapt to the terminal and calculate the fitting ROW and COL
+// step 2: print the result of the snapshot field on its specific row
+// step 3: if on the end of mobile FieldStruct list or
+//         on the bottom of window, print over
+// step 4: if print isn't over , locate the next row, and then goto step 1
+// waring: the snapshot field is come from the FieldStruct list 
+//         which is added by fixed FieldStruct and mobile FieldStruct,
+//         it firstly come from the fixed FieldStruct and if on the end of
+//         fixed FieldStruct ,it will come from mobile FieldStruct
    INT32 rc                      = SDB_OK ;
    BSONObj bsonobj ;
    FieldStruct* Fixed            = NULL ;
    FieldStruct* Mobile           = NULL ;
+   // actualFixedFieldLength
    INT32 FLength                 = 0 ;
+   // actualMobileFieldLength
    INT32 MLength                 = 0 ;
    InputPanel &input             = root.input ;
    INT32 Y                       = position.referUpperLeft_Y ;
@@ -3882,7 +4224,9 @@ INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
    string dividingChar           = DIVIDINGCHAR ;
    INT32 dividingColour          = 0 ;
    string dividingLine           = NULLSTRING ;
+   // store the field title
    string fieldName              = NULLSTRING ;
+    // store the field colour
    Colours fieldColour ;
    fieldColour.backGroundColor   = 6 ;
    fieldColour.foreGroundColor   = 0 ;
@@ -3891,11 +4235,14 @@ INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
    string baseField              = DS.baseField ;
    string serialNumberAlignment  = LEFT ;
 
+   // store the sum of all field length in the scope of length_X
    INT32 sum                     = 0 ;
    UINT32 pos_snapshot           = 0 ;
    INT32 pairNumber              = 0 ;
    string result                 =  NULLSTRING ;
+   // use to traverse under the FLength
    INT32 fLength                 = 0 ;
+   // use to traverse under the MLength
    INT32 mLength                 = 0 ;
    CHAR serialNumber[SERIALNUMBER_LENGTH] = {0} ;
    getColourPN( input.colourOfTheDividingLine, dividingColour );
@@ -3903,6 +4250,7 @@ INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
    MLength = DS.actualMobileFieldLength ;
    ossMemset( serialNumber, 0, SERIALNUMBER_LENGTH ) ;
 
+   // calculate the max scope of display field
    sum = 0 ;
    for( fLength = 0; fLength < FLength; ++fLength )
    {
@@ -3923,6 +4271,7 @@ INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
          break ;
       sum += Mobile->contentLength ;
    }
+   // use the max scope to get the best start_X to display field 
    rc = fixedOutputLocation( start_Y, X, start_Y, start_X,
                              0, length_X - sum, autoSetType );
    if( rc )
@@ -3930,12 +4279,16 @@ INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
       goto error ;
    }
 
+   // correct the location to display field
+   // title row can't display serialNumber
    start_X += SERIALNUMBER_LENGTH ;
    ++start_X ; // add separate pace
 
+   // print the title on the screen
    for( fLength = 0; fLength < FLength; ++fLength )
    {
       Fixed = &DS.fixedField[fLength] ;
+      // if field can't completely display
       if( start_X + Fixed->contentLength - X > length_X )
          break ;
       rc = getFieldNameAndColour( Fixed[0], displayMode, fieldName,
@@ -3954,6 +4307,7 @@ INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
       }
       attroff( COLOR_PAIR( pairNumber ) ) ;
       
+      // print the dividingLine
       attron( COLOR_PAIR( dividingColour ) ) ;
       dividingLine = getDividingLine( DIVIDINGCHAR, Fixed->contentLength ) ;
       rc = mvprintw_SDBTOP( dividingLine, Fixed->contentLength,
@@ -3967,11 +4321,14 @@ INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
       ++start_X ; // add separate pace
    }
 
+   // correct the diection of operation
+   // should display the last field
    if( input.fieldPosition >= MLength )
    {
       input.fieldPosition = MLength - 1 ;
    }
 
+   // start display on the specific index from the diection of operation
    for( mLength = input.fieldPosition; mLength < MLength; ++mLength )
    {
       Mobile = &DS.mobileField[mLength] ;
@@ -3993,6 +4350,7 @@ INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
       }
       attroff( COLOR_PAIR( pairNumber ) ) ;
 
+      // print the dividingLine
       attron( COLOR_PAIR( dividingColour ) ) ;
       dividingLine = getDividingLine( DIVIDINGCHAR, Mobile->contentLength ) ;
       rc = mvprintw_SDBTOP( dividingLine, Mobile->contentLength,
@@ -4006,6 +4364,7 @@ INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
       ++start_X ; // add separate pace
    }
 
+   // title can't cover field's content
    start_Y += 2 ; //
    if( start_Y - Y >= length_Y )
    {
@@ -4013,12 +4372,15 @@ INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
    }
    fixedOutputLocation( start_Y, X, start_Y, start_X, 0, length_X -sum ,
                         autoSetType ) ;
+   //print the content on the screen
    for( pos_snapshot = 0;pos_snapshot < input.cur_Snapshot.size();
         ++pos_snapshot )
    {
 
+      // print the serial number on the screen
       ossMemset( serialNumber, 0, SERIALNUMBER_LENGTH ) ;
 
+      // get the row number
       ossSnprintf( serialNumber, SERIALNUMBER_LENGTH,"%3d", pos_snapshot + 1 ) ;
       rc = mvprintw_SDBTOP( serialNumber, SERIALNUMBER_LENGTH,
                             serialNumberAlignment, start_Y, start_X ) ;
@@ -4027,6 +4389,7 @@ INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
          goto error;
       }
 
+      // correct the display location
       start_X += SERIALNUMBER_LENGTH ;
       ++start_X ; // add separate pace
 
@@ -4057,10 +4420,13 @@ INT32 Event::refreshDS_List( DynamicSnapshotOutPut &DS, Position &position,
          start_X += Fixed->contentLength ;
          ++start_X ; // add separate pace
       }
+      // correct the diection of operation
+      // should display the last field
       if( input.fieldPosition >= MLength )
       {
          input.fieldPosition = MLength - 1 ;
       }
+      // start display on the specific index from the diection of operation
       for( mLength = input.fieldPosition; mLength < MLength; ++mLength )
       {
          Mobile = &DS.mobileField[mLength] ;
@@ -4101,6 +4467,8 @@ done :
 error :
    goto done ;
 }
+// refresh infomation on the terminal
+// when displayType is DISPLAYTYPE_DYNAMIC_SNAPSHOT
 INT32 Event::refreshDS( DynamicSnapshotOutPut &DS, Position &position )
 {
    INT32 rc                      = SDB_OK ;
@@ -4159,6 +4527,7 @@ INT32 Event::refreshDS( DynamicSnapshotOutPut &DS, Position &position )
          goto error ;
       }
    }
+   // if( LIST == STYLE)
    else
    {
       refreshDS_List( DS, position, AUTOSETTYPE ) ;
@@ -4174,12 +4543,15 @@ error :
 
 }
 
+//refresh the specific displayConten by the specific displayType
 INT32 Event::refreshDisplayContent( DisplayContent &displayContent,
                                     string displayType,
                                     Position &actualPosition )
 {
    INT32 rc = SDB_OK ;
    INT32 pairNumber  = 0 ;
+   // the follow if-else statement decide which refresh operation
+   // would be used
    if( DISPLAYTYPE_STATICTEXT_HELP_Header == displayType ||
        DISPLAYTYPE_STATICTEXT_MAIN        == displayType ||
        DISPLAYTYPE_STATICTEXT_LICENSE     == displayType )
@@ -4237,9 +4609,11 @@ error :
    goto done ;
 }
 
+// refresh the nodeWindow of the specific panel
 INT32 Event::refreshNodeWindow( NodeWindow &window )
 {
    INT32 rc = SDB_OK ;
+   //used to store the termial position infomation
    Position actualPosition ;
    INT32 row = 0;
    INT32 col = 0;
@@ -4247,6 +4621,8 @@ INT32 Event::refreshNodeWindow( NodeWindow &window )
    actualPosition.length_Y = 0 ;
    actualPosition.referUpperLeft_X = 0 ;
    actualPosition.referUpperLeft_Y = 0 ;
+   // get the position of the window on the terminal
+   // which need to refreshed
    rc = getActualPosition( actualPosition, window.position,
                            window.zoomMode, window.occupyMode) ;
    if( rc )
@@ -4259,11 +4635,14 @@ INT32 Event::refreshNodeWindow( NodeWindow &window )
                    errStrBuf ) ;
       goto error ;
    }
+   // terminal's row and col should longer than the window's limit
+   // which is set in the sdbtop.xml
    getmaxyx( stdscr, row, col ) ;
    if( row < window.actualWindowMinRow || col < window.actualWindowMinColumn )
    {
       goto done ;
    }
+   // refresh the window's content by displayType
    rc = refreshDisplayContent( window.displayContent, window.displayType,
                                actualPosition ) ;
    if( rc )
@@ -4282,6 +4661,7 @@ error :
    goto done ;
 }
 
+//refresh the header or footer
 INT32 Event::refreshHT( HeadTailMap *headtail )
 {
    INT32 rc = SDB_OK ;
@@ -4310,10 +4690,12 @@ error :
    goto done ;
 }
 
+// refresh the body panel
 INT32 Event::refreshBD( BodyMap *body )
 {
    INT32 rc = SDB_OK ;
    INT32 numOfSubWindow = 0 ;
+   // refresh all window of the body panel
    for( numOfSubWindow = 0;
         numOfSubWindow < body->value.numOfSubWindow;
         ++numOfSubWindow )
@@ -4351,6 +4733,8 @@ void Event::initAllColourPairs()
    }
 }
 
+// put the keySuit which is write in the source file
+// on the end of the root.keySuit[]
 INT32 Event::addFixedHotKey()
 {
    INT32 rc = SDB_OK ;
@@ -4566,6 +4950,9 @@ INT32 Event::matchNameInFieldStruct( const FieldStruct *src,
    goto done ;
 }
 
+// "DisplayName" come from terminal which is input by people
+// according to "DisplayName", find the field name on the BSONObj
+// which is combined into the filter condition
 INT32 Event::matchSourceFieldByDisplayName( const string DisplayName )
 {
    INT32 rc = SDB_OK ;
@@ -4617,6 +5004,11 @@ done :
    return rc ;
 }
 
+// judge which event should do with the key come from the result 
+// of function Event::getTopKey_SDBTOP()
+// if isFirstStart is true and the key is no meaning ,don't show anything
+// if isFirstStart is false, it is meaning the body is help panel, when the key
+// is no meaning don't close the help panel
 INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
 {
    INT32 rc = SDB_OK ;
@@ -4660,6 +5052,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
       }
       if( !hotKey )
       {
+         // if can't match any hotkey and activatedPanel is help, still stay here
          if( !isFirstStart )
          {
                rc = eventManagement( BUTTON_H_LOWER, FALSE );
@@ -4667,8 +5060,12 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
       }
       else
       {
+         // jump to other panel
+         // initialize some field of the struct root
          if( JUMPTYPE_PANEL == hotKey->jumpType )
          {
+            // point to the goal body panel
+            // and it became a activatedPanel
             rc = assignActivatedPanelByLabelName( &input.activatedPanel,
                         hotKey->jumpName ) ;
             if( rc )
@@ -4680,6 +5077,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                             errStrBuf ) ;
                goto error ;
             }
+            // equal 0 meaning displayMode is ABSOLUTE
             input.displayModeChooser = 0 ;
             input.snapshotModeChooser = GLOBAL ;
             input.forcedToRefresh_Global = REFRESH ;
@@ -4689,6 +5087,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
             input.filterCondition= NULLSTRING;
             input.isFirstGetSnapshot = TRUE ;
          }
+         // process the event when the key is write fixed in program
          else if( JUMPTYPE_FIXED == hotKey->jumpType )
          {
             if( hotKey->button >= 256 )
@@ -4803,7 +5202,9 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
             curs_set( 2 ) ;
             ossMemset( sdbtopBuffer, 0, BUFFERSIZE ) ;
             move( row - 1, 0 ) ;
+            //clear screen from the position of cursor to the end of screen
             clrtobot() ;
+            //nocbreak() ;
             echo() ;
             mvprintw( row - 1 , ( col - note.length() ) / 2, note.c_str() ) ;
             if( BUTTON_ESC == getnstr( sdbtopBuffer, BUFFERSIZE ) )
@@ -4817,6 +5218,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                input.snapshotModeChooser = GROUP ;
                input.forcedToRefresh_Global = REFRESH ;
             }
+            //cbreak() ;
             noecho() ;
             curs_set( 0 ) ;
          }
@@ -4832,7 +5234,9 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
             curs_set( 2 ) ;
             ossMemset( sdbtopBuffer, 0, BUFFERSIZE ) ;
             move( row - 1, 0 ) ;
+            //clear screen from the position of cursor to the end of screen
             clrtobot() ;
+            //nocbreak() ;
             echo() ;
             mvprintw( row - 1 , ( col - note.length() ) / 2, note.c_str() ) ;
             if( BUTTON_ESC == getnstr( sdbtopBuffer, BUFFERSIZE ) )
@@ -4846,6 +5250,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                input.snapshotModeChooser = NODE ;
                input.forcedToRefresh_Global = REFRESH ;
             }
+            //cbreak() ;
             noecho() ;
             curs_set( 0 ) ;
          }
@@ -4861,7 +5266,9 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
             curs_set( 2 ) ;
             ossMemset( sdbtopBuffer, 0, BUFFERSIZE ) ;
             move( row - 1, 0 ) ;
+            //clear screen from the position of cursor to the end of screen
             clrtobot() ;
+            //nocbreak() ;
             echo() ;
             mvprintw( row - 1 , ( col - note.length() ) / 2, note.c_str() ) ;
             if( BUTTON_ESC == getnstr( sdbtopBuffer, BUFFERSIZE ) )
@@ -4876,6 +5283,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                matchSourceFieldByDisplayName( displayName ) ;
                input.forcedToRefresh_Global = REFRESH ;
             }
+            //cbreak() ;
             noecho() ;
             curs_set( 0 ) ;
          }
@@ -4891,7 +5299,9 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
             curs_set( 2 );
             ossMemset( sdbtopBuffer, 0, BUFFERSIZE );
             move( row - 1, 0 );
+            //clear screen from the position of cursor to the end of screen
             clrtobot();
+            //nocbreak() ;
             echo() ;
             mvprintw( row - 1 , ( col - note.length() ) / 2, note.c_str() ) ;
             if( BUTTON_ESC == getnstr( sdbtopBuffer, BUFFERSIZE ) )
@@ -4906,6 +5316,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                matchSourceFieldByDisplayName( displayName ) ;
                input.forcedToRefresh_Global = REFRESH ;
             }
+            //cbreak() ;
             noecho() ;
             curs_set( 0 ) ;
          }
@@ -4921,7 +5332,9 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
             curs_set( 2 ) ;
             ossMemset( sdbtopBuffer, 0, BUFFERSIZE ) ;
             move( row - 1, 0 ) ;
+            //clear screen from the position of cursor to the end of screen
             clrtobot() ;
+            //nocbreak() ;
             echo() ;
             mvprintw( row - 1 , ( col - note.length() ) / 2, note.c_str() ) ;
             if( BUTTON_ESC == getnstr( sdbtopBuffer, BUFFERSIZE ) )
@@ -4934,6 +5347,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                trim( input.filterCondition ) ;
                input.forcedToRefresh_Global = REFRESH ;
             }
+            //cbreak() ;
             noecho() ;
             curs_set( 0 ) ;
          }
@@ -4959,7 +5373,9 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
             curs_set( 2 ) ;
             ossMemset( sdbtopBuffer, 0, BUFFERSIZE ) ;
             move( row - 1, 0 ) ;
+            //clear screen from the position of cursor to the end of screen
             clrtobot() ;
+            //nocbreak() ;
             echo() ;
             mvprintw( row - 1 , ( col - note.length() ) / 2, note.c_str() ) ;
             if( BUTTON_ESC == getnstr( sdbtopBuffer, BUFFERSIZE ) )
@@ -4971,18 +5387,22 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                displayName = sdbtopBuffer ;
                trim( displayName ) ;
                rc = strToNum( displayName.c_str(), filterNum ) ;
+               // illegal input 
                if( rc )
                {
                  filterNum = 0 ;
+                 // it isn't a tool error, restore status
                  rc = SDB_OK ;
                }
                input.filterNumber += filterNum ;
+               // if input.filterNumber is negative, restore to zero
                if( 0 > input.filterNumber )
                {
                   input.filterNumber = 0 ;
                }
                input.forcedToRefresh_Global = REFRESH ;
             }
+            //cbreak() ;
             noecho() ;
             curs_set( 0 ) ;
          }
@@ -5010,7 +5430,9 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
             curs_set( 2 ) ;
             ossMemset( sdbtopBuffer, 0, BUFFERSIZE ) ;
             move( row - 1, 0 ) ;
+            //clear screen from the position of cursor to the end of screen
             clrtobot() ;
+            //nocbreak() ;
             echo() ;
             mvprintw( row - 1 , ( col - note.length() ) / 2, note.c_str() ) ;
             if( BUTTON_ESC == getnstr( sdbtopBuffer, BUFFERSIZE ) )
@@ -5022,8 +5444,10 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                displayName = sdbtopBuffer ;
                trim( displayName ) ;
                rc = strToNum( displayName.c_str(), refreshInterval ) ;
+               // illegal input 
                if( rc || 0 > refreshInterval )
                {
+                 // it isn't a tool error, restore status
                  rc = SDB_OK ;
                }
                else
@@ -5032,6 +5456,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                   input.forcedToRefresh_Global = REFRESH ;
                }
             }
+            //cbreak() ;
             noecho() ;
             curs_set( 0 ) ;
          }
@@ -5043,6 +5468,8 @@ error :
    goto done ;
 }
 
+// refresh header,body and footer one time
+// when refreshAfterClean is true, should refresh right now after clear()
 INT32 Event::refreshAll( HeadTailMap *header, BodyMap *body,
                          HeadTailMap *footer, BOOLEAN refreshAferClean )
 {
@@ -5090,6 +5517,7 @@ INT32 Event::runSDBTOP( )
    root.input.forcedToRefresh_Global = NOTREFRESH ;
    root.input.forcedToRefresh_Local= NOTREFRESH ;
 
+   // read the configuration and store it on the specific struct
    rc = storeRootWindow( root ) ;
    if( rc )
    {
@@ -5099,6 +5527,7 @@ INT32 Event::runSDBTOP( )
                    errStrBuf ) ;
       goto error ;
    }
+   // extend the root.keySuite 
    rc = addFixedHotKey() ;
    if( rc )
    {
@@ -5177,11 +5606,13 @@ INT32 Event::runSDBTOP( )
 
       waitTime.tv_sec -= ( endTime.tv_sec - startTime.tv_sec ) ;
       waitTime.tv_usec -= ( endTime.tv_usec - startTime.tv_usec ) ;
+      //if out of scope , reset waitTime.tv_sec
       if( 0 > waitTime.tv_sec )
       {
          waitTime.tv_sec = 0 ;
          waitTime.tv_usec = 0 ;
       }
+      //if out of scope , reset waitTime.tv_usec
       else if( 0 > waitTime.tv_usec )
       {
          if( 1 > waitTime.tv_sec )
@@ -5205,6 +5636,7 @@ INT32 Event::runSDBTOP( )
          FD_ZERO ( &fds ) ;
          FD_SET ( STDIN, &fds ) ;
          rc = select ( maxfd, &fds, NULL, NULL, &waitTime ) ;
+         // when window change the size, we should refresh the terminal
          if( rc < 0 )
          {
             rc = refreshAll( header, root.input.activatedPanel, footer, FALSE ) ;
@@ -5275,6 +5707,7 @@ void displayArg ( po::options_description &desc )
    std::cout << desc << std::endl ;
 }
 
+// resolve input argument
 INT32 resolveArgument ( po::options_description &desc,
                         INT32 argc, CHAR **argv )
 {
@@ -5383,12 +5816,14 @@ INT32 main( INT32 argc, CHAR **argv)
    Event sdbtop ;
    po::options_description desc ( "Command options" ) ;
    init ( desc ) ;
+   // save the program's path
    rc = setProgramName( argv[0] ) ;
    if ( rc )
    {
       ossPrintf( "Failed to set program's path"OSS_NEWLINE ) ;
       goto error ;
    }
+   // get the program's path
    rc = getProgramPath( progPath ) ;
    if ( rc )
    {

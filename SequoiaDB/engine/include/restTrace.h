@@ -29,6 +29,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef restTRACE_H__
 #define restTRACE_H__
+// Component: rest
 #define SDB__RESTADP_PARQUERY                              0x400000000001e5L
 #define SDB__RESTADP_SWITCHMSG                             0x400000000001e6L
 #define SDB__RESTADP_CONVERTMSG                            0x400000000001e7L

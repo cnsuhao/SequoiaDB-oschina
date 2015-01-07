@@ -61,6 +61,7 @@ void OptGen::loadFromXML ()
                cout<<"Failed to allocate memory for OptElement"<<endl ;
                exit(0) ;
             }
+            // name and long tag
             try
             {
                newele->nametag = v.second.get<string>(NAMETAG) ;
@@ -71,6 +72,7 @@ void OptGen::loadFromXML ()
                cout << "Name and Long tags are required: " << e.what() << endl ;
                continue ;
             }
+            // short tag could be empty
             try
             {
                newele->shorttag = v.second.get<string>(SHORTTAG).c_str()[0] ;
@@ -78,6 +80,7 @@ void OptGen::loadFromXML ()
             catch ( std::exception & )
             {}
 
+            // description tag could be empty
             try
             {
                newele->desctag = v.second.get_child(DESCRIPTIONTAG
@@ -86,6 +89,7 @@ void OptGen::loadFromXML ()
             catch ( std::exception & )
             {}
 
+            // default tag could be empty
             try
             {
                newele->defttag = v.second.get<string>(DEFAULTTAG) ;
@@ -93,6 +97,7 @@ void OptGen::loadFromXML ()
             catch ( std::exception & )
             {}
 
+            // catalog default tag could be empty
             try
             {
                newele->catatag = v.second.get<string>(CATALOGTAG) ;
@@ -100,6 +105,7 @@ void OptGen::loadFromXML ()
             catch ( std::exception & )
             {}
 
+            // coord default tag could be empty
             try
             {
                newele->cordtag = v.second.get<string>(COORDTAG) ;
@@ -107,6 +113,7 @@ void OptGen::loadFromXML ()
             catch ( std::exception & )
             {}
 
+			// standalone default tag could be empty
 			try
 			{
 			   newele->standtag= v.second.get<string>(STANDTAG) ;
@@ -115,6 +122,7 @@ void OptGen::loadFromXML ()
 			{}
 						
 
+            // data default tag could be empty
             try
             {
                newele->datatag = v.second.get<string>(DATATAG) ;
@@ -122,6 +130,7 @@ void OptGen::loadFromXML ()
             catch ( std::exception & )
             {}
 
+            // type tag could be empty, by default it's string
             try
             {
                newele->typetag = v.second.get<string>(TYPETAG) ;
@@ -133,6 +142,7 @@ void OptGen::loadFromXML ()
                newele->typetag = "string" ;
             }
 
+            // hidden tag could be empty, by default it's false
             try
             {
                ossStrToBoolean ( v.second.get<string>(HIDDENTAG).c_str(),
@@ -197,6 +207,7 @@ void OptGen::genHeaderC ()
     fout<<"#ifndef PMDOPTIONS_H_"<<endl ;
     fout<<"#define PMDOPTIONS_H_"<<endl ;
 
+    // list variables
     for (int i = 0; i < optlist.size(); ++i)
     {
         OptElement *optEle = optlist[i] ;
@@ -251,6 +262,7 @@ void OptGen::genHeaderCpp ()
         <<"#define PMDOPTIONS_HPP_"<<endl<<endl ;
 
     fout <<"#include \""HEADERNAME".h\"" << endl ;
+    // unhidden tags
     fout<<"#define PMD_COMMANDS_OPTIONS \\"<<endl ;
     for (int i = 0; i < optlist.size(); ++i)
     {
@@ -268,6 +280,7 @@ void OptGen::genHeaderCpp ()
     }
     fout<<endl;
 
+    // hidden tags
     fout<<"#define PMD_HIDDEN_COMMANDS_OPTIONS \\"<<endl ;
     for (int i = 0; i < optlist.size(); ++i)
     {
@@ -326,6 +339,7 @@ void OptGen::genCatalogSample()
         exit(0);
     }
     genSampleHeader ( fout ) ;
+    // unhidden variables
     for (int i = 0; i < optlist.size(); ++i)
     {
         OptElement *optEle = optlist[i] ;
@@ -350,6 +364,7 @@ void OptGen::getStandAloneSample()
     }
 	genSampleHeader ( fout ) ;
 
+	// unhidden variables
     for (int i = 0; i < optlist.size(); ++i)
     {
         OptElement *optEle = optlist[i] ;
@@ -375,6 +390,7 @@ void OptGen::genCoordSample()
         exit(0);
     }
     genSampleHeader ( fout ) ;
+    // unhidden variables
     for (int i = 0; i < optlist.size(); ++i)
     {
         OptElement *optEle = optlist[i] ;
@@ -397,6 +413,7 @@ void OptGen::genDataSample()
         exit(0);
     }
     genSampleHeader ( fout ) ;
+    // unhidden variables
     for (int i = 0; i < optlist.size(); ++i)
     {
         OptElement *optEle = optlist[i] ;

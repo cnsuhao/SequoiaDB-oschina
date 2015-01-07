@@ -130,6 +130,8 @@ namespace engine
                goto done ;
             }
 
+            /// TODO: no need to create a new bsonobj everytime when it's type is not a
+            /// variable.
             obj = _qgmConditionNodeHelper::toBson( node->right,
                                              node->left->value.attr().begin(),
                                              node->left->value.attr().size() ) ;

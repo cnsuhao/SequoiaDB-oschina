@@ -194,6 +194,7 @@ INT32 main( INT32 argc, CHAR **argv )
    }
    else
    {
+      /// do nothing
    }
 
    rc = r.run(plan);

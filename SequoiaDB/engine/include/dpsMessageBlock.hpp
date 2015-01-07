@@ -55,7 +55,9 @@ namespace engine
       CHAR *_start;
       CHAR *_write;
       CHAR *_read;
+      // size is the size of buffer
       UINT32 _size;
+      // length is the size with active user data
       UINT32 _length;
 
    public:

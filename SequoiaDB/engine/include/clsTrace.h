@@ -29,6 +29,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef clsTRACE_H__
 #define clsTRACE_H__
+// Component: cls
 #define SDB__CLSSRCSL__CLSSRCSL                            0x800000556L
 #define SDB__CLSSRCSL_GETFLSYNSRC                          0x800000557L
 #define SDB__CLSSRCSL_GETSYNCSRC                           0x800000558L

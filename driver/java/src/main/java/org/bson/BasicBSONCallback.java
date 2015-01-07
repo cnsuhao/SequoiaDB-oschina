@@ -1,3 +1,4 @@
+// BasicBSONCallback.java
 
 /**
  *      Copyright (C) 2008 10gen Inc.
@@ -49,6 +50,7 @@ public class BasicBSONCallback implements BSONCallback {
 		return new BasicBSONList();
 	}
 
+	//@Override
 	public BSONCallback createBSONCallback() {
 		return new BasicBSONCallback();
 	}
@@ -58,17 +60,20 @@ public class BasicBSONCallback implements BSONCallback {
 		return create();
 	}
 
+	//@Override
 	public void objectStart() {
 		if (_stack.size() > 0) throw new IllegalStateException("something is wrong");
 
 		objectStart(false);
 	}
 
+	//@Override
 	public void objectStart(boolean array) {
 		_root = create(array, null);
 		_stack.add((BSONObject) _root);
 	}
 
+	//@Override
 	public void objectStart(String name) {
 		objectStart(false, name);
 	}
@@ -80,6 +85,7 @@ public class BasicBSONCallback implements BSONCallback {
 		_stack.addLast(o);
 	}
 
+	//@Override
 	public Object objectDone() {
 		final BSONObject o = _stack.removeLast();
 		if (_nameStack.size() > 0)
@@ -89,82 +95,102 @@ public class BasicBSONCallback implements BSONCallback {
 		return !BSON.hasDecodeHooks() ? o : (BSONObject) BSON.applyDecodingHooks(o);
 	}
 
+	//@Override
 	public void arrayStart() {
 		objectStart(true);
 	}
 
+	//@Override
 	public void arrayStart(String name) {
 		objectStart(true, name);
 	}
 
+	//@Override
 	public Object arrayDone() {
 		return objectDone();
 	}
 
+	//@Override
 	public void gotNull(String name) {
 		cur().put(name, null);
 	}
 
+	//@Override
 	public void gotUndefined(String name) {
 	}
 
+	//@Override
 	public void gotMinKey(String name) {
 		cur().put(name, new MinKey());
 	}
 
+	//@Override
 	public void gotMaxKey(String name) {
 		cur().put(name, new MaxKey());
 	}
 
+	//@Override
 	public void gotBoolean(String name, boolean v) {
 		_put(name, v);
 	}
 
+	//@Override
 	public void gotDouble(final String name, final double v) {
 		_put(name, v);
 	}
 
+	//@Override
 	public void gotInt(final String name, final int v) {
 		_put(name, v);
 	}
 
+	//@Override
 	public void gotLong(final String name, final long v) {
 		_put(name, v);
 	}
 
+	//@Override
 	public void gotDate(String name, long millis) {
 		_put(name, new Date(millis));
 	}
 
+	//@Override
 	public void gotRegex(String name, String pattern, String flags) {
 		_put(name, Pattern.compile(pattern, BSON.regexFlags(flags)));
 	}
 
+	//@Override
 	public void gotString(final String name, final String v) {
 		_put(name, v);
 	}
 
+	//@Override
 	public void gotSymbol(String name, String v) {
 		_put(name, v);
 	}
 
+	//@Override
 	public void gotTimestamp(String name, int time, int inc) {
 		_put(name, new BSONTimestamp(time, inc));
 	}
 
+	//@Override
 	public void gotObjectId(String name, ObjectId id) {
 		_put(name, id);
 	}
 
+	//@Override
 	public void gotDBRef(String name, String ns, ObjectId id) {
 		_put(name, new BasicBSONObject("$ns", ns).append("$id", id));
 	}
 
+	//@Override
 	@Deprecated
 	public void gotBinaryArray(String name, byte[] data) {
 		gotBinary(name, BSON.B_GENERAL, data);
 	}
 
+	//@Override
 	public void gotBinary(String name, byte type, byte[] data) {
 		if (type == BSON.B_GENERAL || type == BSON.B_BINARY)
 			_put(name, data);
@@ -172,14 +198,17 @@ public class BasicBSONCallback implements BSONCallback {
 			_put(name, new Binary(type, data));
 	}
 
+	//@Override
 	public void gotUUID(String name, long part1, long part2) {
 		_put(name, new UUID(part1, part2));
 	}
 
+	//@Override
 	public void gotCode(String name, String code) {
 		_put(name, new Code(code));
 	}
 
+	//@Override
 	public void gotCodeWScope(String name, String code, Object scope) {
 		_put(name, new CodeWScope(code, (BSONObject) scope));
 	}
@@ -196,6 +225,7 @@ public class BasicBSONCallback implements BSONCallback {
 		return (!_nameStack.isEmpty()) ? _nameStack.getLast() : null;
 	}
 
+	//@Override
 	public Object get() {
 		return _root;
 	}
@@ -208,6 +238,7 @@ public class BasicBSONCallback implements BSONCallback {
 		return _stack.size() < 1;
 	}
 
+	//@Override
 	public void reset() {
 		_root = null;
 		_stack.clear();

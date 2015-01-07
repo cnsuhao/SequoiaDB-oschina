@@ -43,6 +43,7 @@
 
 namespace engine
 {
+   /// TODO:we should not use nljoin here indeed.
    class _qgmOptiNLJoin : public _qgmOptiTreeNode
    {
    public:

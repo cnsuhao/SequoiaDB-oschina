@@ -55,6 +55,7 @@ namespace engine
    
    static ossSpinSLatch *locks = NULL ;
 
+   // callback function 1
    void lock_callback( INT32 mode, INT32 type, CHAR *file, INT32 line )
    {
       if ( mode & CRYPTO_LOCK )
@@ -63,21 +64,25 @@ namespace engine
          locks[type].release() ;
    }
 
+   // callback function 2
    UINT64 thread_id( void )
    {
       return (UINT64)ossGetCurrentThreadID() ;
    }
 
+   // set 2 callback functions
    void ssh2_user_init( void )
    {
       if ( NULL == locks )
       {
+         /// _locks is delete[] in ssh2_user_cleanup
          locks = SDB_OSS_NEW ossSpinSLatch[CRYPTO_num_locks()] ;
          if ( NULL == locks )
          {
             PD_LOG ( PDERROR, "Failed to new[] memory, rc = %d", SDB_OOM ) ;
             ossPanic() ;
          }
+         // TODO: have not macro for "unsigned long"
          CRYPTO_set_id_callback( (unsigned long(*)())thread_id) ;
          CRYPTO_set_locking_callback((void(*)(INT32, INT32, const CHAR*, INT32))lock_callback) ;
       }
@@ -85,6 +90,7 @@ namespace engine
 
    void ssh2_user_cleanup( void )
    {
+      /// when nobody use _locks, delete[] it
       if ( NULL != locks )
       {
          SDB_OSS_DEL[] locks ;
@@ -127,6 +133,7 @@ namespace engine
                              LIBSSH2_USERAUTH_KBDINT_RESPONSE *responses,
                              void **abstract )
    {
+      // disable warning
       (void)name ;
       (void)name_len ;
       (void)instruction ;
@@ -194,6 +201,7 @@ namespace engine
          goto error ;
       }
 
+      // check auth type
       authList = libssh2_userauth_list( _session, _usr.c_str(),
                                         ossStrlen( _usr.c_str() ) ) ;
 
@@ -423,6 +431,7 @@ namespace engine
 
          eixtcode = libssh2_channel_get_exit_status( _channel ) ;
 
+         /// we don't own the signal's mem.
          libssh2_channel_get_exit_signal(_channel, &sig,
                                          NULL, NULL, NULL, NULL, NULL);
          if ( NULL != sig )
@@ -448,6 +457,7 @@ namespace engine
       CHAR *msg = NULL ;
       INT32 errLen = 0 ;
 
+      /// we do not want to own the mem. set want_buf = 0.
       if ( NULL != _session )
       {
          libssh2_session_last_error( _session, &msg, &errLen, 0 ) ;

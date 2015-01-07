@@ -98,6 +98,7 @@ namespace engine
          OSS_INLINE void setLocalID( const MsgRouteID &id )
          {
             _info.local = id ;
+            /// _agent was set by clsMgr.
          }
 
          OSS_INLINE void setFullSync( BOOLEAN fullSync )
@@ -275,8 +276,10 @@ namespace engine
          ossRWMutex              _vecLatch ;
          std::vector<_clsDataSrcBaseSession*> _vecSrcSessions ;
 
+         // notify queue
          ossQueue< clsLSNNtyInfo >  _ntyQue ;
 
+         // sync control param
          UINT64                  _totalLogSize ;
          UINT64                  _sizethreshold[ CLS_SYNCCTRL_THRESHOLD_SIZE ] ;
          UINT32                  _timeThreshold[ CLS_SYNCCTRL_THRESHOLD_SIZE ] ;

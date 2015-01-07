@@ -68,6 +68,7 @@ namespace engine
       std::cout << desc << std::endl ;
    }
 
+   // initialize options
    INT32 initArgs ( INT32 argc, CHAR **argv, po::variables_map &vm,
                     BOOLEAN &asProc )
    {
@@ -78,6 +79,7 @@ namespace engine
          COMMANDS_OPTIONS
       PMD_ADD_PARAM_OPTIONS_END
 
+      // validate arguments
       rc = utilReadCommandLine( argc, argv, desc, vm ) ;
       if ( rc )
       {
@@ -86,6 +88,7 @@ namespace engine
          goto done ;
       }
 
+      /// read cmd first
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          displayArg( desc ) ;
@@ -130,6 +133,7 @@ namespace engine
          ossPrintf( "Failed to make dialog path, rc: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
+      // make sure the dir exist
       rc = ossMkdir( dialogFile, OSS_CREATE|OSS_READWRITE ) ;
       if ( rc && SDB_FE != rc )
       {
@@ -155,6 +159,7 @@ namespace engine
          goto error ;
       }
 
+      // enable pd log
       sdbEnablePD( dialogFile ) ;
       setPDLevel( PDINFO ) ;
 

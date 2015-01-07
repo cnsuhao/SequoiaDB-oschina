@@ -17,11 +17,11 @@
 
 二、使用指南
     1、使用sdbsupport工具
-       >chmod +x sdbsupport.sh  "为sdbsupport工具赋执行权限；此为sdbsupport工具的主执行脚本"
+       >chmod +x sdbsupport.sh   "为sdbsupport工具赋执行权限；此为sdbsupport工具的主执行脚本"
 
        >./sdbsupport.sh --help   "参数--help:显示sdbsupport工具的各类参数信息"
-       >./sdbsupport.sh   "不带参数：收集本机的所有信息[日志信息/快照信息/硬件信息/操作系统信息]"
-       >./sdbsupport.sh --all  "参数--all:收集集群所有主机的所有信息[日志信息/快照信息/硬件信息/操作系统信息]"
+       >./sdbsupport.sh          "不带参数：收集本机的所有信息[日志信息/快照信息/硬件信息/操作系统信息]"
+       >./sdbsupport.sh --all    "参数--all:收集集群所有主机的所有信息[日志信息/快照信息/硬件信息/操作系统信息]"
        >./sdbsupport.sh -N hostname1   "参数-N：收集主机hostname1的所有信息"
 
        >./sdbsupport.sh -N hostname1：hostname2 -p 50000:30000 --snapshot  --hardware --osinfo

@@ -29,6 +29,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef catTRACE_H__
 #define catTRACE_H__
+// Component: cat
 #define SDB_CATNODEMGR_INIT                                0x400000224L
 #define SDB_CATNODEMGR_ACTIVE                              0x400000225L
 #define SDB_CATNODEMGR_DEACTIVE                            0x400000226L

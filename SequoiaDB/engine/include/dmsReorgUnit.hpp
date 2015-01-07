@@ -81,9 +81,11 @@ namespace engine
       void reset () ;
       INT32 cleanup () ;
       INT32 flush () ;
+      // MME is always DMS_MB_SIZE bytes
       INT32 importMME ( const CHAR *pMME ) ;
       INT32 insertRecord ( BSONObj &obj, _pmdEDUCB *cb, UINT32 attributes ) ;
       INT32 exportMME ( CHAR *pBuffer ) ;
+      // based on pagesize
       INT32 getNextExtentSize ( SINT32 &size ) ;
       INT32 exportExtent ( CHAR *pBuffer ) ;
       INT32 getHeadSize ()

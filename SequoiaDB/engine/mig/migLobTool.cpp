@@ -605,6 +605,7 @@ const UINT32 BUF_SIZE = 2 * 1024 * 1024 ;
          goto error ;
       }
 
+      /// header will be invalid.
       totalNum = header->totalNum ;
       for ( UINT64 i = 0; i < totalNum; ++i )
       {

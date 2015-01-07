@@ -72,6 +72,8 @@ namespace engine
                   _pmdEDUCB *cb,
                   UINT32 &read ) ;
  
+      /// buf may be invalid when do next read.
+      /// copy data to your own buf if necessary.
       INT32 next( _pmdEDUCB *cb,
                   const CHAR **buf,
                   UINT32 &len ) ;

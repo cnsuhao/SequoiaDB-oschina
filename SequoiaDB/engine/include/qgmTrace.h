@@ -29,6 +29,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef qgmTRACE_H__
 #define qgmTRACE_H__
+// Component: qgm
 #define SDB__QGMPLDELETE__EXEC                             0x800000000000149L
 #define SDB__QGMPARAMTABLE_ADDCONST                        0x80000000000014aL
 #define SDB__QGMPARAMTABLE_ADDCONST2                       0x80000000000014bL

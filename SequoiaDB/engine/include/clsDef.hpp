@@ -66,6 +66,7 @@ namespace engine
    #define CLS_NODEID(sessionid)       ((UINT32)(sessionid >> 32))
 
 
+   //full sync node timeout
    #define CLS_FS_NORES_TIMEOUT 10000
    #define CLS_DST_SESSION_NO_MSG_TIME          (300000)
    #define CLS_SRC_SESSION_NO_MSG_TIME          (10000)
@@ -255,6 +256,8 @@ namespace engine
       DPS_LSN_OFFSET endLsn ;
       _pmdEDUCB *eduCB ;
 
+      /// local write has been completed.
+      /// synced starts from one.
       _clsSyncSession():endLsn(DPS_INVALID_LSN_OFFSET), eduCB( NULL)
       {}
 
@@ -302,6 +305,9 @@ namespace engine
 
       BOOLEAN isValid() const
       {
+         // 1. already full sync
+         // 2. sharing-break
+         // 3. same sync req more than 20 times
          if ( DPS_INVALID_LSN_OFFSET == offset ||
               !valid ||
               sameReqTimes > CLS_SAME_SYNC_LSN_MAX_TIMES )

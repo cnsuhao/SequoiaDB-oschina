@@ -1,3 +1,4 @@
+// BSONObject.java
 
 /**
  *      Copyright (C) 2008 10gen Inc.
@@ -46,6 +47,7 @@ public interface BSONObject {
 	 *            Corresponding value
 	 * @return <tt>v</tt>
 	 */
+	//public <T> boolean putBasicType(String key, T object);
 	
 	/**
 	 * Sets all key/value pairs from an object into this object

@@ -98,6 +98,7 @@ namespace engine
          BSONElement beSource     = boRequest.getField ( CAT_SOURCE_NAME ) ;
          BSONElement bePercent    = boRequest.getField ( CAT_SPLITPERCENT_NAME ) ;
 
+         // validate collection name and read
          PD_CHECK ( !beName.eoo() && beName.type() == String,
                     SDB_INVALIDARG, error, PDERROR,
                     "Invalid collection name: %s", beName.toString().c_str() ) ;
@@ -110,6 +111,7 @@ namespace engine
          ossStrncpy ( _szCollection, pCollectionName,
                          DMS_COLLECTION_SPACE_NAME_SZ +
                           DMS_COLLECTION_NAME_SZ + 1 ) ;
+         // validate target name and read
          PD_CHECK ( !beTarget.eoo() && beTarget.type() == String,
                     SDB_INVALIDARG, error, PDERROR,
                     "Invalid target group name: %s",
@@ -120,6 +122,7 @@ namespace engine
                     "target group name is too long: %s",
                     pTargetName ) ;
          ossStrncpy ( _szTargetName, pTargetName, OP_MAXNAMELENGTH ) ;
+         // validate source name and read
          PD_CHECK ( !beSource.eoo() && beSource.type() == String,
                     SDB_INVALIDARG, error, PDERROR,
                     "Invalid source group name: %s",
@@ -130,11 +133,13 @@ namespace engine
                     "source group name is too long: %s",
                     pSourceName ) ;
          ossStrncpy ( _szSourceName, pSourceName, OP_MAXNAMELENGTH ) ;
+         // read split key
          PD_CHECK ( !beSplitKey.eoo() && beSplitKey.type() == Object,
                     SDB_INVALIDARG, error, PDERROR,
                     "Invalid split key: %s",
                     beSplitKey.toString().c_str() ) ;
          _splitKey = beSplitKey.embeddedObject () ;
+         // percent
          _percent = bePercent.numberDouble() ;
       }
       catch ( std::exception &e )
@@ -462,6 +467,7 @@ namespace engine
       options = _alterObj.getField( FIELD_NAME_OPTIONS ).embeddedObject() ;
       shardingKey = options.getField( FIELD_NAME_SHARDINGKEY ) ;
 
+      /// TODO:should get catalog info to do some more judgements.
       if ( Object != shardingKey.type() )
       {
          PD_LOG( PDDEBUG, "no sharding key in the alter object, do noting." ) ;
@@ -485,6 +491,7 @@ namespace engine
                                   cb, dmsCB, dpsCB, TRUE ) ;
       if ( SDB_IXM_REDEF == rc )
       {
+         /// sharding key index already exists.
          rc = SDB_OK ;
          goto done ;
       }
@@ -495,11 +502,18 @@ namespace engine
       }
       else
       {
+        /// the version which is from coord has been updated.
+        /// we override the interface collectionFullName(). so
+        /// the local catalog info will be autoly updated before
+        /// this function is called.
         /*
+         /// catalog info has been updated, clear local's info.
+         /// it will download the last info when next request comes.
          catAgent *catAgent = sdbGetShardCB()->getCataAgent() ;
          catAgent->lock_w() ;
          catAgent->clear( collectionFullName() ) ;
          catAgent->release_w() ;
+         /// notify other secondary nodes to clear catalog info.
          sdbGetClsCB()->invalidateCata( collectionFullName() ) ;*/
       }
    done:

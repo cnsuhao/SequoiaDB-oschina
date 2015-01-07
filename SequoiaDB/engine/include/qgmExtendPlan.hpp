@@ -56,6 +56,7 @@ namespace engine
    public:
       INT32 extend( qgmOptiTreeNode *&extended ) ;
 
+      /// when local is not NULL, it will be defined as local.
       INT32 insertPlan( UINT32 id, qgmOptiTreeNode *ex = NULL ) ;
 
       OSS_INLINE qgmOptiTreeNode *getNode( UINT32 id )

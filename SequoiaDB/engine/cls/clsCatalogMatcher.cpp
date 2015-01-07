@@ -112,6 +112,7 @@ namespace engine
             if ( predicateSet.getLogicType() == CLS_CATA_LOGIC_OR &&
                  predicateSet.isUniverse() )
             {
+               // $or: ignore all predicatesets in universe set
                goto done ;
             }
          }
@@ -154,6 +155,7 @@ namespace engine
             if ( 'a' == pFieldName[1] && 'n' == pFieldName[2] &&
                  'd' == pFieldName[3] && 0 == pFieldName[4] )
             {
+               // parse "$and"
                logicType = CLS_CATA_LOGIC_AND ;
                predicateSet.setLogicType( CLS_CATA_LOGIC_AND ) ;
                pPredicateSet = &predicateSet;
@@ -161,6 +163,7 @@ namespace engine
             else if( 'o' == pFieldName[1] && 'r' == pFieldName[2] &&
                      0 == pFieldName[3] )
             {
+               // parse "$or"
                if ( predicateSet.getLogicType() != CLS_CATA_LOGIC_INVALID )
                {
                   pPredicateSet =
@@ -179,6 +182,7 @@ namespace engine
             }
             else // parse "$not"
             {
+               // now "$not" is regarded as universe set
             }
 
             if ( logicType != CLS_CATA_LOGIC_INVALID )
@@ -199,8 +203,13 @@ namespace engine
                goto done ;
             }
          }
+         // the regular expresion is regarded as universe set.
+         // if it is in the $or then upgrade to universe set
+         // and ignore the remaining elements.
+         // if it is in the $and then ignore this element.
          if ( predicateSet.getLogicType() == CLS_CATA_LOGIC_OR )
          {
+            // clear all predicates and upgrade to universe set
             predicateSet.upgradeToUniverse();
          }
       }
@@ -238,6 +247,7 @@ namespace engine
          BSONElement beTmp = _shardingKey.getField( pFieldName );
          if ( beTmp.eoo() )
          {
+            // ignore the field which is not sharding-key
             goto done ;
          }
          if ( beField.type() == Object )

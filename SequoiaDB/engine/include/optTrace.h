@@ -29,6 +29,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef optTRACE_H__
 #define optTRACE_H__
+// Component: opt
 #define SDB__OPTACCPLAN__OPTHINT                           0x10000000000349L
 #define SDB__OPTACCPLAN__OPTHINT2                          0x1000000000034aL
 #define SDB__OPTACCPLAN__OPTHINT3                          0x1000000000034bL

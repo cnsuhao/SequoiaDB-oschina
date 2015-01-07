@@ -63,10 +63,15 @@ namespace engine
       setDBStatus ( PMD_DB_NORMAL ) ;
       /* <-- external status, can be changed by modifying config file --> */
 
+      // standalone role by default, user may overwrite this setting
       _role = SDB_ROLE_STANDALONE ;
 
       setGroupName ( "" );
+      // by default replication port is service port + 1
 
+      // monitor switch initialization, no latch needed
+      // for better performance these monitor swtich should be turned off
+      // here, turn it on for testing
 
 #if defined ( SDB_ENGINE )
       _monCfgCB.timestampON = TRUE ;
@@ -76,6 +81,7 @@ namespace engine
       setBusinessOK( TRUE ) ;
       setExitCode( SDB_OK ) ;
 
+      // register config handler to option mgr
       _optioncb.setConfigHandler( this ) ;
    }
 
@@ -149,11 +155,13 @@ namespace engine
          pmdDeclareEDUCB( &_mainEDU ) ;
       }
 
+      // get hostname
       rc = ossGetHostName( _hostName, OSS_MAX_HOSTNAME ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get host name, rc: %d", rc ) ;
 
       _init = TRUE ;
 
+      // Init all registered cb
       for ( index = 0 ; index < SDB_CB_MAX ; ++index )
       {
          pCB = _arrayCBs[ index ] ;
@@ -169,6 +177,7 @@ namespace engine
          }
       }
 
+      // Active all registered cb
       for ( index = 0 ; index < SDB_CB_MAX ; ++index )
       {
          pCB = _arrayCBs[ index ] ;
@@ -202,8 +211,10 @@ namespace engine
 
       _isActive = FALSE ;
 
+      // set quit flag
       _eduMgr.setQuiesced( TRUE ) ;
 
+      // Deactive all registered cbs
       for ( index = SDB_CB_MAX ; index > 0 ; --index )
       {
          pCB = _arrayCBs[ index - 1 ] ;
@@ -218,8 +229,10 @@ namespace engine
          }
       }
 
+      // stop all io services and edus(thread)
       _eduMgr.reset () ;
 
+      // Fini all registered cbs
       for ( index = SDB_CB_MAX ; index > 0 ; --index )
       {
          pCB = _arrayCBs[ index - 1 ] ;
@@ -242,6 +255,7 @@ namespace engine
       INT32 index = 0 ;
       IControlBlock *pCB = NULL ;
 
+      // Deactive all registered cbs
       for ( index = 0 ; index < SDB_CB_MAX ; ++index )
       {
          pCB = _arrayCBs[ index ] ;

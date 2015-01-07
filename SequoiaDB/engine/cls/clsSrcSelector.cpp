@@ -142,6 +142,7 @@ namespace engine
 
          INT32 rc = SDB_OK ;
 
+         //update group info
          rc = sdbGetShardCB()->syncUpdateGroupInfo( groupID ) ;
          if ( SDB_OK != rc )
          {

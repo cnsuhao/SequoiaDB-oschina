@@ -68,8 +68,10 @@ namespace engine
       SINT32 blockSize    = 0 ;
       SDB_ASSERT ( su && ru, "SU and RU can't be NULL" ) ;
 
+      // first reset pointer
       ru->reset () ;
       headSize = ru->getHeadSize () ;
+      // free by end of the function
       headBuffer = ( CHAR* ) SDB_OSS_MALLOC ( headSize ) ;
       if ( !headBuffer )
       {
@@ -92,11 +94,15 @@ namespace engine
          goto error ;
       }
 
+      // loop for each block
       while ( TRUE )
       {
+         // get the next block
          rc = ru->getNextExtentSize ( blockSize ) ;
          if ( rc )
          {
+            // if we get end of file, that means we don't have any other blocks
+            // to copy, then we break the loop
             if ( SDB_EOF == rc )
             {
                rc = SDB_OK ;
@@ -124,12 +130,14 @@ namespace engine
             blockBuffSize = blockSize ;
          }
 
+         // get the extent
          rc = ru->exportExtent ( blockBuffer ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to export extent, rc = %d", rc ) ;
             goto error ;
          }
+         // load the extent into dms
          rc = su->loadExtent ( mbContext, blockBuffer,
                                blockSize / su->getPageSize() ) ;
          if ( rc )
@@ -179,6 +187,7 @@ namespace engine
       CHAR fullFilePath [ OSS_MAX_PATHSIZE + 1 ] = {0} ;
       const CHAR *dbpath = krcb->getOptionCB()->getDbPath() ;
 
+      // Caller must hold EXCLUSIVE lock
       if ( !mbContext->isMBLock( EXCLUSIVE ) )
       {
          PD_LOG( PDERROR, "Caller must hold collection EXCLUSIVE lock[%s]",
@@ -187,6 +196,7 @@ namespace engine
          goto error ;
       }
 
+      // make sure the path length is valid
       if ( ossStrlen ( dbpath ) + 1 +
            ossStrlen ( pCollectionFullName ) +
            ossStrlen ( RTN_REORG_SUFFIX ) >
@@ -203,6 +213,7 @@ namespace engine
       ossStrncat ( fullFilePath, RTN_REORG_SUFFIX,
                    ossStrlen (RTN_REORG_SUFFIX) ) ;
 
+      // validate whether the collection status is normal
       flag = mbContext->mb()->_flag ;
 
       if ( (flag & DMS_MB_OPR_TYPE_MASK) == DMS_MB_FLAG_OFFLINE_REORG )
@@ -212,6 +223,8 @@ namespace engine
          if ( rc )
          {
             ruExist = FALSE ;
+            // if we can't open the reorg file, we can recover only in SHADOW
+            // COPY and REBUILD phase
             if ( ( ( flag & DMS_MB_OPR_PHASE_MASK ) !=
                  DMS_MB_FLAG_OFFLINE_REORG_SHADOW_COPY ) &&
                  ( ( flag & DMS_MB_OPR_PHASE_MASK ) !=
@@ -223,12 +236,17 @@ namespace engine
             }
          }
 
+         // offline reorg recover
          switch ( flag & DMS_MB_OPR_PHASE_MASK )
          {
+         // for shadown copy phase, since original data was not changed, we can
+         // just clean up
          case DMS_MB_FLAG_OFFLINE_REORG_SHADOW_COPY:
             PD_LOG ( PDEVENT, "Start reorg recovering from shadow copy phase" ) ;
             goto cleanup ;
 
+         // in copy back and truncate phase, we should truncate the collection
+         // again and do another copy back
          case DMS_MB_FLAG_OFFLINE_REORG_COPY_BACK:
             PD_LOG ( PDEVENT, "Start reorg recovering from copy_back phase" ) ;
             goto truncate ;
@@ -237,9 +255,11 @@ namespace engine
             PD_LOG ( PDEVENT, "Start reorg recovering from truncate phase" ) ;
 
    truncate:
+            // set state to truncate
             DMS_SET_MB_OFFLINE_REORG_TRUNCATE ( flag ) ;
             mbContext->mb()->_flag = flag ;
 
+            // perform truncation
             rc = su->data()->truncateCollection ( pCollectionName, cb, NULL,
                                                   TRUE, mbContext,
                                                   FALSE ) ;
@@ -250,9 +270,11 @@ namespace engine
                goto error ;
             }
 
+            // set state to copy_back
             DMS_SET_MB_OFFLINE_REORG_COPY_BACK ( flag ) ;
             mbContext->mb()->_flag = flag ;
 
+            // perform copy_back
             rc = rtnReorgOfflineCopyBack ( su, &ru, mbContext ) ;
             if ( rc )
             {
@@ -262,6 +284,7 @@ namespace engine
             }
             goto rebuild ;
 
+         // in rebuild phase, we just rebuild the index
          case DMS_MB_FLAG_OFFLINE_REORG_REBUILD:
             PD_LOG ( PDEVENT, "Start reorg recovering from rebuild phase" ) ;
 
@@ -286,6 +309,7 @@ namespace engine
             DMS_SET_MB_NORMAL( flag ) ;
             mbContext->mb()->_flag = flag ;
 
+            // perform temp file clean up if we could open it
             if ( ruExist )
             {
                INT32 tempRC = SDB_OK ;
@@ -307,6 +331,7 @@ namespace engine
       }
       else if ( (flag & DMS_MB_OPR_TYPE_MASK) == DMS_MB_FLAG_ONLINE_REORG )
       {
+         // online reorg
          PD_LOG ( PDERROR, "Online reorg recover is not supported yet" ) ;
          rc = SDB_OPTION_NOT_SUPPORT ;
          goto error ;
@@ -361,6 +386,7 @@ namespace engine
          goto error ;
       }
 
+      // must hold EXCLUSIVE lock
       if ( !mbContext->isMBLock( EXCLUSIVE ) )
       {
          PD_LOG( PDERROR, "Caller must hold collection EXCLUSIVE lock[%s]",
@@ -374,6 +400,7 @@ namespace engine
       ossStrncat ( fullFilePath, RTN_REORG_SUFFIX,
                    ossStrlen (RTN_REORG_SUFFIX) ) ;
 
+      // validate whether the collection status is normal
       flag = mbContext->mb()->_flag ;
       attributes = mbContext->mb()->_attributes ;
 
@@ -385,6 +412,7 @@ namespace engine
          goto error ;
       }
 
+      // show log for starting offline reorg
       PD_LOG ( PDEVENT, "Start offline reorg, use temp file %s",
                fullFilePath ) ;
 
@@ -393,6 +421,7 @@ namespace engine
        *******************************************************************/
       {
          rtnContextBuf buffObj ;
+         // open and init temp file
          dmsReorgUnit ru ( fullFilePath, su->getPageSize() ) ;
          rc = ru.open ( TRUE ) ;
          if ( rc )
@@ -405,12 +434,15 @@ namespace engine
          /******************************************************************
           *       SHADOW COPY PHASE STARTS
           ******************************************************************/
+         // set to shadow copy phase
          DMS_SET_MB_OFFLINE_REORG_SHADOW_COPY ( flag ) ;
          PD_LOG ( PDEVENT, "Shadow copy phase starts" ) ;
          mbContext->mb()->_flag = flag ;
 
+         // copy all records into reorg unit temp file
          while ( TRUE )
          {
+            // can't use rtnGetMore function, because don't to release context
             rc = context->getMore( 1, buffObj, cb ) ;
             if ( rc )
             {
@@ -418,6 +450,9 @@ namespace engine
                {
                   PD_LOG ( PDERROR, "Error detected during fetch, rc = %d",
                            rc ) ;
+                  // let's continue the next step if we don't want to break when
+                  // corruption happen. Usually this is used in full database
+                  // rebuild mode
                   if ( !ignoreError )
                   {
                      goto error_shadow_copy ;
@@ -522,12 +557,19 @@ namespace engine
          goto done ;
 
       error_shadow_copy :
+         // for any error happened in shadow copy phase, since the original data
+         // was not touched, we simply jump to clean up phase and remove temp file
          goto cleanup ;
       error_truncate :
+         // for errors happened in truncate phase, the original data was
+         // changed, so we have to keep the collection remains in truncate
+         // status and recover by REORG RECOVER command
          goto error ;
       error_copy_back :
+         // same as error_truncate
          goto error ;
       error_rebuild :
+         // same as error_truncate
          goto error ;
       }
 
@@ -565,6 +607,8 @@ namespace engine
          goto error ;
       }
 
+      // collection in dmsCB lock is released when context is freed
+      // This prevents other sessions drop the collectionspace during accessing
       rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
       if ( rc )
@@ -574,6 +618,8 @@ namespace engine
          goto error ;
       }
 
+      // let's lock the collection using exclusive mode
+      // LOCK PHASE
       rc = su->data()->getMBContext( &mbContext, pCollectionShortName,
                                      EXCLUSIVE ) ;
       if ( rc )
@@ -583,6 +629,7 @@ namespace engine
          goto error ;
       }
 
+      // perform real recover recover
       rc = rtnReorgRecover ( pCollectionName, pCollectionShortName,
                              mbContext, su, cb, rtnCB ) ;
 
@@ -630,6 +677,7 @@ namespace engine
          goto error ;
       }
 
+      // start query
       rc = rtnQuery ( pCollectionName, dummyObj, dummyObj, dummyObj,
                       hint, 0, cb, 0, -1, dmsCB, rtnCB, contextID,
                       (rtnContextBase**)&context ) ;
@@ -637,14 +685,18 @@ namespace engine
       {
          if ( SDB_DMS_EOC == rc )
          {
+            // if the collection is completely empty
             PD_LOG ( PDERROR, "Empty collection is detected, reorg is skipped" ) ;
             rc = SDB_OK ;
+            // context is removed when EOC is hit, so we jump to done
             goto done ;
          }
          PD_LOG ( PDERROR, "Failed to run query, rc = %d", rc ) ;
          goto error ;
       }
 
+      // let's lock the collection using exclusive mode
+      // LOCK PHASE
       rc = context->getMBContext()->mbLock( EXCLUSIVE ) ;
       if ( rc )
       {

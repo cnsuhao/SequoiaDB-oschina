@@ -29,6 +29,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef msgTRACE_H__
 #define msgTRACE_H__
+// Component: msg
 #define SDB_MSGCHKBUFF                                     0x40000000bcL
 #define SDB_MSGBLDUPMSG                                    0x40000000bdL
 #define SDB_MSGEXTRACTUP                                   0x40000000beL

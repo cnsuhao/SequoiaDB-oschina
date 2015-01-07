@@ -45,6 +45,7 @@ INT32 _utilJSONParser::initialize ( _utilParserParamet *parserPara )
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB__UTILJSONPS__INIT );
+   //check error
    if ( parserPara->blockNum <= 0 )
    {
       rc = SDB_INVALIDARG ;
@@ -75,6 +76,7 @@ INT32 _utilJSONParser::initialize ( _utilParserParamet *parserPara )
    }
    _curBuffer = _buffer ;
    ossMemset ( _buffer, 0, _bufferSize ) ;
+   //IO
    if ( UTIL_GET_IO == _accessModel )
    {
       utilAccessParametLocalIO accessData ;
@@ -163,6 +165,7 @@ INT32 _utilJSONParser::getNextRecord ( UINT32 &startOffset,
             if ( isReadSize > _blockSize && isReadSize < _bufferSize )
             {
                _pBlock = 0 ;
+               //is read size use block number
                useBlockNum = ( (UINT32)( isReadSize / _blockSize ) ) ;
                if ( isReadSize % _blockSize > 0 )
                {
@@ -192,6 +195,7 @@ INT32 _utilJSONParser::getNextRecord ( UINT32 &startOffset,
                   continue ;
                }
                newReadSize = _blockSize - ( isReadSize % _blockSize ) ;
+               //ossMemset ( _buffer + isReadSize, 0, newReadSize ) ;
             }
             else
             {
@@ -216,6 +220,7 @@ size %d, clear bucket data", _bufferSize ) ;
                   ++_pBlock ;
                   continue ;
                }
+               //ossMemset ( _buffer + isReadSize, 0, newReadSize ) ;
             }
          }
          else
@@ -226,6 +231,7 @@ size %d, clear bucket data", _bufferSize ) ;
             }
             newReadSize = _blockSize ;
             pReadBuffer = _buffer + _pBlock * _blockSize ;
+            //ossMemset ( pReadBuffer, 0, _blockSize ) ;
          }
          rc = _pAccessData->readNextBuffer ( pReadBuffer, newReadSize ) ;
          if ( rc )

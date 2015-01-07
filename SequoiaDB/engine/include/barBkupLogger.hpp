@@ -262,6 +262,7 @@ namespace engine
       CHAR              _md5Value[BAR_BACKUP_MD5_LEN] ;
       CHAR              _thinCopy ;
       CHAR              _reserved[11] ;
+      // up for header(64B), down for meta bson obj data(max 960B)
       CHAR              _metaData[960] ;
 
       void init ()
@@ -635,6 +636,7 @@ namespace engine
       protected:
          INT32          _enumBackups ( const string &fullPath,
                                        const string &subPath ) ;
+         //INT32          _enumSpecBackup () ;
 
          INT32          _backupToBSON ( const barBackupInfo &info,
                                         vector< BSONObj > &vecBackup,

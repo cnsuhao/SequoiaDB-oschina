@@ -29,6 +29,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef pmdTRACE_H__
 #define pmdTRACE_H__
+// Component: pmd
 #define SDB_PMDLOGGWENTPNT                                 0x20000000000420L
 #define SDB_PMDPIPELSTNNPNTPNT                             0x20000000000421L
 #define SDB_READFILE                                       0x20000000000422L

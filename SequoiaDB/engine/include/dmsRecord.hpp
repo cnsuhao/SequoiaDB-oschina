@@ -43,9 +43,13 @@
 
 namespace engine
 {
+   // 2^24 = 16MB, shouldn't be changed without completely redesign the
+   // dmsRecord structure this size includes metadata header
 
    #define DMS_RECORD_MAX_SZ           0x01000000
 
+   // since DPS may need extra space for header, let's make sure the max size of
+   // user record ( the ones need to log ) cannot exceed 16M-4K
 
    #define DMS_RECORD_USER_MAX_SZ      (DMS_RECORD_MAX_SZ-4096)
 
@@ -70,11 +74,14 @@ namespace engine
    /*
       Record Flag define:
    */
+   // 0~3 bit for STATE
    #define DMS_RECORD_FLAG_NORMAL            0x00
    #define DMS_RECORD_FLAG_OVERFLOWF         0x01
    #define DMS_RECORD_FLAG_OVERFLOWT         0x02
    #define DMS_RECORD_FLAG_DELETED           0x04
+   // 4~7 bit for ATTR
    #define DMS_RECORD_FLAG_COMPRESSED        0x10
+   // some one wait X-lock, the last one who get X-lock will delete the record
    #define DMS_RECORD_FLAG_DELETING          0x80
 
    #define DMS_RECORD_GETFLAG(record)        (*((CHAR*)(record)))
@@ -99,12 +106,16 @@ namespace engine
        (CHAR*)((CHAR*)(record)+sizeof(INT32)+DMS_RECORD_METADATA_SZ) :        \
        (CHAR*)((CHAR*)(record)+DMS_RECORD_METADATA_SZ) )
 
+   // Get OVF RID
    #define DMS_RECORD_GETOVF(record)         \
       *(dmsRecordID*)((char*)(record)+DMS_RECORD_METADATA_SZ)
 
+   // 4 bytes after metadata are record length, for non compressed
+   // and compressed
    #define DMS_RECORD_GETDATALEN(record)     \
       *(INT32*)((CHAR*)(record)+DMS_RECORD_METADATA_SZ)
 
+   // Extract Data
    #define DMS_RECORD_EXTRACTDATA(recordPtr,retPtr)                        \
       do {                                                                 \
             if ( OSS_BIT_TEST ( DMS_RECORD_GETATTR(recordPtr),             \
@@ -153,6 +164,7 @@ namespace engine
    #define DMS_RECORD_SETNEXTOFFSET(record,offset) \
       (((dmsRecord*)(record))->_nextOffset=(offset))
 
+   // SET DATA
    #define DMS_RECORD_SETDATA(record,ptr,len)                              \
      do {                                                                  \
         if ( OSS_BIT_TEST(DMS_RECORD_GETATTR(record),                      \
@@ -169,6 +181,7 @@ namespace engine
         }                                                                  \
      } while (FALSE)
 
+   // SET DATA AND OID, Can't be compressed
    #define DMS_RECORD_SETDATA_OID(record,ptr,len,oid)                      \
       do {                                                                 \
            *(INT32*)((CHAR*)(record)+DMS_RECORD_METADATA_SZ) =             \
@@ -181,6 +194,7 @@ namespace engine
                      (len)-sizeof(INT32)) ;                                \
         } while ( FALSE )
 
+   // SET OVF
    #define DMS_RECORD_SETOVF(record,rid)     \
       *((dmsRecordID*)((char*)(record)+DMS_RECORD_METADATA_SZ))=(rid)
 
@@ -219,6 +233,7 @@ namespace engine
    #define DMS_DELETEDRECORD_SETNEXTRID(record,rid)      \
       (((dmsDeletedRecord*)(record))->_next=(rid))
 
+   // oid + one field = 12 + 5 = 17, Algned:20
    #define DMS_MIN_DELETEDRECORD_SZ    (DMS_DELETEDRECORD_METADATA_SZ+20)
    #define DMS_MIN_RECORD_SZ           DMS_MIN_DELETEDRECORD_SZ
 

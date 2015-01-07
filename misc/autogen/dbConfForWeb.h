@@ -7,9 +7,11 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/foreach.hpp>
 
+// xml source file
 #define OPTXMLSRCFILE          "optlist.xml"
 #define OPTOTHERINFOFORWEBFILE "optOtherInfoForWeb.xml"
 
+// output file path
 #define DBCONFFORWEBPATH "../../doc/administration/database/topics/runtime_configuration"
 #define FILESUFFIX ".dita"
 
@@ -34,10 +36,12 @@ class OptOtherInfoEle
 public:
     std::string titletag ;
     std::string subtitletag ;
+    // stentry tags
     std::string stentry_nametag ;
     std::string stentry_acronymtag ;
     std::string stentry_typetag ;
     std::string stentry_desttag ;
+    // note tags
     std::string firsttag ;
     std::string secondtag ;
 } ;

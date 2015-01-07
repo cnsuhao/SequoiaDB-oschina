@@ -146,6 +146,7 @@ namespace engine
       }
       else if ( SDB_ROLE_COORD == pmdGetDBRole() )
       {
+         // TODO:XUJIANHUI
       }
       else
       {

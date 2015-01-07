@@ -45,12 +45,15 @@ using namespace std ;
 
 namespace engine
 {
+   /// skip spaces at begin.
    INT32 utilStrTrimBegin( const CHAR *src, const CHAR *&begin ) ;
    std::string &utilStrLtrim ( std::string &s ) ;
 
+   /// remove spaces at end.
    INT32 utilStrTrimEnd( CHAR *src ) ;
    std::string &utilStrRtrim ( std::string &s ) ;
 
+   /// trim spaces at begin or end .
    INT32 utilStrTrim( CHAR *src, const CHAR *&begin ) ;
    std::string &utilStrTrim ( std::string &s ) ;
 
@@ -64,6 +67,7 @@ namespace engine
    INT32 utilSplitStr( const string &input, vector<string> &listServices,
                        const string &seperators ) ;
 
+   /// non-reentrant
    INT32 utilStr2TimeT( const CHAR *str,
                         time_t &tm,
                         UINT64 *usec = NULL ) ;
@@ -77,6 +81,7 @@ namespace engine
 
    const CHAR* utilAscTime( time_t tTime, CHAR *pBuff, UINT32 size ) ;
 
+   /// non-reentrant
    BOOLEAN isValidIPV4( const CHAR *ip ) ;
 
    INT32 utilParseVersion( CHAR *pVersionStr,    // in

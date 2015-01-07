@@ -71,6 +71,9 @@ namespace engine
    {
       SINT32      _pageSize ;
       CHAR        _suName [ DMS_SU_NAME_SZ + 1 ] ; // storage unit file name is
+                                                   // foo.0 / foo.1, where foo
+                                                   // is suName, and 0/1 are
+                                                   // _sequence
       UINT32      _sequence ;
       UINT64      _secretValue ;
       INT32       _lobdPageSize ;
@@ -213,6 +216,17 @@ namespace engine
 
          OSS_INLINE ossValuePtr extentAddr ( INT32 extentID ) ;
          OSS_INLINE dmsExtentID extentID ( ossValuePtr extendAddr ) ;
+         // this function is used to prevent dmsStorageBase memory being freed
+         // before page cleaner completes its job
+         // the caller must perform the following steps BEFORE clean the pages
+         // 1) suLock to lock the collection space, so that no one is able to
+         // drop the collectionspace
+         // 2) lock page cleaner, mark page cleaning is working
+         // 3) suUnlock, so that other threads able to drop cs
+         // 4) unlock page cleaner, once it's done
+         // Since dmsStorageBase destructor will wait for latch before releasing
+         // memory, so we should be safe here.
+         // Note in page cleaning function, we check 
          OSS_INLINE void lockPageCleaner () ;
          OSS_INLINE void unlockPageCleaner () ;
 
@@ -249,6 +263,7 @@ namespace engine
          }
 
       protected:
+         // No space will extent new segment
          INT32    _findFreeSpace ( UINT16 numPages, SINT32 &foundPage,
                                    dmsContext *context ) ;
          INT32    _releaseSpace ( SINT32 pageStart, UINT16 numPages ) ;
@@ -359,8 +374,10 @@ namespace engine
    {
       if ( pSegOffset )
       {
+         // the same with : extentID % _segmentPages
          *pSegOffset = extentID & (( 1 << _segmentPagesSquare ) - 1 ) ;
       }
+      // the same with: extentID / _segmentPages + _dataSegID
       return ( extentID >> _segmentPagesSquare ) + _dataSegID ;
    }
    OSS_INLINE dmsExtentID _dmsStorageBase::segment2Extent( UINT32 segID,
@@ -370,6 +387,7 @@ namespace engine
       {
          return DMS_INVALID_EXTENT ;
       }
+      // the same with: ( segID - _dataSegID ) * _segmentPages + segOffset
       return (( segID - _dataSegID ) << _segmentPagesSquare ) + segOffset ;
    }
    OSS_INLINE ossValuePtr _dmsStorageBase::extentAddr( INT32 extentID )
@@ -386,6 +404,7 @@ namespace engine
       }
       return _segments[ segID ]._ptr +
              (ossValuePtr)( segOffset << _pageSizeSquare ) ;
+      // the same with: segOffset * _segmentPages
    }
    OSS_INLINE dmsExtentID _dmsStorageBase::extentID( ossValuePtr extendAddr )
    {
@@ -393,6 +412,7 @@ namespace engine
       {
          return DMS_INVALID_EXTENT ;
       }
+      // find seg ID
       INT32 segID = 0 ;
       UINT32 segOffset = 0 ;
       while ( segID <= _maxSegID )
@@ -415,13 +435,17 @@ namespace engine
    }
    OSS_INLINE void _dmsStorageBase::_markDirty ( INT32 extentID )
    {
+      // make sure the extentID is valid
       if ( DMS_INVALID_EXTENT == extentID ||
            extentID > DMS_MAX_PG )
          return ;
+      // segment id is the real segment id minus the starting data segment id
+      // position
       UINT32 segID = extent2Segment( extentID, NULL ) - _dataSegID ;
       SDB_ASSERT ( segID < maxSegmentNum(),
                    "calculated segment id cannot be greater than max "
                    "number of segments in the storage unit" ) ;
+      // _dirtyList [ segID / 8 ] |= ( 1 << ( segID % 8 ) )
       _dirtyList [ segID >> 3 ] |= ( 1 << ( segID & 7 ) ) ;
    }
 

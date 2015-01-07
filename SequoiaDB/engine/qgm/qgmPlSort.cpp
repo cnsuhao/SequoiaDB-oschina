@@ -143,6 +143,7 @@ namespace engine
          goto error ;
       }
 
+      /// context is freed by sort context.
       _contextSort = -1 ;
 
    done:

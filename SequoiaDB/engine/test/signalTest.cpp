@@ -41,6 +41,7 @@ void dummyCore()
              i, (void*)ppAddress[i], funcName, (UINT64)offset ) ;
   }
   getchar();
+  // generate core file
   *p = 10 ;
 }
 

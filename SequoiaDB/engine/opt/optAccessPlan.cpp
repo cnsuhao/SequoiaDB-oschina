@@ -67,6 +67,8 @@ namespace engine
          goto error ;
       }
 
+      // call estimate index to get estimation and most importantly the scan
+      // direction
       rc = _estimateIndex ( indexCBExtent, costEstimation, dir, detail ) ;
       if ( rc )
       {
@@ -106,6 +108,8 @@ namespace engine
       {
          goto error ;
       }
+      // call estimate index to get estimation and most importantly the scan
+      // direction
       rc = _estimateIndex ( indexCBExtent, costEstimation, dir, detail ) ;
       if ( rc )
       {
@@ -125,6 +129,7 @@ namespace engine
       goto done ;
    }
 
+   // caller must hold S latch on the obj
    PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__OPTHINT3, "_optAccessPlan::_optimizeHint" )
    INT32 _optAccessPlan::_optimizeHint( dmsMBContext *mbContext,
                                         const rtnPredicateSet &predSet )
@@ -136,25 +141,31 @@ namespace engine
       BSONObjIterator it ( _hint ) ;
       PD_LOG ( PDDEBUG, "Hint is provided: %s", _hint.toString().c_str() ) ;
       rc = SDB_RTN_INVALID_HINT ;
+      // user can define more than one index name/oid in hint, it will pickup
+      // the first valid one
       while ( it.more() )
       {
          BSONElement hint = it.next() ;
          if ( hint.type() == String )
          {
             PD_LOG ( PDDEBUG, "Try to use index: %s", hint.valuestr() ) ;
+            // search based on index name
             rc = _optimizeHint ( mbContext, hint.valuestr(), predSet ) ;
          }
          else if ( hint.type() == jstOID )
          {
             PD_LOG ( PDDEBUG, "Try to use index: %s",
                      _hint.toString().c_str() ) ;
+            // search based on OID
             rc = _optimizeHint ( mbContext, hint.__oid(), predSet ) ;
          }
          else if ( hint.type() == jstNULL )
          {
             PD_LOG ( PDDEBUG, "Use Collection Scan by Hint" ) ;
+            // if we use null in the hint, we use tbscan
             _scanType = TBSCAN ;
             rc = SDB_OK ;
+            // if hint shows tbscan, let's check whether manual sort is required
             if ( !_orderBy.isEmpty() )
             {
                _sortRequired = TRUE ;
@@ -166,6 +177,7 @@ namespace engine
          }
       }
 
+      // let's check return value
       if ( rc )
       {
          PD_LOG ( PDWARNING, "Hint is not valid: %s",
@@ -182,8 +194,11 @@ namespace engine
       goto done ;
    }
 
+   // we are not using real CBO since we don't have time to implement statistics
+   // yet, so let's hardcode base line cost for now and we'll improve it further
    #define TEMP_COST_BASELINE 10000
 
+   // output cost estimation, dir, and indexCBExtent
    PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN__ESTINX, "_optAccessPlan::_estimateIndex" )
    INT32 _optAccessPlan::_estimateIndex ( dmsExtentID indexCBExtent,
                                           INT64 &costEstimation,
@@ -207,6 +222,11 @@ namespace engine
          goto error ;
       }
       {
+         // compare with pure tablescan, each index scan need to advance +
+         // compare key + fetch, which could be significantely more expensive
+         // than tbscan. So let's increase baseline cost for full index
+         // scan+fetch
+         // note this is a very bad hack
          costEstimation = 10*TEMP_COST_BASELINE ;
 
          BSONObj idxPattern = indexCB.keyPattern() ;
@@ -217,6 +237,7 @@ namespace engine
          INT32 matchedFields = 0 ;
          BSONObjIterator keyItr (idxPattern) ;
          BSONObjIterator orderItr ( _orderBy ) ;
+         // first check order
          FLOAT32 orderFactor = 1.0f ;
          dir = 1 ;
          BOOLEAN start = TRUE ;
@@ -229,12 +250,18 @@ namespace engine
             BSONElement orderEle = orderItr.next() ;
             if ( ossStrcmp ( keyEle.fieldName(), orderEle.fieldName() ) == 0 )
             {
+               // if the first field match name, let's compare the order
                if ( start )
                {
+                  // if key is forward and order by is forward, dir = forward
+                  // if key is backward and order by is forward, dir = backward
+                  // if key is backward and order by is backward, dir = forward
+                  // if key is forward and order by is backward, dir = backward
                   dir = (keyorder.get(matchedFields) ==
                          orderByorder.get(matchedFields))?1:-1 ;
                   start = FALSE ;
                }
+               // break if the order is different
                if ( keyorder.get(matchedFields)*dir !=
                     orderByorder.get(matchedFields) )
                   break ;
@@ -248,6 +275,7 @@ namespace engine
          orderFactor = OSS_MIN(1.0f, orderFactor) ;
          orderFactor = OSS_MAX(0.0f, orderFactor) ;
 
+         // then we check query compare with index pattern
          FLOAT32 queryFactor = 1.0f ;
          keyItr = BSONObjIterator ( idxPattern ) ;
          nFields = idxPattern.nFields() ;
@@ -259,9 +287,16 @@ namespace engine
          while ( keyItr.more() )
          {
             BSONElement keyEle = keyItr.next() ;
+            // for each element in the key, let's see if we used it in the
+            // query. More keys used by query, we esimtate the index may more
+            // satisfy our requirement
             if (( it = predicates.find( keyEle.fieldName() ))
                   != predicates.end() )
             {
+               // some cases have predicates, though it's not 
+               // that proper to use index, such as the case
+               // with max and min boundanry,
+               // so we need to lead such cases to table scan here
                startStopKey = it->second._startStopKeys[0] ;
                startKey = startStopKey._startKey._bound ;
                stopKey = startStopKey._stopKey._bound ;
@@ -289,6 +324,7 @@ namespace engine
 
          costEstimation = costEstimation*queryFactor*orderFactor ;
 
+         /// we try to set matchall only when all fields converted into predicates
          if ( _matcher.totallyConverted() )
          {
             detail.matchAll = ( 0 != matchedFields ) &&
@@ -355,6 +391,8 @@ namespace engine
       }
       {
          _direction = dir ;
+         // if there's order by statement, let's see if the index we are using
+         // is able to bypass sort phase
          if ( !_orderBy.isEmpty() )
          {
             BSONObj idxPattern = indexCB.keyPattern() ;
@@ -384,6 +422,7 @@ namespace engine
          }
          if ( _predList )
             SDB_OSS_DEL _predList ;
+         // memory is freed in destructor
          _predList = SDB_OSS_NEW rtnPredicateList ( predSet, &indexCB,
                                                           _direction ) ;
          if ( !_predList )
@@ -418,23 +457,35 @@ namespace engine
 
       PD_TRACE_ENTRY ( SDB__OPTACCPLAN_OPT ) ;
 
+      // first let's build matcher
       rc = _matcher.loadPattern ( _query ) ;
       PD_RC_CHECK ( rc, (SDB_RTN_INVALID_PREDICATES==rc) ? PDINFO : PDERROR,
                     "Failed to load query, rc = %d", rc ) ;
+      // currently the plan is set to tablescan with a valid matcher and Null
+      // predList
 
+      // then let's see if there's better index plan exist
       {
+         // get the predicate sets from matcher
          const rtnPredicateSet &predSet = _matcher.getPredicateSet () ;
+         // lock the collection before picking up the right index
+         // this function will also get collection id
          rc = _su->data()->getMBContext( &mbContext, _collectionName, SHARED ) ;
          PD_RC_CHECK( rc, PDERROR, "Get dms mb context failed, rc: %d", rc ) ;
 
          if ( _hint.isEmpty() || SDB_OK != _optimizeHint( mbContext, predSet ) )
          {
+            // if hint not defined, or if failed to optimize using hint, let's
+            // set the plan is automatically picked
             _isAutoPlan = TRUE ;
+            // if hint is not defined, or if failed to optimize using
+            // hint, let's check each index
             dmsExtentID bestMatchedIndexCBExtent = DMS_INVALID_EXTENT ;
             INT64 bestCostEstimation = 0 ;
             INT32 bestMatchedIndexDirection = 1 ;
             _estimateDetail detail ;
 
+            // use tbscan as baseline
             _estimateTBScan ( bestCostEstimation ) ;
 
             for ( INT32 i = 0 ; i<DMS_COLLECTION_MAX_INDEX; i++ )
@@ -456,13 +507,17 @@ namespace engine
                      bestMatchedIndexDirection = dir ;
                      bestCostEstimation = costEst ;
                      detail = tmpDetail ;
+                     // we can't get to any lower than 0
                      if ( bestCostEstimation == 0 )
                      {
                         break ;
                      }
                   }
                }
+               // otherwise we don't do anything, just skip
             }
+            // if best matched index shows any index is better than tbscan, then
+            // let's use the index
             if ( DMS_INVALID_EXTENT != bestMatchedIndexCBExtent )
             {
                PD_LOG ( PDDEBUG, "Use Index Scan" ) ;
@@ -479,6 +534,8 @@ namespace engine
             else
             {
                PD_LOG ( PDDEBUG, "Use Collection Scan" ) ;
+               // otherwise if there's no index is better than tbscan, let's
+               // check if we need manually sort
                if ( !_orderBy.isEmpty() )
                {
                   _sortRequired = TRUE ;
@@ -486,6 +543,7 @@ namespace engine
             }
          }
 
+         // unlock collection and reset rc
          rc = SDB_OK ;
          mbContext->mbUnlock() ;
          _isInitialized = TRUE ;
@@ -509,12 +567,15 @@ namespace engine
    {
       if ( !_isValid )
          return FALSE ;
+      // user query must be identical
       if ( !_query.shallowEqual ( query ) )
          return FALSE ;
 
+      // order by must be identical
       if ( !_orderBy.shallowEqual ( orderBy ) )
          return FALSE ;
 
+      // hint must be identical
       if ( !_hint.shallowEqual ( hint ) )
          return FALSE ;
 

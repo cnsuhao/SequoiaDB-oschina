@@ -637,6 +637,7 @@ namespace engine
       return "" ;
    }
 
+   // get the disk count that no used before
    INT32 hostHardWare::getFreeDiskCount()
    {
       return _mapDisk.size() - _inUseDisk.size() ;
@@ -1010,12 +1011,14 @@ namespace engine
       {
          hostHardWare *pTmpHost = iter->second ;
 
+         //ignore the host without disk
          if ( 0 == pTmpHost->getDiskCount() )
          {
             iter++ ;
             continue ;
          }
 
+         //this is the first one. continue
          if ( NULL == bestHost )
          {
             bestHost = pTmpHost ;
@@ -1034,6 +1037,7 @@ namespace engine
          {
             if ( tmpRoleCount < bestRoleCount )
             {
+               // rule1
                bestHost = pTmpHost ;
             }
 
@@ -1047,6 +1051,7 @@ namespace engine
          {
             if ( tmpFreeDiskCount > bestFreeDiskCount )
             {
+               // rule2
                bestHost = pTmpHost ;
             }
 
@@ -1062,6 +1067,7 @@ namespace engine
          {
             if ( tmpNodeCount < bestNodeCount )
             {
+               // rule3
                bestHost = pTmpHost ;
             }
 
@@ -2198,6 +2204,7 @@ namespace engine
       }
       else
       {
+         // OM_DEPLOY_MOD_DISTRIBUTION
          INT32 coordNum   = 0 ;
          INT32 catalogNum = 0 ;
          INT32 dataNum    = 0 ;
@@ -2445,6 +2452,7 @@ namespace engine
          goto error ;
       }
 
+      // parse business
       rc = _parseNewBusiness( newBusinessConf ) ;
       if ( SDB_OK != rc )
       {
@@ -2452,6 +2460,8 @@ namespace engine
          goto error ;
       }
 
+      //check itself
+      //check with exist cluster
 
    done:
       return rc ;

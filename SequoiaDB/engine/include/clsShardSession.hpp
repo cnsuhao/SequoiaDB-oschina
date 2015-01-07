@@ -76,6 +76,7 @@ namespace engine
          INT32   _createCSByCatalog( const CHAR *clFullName ) ;
          INT32   _createCLByCatalog( const CHAR *clFullName ) ;
 
+      //message functions
       protected:
          INT32 _onOPMsg ( NET_HANDLE handle, MsgHeader *msg ) ;
          INT32 _onUpdateReqMsg ( NET_HANDLE handle, MsgHeader *msg,

@@ -603,6 +603,7 @@ public class JsonWriter implements Closeable, Flushable {
         throw new IllegalStateException(
             "JSON must have only one top-level value.");
       }
+      // fall-through
     case EMPTY_DOCUMENT: // first in document
       if (!lenient && !root) {
         throw new IllegalStateException(

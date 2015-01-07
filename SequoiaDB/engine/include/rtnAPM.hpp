@@ -51,6 +51,7 @@ namespace engine
    class _dmsStorageUnit ;
    class _rtnAccessPlanManager ;
 #define RTN_APL_SIZE 5
+   // one access plan list is for same hash result for one collection
    class _rtnAccessPlanList : public SDBObject
    {
    private :
@@ -63,6 +64,7 @@ namespace engine
    #endif
    #define RTNAPL_SLOCK ossScopedLock _lock ( &_mutex, SHARED ) ;
       ossSpinSLatch _mutex ;
+      // hash result and plan map
       vector<optAccessPlan *> _plans ;
       _dmsStorageUnit *_su ;
       CHAR *_collectionName ;
@@ -174,6 +176,8 @@ namespace engine
 #define RTN_APM_DFT_OCCUPY_PCT 0.75f
 #define RTN_APM_DFT_OCCUPY (RTN_APM_SIZE*RTN_APM_DFT_OCCUPY_PCT)
    class _rtnAccessPlanSet ;
+   // one access plan manager may have one or more access plan set, access plan
+   // manager is per collection space
    class _rtnAccessPlanManager : public SDBObject
    {
    private :
@@ -187,6 +191,7 @@ namespace engine
    #define RTNAPM_SLOCK ossScopedLock _lock ( &_mutex, SHARED ) ;
       ossSpinSLatch _mutex ;
       INT32 _totalNum ;
+      // C version of string map, std::string is too slow
       struct cmp_str
       {
          bool operator() (const char *a, const char *b)

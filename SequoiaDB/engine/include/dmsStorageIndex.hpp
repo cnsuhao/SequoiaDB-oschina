@@ -66,8 +66,10 @@ namespace engine
          ~_dmsStorageIndex () ;
 
       public:
+         // reserve a signal page
          INT32    reserveExtent ( UINT16 mbID, dmsExtentID &extentID,
                                   dmsContext *context ) ;
+         // release a signal page
          INT32    releaseExtent ( dmsExtentID extentID ) ;
 
          INT32    createIndex ( _dmsMBContext *context, const BSONObj &index,
@@ -91,15 +93,18 @@ namespace engine
 
          INT32    rebuildIndexes ( _dmsMBContext *context, _pmdEDUCB *cb ) ;
 
+         // Caller must hold mb exclusive lock
          INT32    indexesInsert ( _dmsMBContext *context, dmsExtentID extLID,
                                   BSONObj &inputObj, const dmsRecordID &rid,
                                   _pmdEDUCB *cb ) ;
 
+         // Caller must hold mb exclusive lock
          INT32    indexesUpdate ( _dmsMBContext *context, dmsExtentID extLID,
                                   BSONObj &originalObj, BSONObj &newObj,
                                   const dmsRecordID &rid, _pmdEDUCB *cb,
                                   BOOLEAN isRollback ) ;
 
+         // Caller must hold mb exclusive lock
          INT32    indexesDelete ( _dmsMBContext *context, dmsExtentID extLID,
                                   BSONObj &inputObj, const dmsRecordID &rid,
                                   _pmdEDUCB *cb ) ;
@@ -123,6 +128,7 @@ namespace engine
 
       private:
 
+         // if indexLID == DMS_INALID_EXTENT, it will get from index cb
          INT32    _rebuildIndex ( _dmsMBContext *context, INT32 indexID,
                                   dmsExtentID indexLID, _pmdEDUCB * cb ) ;
 

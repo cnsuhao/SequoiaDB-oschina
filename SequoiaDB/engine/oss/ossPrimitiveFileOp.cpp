@@ -228,6 +228,7 @@ err_read :
    goto exit ;
 }
 
+// returns 0 for success, others for errno
 PD_TRACE_DECLARE_FUNCTION ( SDB_OSSPFOP_WRITE, "ossPrimitiveFileOp::Write" )
 int ossPrimitiveFileOp::Write( const void * pBuffer, size_t size )
 {

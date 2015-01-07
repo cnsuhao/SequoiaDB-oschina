@@ -57,6 +57,7 @@ namespace engine
       static BOOLEAN s_init = FALSE ;
       static ossSpinXLatch s_latch ;
 
+      // init undefine keys
       if ( FALSE == s_init )
       {
          s_latch.get() ;
@@ -98,6 +99,11 @@ namespace engine
           BSONObjBuilder().appendUndefined("").obj() ;
    const static BSONElement gUndefinedElt = gUndefinedObj.firstElement() ;
 
+   // provide a BSON object, generate keys based on index keygen
+   // this object is only used by ixmIndexKeyGen class
+   // this class only have 1 external function "getKeys" to extract a given
+   // object to BSONObjSet. Note keys may contain one or more key, when there is
+   // array included in the object
    class _ixmKeyGenerator
    {
    protected:
@@ -116,6 +122,8 @@ namespace engine
             SDB_OSS_DEL *itr ;
          }
       }
+      // input: BSONObj obj
+      // output: BSONObjSet &keys
       // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMKEYGEN_GETKEYS, "_ixmKeyGenerator::getKeys" )
       INT32 getKeys ( const BSONObj &obj, BSONObjSet &keys,
                       BSONElement *pArrEle ) const
@@ -272,6 +280,7 @@ namespace engine
          PD_TRACE_ENTRY ( SDB__IXMKEYGEN__GENKEYSWITHARRELE );
          INT32 rc = SDB_OK ;
 
+         /// the element must be a undefined key when it is a empty array
          if ( arrObj.firstElement().eoo() )
          {
             keyEles[arrElePos] = BSONElement() ;
@@ -282,6 +291,7 @@ namespace engine
             }
          }
 
+         /// hit the end of name.
          if ( '\0' == *arrEleName )
          {
             BSONObjIterator itr( arrObj ) ;
@@ -374,16 +384,20 @@ namespace engine
       }
    } ;
    typedef class _ixmKeyGenerator ixmKeyGenerator ;
+   // create key generator from index control block
    _ixmIndexKeyGen::_ixmIndexKeyGen ( const _ixmIndexCB *indexCB,
                                       IXM_KEYGEN_TYPE genType )
    {
       SDB_ASSERT ( indexCB, "details can't be NULL" ) ;
       _keyPattern = indexCB->keyPattern() ;
+      // whole _infoObj
       _info = indexCB->_infoObj ;
       _type = indexCB->getIndexType() ;
       _keyGenType = genType ;
+      //_indexCB = indexCB ;
       _init() ;
    }
+   // create key generator from key
    _ixmIndexKeyGen::_ixmIndexKeyGen ( const BSONObj &keyDef,
                                       IXM_KEYGEN_TYPE genType )
    {
@@ -424,6 +438,7 @@ namespace engine
       return g.getKeys ( obj, keys, pArrEle ) ;
    }
 
+   // return True if there are at least one element match the name
    static BOOLEAN anyElementNamesMatch( const BSONObj& a , const BSONObj& b )
    {
       BSONObjIterator x(a);
@@ -452,6 +467,7 @@ namespace engine
    IndexSuitability ixmIndexKeyGen::_suitability( const BSONObj& query ,
                                                   const BSONObj& order ) const
    {
+       // TODO: optimize
        if ( anyElementNamesMatch( _keyPattern , query ) == 0 &&
             anyElementNamesMatch( _keyPattern , order ) == 0 )
           return USELESS;
@@ -491,6 +507,7 @@ namespace engine
    INT32 ixmIndexKeyGen::reset ( const _ixmIndexCB *indexCB )
    {
       SDB_ASSERT ( indexCB, "details can't be NULL" ) ;
+      //_indexCB = indexCB ;
       return reset ( indexCB->_infoObj ) ;
    }
    BSONElement ixmIndexKeyGen::missingField() const
@@ -498,6 +515,9 @@ namespace engine
       return gUndefinedElt ;
    }
 
+   // note this validate is validating whether an key def has fields other than
+   // 1/-1, this check should NOT be directly used against an index key def,
+   // because it may contains inregular key def like 2d index
    BOOLEAN _ixmIndexKeyGen::validateKeyDef ( const BSONObj &keyDef )
    {
       BSONObjIterator i ( keyDef ) ;
@@ -513,6 +533,7 @@ namespace engine
             return FALSE ;
          }
       }
+      // at least we need 1 field
       return 0 != count ;
    }
 }

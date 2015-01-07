@@ -1,3 +1,4 @@
+// JSON.java
 
 /**
  *      Copyright (C) 2008 10gen Inc.
@@ -159,6 +160,7 @@ class JSONParser {
 		char current = get();
 
 		switch (current) {
+		// null
 		case 'n':
 			read('n');
 			read('u');
@@ -166,12 +168,14 @@ class JSONParser {
 			read('l');
 			value = null;
 			break;
+		// NaN
 		case 'N':
 			read('N');
 			read('a');
 			read('N');
 			value = Double.NaN;
 			break;
+		// true
 		case 't':
 			read('t');
 			read('r');
@@ -179,6 +183,7 @@ class JSONParser {
 			read('e');
 			value = true;
 			break;
+		// false
 		case 'f':
 			read('f');
 			read('a');
@@ -187,10 +192,12 @@ class JSONParser {
 			read('e');
 			value = false;
 			break;
+		// string
 		case '\'':
 		case '\"':
 			value = parseString(true);
 			break;
+		// number
 		case '0':
 		case '1':
 		case '2':
@@ -205,9 +212,11 @@ class JSONParser {
 		case '-':
 			value = parseNumber();
 			break;
+		// array
 		case '[':
 			value = parseArray(name);
 			break;
+		// object
 		case '{':
 			value = parseObject(name);
 			break;
@@ -497,6 +506,7 @@ class JSONParser {
 	 * Advances the pointed through <i>.digits</i>.
 	 */
 	public void parseFraction() {
+		// get past .
 		pos++;
 
 		outer: while (pos < s.length()) {
@@ -527,6 +537,7 @@ class JSONParser {
 	 * Advances the pointer through the exponent.
 	 */
 	public void parseExponent() {
+		// get past E
 		pos++;
 
 		if (check('-') || check('+')) {

@@ -58,6 +58,7 @@
 
 namespace engine
 {
+   ///_rtnInternalSorting
    _rtnInternalSorting::_rtnInternalSorting( const BSONObj &orderby,
                                              CHAR *buf, UINT64 size )
    :_orderObj( orderby ),
@@ -76,6 +77,8 @@ namespace engine
 
    _rtnInternalSorting::~_rtnInternalSorting()
    {
+      /// _begin is not allcated here.
+      /// it will be freed in rtnSorting.
    }
 
    INT32 _rtnInternalSorting::push( const BSONObj &obj )
@@ -94,6 +97,7 @@ namespace engine
       SDB_ASSERT( _headOffset <= _tailOffset, "impossible" ) ;
 
       {
+      /// check whether the remaining space is enough.
       const BSONObj &keyObj = *(keySet.begin() ) ;
       if ( _tailOffset - _headOffset <
            (keyObj.objsize() + obj.objsize() +
@@ -107,6 +111,7 @@ namespace engine
        *  | |_rtnSortTuple *| _rtnSortTuple *| ...| _rtnSortTuple | keyObj | obj |  ... | _rtnSortTuple | keyOj| obj |
        */
 
+      /// set data.
       {
       _tailOffset -= ( obj.objsize() + keyObj.objsize() + sizeof(_rtnSortTuple) );
       _rtnSortTuple *tuple = ( _rtnSortTuple * )( _begin + _tailOffset ) ;
@@ -126,6 +131,7 @@ namespace engine
          ixmMakeHashValue( arrEle, tuple->hashValue() ) ;
       }
 
+      /// set sort header.
          *(( _rtnSortTuple ** )( _begin + _headOffset )) = tuple ;
          _headOffset += sizeof( _rtnSortTuple * ) ;
       }
@@ -182,6 +188,7 @@ namespace engine
       }
 
 /*
+      /// create random number.
       for ( UINT32 i = 0; i < RTN_SORT_RANDOM_NUM; i++ )
       {
          _rands.push_back( ossRand() ) ;
@@ -218,6 +225,8 @@ namespace engine
       {
       _rtnSortTuple **mid = left + (( right - left ) >> 1) ;
 
+      /// woCompare 's cost may be expensive. think about use it
+      /// only when range is large.
       try
       {
          if ( 0 < (*left)->compare( *mid, _order ))
@@ -265,6 +274,7 @@ namespace engine
             }
             else
             {
+               /// do nothing.
             }
          }
          catch ( std::exception &e )
@@ -347,6 +357,8 @@ namespace engine
       leftAxis = j ;
       rightAxis = j ;
 
+      /// collect all the obj which is the same to pivot.
+      /// it can reduce the number of recursive.
       if ( RTN_SORT_SAME_SWAP_THRESHOLD < ( sameNum / (right - left + 1) ))
       {
          rc = _swapLeftSameKey( left, j, leftAxis ) ;
@@ -455,6 +467,13 @@ namespace engine
       _rtnSortTuple **rightAxis = NULL ;
       ++_recursion ;
 
+      /// can stop when recuresive call this func.
+//      if ( cb->isInterrupted() )
+//      {
+//         PD_LOG( PDERROR, "cb is interrupted" ) ;
+//         rc = SDB_APP_INTERRUPT ;
+//         goto error ;
+//      }
 
       if ( left == right )
       {

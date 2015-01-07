@@ -1,3 +1,4 @@
+// optime.h - OpTime class
 
 /*    Copyright 2009 10gen Inc.
  *
@@ -56,6 +57,19 @@ namespace bson {
         static OpTime now() {
             unsigned t = (unsigned) time(0);
             if ( t < last.secs ) {
+                // bool toLog = false;
+                // ONCE toLog = true;
+                // RARELY toLog = true;
+                // if ( last.i & 0x80000000 )
+                //     toLog = true;
+                // if ( toLog )
+                //     log() << "clock skew detected  prev: " << last.secs
+                //           << " now: " << t << " trying to handle..." << endl;
+                // if ( last.i & 0x80000000 ) {
+                //     log() << "ERROR Large clock skew detected, shutting down"
+                //           << endl;
+                //     throw ClockSkewException();
+                // }
                 t = last.secs;
             }
             if ( last.secs == t ) {
@@ -79,6 +93,7 @@ namespace bson {
             memcpy( (char *)&time + sizeof( unsigned ), &secs,
                     sizeof( unsigned ) ) ;
             return time ;
+            //return reinterpret_cast<const unsigned long long*>(&i)[0];
         }
         long long asLL() const {
             long long time = 0 ;
@@ -86,6 +101,7 @@ namespace bson {
             memcpy( (char *)&time + sizeof( unsigned ), &secs,
                     sizeof( unsigned ) ) ;
             return time ;
+            //return reinterpret_cast<const long long*>(&i)[0];
         }
 
         bool isNull() const { return secs == 0; }

@@ -254,6 +254,8 @@ namespace engine
                SDB_ASSERT( NULL == err, "impossible" ) ;
                PD_RC_CHECK ( rc, PDERROR, "Failed to execute insert on coord, "
                              "rc = %d", rc ) ;
+//               SDB_OSS_FREE ( pMsg ) ;
+//               pMsg = NULL ;
             }
             else
             {

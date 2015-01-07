@@ -130,6 +130,7 @@ namespace engine
       BOOLEAN                       _isActive ;
 
    private :
+      // configured options
       CHAR           _groupName[ OSS_MAX_GROUPNAME_SIZE + 1 ] ;
       CHAR           _hostName[ OSS_MAX_HOSTNAME + 1 ] ;
       SDB_ROLE       _role ;

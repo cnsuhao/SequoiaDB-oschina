@@ -107,6 +107,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSVTMH_INIT ) ;
+      /// according to cls_ELECTION_STATUS
       CLS_VOTE_REGISGER_STATUS( _clsVSSilence, rc )
       CLS_VOTE_REGISGER_STATUS( _clsVSSecondary, rc )
       CLS_VOTE_REGISGER_STATUS( _clsVSVote, rc )

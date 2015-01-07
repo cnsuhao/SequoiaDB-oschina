@@ -52,8 +52,11 @@ static void genDoc ()
    {
       RCGen xml ( pLang[i] ) ;
       OptGenForWeb optForWeb ( pLang[i] ) ;
+      // generate document for english and chinese
       xml.genDoc() ;
+      // generate web console for english and chinese
       xml.genWeb() ;
+      // generate database options for english and chinese
       optForWeb.run () ;
    }
 }

@@ -55,6 +55,7 @@ namespace fs = boost::filesystem ;
 #define BLOCK_SIZE 64 * 1024
 #define DPS_LOG_FILE_INVALID 1
 
+/// filter factory implimentation
 _dpsFilterFactory::_dpsFilterFactory()
 {
 }
@@ -141,17 +142,20 @@ void _dpsFilterFactory::release( iFilter *filter )
 
 namespace
 {
+   /////// <  helper function
    INT32 checkLogFile( OSSFILE& file, INT64& size, const CHAR *filename )
    {
       SDB_ASSERT( filename, "filename cannot null" ) ;
 
       INT32 rc = SDB_OK ;
+      // calculate file size
       rc = ossGetFileSize( &file, &size ) ;
       if( rc )
       {
          printf( "Failed to get file size: %s, rc = %d\n", filename, rc ) ;
          goto error ;
       }
+      // make sure the size valid
       if( size < DPS_LOG_HEAD_LEN )
       {
          printf( "Log file %s is %lld bytes, "
@@ -161,6 +165,7 @@ namespace
          goto error ;
       }
 
+      //log file must be multiple of page size
       if(( size - DPS_LOG_HEAD_LEN ) % DPS_DEFAULT_PAGE_SIZE != 0 )
       {
          printf( "Log file %s is %lld bytes, "
@@ -217,6 +222,7 @@ namespace
       {
          rc = DPS_LOG_FILE_INVALID ;
       }
+      // modify offset
       offset += DPS_LOG_HEAD_LEN ;
 
       if( pOutBuffer )
@@ -279,6 +285,8 @@ namespace
 
       if ( LOG_TYPE_DUMMY == header->_type )
       {
+         //printf( "Warning: Dummy record head, offset:%lld\n", offset ) ;
+         //printf( "Reach end of last Record, offset:%lld\n", offset ) ;
          goto done ;
       }
 
@@ -325,6 +333,7 @@ namespace
    INT32 writeToFile( OSSFILE& out, CHAR *pBuffer )
    {
       INT32 rc        = SDB_OK ;
+      ///< write buffer
       INT64 len       = ossStrlen( pBuffer ) ;
       CHAR  *pEnter   = OSS_NEWLINE ;
       INT64 restLen   = len ;
@@ -343,6 +352,7 @@ namespace
          writePos += writeSize ;
       }
 
+      ///< write enter to file
       len = ossStrlen( OSS_NEWLINE ) ;
       restLen = len ;
       writePos = 0 ;
@@ -394,6 +404,7 @@ namespace
       while( offset < fileSize && prevCount < count )
       {
          rc = readRecordHead( in, offset, fileSize, pRecordHead ) ;
+         // ignore the return value
          header = ( dpsLogRecordHeader * )pRecordHead ;
          if ( header->_length < sizeof( dpsLogRecordHeader ) ||
               header->_length > DPS_RECORD_MAX_LEN )
@@ -404,6 +415,8 @@ namespace
 
          if ( LOG_TYPE_DUMMY == header->_type )
          {
+            //printf( "Warning: Dummy record head, offset:%lld\n", offset ) ;
+            //printf( "Reach end of last Record, offset:%lld\n", offset ) ;
             printf( "Error: Lsn input is invalid\n" );
             rc = SDB_INVALIDARG ;
             goto error ;
@@ -445,6 +458,7 @@ namespace
       while( offset < fileSize )
       {
          rc = readRecordHead( in, offset, fileSize, pRecordHead ) ;
+         // ignore the return value
          header = ( dpsLogRecordHeader * )pRecordHead ;
          if ( header->_length < sizeof( dpsLogRecordHeader ) ||
               header->_length > DPS_RECORD_MAX_LEN )
@@ -455,7 +469,11 @@ namespace
 
          if ( LOG_TYPE_DUMMY == header->_type )
          {
+            //printf( "Warning: Dummy record head, offset:%lld\n", offset ) ;
+            //printf( "Reach end of last Record, offset:%lld\n", offset ) ;
             break ;
+            //rc = SDB_INVALIDARG ;
+            //goto error ;
          }
 
          prevOffset = offset ;
@@ -520,6 +538,7 @@ namespace
       len = DPS_LOG_HEAD_LEN * LOG_BUFFER_FORMAT_MULTIPLIER ;
 
    retry_head:
+      // format log head
       if( len > outBufferSize )
       {
          CHAR *pOrgBuff = pOutBuffer ;
@@ -548,6 +567,7 @@ namespace
          goto retry_head ;
       }
 
+      // lsn must be done specially
       if( SDB_LOG_FILTER_LSN == filter->getType() )
       {
          dpsLogHeader *logHeader = ( dpsLogHeader * )pLogHead ;
@@ -560,6 +580,7 @@ namespace
 
          offset = DPS_LOG_HEAD_LEN +
                   data->lsn % ( fileSize - DPS_LOG_HEAD_LEN ) ;
+         // seek to the log by lsn assigned
          rc = seekToLsnMatched( in, offset, fileSize, ahead ) ;
          if( rc && DPS_LOG_REACH_HEAD != rc )
          {
@@ -581,6 +602,7 @@ namespace
          rc = seekToLsnMatched( in, offset, fileSize, recordCount ) ;
          if( rc && DPS_LOG_REACH_HEAD != rc )
          {
+            //printf( "File was corrupted.\n" ) ;
             goto error ;
          }
          totalCount = recordCount + 1 ;
@@ -590,6 +612,7 @@ namespace
          }
       }
 
+      // then dump each record
       while( offset < fileSize &&
            ( NONE_LSN_FILTER  == totalCount || totalCount > 0 ) )
       {
@@ -626,6 +649,7 @@ namespace
             goto error;
          }
 
+         // filte name
          if( !filter->match( data, pRecordBuffer ) )
          {
             offset += header->_length ;
@@ -636,6 +660,7 @@ namespace
             continue ;
          }
 
+         // find first record, then print log head
          if( !printLogHead )
          {
             printLogHead = TRUE ;
@@ -651,6 +676,7 @@ namespace
                {
                   goto error ;
                }
+               // write to file
                rc = writeToFile ( out, pOutBuffer ) ;
                if( rc )
                {
@@ -659,6 +685,7 @@ namespace
             }
          }
 
+         // dump log
          dpsLogRecord record ;
          record.load( pRecordBuffer ) ;
          len = recordLength * LOG_BUFFER_FORMAT_MULTIPLIER ;
@@ -695,6 +722,7 @@ namespace
          }
          else
          {
+            // write dump data
             rc = writeToFile( out, pOutBuffer ) ;
             if( rc )
             {
@@ -765,6 +793,7 @@ namespace
       {
          goto error;
       }
+      // start format log head
       totalRecordSize = fileSize - DPS_LOG_HEAD_LEN ;
       logHeader = (dpsLogHeader*)pLogHead ;
 
@@ -794,6 +823,8 @@ namespace
             }
             if( LOG_TYPE_DUMMY == header->_type )
             {
+               // reach end of record
+               //printf( "Reach end of last Record, offset:%lld\n", offset ) ;
                meta.expectLSN = header->_lsn + header->_length ;
                meta.lastLSN = header->_lsn ;
                meta.validSize = header->_lsn % totalRecordSize ;
@@ -802,8 +833,10 @@ namespace
                break;
             }
 
+            // hit invalid lsn
             if( preLsn > header->_lsn )
             {
+               // current lsn will to be overwrite by next record
                meta.expectLSN = logHeader->_firstLSN.offset +
                                 offset - DPS_LOG_HEAD_LEN ;
                meta.lastLSN = preLsn ;
@@ -845,6 +878,7 @@ namespace
       UINT32 work     = 0 ;
       UINT32 idx      = 0 ;
       UINT32 beginIdx = 0 ;
+      // find begin file
       while( idx < metaData.metaList.size() )
       {
          const dpsFileMeta &meta = metaData.metaList[ idx ] ;
@@ -867,6 +901,7 @@ namespace
          ++idx ;
       }
 
+      // find work file
       idx = 0 ;
       work = beginIdx ;
       while( 0 == metaData.metaList[ work ].restSize &&
@@ -929,8 +964,15 @@ namespace
 
       return len ;
    }
+   // helper function end
 }
+/////////////////////////////////////////////////////////////////////
+// this block is used to add filter's implementation of interface doFilter()
+// Only for doFilter()
+// and other interface was declared in macro DECLARE_FILTER(...)
 
+////////////////////////////////////////////////////////////////////
+/// for dpsTypeFilter
 BOOLEAN _dpsTypeFilter::match( const dpsCmdData *data, CHAR *pRecord )
 {
    BOOLEAN rc = FALSE ;
@@ -953,6 +995,7 @@ INT32 _dpsTypeFilter::doFilte( const dpsCmdData *data, OSSFILE &out,
    rc = filte( this, data, out, logFilePath ) ;
    if( rc )
    {
+      //PD_LOG( "!parse log file: [%s] error, rc = %d", logFilePath, rc ) ;
       goto error ;
    }
 
@@ -963,6 +1006,8 @@ error:
    goto done;
 }
 
+////////////////////////////////////////////////////////////////////
+///< for _dpsNameFilter
 BOOLEAN _dpsNameFilter::match( const dpsCmdData *data, CHAR *pRecord )
 {
    BOOLEAN rc = FALSE ;
@@ -997,6 +1042,7 @@ INT32 _dpsNameFilter::doFilte( const dpsCmdData *data, OSSFILE &out,
    rc = filte( this, data, out, logFilePath ) ;
    if( rc )
    {
+      //PD_LOG( "!parse log file: [%s] error, rc = %d", filename, rc ) ;
       goto error ;
    }
 
@@ -1007,6 +1053,8 @@ error:
    goto done;
 }
 
+////////////////////////////////////////////////////////////////////
+///< for _dpsMetaFilter
 BOOLEAN _dpsMetaFilter::match( const dpsCmdData *data, CHAR *pRecord )
 {
    return FALSE ;
@@ -1037,6 +1085,7 @@ INT32 _dpsMetaFilter::doFilte( const dpsCmdData *data, OSSFILE &out,
       start = TRUE ;
       for( INT32 idx = 0 ; idx < MAX_FILE_COUNT ; ++idx )
       {
+         // src log file ;
          fs::path fileDir( data->srcPath ) ;
          const CHAR *filepath = fileDir.string().c_str() ;
          CHAR filename[ OSS_MAX_PATHSIZE * 2 ] = { 0 } ;
@@ -1109,6 +1158,8 @@ error:
    goto done;
 }
 
+////////////////////////////////////////////////////////////////////
+///< for _dpsLsnFilter
 BOOLEAN _dpsLsnFilter::match( const dpsCmdData *data, CHAR *pRecord )
 {
    return iFilter::match( data, pRecord ) ;
@@ -1122,6 +1173,7 @@ INT32 _dpsLsnFilter::doFilte( const dpsCmdData *data, OSSFILE &out,
    rc = filte( this, data, out, logFilePath ) ;
    if( rc )
    {
+      //PD_LOG( "!parse log file: [%s] error, rc = %d", logFilePath, rc ) ;
       goto error ;
    }
 
@@ -1131,6 +1183,8 @@ error:
    goto done ;
 }
 
+////////////////////////////////////////////////////////////////////
+///< for _dpsNoneFilter
 BOOLEAN _dpsNoneFilter::match( const dpsCmdData *data, CHAR *pRecord )
 {
    return iFilter::match( data, pRecord ) ;
@@ -1144,6 +1198,7 @@ INT32 _dpsNoneFilter::doFilte( const dpsCmdData *data, OSSFILE &out,
    rc = filte( this, data, out, logFilePath ) ;
    if( rc )
    {
+      //PD_LOG( "!parse log file: [%s] error, rc = %d", logFilePath, rc ) ;
       goto error ;
    }
 
@@ -1154,6 +1209,8 @@ error:
    goto done;
 }
 
+////////////////////////////////////////////////////////////////////
+///< for lastFilter
 BOOLEAN _dpsLastFilter::match( const dpsCmdData *data, CHAR *pRecord )
 {
    return iFilter::match( data, pRecord ) ;

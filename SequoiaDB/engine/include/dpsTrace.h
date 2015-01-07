@@ -29,6 +29,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef dpsTRACE_H__
 #define dpsTRACE_H__
+// Component: dps
 #define SDB__DPSLGRECD_LOAD                                0x10000004d5L
 #define SDB__DPSLGRECD_FIND                                0x10000004d6L
 #define SDB__DPSLGRECD_PUSH                                0x10000004d7L

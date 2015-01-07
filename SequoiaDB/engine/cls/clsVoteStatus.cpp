@@ -111,6 +111,7 @@ namespace engine
          SDB_ASSERT( NULL != _logger, "logger should not be NULL" ) ;
       }
 
+      // launch
       {
          DPS_LSN lsn = _logger->getCurrentLsn() ;
          _MsgClsElectionBallot msg ;
@@ -121,6 +122,7 @@ namespace engine
                                        _groupInfo->alives.begin() ;
          for ( ; itr != _groupInfo->alives.end(); itr++ )
          {
+            // if my bs is ok, but peer is not ok, skip
             if ( SERVICE_ABNORMAL == itr->second->beat.serviceStatus &&
                  pmdGetStartup().isOK() )
             {
@@ -156,12 +158,14 @@ namespace engine
       map<UINT64, _clsSharingStatus >::iterator itrInfo ;
 
       itrInfo = _groupInfo->info.find( id.value ) ;
+      /// unknown member
       if ( _groupInfo->info.end() == itrInfo )
       {
          PD_LOG( PDWARNING, "unknown member [group:%d] [node:%d]",
                          id.columns.groupID, id.columns.nodeID ) ;
          goto error ;
       }
+      /// primary is exist. refuse
       if ( MSG_INVALID_ROUTEID !=_groupInfo->primary.value )
       {
          PD_LOG( PDDEBUG, "vote:the primary still exist [group:%d] [node:%d]",
@@ -169,6 +173,7 @@ namespace engine
                            _groupInfo->primary.columns.nodeID ) ;
          goto accepterr ;
       }
+      /// majority members' status are unknown.do not response
       if ( !CLS_IS_MAJORITY( _groupInfo->aliveSize() ,
                             _groupInfo->groupSize() ) )
       {
@@ -190,6 +195,7 @@ namespace engine
             {
                continue ;
             }
+            /// find anyone's lsn > request's lsn. refuse.
             else if ( 0 > lsn.compare( itr->second->beat.endLsn ) )
             {
                goto accepterr ;
@@ -200,14 +206,17 @@ namespace engine
       {
          DPS_LSN local = _logger->getCurrentLsn() ;
          INT32 cRc = local.compare( lsn ) ;
+         /// local < lsn. accept
          if ( 0 > cRc )
          {
             goto accept ;
          }
+         /// local > lsn. refuse
          else if ( 0 < cRc )
          {
             goto accepterr ;
          }
+         /// the same, judge id.
          else
          {
             if ( id.value < _groupInfo->local.value )
@@ -229,6 +238,7 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__CLSVTSTUS__LAU1, rc ) ;
       return rc ;
    error:
+      /// reuse err code
       rc = SDB_CLS_VOTE_FAILED ;
       goto done ;
    accepterr:

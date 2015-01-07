@@ -117,6 +117,7 @@ public class JSONSerializers {
 
 	private static class LegacyBinarySerializer extends AbstractObjectSerializer {
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			buf.append("<Binary Data>");
 		}
@@ -129,6 +130,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			buf.append("[ ");
 			for (int i = 0; i < Array.getLength(obj); i++) {
@@ -143,6 +145,7 @@ public class JSONSerializers {
 
 	private static class ToStringSerializer extends AbstractObjectSerializer {
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			buf.append(obj.toString());
 		}
@@ -155,6 +158,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			BSONTimestamp t = (BSONTimestamp) obj;
 			BasicBSONObject temp = new BasicBSONObject();
@@ -171,6 +175,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			Code c = (Code) obj;
 			BasicBSONObject temp = new BasicBSONObject();
@@ -186,6 +191,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			CodeWScope c = (CodeWScope) obj;
 			BasicBSONObject temp = new BasicBSONObject();
@@ -202,9 +208,12 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			Date d = (Date) obj;
 			SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+//			SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+//			format.setCalendar(new GregorianCalendar(new SimpleTimeZone(0, "GMT")));
 			serializer.serialize(new BasicBSONObject("$date", format.format(d)), buf);
 		}
 
@@ -216,6 +225,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			boolean first = true;
 			buf.append("{ ");
@@ -246,6 +256,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			boolean first = true;
 			buf.append("[ ");
@@ -268,6 +279,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			boolean first = true;
 			buf.append("{ ");
@@ -296,6 +308,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			serializer.serialize(new BasicBSONObject("$maxKey", 1), buf);
 		}
@@ -308,6 +321,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			serializer.serialize(new BasicBSONObject("$minKey", 1), buf);
 		}
@@ -320,6 +334,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			serializer.serialize(new BasicBSONObject("$oid", obj.toString()), buf);
 		}
@@ -331,6 +346,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			BSONObject externalForm = new BasicBSONObject();
 			externalForm.put("$regex", obj.toString());
@@ -341,6 +357,7 @@ public class JSONSerializers {
 
 	private static class StringSerializer extends AbstractObjectSerializer {
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			JSON.string(buf, (String) obj);
 		}
@@ -352,6 +369,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			UUID uuid = (UUID) obj;
 			BasicBSONObject temp = new BasicBSONObject();
@@ -366,6 +384,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			BSONTimestamp t = (BSONTimestamp) obj;
 			BasicBSONObject temp = new BasicBSONObject();
@@ -384,6 +403,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			Date d = (Date) obj;
 			serializer.serialize(new BasicBSONObject("$date", d.getTime()), buf);
@@ -409,6 +429,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			Binary bin = (Binary) obj;
 			serialize(bin.getData(), bin.getType(), buf);
@@ -421,6 +442,7 @@ public class JSONSerializers {
 			super(serializer);
 		}
 
+		////@Override
 		public void serialize(Object obj, StringBuilder buf) {
 			serialize((byte[]) obj, (byte) 0, buf);
 		}

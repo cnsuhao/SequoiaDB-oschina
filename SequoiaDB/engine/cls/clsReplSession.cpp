@@ -47,6 +47,7 @@ namespace engine
       _clsReplDstSession implement
    */
    BEGIN_OBJ_MSG_MAP( _clsReplDstSession , _pmdAsyncSession )
+      //ON_MSG
       ON_MSG( MSG_CLS_SYNC_RES, handleSyncRes )
       ON_MSG( MSG_CLS_SYNC_NOTIFY, handleNotify )
       ON_MSG( MSG_CLS_CONSULTATION_RES, handleConsultRes )
@@ -125,6 +126,7 @@ namespace engine
 
       _isFirstToSync = FALSE ;
 
+      //if the peer node is sharing-break, shoud change node
       if ( MSG_INVALID_ROUTEID != _syncSrc.value &&
            !_repl->isAlive ( _syncSrc ) )
       {
@@ -135,6 +137,7 @@ namespace engine
          _syncSrc = _selector.src() ;
       }
 
+      // has error, need to rollback
       if ( CLS_BUCKET_WAIT_ROLLBACK == _pReplBucket->getStatus() )
       {
          _pReplBucket->waitEmptyAndRollback() ;
@@ -168,6 +171,7 @@ namespace engine
       }
       else
       {
+         //do nothing
       }
 
    done:
@@ -178,6 +182,7 @@ namespace engine
 
    void _clsReplDstSession::_onAttach()
    {
+      // if start form crash, should full sync
       if ( !pmdGetStartup().isOK() )
       {
          _status = CLS_SESSION_STATUS_FULL_SYNC ;
@@ -188,6 +193,7 @@ namespace engine
          _repl->setFullSync( FALSE ) ;
       }
 
+      // full sync to repl sync, need to reset repl bucket
       _pReplBucket->reset() ;
    }
 
@@ -226,6 +232,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSDSTREPSN_HNDSYNCRES );
 
+      /// 1. some validate.
       MsgReplSyncRes *msg = ( MsgReplSyncRes * )header ;
       if ( CLS_SESSION_STATUS_SYNC != _status )
       {
@@ -290,14 +297,19 @@ namespace engine
             {
                _syncFailedNum = 0 ;
 
+               /// sync res is ok but remote has no more new data.
+               /// we choose a new node to sync data.
                _selector.addToBlakList( _syncSrc ) ;
                _selector.clearSrc() ;
 
+               // can't call _sendSyncReq, because the primary maybe
+               // sharing-break, so this will run loop for other nodes fastly
                _timeout = CLS_SYNC_INTERVAL ;
             }
 
             if ( _pReplBucket->maxReplSync() > 0 )
             {
+               // if has complete some log replay,need to notify primary
                DPS_LSN completeLSN = _pReplBucket->completeLSN() ;
                if ( !completeLSN.invalid() &&
                     _completeLSN.offset != completeLSN.offset )
@@ -426,12 +438,14 @@ namespace engine
             _fullSync() ;
             goto done ;
          }
+         /// can not find rollback point, will find the consult lsn again
          if ( SDB_OK != _logger->searchHeader( msg->returnTo, &_mb ) )
          {
             PD_LOG ( PDINFO, "Sync Session[%s]: Consult Lsn[%d,%lld], "
                      "curLsn[%d,%lld]", sessionName(), _consultLsn.version,
                      _consultLsn.offset, curLsn.version, curLsn.offset ) ;
 
+            //find the first lsn which is less than returnTo lsn
             DPS_LSN search = _consultLsn ;
             do
             {
@@ -468,6 +482,8 @@ namespace engine
                goto done ;
             }
 
+            /// now we are sure the point of rollback exists.
+            /// begin to rollback.
             while ( TRUE )
             {
                _mb.clear() ;
@@ -502,6 +518,7 @@ namespace engine
                }
             }
 
+            /// move to correct expect point.
             if ( SDB_OK != _logger->move( point.offset +
                                           ((dpsLogRecordHeader *)
                                            ( _mb.offset(0) ))->_length,
@@ -549,6 +566,7 @@ namespace engine
       }
       else if ( sdbGetTransCB()->getTransCBSize() != 0 )
       {
+         // has some trans edu in rollback or commit
          PD_LOG( PDINFO, "Has %d edus in rollback or commit, can't intial "
                  "full sync", sdbGetTransCB()->getTransCBSize() ) ;
          goto done ;
@@ -556,6 +574,7 @@ namespace engine
 
       SDB_ASSERT( 0 < sdbGetReplCB()->groupSize(), "impossible" ) ;
 
+      // if the group size is 1, then rebuild, otherwise full sync
       if ( 1 >=  pClsCB->getReplCB()->groupSize() || pmdIsPrimary() )
       {
          PD_LOG( PDWARNING, "Sync Session[%s]: Group size is one or the node "
@@ -569,6 +588,7 @@ namespace engine
             goto error ;
          }
 
+         // cut all dps
          rc = _logger->move( 0, _logger->expectLsn().version ) ;
          if ( SDB_OK != rc )
          {
@@ -585,6 +605,7 @@ namespace engine
          pClsCB->getReplCB()->setFullSync( FALSE ) ;
          pmdGetStartup().ok ( TRUE ) ;
          _status = CLS_SESSION_STATUS_SYNC ;
+         // force to secondary
          pClsCB->getReplCB()->voteMachine()->force( CLS_ELECTION_STATUS_SEC ) ;
       }
       else
@@ -623,6 +644,7 @@ namespace engine
          goto error ;
       }
 
+      // rollback trans info
       if ( !sdbGetTransCB()->isNeedSyncTrans() )
       {
          dpsLogRecord record ;
@@ -657,6 +679,7 @@ namespace engine
          msg.next = _logger->expectLsn() ;
          msg.needData = ( CLS_BS_NORMAL == _repl->getStatus() ) ? 1 : 0 ;
 
+         /// when lsn is not specified we set complete with expected.
          if ( pCompleteLSN )
          {
             _completeLSN = *pCompleteLSN ;
@@ -701,6 +724,7 @@ namespace engine
                  _pReplBucket->size() ) ;
          goto done ;
       }
+      // need to reset repl backet
       _pReplBucket->reset() ;
 
       if ( _consultLsn.invalid () )
@@ -845,6 +869,7 @@ namespace engine
       _clsReplSrcSession implement
    */
    BEGIN_OBJ_MSG_MAP( _clsReplSrcSession , _pmdAsyncSession )
+      //ON_MSG
       ON_MSG( MSG_CLS_SYNC_REQ, handleSyncReq )
       ON_MSG( MSG_CLS_SYNC_VIR_REQ, handleVirSyncReq )
       ON_MSG( MSG_CLS_CONSULTATION_REQ, handleConsultReq )
@@ -897,6 +922,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSRCREPSN_ONTIMER ) ;
       _timeout += interval ;
 
+      //if the peer node no msg a long time,need to quit
       if ( CLS_DST_SESSION_NO_MSG_TIME < _timeout )
       {
          PD_LOG ( PDEVENT, "Sync Session[%s] peer node a long time no msg, "
@@ -927,6 +953,7 @@ namespace engine
                           CLS_TID( _sessionID ) ) ;
       }
 
+      // not ok, not reply
       if ( pmdGetStartup().isOK() )
       {
          rc = _syncLog( handle, msg ) ;
@@ -984,6 +1011,7 @@ namespace engine
          res.header.res = SDB_CLS_CONSULT_FAILED ;
          goto done ;
       }
+      /// remote version 
       else if ( 0 < fLsn.compare( msg->current )/* ||
                 0 > eLsn.compareVersion(  msg->current.version - 1 )*/ )
       {
@@ -1001,6 +1029,7 @@ namespace engine
       {
          _mb.clear() ;
          DPS_LSN search = msg->current ;
+         /// finally, try again.
          if ( SDB_OK == _logger->searchHeader( search, &_mb ) )
          {
             if ( ((dpsLogRecordHeader *)(_mb.offset(0)))->_version ==
@@ -1011,6 +1040,7 @@ namespace engine
                goto done ;
             }
 
+            /// find the same offset, we search pre from this offset.
             search.offset = ((dpsLogRecordHeader *)(_mb.offset(0)))->_preLsn ;
          }
          else
@@ -1019,6 +1049,8 @@ namespace engine
          }
 
          DPS_LSN returnTo ;
+         /// we try to find the lsn whose version is equal to
+         /// remote minus one.
          do
          {
             _mb.clear() ;
@@ -1036,6 +1068,8 @@ namespace engine
                   ( 0 < returnTo.compareVersion( search.version - 1 ) &&
                     time( NULL ) - bTime <= CLS_REPL_MAX_TIME ) ) ;
 
+         /// we do not know whether remote can rollback.
+         /// but we'd better to send back.
          if ( returnTo.invalid() )
          {
             res.returnTo = fLsn ;
@@ -1070,6 +1104,7 @@ namespace engine
          goto done ;
       }
 
+      //if don't know who is primary node, don't reply
       if ( MSG_INVALID_ROUTEID == _repl->getPrimary().value )
       {
          PD_LOG ( PDINFO, "Sync Session[%s]: Don't know who is primary node, "
@@ -1077,6 +1112,7 @@ namespace engine
          goto done ;
       }
 
+      /// set remote routeID especially, to find remote session.
       msg.oldestTransLsn = pmdGetKRCB()->getTransCB()->getOldestBeginLsn();
       msg.header.header.routeID = req->header.routeID ;
       msg.header.header.TID = req->header.TID ;

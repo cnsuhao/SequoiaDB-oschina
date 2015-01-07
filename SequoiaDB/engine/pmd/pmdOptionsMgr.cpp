@@ -502,8 +502,10 @@ namespace engine
       MAP_K2V::iterator it ;
       pmdCfgExchange ex( objData, TRUE, PMD_CFG_STEP_CHG ) ;
 
+      // save old cfg
       rc = toBSON( oldCfg ) ;
       PD_RC_CHECK( rc, PDERROR, "Save old config failed, rc: %d", rc ) ;
+      // update new cfg
       rc = doDataExchange( &ex ) ;
       if ( rc )
       {
@@ -524,6 +526,7 @@ namespace engine
          ++it ;
       }
 
+      // change notify
       if ( getConfigHandler() )
       {
          getConfigHandler()->onConfigChange( getChangeID() ) ;
@@ -1178,6 +1181,7 @@ namespace engine
    */
    _pmdOptionsMgr::_pmdOptionsMgr()
    {
+      // rdx members
       ossMemset( _krcbDbPath, 0, OSS_MAX_PATHSIZE + 1 ) ;
       ossMemset( _krcbIndexPath, 0, OSS_MAX_PATHSIZE + 1 ) ;
       ossMemset( _krcbDiagLogPath, 0, OSS_MAX_PATHSIZE + 1 ) ;
@@ -1226,6 +1230,7 @@ namespace engine
       _directIOInLob       = FALSE ;
       _sparseFile          = FALSE ;
 
+      // other configs
       ossMemset( _krcbConfPath, 0, sizeof( _krcbConfPath ) ) ;
       ossMemset( _krcbConfFile, 0, sizeof( _krcbConfFile ) ) ;
       ossMemset( _krcbCatFile, 0, sizeof( _krcbCatFile ) ) ;
@@ -1240,121 +1245,165 @@ namespace engine
    {
       resetResult () ;
 
+      // map configs begin
+      // --confpath
       rdxPath( pEX, PMD_OPTION_CONFPATH , _krcbConfPath, sizeof(_krcbConfPath),
                FALSE, FALSE, PMD_CURRENT_PATH ) ;
+      // --dbpath
       rdxPath( pEX, PMD_OPTION_DBPATH, _krcbDbPath, sizeof(_krcbDbPath),
                FALSE, FALSE, PMD_CURRENT_PATH ) ;
       rdvNotEmpty( pEX, _krcbDbPath ) ;
+      // --indexpath
       rdxPath( pEX, PMD_OPTION_IDXPATH, _krcbIndexPath, sizeof(_krcbIndexPath),
                FALSE, FALSE, "" ) ;
+      // --diagpath
       rdxPath( pEX, PMD_OPTION_DIAGLOGPATH, _krcbDiagLogPath,
                sizeof(_krcbDiagLogPath), FALSE, FALSE, "" ) ;
+      // --logpath
       rdxPath( pEX, PMD_OPTION_LOGPATH, _krcbLogPath, sizeof(_krcbLogPath),
                FALSE, FALSE, "" ) ;
+      // --bkuppath
       rdxPath( pEX, PMD_OPTION_BKUPPATH, _krcbBkupPath, sizeof(_krcbBkupPath),
                FALSE, FALSE, "" ) ;
+      // --wwwpath
       rdxPath( pEX, PMD_OPTION_WWWPATH, _krcbWWWPath, sizeof(_krcbWWWPath),
                FALSE, FALSE, "", TRUE ) ;
 
+      // --lobpath
       rdxPath( pEX, PMD_OPTION_LOBPATH, _krcbLobPath, sizeof(_krcbLobPath),
                FALSE, FALSE, "" ) ;
 
+      // --maxpool
       rdxUInt( pEX, PMD_OPTION_MAXPOOL, _krcbMaxPool, FALSE, TRUE, 0 ) ;
+      // --diagnum
       rdxInt( pEX, PMD_OPTION_DIAGLOG_NUM, _dialogFileNum, FALSE, TRUE,
               PD_DFT_FILE_NUM ) ;
+      // --svcname
       rdxString( pEX, PMD_OPTION_SVCNAME, _krcbSvcName, sizeof(_krcbSvcName),
                  FALSE, FALSE,
                  boost::lexical_cast<string>(OSS_DFT_SVCPORT).c_str() ) ;
       rdvNotEmpty( pEX, _krcbSvcName ) ;
+      // --replname
       rdxString( pEX, PMD_OPTION_REPLNAME, _replServiceName,
                  sizeof(_replServiceName), FALSE, FALSE, "" ) ;
+      // --catalogname
       rdxString( pEX, PMD_OPTION_CATANAME, _catServiceName,
                  sizeof(_catServiceName), FALSE, FALSE, "" ) ;
+      // --shardname
       rdxString( pEX, PMD_OPTION_SHARDNAME, _shardServiceName,
                  sizeof(_shardServiceName), FALSE, FALSE, "" ) ;
+      // --restname
       rdxString( pEX, PMD_OPTION_RESTNAME, _restServiceName,
                  sizeof(_restServiceName), FALSE, FALSE, "" ) ;
+      // --omname
       rdxString( pEX, PMD_OPTION_OMNAME, _omServiceName,
                  sizeof(_omServiceName), FALSE, FALSE, "", TRUE ) ;
+      // --diaglevel
       rdxUShort( pEX, PMD_OPTION_DIAGLEVEL, _krcbDiagLvl, FALSE, TRUE,
                  (UINT16)PDWARNING ) ;
       rdvMinMax( pEX, _krcbDiagLvl, PDSEVERE, PDDEBUG, TRUE ) ;
+      // --role
       rdxString( pEX, PMD_OPTION_ROLE, _krcbRole, sizeof(_krcbRole),
                  FALSE, FALSE, SDB_ROLE_STANDALONE_STR ) ;
       rdvNotEmpty( pEX, _krcbRole ) ;
+      // --logfilesz
       rdxUInt( pEX, PMD_OPTION_LOGFILESZ, _logFileSz, FALSE, FALSE,
                PMD_DFT_LOG_FILE_SZ ) ;
       rdvMinMax( pEX, _logFileSz, PMD_MIN_LOG_FILE_SZ, PMD_MAX_LOG_FILE_SZ,
                  TRUE ) ;
+      // --logfilenum
       rdxUInt( pEX, PMD_OPTION_LOGFILENUM, _logFileNum, FALSE, FALSE,
                PMD_DFT_LOG_FILE_NUM ) ;
       rdvMinMax( pEX, _logFileNum, 1, 60000, TRUE ) ;
+      // --logbuffsize
       rdxUInt( pEX, PMD_OPTION_LOGBUFFSIZE, _logBuffSize, FALSE, TRUE,
                DPS_DFT_LOG_BUF_SZ ) ;
       rdvMinMax( pEX, _logBuffSize, 512, 1024000, TRUE ) ;
+      // --numpreload
       rdxUInt( pEX, PMD_OPTION_NUMPRELOAD, _numPreLoaders, FALSE, TRUE, 0 ) ;
       rdvMinMax( pEX, _numPreLoaders, 0, 100, TRUE ) ;
+      // --maxprefpool
       rdxUInt( pEX, PMD_OPTION_MAX_PREF_POOL, _maxPrefPool, FALSE, TRUE,
                PMD_MAX_PREF_POOL ) ;
       rdvMinMax( pEX, _maxPrefPool, 0, 1000, TRUE ) ;
+      // --maxsubquery
       rdxUInt( pEX, PMD_OPTION_MAX_SUB_QUERY, _maxSubQuery, FALSE, TRUE,
                PMD_MAX_SUB_QUERY <= _maxPrefPool ?
                PMD_MAX_SUB_QUERY : _maxPrefPool ) ;
       rdvMinMax( pEX, _maxSubQuery, 0, _maxPrefPool, TRUE ) ;
+      // --maxreplsync
       rdxUInt( pEX, PMD_OPTION_MAX_REPL_SYNC, _maxReplSync, FALSE, TRUE,
                PMD_DEFAULT_MAX_REPLSYNC ) ;
       rdvMinMax( pEX, _maxReplSync, 0, 200, TRUE ) ;
+      // --replbucketsize
       rdxUInt( pEX, PMD_OPTION_REPL_BUCKET_SIZE, _replBucketSize, FALSE, FALSE,
                PMD_DFT_REPL_BUCKET_SIZE, TRUE ) ;
       rdvMinMax( pEX, _replBucketSize, 1, 4096, TRUE ) ;
+      // --syncstrategy
       rdxString( pEX, PMD_OPTION_SYNC_STRATEGY, _syncStrategyStr,
                  sizeof( _syncStrategyStr ), FALSE, TRUE, "", FALSE ) ;
+      // --preferedreplica
       rdxString( pEX, PMD_OPTION_PREFINST, _prefReplStr, sizeof(_prefReplStr),
                  FALSE, TRUE, "A" ) ;
+      // --memdebug
       rdxBooleanS( pEX, PMD_OPTION_MEMDEBUG, _memDebugEnabled, FALSE, TRUE,
                    FALSE, TRUE ) ;
+      // --memdebugsize
       rdxUInt( pEX, PMD_OPTION_MEMDEBUGSIZE, _memDebugSize, FALSE, TRUE, 0,
                TRUE ) ;
+      // --indexscanstep
       rdxUInt( pEX, PMD_OPTION_INDEX_SCAN_STEP, _indexScanStep, FALSE, TRUE,
                PMD_DFT_INDEX_SCAN_STEP, TRUE ) ;
       rdvMinMax( pEX, _indexScanStep, 1, 10000, TRUE ) ;
+      // --dpslocal
       rdxBooleanS( pEX, PMD_OPTION_DPSLOCAL, _dpslocal, FALSE, TRUE, FALSE,
                    TRUE ) ;
+      // --traceOn
       rdxBooleanS( pEX, PMD_OPTION_TRACEON, _traceOn, FALSE, TRUE, FALSE,
                    TRUE ) ;
+      // --traceBufSz
       rdxUInt( pEX, PMD_OPTION_TRACEBUFSZ, _traceBufSz, FALSE, TRUE,
                TRACE_DFT_BUFFER_SIZE, TRUE ) ;
       rdvMinMax( pEX, _traceBufSz, TRACE_MIN_BUFFER_SIZE,
                  TRACE_MAX_BUFFER_SIZE, TRUE ) ;
+      // --transactionOn
       rdxBooleanS( pEX, PMD_OPTION_TRANSACTIONON, _transactionOn, FALSE,
                    TRUE, FALSE ) ;
+      // --sharingBreak
       rdxUInt( pEX, PMD_OPTION_SHARINGBRK, _sharingBreakTime, FALSE, TRUE,
                PMD_OPTION_BRK_TIME_DEFAULT, TRUE ) ;
       rdvMinMax( pEX, _sharingBreakTime, PMD_OPTION_BRK_TIME_DEFAULT,
                  300000, TRUE ) ;
+      // --startshifttime
       rdxUInt( pEX, PMD_OPTION_START_SHIFT_TIME, _startShiftTime, FALSE, TRUE,
                PMD_DFT_START_SHIFT_TIME, TRUE ) ;
       rdvMinMax( pEX, _startShiftTime, 0, 7200, TRUE ) ;
+      // --catalogaddr
       rdxString( pEX, PMD_OPTION_CATALOG_ADDR, _catAddrLine,
                  sizeof(_catAddrLine), FALSE, TRUE, "" ) ;
 
+      // --dmsTmpBlkPath
       rdxPath( pEX, PMD_OPTION_DMS_TMPBLKPATH, _dmsTmpBlkPath,
                sizeof(_dmsTmpBlkPath), FALSE, FALSE, "" ) ;
 
+      // --sortBufSz
       rdxUInt( pEX, PMD_OPTION_SORTBUF_SIZE, _sortBufSz,
                FALSE, TRUE, PMD_DEFAULT_SORTBUF_SZ ) ;
       rdvMinMax( pEX, _sortBufSz, PMD_MIN_SORTBUF_SZ,
                  -1, TRUE ) ;
 
+      // --hjBufSz
       rdxUInt( pEX, PMD_OPTION_HJ_BUFSZ, _hjBufSz,
                FALSE, TRUE, PMD_DEFAULT_HJ_SZ ) ;
       rdvMinMax( pEX, _hjBufSz, PMD_MIN_HJ_SZ,
                  -1, TRUE ) ;
 
+      // --numpagecleaners
       rdxUInt( pEX, PMD_OPTION_NUMPAGECLEANERS, _pagecleanNum,
                FALSE, FALSE, PMD_DFT_NUMPAGECLEAN ) ;
       rdvMinMax( pEX, _pagecleanNum, 0, PMD_MAX_NUMPAGECLEAN, TRUE ) ;
 
+      // --pagecleaninterval
       rdxUInt( pEX, PMD_OPTION_PAGECLEANINTERVAL, _pagecleanInterval,
                FALSE, TRUE, PMD_DFT_PAGECLEANINTERVAL ) ;
       rdvMinMax ( pEX, _pagecleanInterval, PMD_MIN_PAGECLEANINTERVAL,
@@ -1365,6 +1414,7 @@ namespace engine
 
       rdxBooleanS( pEX, PMD_OPTION_SPARSE_FILE, _sparseFile,
                    FALSE, TRUE, FALSE, FALSE ) ;
+      // end map
 
       return getResult () ;
    }
@@ -1382,6 +1432,7 @@ namespace engine
          goto error ;
       }
 
+      // logbuffsize check
       if ( _logBuffSize > _logFileNum * _logFileSz *
            ( 1048576 / DPS_DEFAULT_PAGE_SIZE ) )
       {
@@ -1391,6 +1442,7 @@ namespace engine
                         ( 1048576 / DPS_DEFAULT_PAGE_SIZE ) ;
       }
 
+      // dbrole check
       if ( SDB_ROLE_MAX == ( dbRole = utilGetRoleEnum( _krcbRole ) ) )
       {
          std::cerr << "db role: " << _krcbRole << " error" << std::endl ;
@@ -1398,11 +1450,13 @@ namespace engine
          goto error ;
       }
 
+      // replbucketsize check
       if ( !ossIsPowerOf2( _replBucketSize ) )
       {
          _replBucketSize = PMD_DFT_REPL_BUCKET_SIZE ;
       }
 
+      // syncstrategy check
       if ( SDB_OK != clsString2Strategy( _syncStrategyStr, _syncStrategy ) )
       {
          std::cerr << PMD_OPTION_SYNC_STRATEGY << " value error, use default"
@@ -1411,6 +1465,7 @@ namespace engine
       }
       _syncStrategyStr[0] = 0 ;
 
+      // preferreplica check
       _preferReplica = utilPrefReplStr2Enum( _prefReplStr ) ;
 
       if ( 0 == ossStrlen( _replServiceName ) )
@@ -1574,11 +1629,13 @@ namespace engine
          goto error ;
       }
 
+      // if start is stanalone, must enable dps local
       if ( SDB_ROLE_STANDALONE == dbRole && _transactionOn )
       {
          _dpslocal = TRUE ;
       }
 
+      // om and catalog, prefetch and preload not enable
       if ( SDB_ROLE_CATALOG == dbRole || SDB_ROLE_OM == dbRole )
       {
          _numPreLoaders    = 0 ;
@@ -1683,6 +1740,7 @@ namespace engine
       rc = utilReadCommandLine( argc, argv, all, vm );
       JUDGE_RC( rc )
 
+      /// read cmd first
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          std::cout << display << std::endl ;
@@ -1696,6 +1754,7 @@ namespace engine
          goto done ;
       }
 
+      // --confpath
       if ( vm.count( PMD_OPTION_CONFPATH ) )
       {
          CHAR *p = ossGetRealPath( vm[PMD_OPTION_CONFPATH].as<string>().c_str(),
@@ -1738,12 +1797,17 @@ namespace engine
       rc = utilReadConfigureFile( _krcbConfFile, all, vm2 ) ;
       if ( SDB_OK != rc )
       {
+         //if user set  configure file,  but cann't read the configure file.
+         //then we should exit.
          if ( vm.count( PMD_OPTION_CONFPATH ) )
          {
             std::cerr << "Read config file: " << _krcbConfFile
                       << " failed, rc: " << rc << std::endl ;
             goto error ;
          }
+         // we should avoid exit when config file is not found or I/O error
+         // we should continue run but use other arguments that uses input
+         // from command line
          else if ( SDB_IO != rc )
          {
             std::cerr << "Read default config file: " << _krcbConfFile

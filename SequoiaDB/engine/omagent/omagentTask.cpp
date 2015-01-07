@@ -162,6 +162,7 @@ namespace engine
            rc = SDB_CLS_MUTEX_TASK_EXIST ;
            goto error ;
       }
+      // add to map
       _taskMap[ taskID ] = pTask ;
    done:
       return rc ;
@@ -203,6 +204,7 @@ namespace engine
          if ( 0 == ossStrncmp( name, pTaskName, ossStrlen(pTaskName) ) )
          {
             rc = removeTask( pTask ) ;
+            // when remove old task, must stop iterate
             break ;
          }
       }
@@ -220,6 +222,7 @@ namespace engine
       return NULL ;
    }
 
+   // get omagent task manager
    _omaTaskMgr* getTaskMgr()
    {
       static _omaTaskMgr taskMgr ;
@@ -288,6 +291,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
+      // check host info before add hosts
       rc = _checkHostInfo () ;
       if ( rc )
       {
@@ -295,6 +299,7 @@ namespace engine
                   "are conflicting, rc = %d", rc ) ;
          goto error ;
       }
+      // begin to add hosts
       rc = _addHost() ;
       if ( rc )
       {
@@ -357,6 +362,7 @@ namespace engine
       map< string, OMA_JOB_STATUS >::iterator it ;
 
       ossScopedLock lock( &_taskLatch, EXCLUSIVE ) ;
+      // set job status
       rc = setJobStatus( jobName, status ) ;
       if ( rc )
       {
@@ -369,6 +375,7 @@ namespace engine
          {
             _isAddHostFail = TRUE ;
          }
+         // when add host fail, check whether it's the time to rollback or not
          if ( TRUE == _isAddHostFail )
          {
             PD_LOG ( PDDEBUG, "Add host had failed, going to check whether it's "
@@ -377,12 +384,15 @@ namespace engine
             {
                if( OMA_JOB_STATUS_RUNNING == it->second )
                {
+                  // some job is still running, can't rollback
                   PD_LOG ( PDDEBUG, "Some jobs are still running in task[%s], "
                            "not the time to rollback", _taskName.c_str() ) ;
                   goto done ;
                }
             }
+            // begin to rollback
             PD_LOG ( PDWARNING, "Start to rollback add host.." ) ;
+            // start a async job to rollback add host task
             rc = _rollback() ;
             if ( rc )
             {
@@ -407,6 +417,7 @@ namespace engine
  
       if ( OMA_OPT_INSTALL == _stage )
       {
+         // update the add host result
          vector<AddHostInfo>::iterator it = _addHostInfo.begin() ;
          for ( ; it != _addHostInfo.end(); it++ )
          {
@@ -420,6 +431,7 @@ namespace engine
       }
       else if ( OMA_OPT_ROLLBACK == _stage )
       {
+         // update the remove host result
          vector<AddHostInfo>::iterator it = _rollbackInfo.begin() ;
          for ( ; it != _rollbackInfo.end(); it++ )
          {
@@ -450,8 +462,10 @@ namespace engine
       BSONArrayBuilder bab ;
       const CHAR *pStage = NULL ;
 
+      // collect prgress info
       _collectProgressInfo() ;
       
+      // while task has failed
       if ( getIsTaskFail() )
       {
          if ( '\0' == _detail[0] )
@@ -467,6 +481,7 @@ namespace engine
          goto done ;
       }
       
+      // test which stage task is in
       if ( OMA_OPT_INSTALL == _stage )
       {
          pStage = STAGE_INSTALL ;
@@ -483,10 +498,14 @@ namespace engine
       }
       try
       {
+         // taskID
          bob.append( OMA_FIELD_TASKID, (SINT64)_taskID ) ;
+         // isFinish
          bob.appendBool( OMA_FIELD_ISFINISH, _isTaskFinish ) ;
+         // status
          bob.append( OMA_FIELD_STATUS, pStage ) ;
          
+         // set add host status
          vector<AddHostInfo>::iterator it ;
          if ( OMA_OPT_INSTALL== _stage )
          {
@@ -543,10 +562,13 @@ namespace engine
             } 
          }
       
+         // try to set ErrMsg
+         // TODO:
          if ( !(bob.hasField( OMA_FIELD_ERRMSG ) ) )
          {
             bob.append( OMA_FIELD_ERRMSG, "" ) ;
          }
+         // set return result
          bob.appendArray( OMA_FIELD_PROGRESS, bab.arr() ) ;
          progress = bob.obj() ;
       }
@@ -587,6 +609,7 @@ namespace engine
          goto error ;
       }
       
+      // extract "errno"
       rc = omaGetIntElement ( retObj, OMA_FIELD_ERRNO, errNum ) ;
       if ( rc )
       {
@@ -596,6 +619,7 @@ namespace engine
       }
       if ( SDB_OK  != errNum )
       {
+         // extract "detail"
          rc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
          if ( rc )
          {
@@ -603,6 +627,7 @@ namespace engine
                      "rc = %d", OMA_FIELD_ERRNO, rc ) ;
             goto error ;
          }
+         // set task to be failing
          ossSnprintf( _detail, OMA_BUFF_SIZE, "%s", pErrMsg ) ;
          _isTaskFail = TRUE ;
          rc = errNum ;
@@ -634,9 +659,11 @@ namespace engine
          ossScopedLock lock( &_taskLatch, EXCLUSIVE ) ;
          if ( !_isAddHostFail )
          {
+            // start add host jobs
             rc = startAddHostJob( jobName, this, &jobID ) ;
             if ( rc )
             {
+               // can't use setIsAddHostFail(), for it also has _taskLatch
                _isAddHostFail = TRUE ;
                PD_LOG ( PDERROR, "Failed to start add host job[%s], "
                         "rc = %d", jobName, rc ) ;
@@ -662,8 +689,11 @@ namespace engine
       INT32 hostNum = 0 ;
       INT32 threadNum = 0 ;
       
+      //get rollback host info
       _getRollbackInfo() ;
+      // clear _jobStatus for rollback host jobs
       _jobStatus.clear() ;
+      // set task stage to be rollback
       _stage = OMA_OPT_ROLLBACK ;
 
       hostNum = _rollbackInfo.size() ;
@@ -679,6 +709,7 @@ namespace engine
          CHAR jobName[OMA_BUFF_SIZE + 1] = { 0 };
          EDUID jobID = PMD_INVALID_EDUID ;
          ossSnprintf(jobName, OMA_BUFF_SIZE, "%s %d", OMA_JOB_ROLLBACKHOST, i ) ;
+         // start add host jobs
          rc = startRbHostJob( jobName, this, &jobID ) ;
          if ( rc )
          {
@@ -749,6 +780,7 @@ namespace engine
          }
       }
       arr = bab.arr() ;
+      // build the return result
       if ( 0 != str.length() )
       {
          result = "Rollback is failing for these reasons: " ;
@@ -779,6 +811,7 @@ namespace engine
       
       if ( OMA_OPT_INSTALL == _stage )
       {
+         // check wether add host finish or not
          _isTaskFinish = TRUE ;
          it = _addHostInfo.begin() ;
          for ( ; it != _addHostInfo.end(); it++ )
@@ -796,19 +829,26 @@ namespace engine
       {
          BOOLEAN hasJobFail = FALSE ;
 
+         // check wether remove host finish or not
          it = _rollbackInfo.begin() ;
+         // to see wether all the hosts had been handled or not
          for ( ; it != _rollbackInfo.end(); it++ )
          {
             if ( FALSE == it->_flag )
             {
+               // some hosts have not been handled yet
                return ;
             }
          }
+         // if all the hosts had been handled,
+         // check task is suceessful or not
          map<string, OMA_JOB_STATUS>::iterator it = _jobStatus.begin() ;
          for ( ; it != _jobStatus.end(); it++ )
          {
             if ( OMA_JOB_STATUS_RUNNING == it->second )
             {
+               // some jobs are still running,
+               // task not finish yet
                return ;
             }
             else if ( OMA_JOB_STATUS_FAIL == it->second )
@@ -816,6 +856,8 @@ namespace engine
                hasJobFail = TRUE ;
             }
          }
+         // if no job is running, but some jobs had failed
+         // or some hosts had not been uninstall, task fail
          if ( hasJobFail || _hasUninstallHost() )
          {
             _isTaskFail = TRUE ;
@@ -864,8 +906,10 @@ namespace engine
       vector<BSONObj>::iterator it ;
       map<string, vector<BSONObj> >::iterator iter ;
       _isStandalone = isStandalone ;
+      // in case of standalone
       if ( isStandalone )
       {
+         // init _standalone and _standaloneResult
          _standalone = standalone ;
          _standaloneResult._rc = SDB_OK ;
          _standaloneResult._totalNum = _standalone.size() ;
@@ -873,15 +917,19 @@ namespace engine
       }
       else // in case of cluster
       {
+         // init _coord and _coordResult
          _coord = coord ;
          _coordResult._rc = SDB_OK ;
          _coordResult._totalNum = _coord.size() ;
          _coordResult._finishNum = 0 ;
+         // init _catalog and _catalogResult
          _catalog = catalog ;
          _catalogResult._rc = SDB_OK ;
          _catalogResult._totalNum = _catalog.size() ;
          _catalogResult._finishNum = 0 ;
+         // init _mapGroups and _mapGroupsResult
          it = data.begin() ;
+         // let data node sort by group name
          while( it != data.end() )
          {
             const CHAR *name = NULL ;
@@ -894,6 +942,7 @@ namespace engine
             _mapGroups[key].push_back( *it ) ;
             it++ ;
          }
+         // init data node result
          iter = _mapGroups.begin() ;
          while ( iter != _mapGroups.end() )
          {
@@ -916,6 +965,7 @@ namespace engine
    INT32 _omaInsDBBusTask::doit()
    {
       INT32 rc = SDB_OK ;
+      // in case of standalone
       if ( _isStandalone )
       {
          rc = _installStandalone() ;
@@ -927,24 +977,28 @@ namespace engine
       }
       else // in case of cluster
       { 
+         // create temporary catalog
          rc = _installVirtualCoord() ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to create temporary coord, rc = %d", rc ) ;
             goto error ;
          }
+         // create catalog job
          rc = _installCatalog() ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to start create catalog job, rc = %d", rc ) ;
             goto error ;
          }
+         // create coord job
          rc = _installCoord() ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to start create coord job, rc = %d", rc ) ;
             goto error ;
          }
+         // create data node job
          rc = _installData() ;
          if ( rc )
          {
@@ -1114,6 +1168,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       ossScopedLock lock ( &_jobLatch, EXCLUSIVE ) ;
 
+      // check argument
       if ( NULL == pRole )
       {
          PD_LOG ( PDERROR,
@@ -1140,6 +1195,7 @@ namespace engine
       if ( NULL == pDesc ) pDesc = "" ;
       if ( NULL == pGroupName ) pGroupName = "" ;
 
+      // update the install result
       if ( 0 == ossStrncmp( pRole, ROLE_DATA, ossStrlen( ROLE_DATA ) ) )
       {
          map<string, InstallResult>::iterator it ; 
@@ -1202,6 +1258,10 @@ namespace engine
          {
             _standaloneResult._rc = retRc ;
             _standaloneResult._errMsg = pErrMsg ;
+            // though this node failed to be created, it's info
+            // had been registed in remote sdbcm, we need to remove
+            // those info, so we need to keep this node's install info
+            // if it's offered
             if ( NULL != pNode )
             {
                _standaloneResult._installedNodes.push_back( *pNode ) ;
@@ -1220,6 +1280,8 @@ namespace engine
                   "Failed to update install result, rc = %d", rc ) ;
          goto error ;
       }
+      // check whether it's time to set task's status or 
+      // remove virtual coord
       if ( isInstallFinish() )
       {
          setIsInstallFinish( TRUE ) ;
@@ -1230,6 +1292,7 @@ namespace engine
          }
          else
          {
+            // start an async job to remove virtual coord
             rc = removeVirtualCoord() ;
             if ( rc )
             {
@@ -1296,7 +1359,9 @@ namespace engine
 
    BOOLEAN _omaInsDBBusTask::isInstallFinish ()
    {
+      // TODO: need to add a lock different with update install statue?
 
+      // in case of standalone
       if ( _isStandalone )
       {
          if ( _standaloneResult._totalNum == _standaloneResult._finishNum )
@@ -1343,6 +1408,7 @@ namespace engine
       BSONObj catalogResult ;
       const CHAR *pStage = NULL ;
       
+      // while task has failed
       if ( getIsTaskFail() )
       {
          if ( '\0' == _detail[0] )
@@ -1357,6 +1423,7 @@ namespace engine
          rc = SDB_OMA_TASK_FAIL ;
          goto done ;
       }
+      // test which stage task is in
       if ( OMA_OPT_INSTALL == _stage )
       {
          pStage = STAGE_INSTALL ;
@@ -1373,11 +1440,16 @@ namespace engine
       }
       try
       {
+         // taskID
          bob.append( OMA_FIELD_TASKID, (SINT64)_taskID ) ;
+         // isFinish
          bob.appendBool( OMA_FIELD_ISFINISH, _isTaskFinish ) ;
+         // status
          bob.append( OMA_FIELD_STATUS, pStage ) ;
+         // in case of standalone
          if ( _isStandalone )
          {
+            // get standalone status
             if ( _standaloneResult._rc )
             {
                bob.append( OMA_FIELD_ERRMSG, _standaloneResult._errMsg ) ;
@@ -1394,6 +1466,7 @@ namespace engine
          }
          else // in case of cluster
          {
+            // get catalog status
             if ( _catalogResult._rc )
             {
                bob.append( OMA_FIELD_ERRMSG, _catalogResult._errMsg ) ;
@@ -1407,6 +1480,7 @@ namespace engine
                                    << OMA_FIELD_DESC
                                    << _catalogResult._desc.c_str() ) ;
             bab.append ( catalogResult ) ;
+            // get coord status
             if ( ( _coordResult._rc ) && ( !bob.hasField(OMA_FIELD_ERRMSG) ) )
             {
                bob.append( OMA_FIELD_ERRMSG, _coordResult._errMsg ) ;
@@ -1420,6 +1494,7 @@ namespace engine
                                  << OMA_FIELD_DESC
                                  << _coordResult._desc.c_str() ) ;
             bab.append ( coordResult ) ;
+            // get data group status
             std::map< string, InstallResult >::iterator it ;
             it = _mapGroupsResult.begin() ;
             while ( it != _mapGroupsResult.end() )
@@ -1443,10 +1518,12 @@ namespace engine
                it++ ;
             }
          }
+         // try to set ErrMsg
          if ( !(bob.hasField( OMA_FIELD_ERRMSG ) ) )
          {
             bob.append( OMA_FIELD_ERRMSG, "" );
          }
+         // set return result
          bob.appendArray( OMA_FIELD_PROGRESS, bab.arr() ) ;
          progress = bob.obj() ;
       }
@@ -1472,6 +1549,7 @@ namespace engine
       BOOLEAN needRollback = FALSE ;
       map< string, OMA_JOB_STATUS >::iterator it ;
       ossScopedLock lock ( &_jobLatch, EXCLUSIVE ) ;
+      // set job status
       rc = setJobStatus( name, status ) ;
       if ( rc )
       {
@@ -1482,12 +1560,15 @@ namespace engine
       {
          setIsInstallFail( TRUE ) ;
       }
+      // check whether is there any job failed or not,
+      // and whether it's the time to rollback
       for ( it = _jobStatus.begin(); it != _jobStatus.end(); it++ )
       {
          PD_LOG ( PDDEBUG, "Job[%s]'s status is : %d",
                   it->first.c_str(), it->second ) ;
          if( OMA_JOB_STATUS_RUNNING == it->second )
          {
+            // some job is still running, can't rollback
             PD_LOG ( PDDEBUG, "Some jobs are still running "
                      "in task[%s]", _taskName.c_str() ) ;
             goto done ;
@@ -1501,6 +1582,7 @@ namespace engine
       if ( TRUE == needRollback )
       {
          PD_LOG ( PDWARNING, "Start to rollback.." ) ;
+         // start a async job to rollback task
          rc = rollbackInternal() ;
          if ( rc )
          {
@@ -1520,6 +1602,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       EDUID jobID = PMD_INVALID_EDUID ;
+      // set task stage
       setTaskStage ( OMA_OPT_ROLLBACK ) ;
       rc = startInsDBBusTaskRbJob ( _isStandalone, _vCoordSvcName,
                                     this, &jobID ) ;
@@ -1529,6 +1612,7 @@ namespace engine
                  "rc = %d", rc ) ;
          goto error ;
       }
+      // wait until rollback is finish
       while ( rtnGetJobMgr()->findJob( jobID ) )
       {
          ossSleep ( OSS_ONE_SEC ) ;
@@ -1569,9 +1653,12 @@ namespace engine
       BSONObj vCoordRet ;
       _omaCreateVirtualCoord createVCoord ;
       
+      // create virtual coord and save it's info for future
       rc = createVCoord.createVirtualCoord( vCoordRet ) ;
       if ( rc )
       {
+         // if we can't get field "detail", it means we failed in CPP,
+         // we had not executed js file yet
          tmpRc = omaGetStringElement ( vCoordRet, OMA_FIELD_DETAIL, &pErrMsg ) ;
          if ( tmpRc )
          {
@@ -1584,7 +1671,9 @@ namespace engine
          ossSnprintf( desc, OMA_BUFF_SIZE, "Failed to create temporary "
                       "coord: %s", pErrMsg ) ;
          PD_LOG_MSG( PDERROR, desc ) ;
+         // set task to be failing
          setIsTaskFail( TRUE ) ;
+         // set error detail
          setErrDetail( desc ) ;
          goto error ;
       }
@@ -1605,6 +1694,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       EDUID createStandaloneJobID = PMD_INVALID_EDUID ;
+      // start create standalone job
       rc = startCreateStandaloneJob( this, &createStandaloneJobID ) ;
       if ( rc )
       {
@@ -1625,6 +1715,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       EDUID installCatalogJobID = PMD_INVALID_EDUID ;
+      // start create catalog job
       rc = startCreateCatalogJob( this, &installCatalogJobID ) ;
       if ( rc )
       {
@@ -1645,6 +1736,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       EDUID installCoordJobID = PMD_INVALID_EDUID ;
+      // test install status, and decide go on or stop task
       if ( getIsInstallFail() )
       {
          PD_LOG ( PDWARNING, "Install had failed, no need to install coord" ) ;
@@ -1654,12 +1746,14 @@ namespace engine
       {
          goto done ;
       }
+      // start coord job
       rc = startCreateCoordJob( this, &installCoordJobID ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to start create coord job, rc = %d", rc ) ;
          goto error ;
       }
+      // wait until this job finish
       while ( rtnGetJobMgr()->findJob ( installCoordJobID ) )
       {
          ossSleep ( OSS_ONE_SEC ) ;
@@ -1679,6 +1773,7 @@ namespace engine
       {
          string groupname = it->first ;
          EDUID installDataJobID = PMD_INVALID_EDUID ;
+         // test install status, and decide go on or stop task
          if ( getIsInstallFail() )
          {
             PD_LOG ( PDWARNING, "Install had failed, no need to install "
@@ -1689,6 +1784,7 @@ namespace engine
          {
             goto done ;
          }
+         // start data job
          rc = startCreateDataJob( groupname.c_str(), this,
                                   &installDataJobID ) ;
          if ( rc )
@@ -1708,6 +1804,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       EDUID jobID = PMD_INVALID_EDUID ;
+      // start remove virtual coord job
       rc = startRemoveVirtualCoordJob( _vCoordSvcName.c_str(), this, &jobID ) ;
       if ( rc )
       {
@@ -1715,10 +1812,12 @@ namespace engine
                  "rc = %d", rc ) ;
          goto error ;
       }
+      // wait until job is finish
       while ( rtnGetJobMgr()->findJob ( jobID ) )
       {
          ossSleep ( OSS_ONE_SEC ) ;
       } 
+      // set task finish or fail
       if ( _isRemoveVCoordFinish && !_isRollbackFail)
       {
          setIsTaskFinish( TRUE ) ;
@@ -1739,6 +1838,7 @@ namespace engine
    done:
       return rc ;
    error:
+      // set remove virtual coord fail detail
       setIsRemoveVCoordFail( TRUE ) ;
       setIsTaskFail( TRUE ) ;
       setErrDetail( "Failed to remove temporary coord, please do it manually" ) ;
@@ -1779,8 +1879,10 @@ namespace engine
       map<string, BSONObj>::iterator it ;
       _isStandalone = isStandalone ;
       _cataAddrInfo = other.getOwned() ;
+      // in case of standalone
       if ( isStandalone )
       {
+         // init _standalone and _standaloneResult
          _standalone = standalone ;
          _standaloneResult._rc = SDB_OK ;
          _standaloneResult._totalNum = 1 ;
@@ -1788,14 +1890,17 @@ namespace engine
       }
       else // in case of cluster
       {
+         // init _coord and _coordResult
          _coord = coord ;
          _coordResult._rc = SDB_OK ;
          _coordResult._totalNum = 1 ;
          _coordResult._finishNum = 0 ;
+         // init _catalog and _catalogResult
          _catalog = catalog ;
          _catalogResult._rc = SDB_OK ;
          _catalogResult._totalNum = 1 ;
          _catalogResult._finishNum = 0 ;
+         // init _data and _mapGroupsResult
          _data = data ;
          it = _data.begin() ;
          while ( it != _data.end() )
@@ -1817,6 +1922,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BOOLEAN hasVCoordCreated = FALSE ;
+      // in case of standalone
       if ( _isStandalone )
       {
          rc = _uninstallStandalone() ;
@@ -1828,6 +1934,7 @@ namespace engine
       }
       else // in case of cluster
       { 
+         // create virtual coord
          rc = _installVirtualCoord() ;
          if ( rc )
          {
@@ -1835,18 +1942,21 @@ namespace engine
             goto error ;
          }
          hasVCoordCreated = TRUE ;
+         // remove data group 
          rc = _uninstallData() ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to remove data groups, rc = %d", rc ) ;
             goto error ;
          }
+         // remove coord
          rc = _uninstallCoord() ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to remove coord group, rc = %d", rc ) ;
             goto error ;
          }
+         // remove catalog
          rc = _uninstallCatalog() ;
          if ( rc )
          {
@@ -1865,6 +1975,7 @@ namespace engine
       }
       else
       {
+         // remove virtual coord
          if ( hasVCoordCreated )
          {
             rc = _removeVirtualCoord() ;
@@ -1965,6 +2076,7 @@ namespace engine
                                                   const CHAR *pGroupName )
    {
       INT32 rc = SDB_OK ;
+      // check argument
       if ( NULL == pRole )
       {
          PD_LOG_MSG ( PDERROR, "Not speciefy role for "
@@ -1984,6 +2096,7 @@ namespace engine
       if ( NULL == pDesc ) pDesc = "" ;
       if ( NULL == pGroupName ) pGroupName = "" ;
 
+      // update the remove result
       if ( 0 == ossStrncmp( pRole, ROLE_DATA, ossStrlen( ROLE_DATA ) ) )
       {
          map<string, UninstallResult>::iterator it ; 
@@ -2056,6 +2169,7 @@ namespace engine
          PD_LOG_MSG ( PDERROR, "Invalid role for updating uninstall status" ) ;
          goto error ;
       }
+      // check whether uninstall is finish or not
       if ( _isRemoveFinish() )
       {
          setIsTaskFinish( TRUE ) ;
@@ -2069,6 +2183,7 @@ namespace engine
 
    BOOLEAN _omaRmDBBusTask::_isRemoveFinish ()
    {
+      // in case of standalone
       if ( _isStandalone )
       {
          if ( _standaloneResult._totalNum == _standaloneResult._finishNum )
@@ -2115,6 +2230,7 @@ namespace engine
       BSONObj catalogResult ;
       const CHAR *pStage = STAGE_UNINSTALL ;
       
+      // while task has failed
       if ( getIsTaskFail() )
       {
          if ( '\0' == _detail[0] )
@@ -2131,13 +2247,18 @@ namespace engine
       }
       try
       {
+         // taskID
          bob.append( OMA_FIELD_TASKID, (SINT64)_taskID ) ;
+         // isFinish
          bob.appendBool( OMA_FIELD_ISFINISH, _isTaskFinish ) ;
+         // status
          bob.append( OMA_FIELD_STATUS, pStage ) ;
 
          bob.append( OMA_FIELD_ERRMSG, _detail ) ;
+         // in case of standalone
          if ( _isStandalone )
          {
+            // get standalone status
             if ( _standaloneResult._rc )
             {
                bob.append( OMA_FIELD_ERRMSG, _standaloneResult._errMsg ) ;
@@ -2154,6 +2275,7 @@ namespace engine
          }
          else // in case of cluster
          {
+            // get catalog status
             if ( _catalogResult._rc )
             {
                bob.append( OMA_FIELD_ERRMSG, _catalogResult._errMsg ) ;
@@ -2167,6 +2289,7 @@ namespace engine
                                    << OMA_FIELD_DESC
                                    << _catalogResult._desc.c_str() ) ;
             bab.append ( catalogResult ) ;
+            // get coord status
             if ( ( _coordResult._rc ) && ( !bob.hasField(OMA_FIELD_ERRMSG) ) )
             {
                bob.append( OMA_FIELD_ERRMSG, _coordResult._errMsg ) ;
@@ -2180,6 +2303,7 @@ namespace engine
                                  << OMA_FIELD_DESC
                                  << _coordResult._desc.c_str() ) ;
             bab.append ( coordResult ) ;
+            // get data group status
             std::map< string, UninstallResult >::iterator it ;
             it = _mapDataResult.begin() ;
             while ( it != _mapDataResult.end() )
@@ -2203,10 +2327,12 @@ namespace engine
                it++ ;
             }
          }
+         // try to set ErrMsg
          if ( !(bob.hasField( OMA_FIELD_ERRMSG ) ) )
          {
             bob.append( OMA_FIELD_ERRMSG, "" );
          }
+         // set return result
          bob.appendArray( OMA_FIELD_PROGRESS, bab.arr() ) ;
          progress = bob.obj() ;
       }
@@ -2252,6 +2378,7 @@ namespace engine
       BSONObj vCoordRet ;
       _omaCreateVirtualCoord vCoord ;
       
+      // create virtual coord and save it's info for future
       rc = vCoord.init( _cataAddrInfo.objdata() ) ;
       if ( rc )
       {
@@ -2262,6 +2389,8 @@ namespace engine
       rc = vCoord.doit( vCoordRet ) ;
       if ( rc )
       {
+         // if we can't get field "detail", it means we failed in CPP,
+         // we had not executed js file yet
          tmpRc = omaGetStringElement ( vCoordRet, OMA_FIELD_DETAIL, &pErrMsg ) ;
          if ( tmpRc )
          {
@@ -2309,6 +2438,7 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }      
+      // update status for web before remove catalog
       ossSnprintf( desc, OMA_BUFF_SIZE, "Removing standalone" ) ;
       rc = _updateUninstallStatus( FALSE, SDB_OK, ROLE_STANDALONE,
                                    NULL, desc, NULL ) ;
@@ -2318,6 +2448,7 @@ namespace engine
                   "rc = %d", rc ) ;
          goto error ;
       }
+      // remove standalone
       rc = rmSa.init( pInfo ) ;
       if ( rc )
       {
@@ -2329,6 +2460,8 @@ namespace engine
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to remove standalone, rc = %d", rc ) ;
+         // if we can't get field "detail", it means we failed in CPP,
+         // we had not executed js file yet
          tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
          if ( tmpRc )
          {
@@ -2384,6 +2517,7 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      // update status for web before remove catalog
       ossSnprintf( desc, OMA_BUFF_SIZE, "Removing catalog group" ) ;
       rc = _updateUninstallStatus( FALSE, SDB_OK, ROLE_CATA,
                                    NULL, desc, NULL ) ;
@@ -2393,6 +2527,7 @@ namespace engine
                   "group, rc = %d", rc ) ;
          goto error ;
       }
+      // remove catalog
       rc = rmCata.init( pInfo ) ;
       if ( rc )
       {
@@ -2404,6 +2539,8 @@ namespace engine
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to remove catalog group, rc = %d", rc ) ;
+         // if we can't get field "detail", it means we failed in CPP,
+         // we had not executed js file yet
          tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
          if ( tmpRc )
          {
@@ -2456,6 +2593,7 @@ namespace engine
          PD_LOG_MSG( PDWARNING, "No coord's info for removing" ) ;
          goto done ;
       }
+      // update status for web before remove coord
       ossSnprintf( desc, OMA_BUFF_SIZE, "Removing coord group" ) ;
       rc = _updateUninstallStatus( FALSE, SDB_OK, ROLE_COORD,
                                    NULL, desc, NULL ) ;
@@ -2465,6 +2603,7 @@ namespace engine
                   "group, rc = %d", rc ) ;
          goto error ;
       }
+      // remove coord
       rc = rmCoord.init( pInfo ) ;
       if ( rc )
       {
@@ -2476,6 +2615,8 @@ namespace engine
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to remove coord group, rc = %d", rc ) ;
+         // if we can't get field "detail", it means we failed in CPP,
+         // we had not executed js file yet
          tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
          if ( tmpRc )
          {
@@ -2524,6 +2665,7 @@ namespace engine
       {
          _omaRmDataRG rmData( _vCoordSvcName ) ;
          pInfo = it->second.objdata() ;
+         // update status for web before remove data group
          ossSnprintf( desc, OMA_BUFF_SIZE, "Removing data group[%s]",
                       it->first.c_str() ) ;
          rc = _updateUninstallStatus( FALSE, SDB_OK, ROLE_DATA,
@@ -2534,6 +2676,7 @@ namespace engine
                      "group[%s], rc = %d", it->first.c_str(), rc ) ;
             goto error ;
          }
+         // remove data rg
          rc = rmData.init( pInfo ) ;
          if ( rc )
          {
@@ -2546,6 +2689,8 @@ namespace engine
          {
             PD_LOG( PDERROR, "Failed to remove data group[%s], rc = %d",
                     it->first.c_str(), rc ) ;
+            // if we can't get field "detail", it means we failed in CPP,
+            // we had not executed js file yet
             tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
             if ( tmpRc )
             {
@@ -2593,6 +2738,8 @@ namespace engine
       {
          PD_LOG ( PDERROR, "Failed to remove temporary coord in remove "
                   "db business task, rc = %d", rc ) ;
+         // if we can't get field "detail", it means we failed in CPP,
+         // we had not executed js file yet
          tmpRc = omaGetStringElement( removeRet, OMA_FIELD_DETAIL, &pErrMsg ) ;
          if ( tmpRc )
          {
@@ -2604,7 +2751,9 @@ namespace engine
          }
          ossSnprintf( detail, OMA_BUFF_SIZE, "Failed to remove temporary "
                       "coord: %s", pErrMsg ) ;
+         // set remove temp coord to be failing
          setIsRemoveVCoordFail( TRUE ) ;
+         // set error detail
          setErrDetail( detail ) ;
          goto error ;
       }
@@ -2614,6 +2763,7 @@ namespace engine
          setIsRemoveVCoordFinish( TRUE ) ;
       } 
       
+      // set task finish or fail
       if ( _isRemoveVCoordFinish && !_isUninstallFail )
       {
          setIsTaskFinish( TRUE ) ;
@@ -2634,6 +2784,7 @@ namespace engine
    done:
       return rc ;
    error:
+      // set remove virtual coord fail detail
       setIsRemoveVCoordFail( TRUE ) ;
       setIsTaskFail( TRUE ) ;
       goto done ;

@@ -48,24 +48,31 @@ namespace engine
       virtual ~_sptProperty() ;
 
    public:
+      /// BOOLEAN, INT32, FLOAT64
       INT32 assignNative( const CHAR *name,
                           bson::BSONType type,
                           const void *value ) ;
 
+      /// value should be base64 coded when
+      /// it is a binary data.
       INT32 assignString( const CHAR *name,
                           const CHAR *value ) ;
 
       INT32 assignBsonobj( const CHAR *name,
                            const bson::BSONObj &value ) ;
 
+      /// WARNING: value will be registered in
+      /// engine and released in JS_Destructor.
       INT32 assignUsrObject( const CHAR *name,
                              void *value ) ;
 
       INT32 getNative( bson::BSONType type,
                        void *value ) const ;
 
+      /// copy value if u want to modify or keep it.
       const CHAR *getString() const ;
 
+      /// copy value if u want to modify or keep it.
       INT32 getBsonobj( bson::BSONObj &value ) const ;
 
       inline bson::BSONType getType() const

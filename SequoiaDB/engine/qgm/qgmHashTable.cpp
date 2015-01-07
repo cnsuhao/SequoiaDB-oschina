@@ -129,6 +129,7 @@ namespace engine
       }
 
       {
+      /// fill data.
       ossMemcpy( _buf + _written, &key, sizeof( BSONElement )) ;
       ossMemcpy( _buf + _written + sizeof(hashTuple),
                  value.objdata(), value.objsize() ) ;
@@ -142,6 +143,7 @@ namespace engine
       tuple->value = _buf + _written + sizeof(hashTuple);
       _written += sizeof( hashTuple ) + value.objsize() ;
 
+      /// push to bucket.
       UINT32 hash = QGM_HASH( key ) ;
       hashTuple ** bucket = QGM_GET_BUCKET( hash ) ;
 

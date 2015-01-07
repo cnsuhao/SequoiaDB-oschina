@@ -1,3 +1,4 @@
+// oid.h
 
 /*    Copyright 2009 10gen Inc.
  *
@@ -95,6 +96,7 @@ namespace bson {
         static MachineAndPid ourMachine, ourMachineAndPid;
         union {
             struct {
+                // 12 bytes total
                 unsigned char _time[4];
                 MachineAndPid _machineAndPid;
                 unsigned char _inc[3];

@@ -148,6 +148,7 @@ namespace engine
       SDB_ASSERT( mbContext, "mb context can't be NULL" ) ;
 
       /* (0) */
+      // verify whether the record got "_id" inside
       ele = record.getField ( DMS_ID_KEY_NAME ) ;
       if ( ele.type() == Array )
       {
@@ -157,6 +158,8 @@ namespace engine
          goto error ;
       }
 
+      // if the record is not for temp, and
+      // "_id" doesn't exist, let's create the object
       if ( ele.eoo() )
       {
          oid._oid.init() ;
@@ -189,6 +192,7 @@ namespace engine
 
       if ( dmsrecordSize > (UINT32)_currentExtent->_freeSpace || isLast )
       {
+         // lock
          rc = mbContext->mbLock( EXCLUSIVE ) ;
          if ( rc )
          {
@@ -204,6 +208,7 @@ namespace engine
          rc = _su->loadExtentA( mbContext, _pCurrentExtent,
                                 _currentExtentSize / _pageSize,
                                 TRUE ) ;
+         // unlock
          mbContext->mbUnlock() ;
 
          if ( rc )
@@ -235,6 +240,7 @@ namespace engine
          dmsrecordSize = _currentExtent->_freeSpace ;
       }
 
+      // set record header
       DMS_RECORD_SETFLAG ( recordPtr, DMS_RECORD_FLAG_NORMAL ) ;
       DMS_RECORD_SETMYOFFSET ( recordPtr, recordOffset ) ;
       DMS_RECORD_SETSIZE ( recordPtr, dmsrecordSize ) ;
@@ -251,11 +257,13 @@ namespace engine
       }
       DMS_RECORD_SETNEXTOFFSET ( recordPtr, DMS_INVALID_OFFSET ) ;
       DMS_RECORD_SETPREVOFFSET ( recordPtr, DMS_INVALID_OFFSET ) ;
+      // set extent header
       if ( isAsynchr )
       {
          _currentExtent->_recCount++ ;
       }
       _currentExtent->_freeSpace -= dmsrecordSize ;
+      // set previous record next pointer
       offset = _currentExtent->_lastRecordOffset ;
       if ( DMS_INVALID_OFFSET != offset )
       {
@@ -266,6 +274,7 @@ namespace engine
 
       _currentExtent->_lastRecordOffset = recordOffset ;
 
+      // then check extent header for first record
       offset = _currentExtent->_firstRecordOffset ;
       if ( DMS_INVALID_OFFSET == offset )
       {
@@ -292,6 +301,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSTORAGELOADEXT__LDDATA ) ;
 
       dmsExtent     *extAddr        = NULL ;
+      //dmsExtent     *prevExt        = NULL ;
       dmsRecordID    recordID ;
       ossValuePtr    recordPtr      = 0 ;
       ossValuePtr    recordDataPtr  = 0 ;
@@ -363,6 +373,7 @@ namespace engine
          extAddr->_lastRecordOffset  = DMS_INVALID_OFFSET ;
          _su->addExtentRecordCount( mbContext->mb(), extAddr->_recCount ) ;
          extAddr->_recCount          = 0 ;
+         // add freespace to del list
          _su->mapExtent2DelList( mbContext->mb(), extAddr, tempExtentID ) ;
 
          recordOffset = DMS_EXTENT_METADATA_SZ ;
@@ -378,11 +389,16 @@ namespace engine
 
             try
             {
+               // get the BSON object
                BSONObj obj ( (const CHAR*)recordDataPtr ) ;
+               // when we get here, that means we have a new record
+               // to add to index
                DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
 
+               // attempt to insert into the index
                rc = _su->index()->indexesInsert( mbContext, tempExtentID, obj,
                                                  recordID, cb ) ;
+               // if any error happen
                if ( rc )
                {
                   if ( SDB_IXM_DUP_KEY != rc )
@@ -427,6 +443,7 @@ namespace engine
                goto rollback ;
             }
 
+            // extent point to cur record
             if ( DMS_INVALID_OFFSET == extAddr->_firstRecordOffset )
             {
                extAddr->_firstRecordOffset = recordID._offset ;
@@ -434,6 +451,7 @@ namespace engine
             extAddr->_lastRecordOffset = recordID._offset ;
          } //while ( DMS_INVALID_OFFSET != recordOffset )
 
+         // unlock
          mbContext->mbUnlock() ;
       } // while
 
@@ -443,6 +461,7 @@ namespace engine
    error:
       goto done ;
    rollback:
+      // save the extent other record to del list
       recordOffset = recordID._offset ;
       while ( DMS_INVALID_OFFSET != recordOffset )
       {

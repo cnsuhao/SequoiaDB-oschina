@@ -273,6 +273,7 @@ namespace engine
 
          if ( T::__desc.getFuncMap().isMemberFunc( idValue ) )
          {
+            /// member function will be called.
             goto done ;
          }
 

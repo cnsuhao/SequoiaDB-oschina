@@ -76,6 +76,7 @@ namespace engine
                      BOOLEAN &result );
 
    private:
+      // forbid copy constructor
       clsCataHashPredTree( clsCataHashPredTree &right ){}
    private:
       VEC_CLSCATAHASHPREDSET        _children;
@@ -103,6 +104,7 @@ namespace engine
       }CLS_CATA_PREDICATE_OBJ_TYPE ;
 
    public:
+      // note: don't delete shardingkey before delete clsCataHashMatcher
       clsCataHashMatcher( const bson::BSONObj &shardingKey );
 
       virtual ~clsCataHashMatcher(){};

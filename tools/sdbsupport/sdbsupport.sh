@@ -1,394 +1,115 @@
 #!/bin/bash
 BashPath=$(dirname $(readlink -f $0))
+. $BashPath/sdbsupportinit.sh
 . $BashPath/sdbsupportfunc1.sh
 . $BashPath/sdbsupportfunc2.sh
 . /etc/default/sequoiadb
-#variable in bash shell
-#declare -a PORT
-#declare -a DBPATH
-#declare -a ROLE
-#declare -a HOST
-confpath=""
-pHostNum=""
-
-#user permission
-USER=`whoami`
-if [ "" == $USER ] ; then
-   USER="sdbadmin"
-fi
-
-#gloable variable
-hostName=""
-svcPort=""
-sysInfo="false"
-snapShot="false"
-hardInfo="false"
-
-#sdblog and conf
-sdbconf="false"
-sdblog="false"
-sdbcm="false"
-
-#hardware information variable
-cpu="false"
-memory="false"
-disk="false"
-netcard="false"
-mainboard="false"
-
-#snapshot variable
-rcPort="false"
-group="false"
-context="false"
-session="false"
-collection="false"
-collectionspace="false"
-database="false"
-system="false"
-catalog="false"
-
-#operation system variable
-diskmanage="false"
-osystem="false"
-module="false"
-env="false"
-IDE="false"
-network="false"
-progress="false"
-login="false"
-limit="false"
-vmstat="false"
-all="false"
-
-#the parameter get where location
-firstLoc=""
-firstLoc=$1
-thirdLoc=""
-thirdLoc=$3
-
-#the number of concurrent threads
-thread=10
-timeout=60
-
-#get the number of parameter and what parameters is 
-ParaNum=$#
-ParaPass=$@
-
-#check is local host run
-Local=""
-
-function Usage()
-{
-   echo "Command Options:" ;
-   echo "    --help                 help information" ;
-   echo "    -N [--hostname] arg    database host name [eg:-N hostname1:hostname2:.....]" ;
-   echo "    -p [--svcport] arg     database sevice port [eg:-p 50000:30000:......]" ;
-#   echo "    -t [--thread] arg      number of concurrent threads,default:10" ;
-   echo "    -s [--snapshot]        snapshot of database database" ;
-   echo "    -o [--osinfo]          operating system information" ;
-   echo "    -h [--hardware]        hardware information" ;
-   echo "    --all                  copy the all information of database" ;
-   echo "    --conf                 collect config file of service port" ;
-   echo "    --log                  collect sdb log file of service port" ;
-   echo "    --cm                   collect sdbcm config and log file" ;
-   echo "    --cpu                  host cpu information" ;
-   echo "    --memory               host memory information" ;
-   echo "    --disk                 host disk information" ;
-   echo "    --netcard              host netcard information" ;
-   echo "    --mainboard            host mainboard information" ;
-   echo "    --catalog              catalog snapshot for database" ;
-   echo "    --group                group of dababase information" ;
-   echo "    --context              context snapshot" ;
-   echo "    --session              session snapshot" ;
-   echo "    --collection           collection snapshot" ;
-   echo "    --collectionspace      collectionspace snapshot" ;
-   echo "    --database             database snapshot" ;
-   echo "    --system               system snapshot" ;
-   echo "    --diskmanage           operating system disk management information" ;
-   echo "    --basicsys             operating system basic information" ;
-   echo "    --module               loadable kernel modules" ;
-   echo "    --env                  operating system environment variable" ;
-   echo "    --network              network information" ;
-   echo "    --process              operating system process" ;
-   echo "    --login                operating system users and history" ;
-   echo "    --limit                ulimit used to limit the resources occupied shell startup process" ;
-   echo "    --vmstat               Show the server status value of a given time interval" ;
-#   echo "    --timeout              Set too much time to collect,default:50"
-
-}
-
-#the parameters can use  
-optArg=`getopt -a -o N:p:t:sohH -l hostname,svcport,thread,snapshot,osinfo,hardware,help,conf,log,cm,cpu,memory,disk,netcard,mainboard,group,context,session,collection,collectionspace,database,system,diskmanage,basicsys,module,env,network,process,login,limit,vmstat,catalog,all,timeout: -- "$@"`
-
-#check over the option of sdbsupport
-rc=$?
-if [ "$rc" == "1" ] ; then
-   echo "The option don't have,please check by use '--help'!"
-   exit 1
-fi
-
-
-eval set -- "$optArg"
-
-while true
-do
-#eval set -- "$optArg"
-   case $1 in
-   -N|--hostname)
-      hostName=$2
-      shift
-      ;;
-   -p|--svcport)
-      svcPort=$2
-      shift
-      ;;
-   -t|--thread)
-      thread=$2
-      shift
-      ;;
-   --timeout)
-      timeout=$2
-      shift
-      ;;
-   -s|--snapshot)
-      snapShot="true"
-      ;;
-   -o|--osinfo)
-      sysInfo="true"
-      ;;
-   -h|--hardware)
-      hardInfo="true"
-      ;;
-   --conf)
-      sdbconf="true"
-      ;;
-   --log)
-      sdblog="true"
-      ;;
-   --cm)
-      sdbcm="true"
-      ;;
-   --cpu)
-      cpu="true"
-      ;;
-   --memory)
-      memory="true"
-      ;;
-   --disk)
-      disk="true"
-      ;;
-   --netcard)
-      netcard="true"
-      ;; 
-   --mainboard)
-      mainboard="true"
-      ;;
-   --group)
-      group="true"
-      rcPort="true"
-      ;;
-   --context)
-      context="true"
-      rcPort="true"
-      ;;
-   --session)
-      session="true"
-      rcPort="true"
-      ;;
-   --collection)
-      collection="true"
-      rcPort="true"
-      ;;
-   --collectionspace)
-      collectionspace="true"
-      rcPort="true"
-      ;;
-   --database)
-      database="true"
-      rcPort="true"
-      ;;
-   --system)
-      system="true"
-      rcPort="true"
-      ;;
-   --diskmanage)
-      diskmanage="true"
-      ;;
-   --basicsys)
-      osystem="true"
-      ;;
-   --module )
-      module="true"
-      ;;
-   --env)
-      env="true"
-      ;;
-   --network)
-      network="true"
-      ;;
-   --process)
-      progress="true"
-      ;;
-   --login)
-      login="true"
-      ;;
-   --limit)
-      limit="true"
-      ;;
-   --vmstat)
-      vmstat="true"
-      ;;
-   --catalog)
-      catalog="true"
-      ;;
-   --all)
-      all="true"
-      ;;
-   -H|--help)
-      Usage
-      exit 1
-      ;;
-   --)
-      shift
-      break
-      ;;
-   esac
-shift
-done
 
 echo ""
-echo "**********************Sdbsupport***************************"
+echo "************************************Sdbsupport***************************"
 echo "* This program run mode will collect all configuration and "
 echo "* system environment information.Please make sure whether"
 echo "* you need !"
 echo "* Begin ....."
-echo "***********************************************************"
+echo "*************************************************************************"
 echo ""
 
-
 #******************************************************************************
-#@Function : Check over environment
+#@ Step 1 : check over environment
 #******************************************************************************
-#mv sdbsupport.log sdbsupport.log.1 >>sdbsupport.log 2>&1
+# mv sdbsupport.log sdbsupport.log.1 >>sdbsupport.log 2>&1
 rm -rf sdbsupport.log
-rc=$?
-if [ $rc -ne 0 ] ; then
-   echo "Failed to remove sdbsupport.log file."
+if [ $? -ne 0 ] ; then
+   echo "failed to remove sdbsupport.log file."
 fi
-#make sure the local path
+# get the local path
 dirpath=`pwd`
 if [ "$dirpath" == "" ] ; then
-   echo "Failed to get local directory."
+   echo "failed to get local directory."
+   echo ""
    exit 1
 fi
-#inspect the environment of sequiaDB,localPath=where the sdbsuppor.sh run
+# get local host and local path
 localhost=`hostname`
 localPath=$(dirname $(readlink -f $0))
-#echo $localPath
 if [ "$localhost" == "" ] || [ "$localPath" == "" ] ; then
-   echo "Failed to get local host and local path."
-   sdbEchoLog "ERROR" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Failed to get local host:$localhost and local path:$localPath."
+   echo "failed to get local host and local path."
+   sdbEchoLog "ERROR" "$0" "${LINENO}" "Failed to get local host:$localhost and local path:$localPath."
+   echo ""
    exit 1
 fi
-#make a directory to story .tar.gz and .log.host file
+# create local path folder log that store information
 mkdir -p $localPath/log
 if [ $? -ne 0 ] ;then
-   echo "Failed to create directory for sdbsupport.sh"
-   sdbEchoLog "ERROR" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Failed to create folder log in local path"
+   echo "failed to create directory for sdbsupport.sh"
+   sdbEchoLog "ERROR" "$0" "${LINENO}" "Failed to create folder log in local path"
+   echo ""
    exit 1
 fi
-#*************************************
-# Give expect tool run permission
-#*************************************
-ls $localPath/expect/expect
-if [ $? -ne 0 ] ; then
-   echo "Don't have expect tools in path : $localPath/expect/expect"
-   exit -1
-fi
-chmod 755 $localPath/expect/expect
-if [ $? -ne 0 ] ; then
-   echo "Failed to give expect tools run permission"
-   exit -1
-fi
+sdbEchoLog "EVENT" "$0" "${LINENO}" "Step 0: passed comman:$0 $ParaPass"
+sdbEchoLog "EVENT" "$0" "${LINENO}" "Step 1: Success to check over environment"
 
-#**********************************************************
-#  export  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$localPath/expect
-#**********************************************************
-libPath=`env | grep LD_LIBRARY_PATH | cut -d "=" -f 2`
-libNum=`awk 'BEGIN{print split('"\"$libPath\""',libArr,":")}'`
-for i in $(seq 1 $libNum)
-do
-   libpath[$i]=`awk 'BEGIN{split('"\"$libPath\""',libArr,":");print libArr['$i']}'`
-   # awk 'BEGIN{split('"\"$cataddr\""',cateArr,",");print cateArr['$i']'}
-   if [ "$localPath/expect/" != ${libpath[$i]} ] ; then
-      export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$localPath/expect/
-      if [ $? -ne 0 ] ; then
-         echo "Failed to config system environment variable"
-         exit -1
-      fi
-      echo "Success to export System environment variable : $localPath/expect/"
-   else
-      echo "System have environment variable : $localPath/expect/"
-   fi
-done
-
-#***********************************************************
-#get install path from /etc/default/sequoiadb file
+#******************************************************************************
+#@ Step 2 : get install path from /etc/default/sequoiadb file and check path
+#@ Description :
 #   NAME=sdbcm
 #   SDBADMIN_USER=sdbadmin
 #   INSTALL_DIR=/opt/sequoiadb
-#***********************************************************
+#******************************************************************************
+# get install path
 installpath=$INSTALL_DIR
 if [ "" == $installpath ] ; then
-   echo "Don't have file /etc/default/sequoiadb, inspect your "
+   echo "don't have file /etc/default/sequoiadb, make sure your host is
+         installed sequoiadb or not"
+   echo ""
    exit -1
 fi
-
 ls $installpath >/dev/null 2>&1
 if [ $? -ne 0 ] ; then
-   echo "Wrong install path ,Please check over the sdbsupport path and installpath!"
-   sdbEchoLog "ERROR" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Wrong install path:$installpath"
+   echo "Wrong install path, Please check over the sdbsupport path and installpath!"
+   sdbEchoLog "ERROR" "$0" "${LINENO}" "Wrong install path:$installpath"
+   echo ""
    exit 1
 else
-   sdbEchoLog "EVENT" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Success to get install path:$installpath"
+   sdbEchoLog "EVENT" "$0" "${LINENO}" "Success to get install path:$installpath"
 fi
-
-
 cd $dirpath
 if [ $? -ne 0 ] ; then
    echo "Failed to come back to sdbsupport directory"
-   sdbEchoLog "ERROR" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Failed to come back to sdbsupport directory:$localPath"
+   sdbEchoLog "ERROR" "$0" "${LINENO}" "Failed to come back to sdbsupport directory:$localPath"
+   echo ""
    exit 1
 fi
-
-#config file path
+# get config file's path
 confpath=$installpath/conf/local
 if ls $confpath >>/dev/null 2>&1
 then
    retval=`ls $confpath`
    if [ "$retval" == "" ] ; then
-      echo "Database don't have sdb nodes!"
-      sdbEchoLog "ERROR" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Database don't have sdb nodes. config path:$confpath"
+      echo "database don't have sdb nodes!"
+      sdbEchoLog "ERROR" "$0" "${LINENO}" "Database don't have sdb nodes. config path:$confpath"
+      echo ""
       exit 1
    else
-      echo "Check over Environment!"
-      sdbEchoLog "EVENT" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Database have nodes Correct config path:$confpath"
+      echo "check over environment, correct!"
+      sdbEchoLog "EVENT" "$0" "${LINENO}" "Database have nodes correct config path:$confpath"
    fi
 else
-   echo "Wrong Config path:$confpath"
-   sdbEchoLog "ERROR" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Wrong Config path:$confpath"
+   echo "wrong config path: $confpath"
+   sdbEchoLog "ERROR" "$0" "${LINENO}" "Wrong Config path:$confpath"
+   echo ""
    exit 1
 fi
+sdbEchoLog "EVENT" "$0" "${LINENO}" "Step 2: Success to get install path: $installpath and config path: $confpath"
 
-#************************************************************************
-#@Function: create Number of concurrent threads
-#@
-#************************************************************************
+#******************************************************************************
+#@ Step 3 : create concurrent threads
+#******************************************************************************
 fifo="/tmp/$$.fiofo"
 mkfifo $fifo
 if [ $? -ne 0 ] ; then
-   echo "Failed to create FIFO,No parallel"
-   sdbEchoLog "ERROR" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Failed to create FIFO,No parallel"
+   echo "failed to create FIFO, have no threads"
+   sdbEchoLog "ERROR" "$0" "${LINENO}" "Failed to create concurrent threads"
 else
    exec 6<>$fifo
    rm -rf $fifo
@@ -396,15 +117,12 @@ else
    do
       echo ""
    done >&6
-   sdbEchoLog "EVENT" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Success to create FIFO,parallel"
+   sdbEchoLog "EVENT" "$0" "${LINENO}" "Step 3: Success to create concurrent threads"
 fi
 
-#************************************************************************
-#@Function : get quantity of all hosts and local sevic port
-#@Var : HostNum   Exp : the number of hosts in the database
-#@Var : PortNum   Exp : the number of local host's sevice port
-#@Note : Array begin 1 count ,but such as file row begin 1, so use 1 begin 
-#************************************************************************
+#******************************************************************************
+#@ Step 4 : get quantity of all hosts and local service port
+#******************************************************************************
 cd $confpath
 aloneRole=`find -name "*.conf"|xargs grep "\brole.*=.*standalone\b"|cut -d "/" -f 2`
 coordRole=`find -name "*.conf"|xargs grep "\brole.*=.*coord\b"|cut -d "/" -f 2`
@@ -412,85 +130,43 @@ cataRole=`find -name "*.conf"|xargs grep "\brole.*=.*cata\b"|cut -d "/" -f 2`
 dataRole=`find -name "*.conf"|xargs grep  "\brole.*=.*data\b"|cut -d "/" -f 2`
 #echo "dataRole:$dataRole : aloneRole:$aloneRole"
 cd $localPath
-#*************************************************************************
-#MODE:No Sdb  //Don't create database database,whether standalone and
-#               group.Cannot collect ,exit shell!
-#*************************************************************************
-if [ "$aloneRole" == "" ] && [ "$coordRole" == "" ] && [ "$cataRole" == "" ] && [ "$dataRole"=="" ] ; then
-   echo "Local host don't create database database"
-   sdbEchoLog "ERROR" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Local host don't create database database"
+# check DB is used or not. check it's database
+if [ "$aloneRole" == "" ] && [ "$coordRole" == "" ] &&
+   [ "$cataRole" == "" ] && [ "$dataRole"=="" ] ; then
+   echo "local host don't create database"
+   sdbEchoLog "ERROR" "$0" "${LINENO}" "Local host don't create database database"
+   echo ""
    exit 1
 fi
-#***************************************************************************
-#MODE:standalone           //database have standalone database collect
-#***************************************************************************
-#if [ "$aloneRole" != "" ] ; then
-#   echo "Node $aloneRole is standalone node"
-#   sdbEchoLog "EVENT" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Node $aloneRole is standalone node"
-#   alonehost="standalone.$localhost"
-#   dbpath=`grep -E "dbpath" $confpath/$aloneRole/sdb.conf|cut -d '=' -f 2`
-#   sdbPortGather "$localhost" "$dbpath" "$aloneRole" "$installpath"
-#   sdbSnapShotCataLog "$localhost" "$aloneRole" "$installpath"
-#   sdbSnapShot "$localhost" "$aloneRole" "$installpath"
-#   sdbHardwareInfoAll "$localhost" "$installpath"
-#   sdbSystemInfoAll "$localhost" "$installpath"
-#   #tar
-#   sdbTarGzPack $alonehost
-#fi
 
-#***************************************************************************
-#MODE:Group           //database database cluster/[group] only have coord
-#***************************************************************************
-if [ "$coordRole" != "" ] && [ "$cataRole" == "" ] && [ "$dataRole" == "" ] ;
-then
-   echo "database database cluster only have coord"
-   sdbEchoLog "EVENT" "$localhost/$0/${FUNCNAME}" "${LINENO}" "database database cluster only have coord"
-   dbpath=`grep -E "dbpath" $confpath/$coordRole/sdb.conf|cut -d '=' -f 2`
-   sdbPortGather "$localhost" "$dbpath" "$coordRole" "$installpath"
-   sdbHardwareInfoAll "$localhost" "$installpath"
-   sdbSystemInfoAll "$localhost" "$installpath"
-fi
-#****************************************************************************
-#MODE:Group   //database database cluster/[group] only have coord and cata
-#****************************************************************************
-if [ "$coordRole" != "" ] && [ "$cataRole" != "" ] && [ "$dataRole" == "" ] ;
-then
-   echo "database database cluster only have coord and cata"
-   sdbEchoLog "EVENT" "$localhost/$0/${FUNCNAME}" "${LINENO}" "database database cluster only have coord and cata"
-   dataRole=$coordRole
-fi
-#***************************************************************************
-#MODE:Group           //Complete database database cluster/[group]
-#***************************************************************************
 if [ "$dataRole" != "" ] ; then
-   echo "Complete database database cluster"
-   sdbEchoLog "EVENT" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Complete database database cluster"
+   echo "complete database cluster"
+   sdbEchoLog "EVENT" "$0" "${LINENO}" "Complete database database cluster"
    dataRole=$dataRole
+else
+   echo "there are not database cluster"
 fi
-#catadrr : get the cata address and catch hosts
 
 data=`echo $dataRole | cut -d " " -f 1`
-#echo "date=$data...confpath=$confpath"
-#echo "grep -E "catalogaddr" $confpath/$data/sdb.conf|cut -d '=' -f 2"
 cataddr=`grep -E "catalogaddr.*=" $confpath/$data/sdb.conf|cut -d '=' -f 2`
-#echo "cataddr=$cataddr"
 HostNum=`awk 'BEGIN{print split('"\"$cataddr\""',cateArr,",")}'`
-#echo "HostNum:$HostNum"
 PortNum=`ls -l $confpath|grep "^d"|wc -l`
 
 if [ "$HostNum" != "0" ] && [ "$PortNum" != "0" ] ; then
-   sdbEchoLog "EVENT" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Success to get the number of host in group and port in localhost"
+   sdbEchoLog "EVENT" "$0" "${LINENO}" "Success to get the number of host in group and port in localhost"
 else
    echo "No host and port,Please check!"
-   sdbEchoLog "ERROR" "$localhost/$0/${FUNCNAME}" "${LINENO}" "No host and port,Please check!"
+   sdbEchoLog "ERROR" "$0" "${LINENO}" "No host and port,Please check!"
+   echo ""
    exit 1
 fi
+sdbEchoLog "EVENT" "$0" "${LINENO}" "Step 4: Success to get quantity of host: $HostNum and port: $PortNum"
 #*******************************************************************************
-#@Function : get all hosts in database and local host's port/dbpath/role 
-#@Var : HOST      Exp : Array variable used to store hosts in database
-#@Var : PORT      Exp : Array variable store local host's sevice port
-#@Var : DBPATH    Exp : Array variable store local host's dbpath
-#@Var : ROLE      Exp : Array variable store local hsot's sevice port's role 
+#@ Step 5 : get all hosts in database and local host's port/dbpath/role
+#         HOST      Exp : Array variable used to store hosts in database
+#         PORT      Exp : Array variable store local host's sevice port
+#         DBPATH    Exp : Array variable store local host's dbpath
+#         ROLE      Exp : Array variable store local hsot's sevice port's role
 #*******************************************************************************
 for i in $(seq 1 $HostNum)
 do
@@ -515,21 +191,22 @@ done
 DbPath=`echo ${DBPATH[@]}`
 AllHost=`echo ${HOST[@]}`
 AllPort=`echo ${PORT[@]}`
-sdbEchoLog "EVENT" "$localhost/$0/${FUNCNAME}" "${LINENO}" "allHost:[$AllHost] allPort:[$AllPort] allDbpath:[$DbPath]"
-#echo "${HOST[@]} ${PORT[@]} ${DBPATH[@]}"
+sdbEchoLog "EVENT" "$0" "${LINENO}" "Step 5: Success to get all host: [$AllHost], all port: [$AllPort] and all dbpath: [$DbPath]"
 #*************************************************************************************************
-#@Function : Get parameter passed in and check over them wether or not correct,if don't have this 
-#            Host or Port ,will delete the wrong host and port 
-#@Var : pHostNum  Exp : quantity of parameter hosts, such as :--hostname ubunt-dev1:ubunt-dev2:
-#@Var : pPortNum  Exp : quantity of parameter sevice port, such as:--svcport 51111:61111
-#@Var : HostPara  Exp : Array variable to store hosts parameter
-#@Var : PortPara  Exp : Array variable to store local hosts' sevice port
+#@ Step 6 : Get parameter passed in and check over them wether or not correct,if don't have this
+#           Host or Port ,will delete the wrong host and port
+#         pHostNum  Exp : quantity of parameter hosts, such as :--hostname ubunt-dev1:ubunt-dev2:
+#         pPortNum  Exp : quantity of parameter sevice port, such as:--svcport 51111:61111
+#         HostPara  Exp : Array variable to store hosts parameter
+#         PortPara  Exp : Array variable to store local hosts' sevice port
 #*************************************************************************************************
 pHostNum=`awk 'BEGIN{print split('"\"$hostName\""',hostarr,":")}'`
 pPortNum=`awk 'BEGIN{print split('"\"$svcPort\""',portarr,":")}'`
 #when have parameter ,but not --all ,we must specify the hosts[--hostname]
-if [ $pHostNum -eq 0 ] && [ "$all" == "false" ] && [ "$firstLoc" != "" ] ; then
+if [ $pHostNum -eq 0 ] && [ "$all" == "false" ] && [ "$fifthLoc" != "" ] &&
+   [ "true"X == "$IS_USER"X ] && [ "true"X == "$IS_PASSWD"X ]; then
    echo "Warning ! Please specify hosts!"
+   echo ""
    exit 1
 fi
 #Check over Host
@@ -548,7 +225,7 @@ do
       #******************************************************************************
       if [ $j -gt $HostNum ] ; then
          echo "WARNIGN,database don't have host:${HostPara[$i]}"
-         sdbEchoLog "WARNING" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Don't have host:${HostPara[$i]}"
+         sdbEchoLog "WARNING" "$0" "${LINENO}" "Don't have host:${HostPara[$i]}"
          HostPara[$i]=""
       fi
    done
@@ -567,7 +244,7 @@ do
       fi
       if [ $j -gt $PortNum ] ; then
          echo "WARNIGN,database don't have port:${PortPara[$i]}"
-         sdbEchoLog "WARNING" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Don't have port:${PortPara[$i]}"
+         sdbEchoLog "WARNING" "$0" "${LINENO}" "Don't have port:${PortPara[$i]}"
          PortPara[$i]=""
       fi
    done
@@ -575,128 +252,234 @@ done
 paraHost=`echo ${HostPara[@]}`
 paraPort=`echo ${PortPara[@]}`
 paraDbpath=`echo ${DbPath[@]}`
-sdbEchoLog "EVENT" "$localhost/$0/${FUNCNAME}" "${LINENO}" "paraHost:[$paraHost] paraPort:[$paraPort] paraDbpath:[$paraDbpath]"
-#***********************************************************************************
-#@Function: get password of host that you begin to collect information
-#@
-#***********************************************************************************
+sdbEchoLog "EVENT" "$0" "${LINENO}" "Step 6: passed host:[$paraHost], passed port:[$paraPort] and passed dbpath:[$paraDbpath]"
+
+#******************************************************************************
+#@ Step 7 : get password of host when you begin to collect information
+#******************************************************************************
+# when collect all infomation
+user=$USER
 if [ "$all" == "true" ] ; then
    for i in $(seq 1 $HostNum)
    do
       if [ "${HOST[$i]}" != "$localhost" ] ; then
-         echo "The host $USER@${HOST[$i]}'s password :"
+         echo "The host $user@${HOST[$i]}'s password :"
          read -s PASSWD[$i]
-         sdbCheckPassword "${HOST[$i]}" "${PASSWD[$i]}" >> sdbsupport.log 2>&1
+         sdbCheckPassword "${HOST[$i]}" "${PASSWD[$i]}" "$installpath"
          retVal=$?
-         echo "inspect password, rc = $retVal"
+         if [ 13 -eq $retVal ]; then
+            echo "failed to connect to Host : ${HOST[$i]}"
+            HOST[$i]=""
+         fi
          while [ "$retVal" == "5" ]
          do
             PASSWD[$i]=""
-            echo "Wrong password of host $USER@${HOST[$i]}, please enter again :"
+            echo "wrong password of host: $user@${HOST[$i]}, please enter again :"
             read -s PASSWD[$i]
-            sdbCheckPassword "${HOST[$i]}" "${PASSWD[$i]}" >> sdbsupport.log 2>&1
+            sdbCheckPassword "${HOST[$i]}" "${PASSWD[$i]}" "$installpath"
             retVal=$?
-            echo "inspect password, rc = $retVal"
          done
-         #echo "password:" "${PASSWD[$i]}"
+         echo "correct password for ${HOST[$i]}"
+         StorePasswd[$i]=${HOST[$i]}":"${PASSWD[$i]}
       fi
    done
-   sdbEchoLog "EVENT" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Check over password of all host,Correct."
+   sdbEchoLog "EVENT" "$0" "${LINENO}" "Step 7: Check over password of all host"
 fi
-
+# when collect remote host information
 if [ "$pHostNum" -gt 0 ] && [ "$all" == "false" ] ; then
    for i in $(seq 1 $pHostNum)
    do
       if [ "${HostPara[$i]}" != "" ] && [ "${HostPara[$i]}" != "$localhost" ] ; then
-         echo "The host $USER@${HostPara[$i]}'s password :"
+         echo "The host $user@${HostPara[$i]}'s password :"
          read -s PASSWD[$i]
-         sdbCheckPassword "${HostPara[$i]}" "${PASSWD[$i]}"
+         sdbCheckPassword "${HostPara[$i]}" "${PASSWD[$i]}" "$installpath"
          retVal=$?
-         echo "inspect password, rc = $retVal"
+         if [ 13 -eq $retVal ]; then
+            echo "failed to connect to Host : ${HostPara[$i]} "
+            HostPara[$i]=""
+         fi
          while [ "$retVal" == "5" ]
          do
             PASSWD[$i]=""
-            echo "Wrong password of host $USER@${HostPara[$i]}, please enter again :"
+            echo "wrong password of host: $user@${HostPara[$i]}, please enter again :"
             read -s PASSWD[$i]
-            sdbCheckPassword "${HostPara[$i]}" "${PASSWD[$i]}"
+            sdbCheckPassword "${HostPara[$i]}" "${PASSWD[$i]}" "$installpath"
             retVal=$?
-            echo "inspect password, rc = "$retVal
          done
-         #echo "password:" "${PASSWD[$i]}"
+         echo "correct password for ${HostPara[$i]}"
+         StorePasswd[$i]=${HostPara[$i][$i]}":"${PASSWD[$i]}
       fi
    done
-   sdbEchoLog "EVENT" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Check over password of specify host,Correct."
+   sdbEchoLog "EVENT" "$0" "${LINENO}" "Step 7: Check over password of specify host"
 fi
 
 #******************************************************************************
-#@Function : Create Folder OSINFO/SDBNODES/SDBSNAPS/HARDINFO in local path
-#@Fold : OSINFO   Exp : directory for Operation System Information
-#@Fold : SDBNODES Exp : directory for database all nodes ,such as coord,cata,data
-#@Fold : SDBSNAPS Exp : directory for database snapshot
-#@Fold : HARDINFO Exp : directory for hardware information
+#@ Step 8 : 1.create folder OSINFO/SDBNODES/SDBSNAPS/HARDINFO in local path
+#@          2.begin to collect infomation in here [Main Run]
+#@ Description1 :
+#      OSINFO   [directory for Operation System Information]
+#      SDBNODES [directory for database all nodes]
+#      SDBSNAPS [directory for database snapshot]
+#      HARDINFO [directory for hardware information]
+#@ Description2 :
+#      Collect local host information about database,such as 'Dialog',
+#      'Conf', 'Group', 'Snapshot', 'Hardware' and 'System information' !
 #******************************************************************************
+# remove the folder that store collect information
    rm -rf HARDINFO/ OSINFO/ SDBNODES/ SDBSNAPS/
    if [ $? -ne 0 ] ; then
-      echo "Failed to remove folder HARDINFO/ OSINFO/ SDBNODES/ SDBSNAPS/"
-      sdbEchoLog "ERROR" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Failed to remove folder"
+      echo "failed to remove folder HARDINFO/ OSINFO/ SDBNODES/ SDBSNAPS/"
+      sdbEchoLog "ERROR" "$0" "${LINENO}" "Failed to remove folder HARDINFO/ OSINFO/ SDBNODES/ SDBSNAPS/"
    else
-      sdbEchoLog "EVENT" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Success to remove the folder four"
+      sdbEchoLog "EVENT" "$0" "${LINENO}" "Success to remove the folder HARDINFO/ OSINFO/ SDBNODES/ SDBSNAPS/"
    fi
-#*************************************************************************************************
-#@Function : Collect local host information about database,such as Dialog,
-#				 Conf,Group,Snapshot,Hardware and System information !
-#@Var : pHostNum	Exp :	quantity of parameter hosts, such as :--hostname ubunt-dev1:ubunt-dev2: 
-#@Var : pPortNum	Exp :	quantity of parameter sevice port, such as:--svcport 51111:61111 
-#@Var : HostPara	Exp : Array variable to store hosts parameter
-#@Var : PortPara	Exp : Array variable to store local hosts' sevice port
-#*************************************************************************************************
-#>1.no para here:./sdbsupport.sh      
+# check passed parameters
+#if [ ""X == "${HostPara[@]}"X ] && [ "true"X == "$IsHost"X ]; then
+#   echo ""
+#   exit 1
+#fi
+echo ""
+echo "Begin to Collect information..."
+
+# COLLECT1: collect local host all information.[ exp: ./sdbsupport.sh]
 for i in $(seq 1 $HostNum)
 do
-   if [ "$firstLoc" == "" ] && [ "$localhost" == "${HOST[$i]}" ] ; then
+   if [ "$firstLoc"X == ""X ] && [ "$localhost"X == "${HOST[$i]}"X ] ; then
       for j in $(seq 1 $PortNum)
       do
-            #echo "localhost:$localhost:${PORT[$j]}"
-            sdbEchoLog "EVENT" "$HOST/$0/${FUNCNAME}" "${LINENO}" "Start collect localhost only:[HostNum:$HostNum]-[PortNume:$PortNum]"
-	    sdbPortGather "${HOST[$i]}" "${DBPATH[$j]}" "${PORT[$j]}" "$installpath"
-            if [ "${ROLE[$i]}" == "coord" ] && [ "$catalog" == "true" ] ; then
-               sdbSnapShotCataLog "${HOST[$i]}" "${PORT[$j]}" "$installpath"
-            fi
-            sdbSnapShot "${HOST[$i]}" "${PORT[$j]}" "$installpath"
+         #echo "localhost:$localhost:${PORT[$j]}"
+         sdbEchoLog "EVENT" "$0" "${LINENO}" "Start collect localhost only:[HostNum:$HostNum]-[PortNume:$PortNum]"
+         sdbPortInfo "${HOST[$i]}" "${DBPATH[$j]}" "${PORT[$j]}" "$installpath"
+         if [ "coord"X == "${ROLE[$j]}"X ] || [ "cata"X == "${ROLE[$j]}"X ] || [ "data"X == "${ROLE[$j]}"X ];then
+            connectDB "${HOST[$i]}" "${PORT[$j]}" "$installpath"
+            sdbSnapShotInfo "${HOST[$i]}" "${PORT[$j]}" "$installpath" "${ROLE[$j]}"
+         fi
       done
-      sdbHardwareInfoAll "${HOST[$i]}" "$installpath"
-      sdbSystemInfoAll "${HOST[$i]}" "$installpath"
+      sdbHWinfoCollect "${HOST[$i]}"
+      sdbOSinfoCollect "${HOST[$i]}"
+      sdbEchoLog "EVENT" "$0" "${LINENO}" "Step 8: Success to collect information from localhost: $localhost"
    fi
 done
 
-#>2.Parameter : --all
-if [ "$all" == "true" ] ; then
+c_user=$USER
+if [ ""X != "$firstLoc"X ]; then
    for i in $(seq 1 $HostNum)
    do
-      if [ "${HOST[$i]}" == "$localhost" ] ; then
+      # get the host that you passed in.
+      cnt=0
+      for m in $(seq 1 $pHostNum)
+      do
+         if [ "false"X == "$all"X ] &&
+            [ "${HOST[$i]}"X != "${HostPara[$m]}"X ]; then
+            cnt=$((cnt+1))
+            continue
+         else
+            break
+         fi
+      done
+      if [ "$cnt"X == "$pHostNum"X ] && [ 0 -ne $pHostNum ]; then
+         HOST[$i]=""
+         continue
+      fi
+      # parsed parameters that you passed in. exp: ./sdbsupport.sh -s host1:host2 -p 11810:11820 ...
+      PARAPASS=""
+      for n in $(seq 1 $ParaNum)
+      do
+         Para[$n]=`echo $ParaPass|cut -d " " -f $n`
+         if [ "${Para[$n]}"X != "-s"X ] &&
+            [ "${Para[$n]}"X != "--hostname"X ] &&
+            [ "${Para[$n]}"X != "$hostName"X ] &&
+            [ "${Para[$n]}"X != "-u"X ] &&
+            [ "${Para[$n]}"X != "--user"X ] &&
+            [ "${Para[$n]}"X != "$SDB_USER"X ] &&
+            [ "${Para[$n]}"X != "-w"X ] &&
+            [ "${Para[$n]}"X != "--password"X ] &&
+            [ "${Para[$n]}"X != "$SDB_PASSWD"X ]; then 
+            PARAPASS="$PARAPASS ${Para[$n]}"
+            #echo ">>$n>>$PARAPASS"
+         fi
+      done
+      # verify username and password in database
+      for j in $(seq 1 $PortNum)
+      do
+         if [ "coord"X == "${ROLE[$j]}"X ]; then
+            connectDB "$localhost" "${PORT[$j]}" "$installpath"
+         fi
+      done
+      # when host equal localhost, we collect information
+      if [ "${HOST[$i]}"X == "$localhost"X ] ; then
          for j in $(seq 1 $PortNum)
          do
-            sdbPortGather "${HOST[$i]}" "${DBPATH[$j]}" "${PORT[$j]}" "$installpath"
-            if [ "${ROLE[$i]}" == "coord" ] && [ "$catalog" == "true" ] ; then
-               sdbSnapShotCataLog "${HOST[$i]}" "${PORT[$j]}" "$installpath"
+            # get the port that you passed in.
+            cnt=0
+            for n in $(seq 1 $pPortNum)
+            do
+               if [ "false"X == "$all"X ] &&
+                  [ "${PORT[$j]}"X != "${PortPara[$n]}"X ]; then
+                  cnt=$((cnt+1))
+                  continue
+               else
+                  break
+               fi
+            done
+            if [ "$cnt"X == "$pPortNum"X ] && [ 0 -ne $pPortNum ]; then
+               PORT[$j]=""
+               continue
             fi
-            sdbSnapShot "${HOST[$i]}" "${PORT[$j]}" "$installpath"
+            sdbPortInfo "${HOST[$i]}" "${DBPATH[$j]}" "${PORT[$j]}" "$installpath"
+            sdbSnapShotInfo "${HOST[$i]}" "${PORT[$j]}" "$installpath" "${ROLE[$j]}"
          done
-         sdbHardwareInfoAll "${HOST[$i]}" "$installpath"
-         sdbSystemInfoAll "${HOST[$i]}" "$installpath"
+         sdbHWinfoCollect "${HOST[$i]}"
+         sdbOSinfoCollect "${HOST[$i]}"
          Local=$localhost
+         sdbEchoLog "EVENT" "$0" "${LINENO}" "Step 8: Success to collect information from host: $localhost"
+         continue
       fi
+      StoreNum=${#StorePasswd[@]}
+      PASSWD=""
+      for k in $(seq 1 $((StoreNum+1)))
+      do
+         SHost=`echo ${StorePasswd[$k]} | cut -d ":" -f 1`
+         SPasswd=`echo ${StorePasswd[$k]} | cut -d ":" -f 2`
+         if [ "${HOST[$i]}"X == "$SHost"X ];then
+            PASSWD=$SPasswd
+            break
+         fi
+      done
+      # combine passed parameter
+      if [ "true"X == "$all"X ]; then
+         if [ ""X != "$SDB_USER"X ] && [ ""X != "$SDB_PASSWD"X ]; then
+            sdbsupport="./sdbsupport.sh -s ${HOST[$i]} -u $SDB_USER -w $SDB_PASSWD"
+         else
+            sdbsupport="./sdbsupport.sh -s ${HOST[$i]}"
+         fi
+      else
+         if [ ""X != "$SDB_USER"X ] && [ ""X != "$SDB_PASSWD"X ]; then
+            sdbsupport="./sdbsupport.sh -s ${HOST[$i]} $PARAPASS -u $SDB_USER -w $SDB_PASSWD"
+         else
+            sdbsupport="./sdbsupport.sh -s ${HOST[$i]} $PARAPASS"
+         fi
+      fi
+      # if run command [./sdbsupport.sh -u username -p password] 
+      if [ ""X == "$fifthLoc"X ] && [ "true"X == "$IS_USER"X ] &&
+         [ "true"X == "$IS_PASSWD"X ]; then
+         continue
+      fi
+
       read -u 6
-      if [ "${HOST[$i]}" != "" ] && [ "${HOST[$i]}" != "$localhost" ] ; then
-      #if [ "${HOST[$i]}" != "" ] ; then
+      if [ "${HOST[$i]}"X != ""X ] && [ "${HOST[$i]}"X != "$localhost"X ] ; then
       {
-         sdbsupport="./sdbsupport.sh -N ${HOST[$i]} >> /dev/null 2>&1"
+         if [ ""X == "$PASSWD"X ]; then
+            echo "the ${HOST[$i]} don't get correct password"
+            break
+         fi
+         #echo "SDBSUPPORT: $sdbsupport"
          #ssh host and collect information
-         sdbExpectSshHosts "${HOST[$i]}" "${PASSWD[$i]}" "$localPath" "$sdbsupport" "$timeout"
-         sdbExpectScpHosts "${HOST[$i]}" "$localPath" "${PASSWD[$i]}"
-         sdbSupportLog "${HOST[$i]}" "$localPath" "${PASSWD[$i]}"
-         sdbSSHRemove "${HOST[$i]}" "${PASSWD[$i]}" "$localPath"
-         #echo "concurent $i"
+         sdbExpectSshHosts "${HOST[$i]}" "$c_user" "$PASSWD" "$localPath" "$sdbsupport"
+         sdbExpectScpHosts "${HOST[$i]}" "$localPath" "$PASSWD"
+         sdbSupportLog "${HOST[$i]}" "$localPath" "$PASSWD"
+         sdbSSHRemove "${HOST[$i]}" "$PASSWD" "$localPath"
+         sdbEchoLog "EVENT" "$0" "${LINENO}" "Step 8: Success to collect information from host: $localhost"
          echo "" >&6
       }&
       fi
@@ -704,139 +487,33 @@ if [ "$all" == "true" ] ; then
    wait
 fi
 
-#>3.have para but not all : ./sdbsupport.sh -h htest1:htes2 -p 11810:50000
-for i in $(seq 1 $pHostNum)
-do
-   if [ "$all" == "false" ] ; then
-      read -u 6
-      #HostPara[$i]=`awk 'BEGIN{split("'$hostName'",hostarr,":");print hostarr['$i']}'` 
-      if [ "${HostPara[$i]}" == "$localhost" ] ; then
-         #only have localhost ./sdbsupport.sh -h htest1
-         Local=$localhost
-         if [ "$thirdLoc" == "" ] ; then
-            for j in $(seq 1 $PortNum)
-            do
-               sdbPortGather "${HostPara[$i]}" "${DBPATH[$j]}" "${PORT[$j]}" "$installpath"
-               sdbSnapShotCataLog "${HostPara[$i]}" "${PORT[$j]}" "$installpath"
-               sdbSnapShot "${HostPara[$i]}" "${PORT[$j]}" "$installpath"
-            done
-            sdbHardwareInfoAll "${HostPara[$i]}"
-            sdbSystemInfoAll "${HostPara[$i]}"
-         else
-            #Para : svcPort ->have this Port [./sdbsupport.sh -h htest1 -p 11810]
-            if [ $pPortNum -ne 0 ] ; then
-               for k in $(seq 1 $pPortNum)
-               do
-                  if [ "${PortPara[$k]}" != "" ] ; then
-                     #collect the sdbcm.conf/sdbcmd.log/sdbcm.log/sdb.conf/sdbdiag.log file
-                     if [ "$sdbconf" == "true" ] || [ "$sdblog" == "true" ] || [ "$sdbcm" == "true" ] ; then
-                        sdbPortGatherPart "${HostPara[$i]}" "${DbPath[$k]}" "${PortPara[$k]}" "$installpath" "$sdbconf" "$sdblog" "$sdbcm"
-                     else
-                        sdbPortGather "${HostPara[$i]}" "${DbPath[$k]}" "${PortPara[$k]}" "$installpath"
-                     fi
-
-                     if [ "${Role[$k]}" == "coord" ] && [ "$catalog" == "true" ] ; then
-                        sdbCoordSnapShot "${HostPara[$i]}" "${PortPara[$k]}" "$installpath" "$catalog" "$group"
-                     fi
-                     #snapShot
-                     if [ "$snapShot" == "true" ] ; then
-                        sdbSnapShot "${HostPara[$i]}" "${PortPara[$k]}" "$installpath"
-                     fi
-                     if [ "$sysInfo" == "false" ] && [ "$rcPort" == "true" ] ; then
-                        sdbSnapShotExtract "${HostPara[$i]}" "${PortPara[$k]}" "$context" "$session" "$collection" "$collectionspace" "$database" "$system" "$installpath"
-                     fi
-                  fi
-               done
-            else
-               #Just have snapshot argument ,no port argument
-               for k in $(seq 1 $PortNum)
-               do
-                  if [ "$sdbconf" == "true" ] || [ "$sdblog" == "true" ] || [ "$sdbcm" == "true" ] ; then
-                     sdbPortGatherPart "${HostPara[$i]}" "${DBPATH[$k]}" "${PORT[$k]}" "$installpath" "$sdbconf" "$sdblog" "$sdbcm"
-#else
-#                     sdbPortGather "${HostPara[$i]}" "${DBPATH[$k]}" "${PORT[$k]}" "$installpath"
-                  fi
-
-                  if [ "${Role[$k]}" == "coord" ] ; then
-                     sdbCoordSnapShot "${HostPara[$i]}" "${PORT[$k]}" "$installpath" "$catalog" "$group"
-                  fi
-                  if [ "$snapShot" == "true" ] ; then
-                     sdbSnapShot "${HostPara[$i]}" "${PORT[$k]}" "$installpath"
-                  fi
-                  if [ "$sysInfo" == "false" ] && [ "$rcPort" == "true" ] ; then
-                     sdbSnapShotExtract "${HostPara[$i]}" "${PORT[$k]}" "$context" "$session" "$collection" "$collectionspace" "$database" "$system" "$installpath"
-                  fi
-               done
-            fi
-            #Parameter:--sysinfo ; Collect all system information or collect part of system information !
-            if [ "$sysInfo" == "true" ] ; then
-               sdbSystemInfoAll "${HostPara[$i]}"
-            else
-               sdbSystemInfoPartFore "${HostPara[$i]}" "$diskmanage" "$osystem" "$module" "$env" "$network"
-               sdbSystemInfoPartEnd "${HostPara[$i]}" "$progress" "$login" "$limit" "$vmstat"
-            fi
-
-            #Parameter:--hardinfo ; Collect all hardware information or collect part of system information !
-            if [ "$hardInfo" == "true" ] ; then
-               sdbHardwareInfoAll "${HostPara[$i]}"
-            else
-               sdbHardwareInfoPart "${HostPara[$i]}" "$cpu" "$memory" "$disk" "$netcard" "$mainboard"
-            fi
-            #echo "" >&6
-         fi
-      else
-         #echo "the host not equal localhost"
-         for n in $(seq 1 $ParaNum)
-         do
-            Para[$n]=`echo $ParaPass|cut -d " " -f $n`
-            if [ "${Para[$n]}" == "-N" ] || [ "${Para[$n]}" == "--hostname" ] ; then
-               Para[$n]=""
-            fi
-            if [ "${Para[$n]}" == "$hostName" ] ; then
-               Para[$n]=""
-            fi
-         done
-         if [ "${HostPara[$i]}" != "" ] ; then
-            {
-            sdbsupport="./sdbsupport.sh -N ${HostPara[$i]} ${Para[@]} >>/dev/null 2>&1"
-            echo "Start to collect information from ${HostPara[$i]}..."
-            sdbExpectSshHosts "${HostPara[$i]}" "${PASSWD[$i]}" "$localPath" "$sdbsupport" "$timeout"
-            sdbExpectScpHosts "${HostPara[$i]}" "$localPath" "${PASSWD[$i]}"
-            sdbSupportLog "${HostPara[$i]}" "$localPath" "${PASSWD[$i]}"
-            sdbSSHRemove "${HostPara[$i]}" "${PASSWD[$i]}" "$localPath"
-            echo "Clean Over."
-            echo "" >&6
-            }&
-         fi
-      fi
-   fi
-done
-wait
-
-#tar the all collect information in a packet
+#******************************************************************************
+#@ Step 9 : 1.compressed collection file into packet in local host
+#@          2.clean the temp file and temp folder in local host
+#******************************************************************************
+# compressed the all collect information into packet
 if [ "$firstLoc" == "" ] || [ "$Local" == "$localhost" ]; then
    sdbTarGzPack $localhost
 fi
 
-#clean environment
+# clean environment
 exec 6>&-
-sdbEchoLog "EVENT" "$localhost/$0/${FUNCNAME}" "${LINENO}" "Collect information Over"
+sdbEchoLog "EVENT" "$FUNCNAME" "${LINENO}" "Collect information Over"
 cp sdbsupport.log ./log/sdbsupport.log.$localhost >> /dev/null 2>&1
 rc=$?
 if [ $rc -ne 0 ] ;then
-	echo "Failed to copy local sdbsupport.log to log folder."
+   echo "Failed to copy local sdbsupport.log to log folder."
 fi
 
-#copy log folder in sdbsupport directory to local directory
+# copy log folder in sdbsupport directory to local directory
 if [ "$localPath" != "$dirpath" ]; then
    cp -r $localPath/log $dirpath
-   rc=$?
-   if [ $rc -ne 0 ] ; then
+   if [ $? -ne 0 ] ; then
       echo "Failed to copy information to local directory."
    fi
-   rm -rf $localPath/log
-   rc=$?
-   if [ $rc -ne 0 ] ;then
+   #rm -rf $localPath/log
+   if [ $? -ne 0 ] ;then
       echo "Failed to remove the log folder in directory:$localPath"
    fi
 fi
+echo ""

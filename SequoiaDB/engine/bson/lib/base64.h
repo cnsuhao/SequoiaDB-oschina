@@ -19,6 +19,7 @@
 
 #pragma once
 
+//#include <boost/scoped_array.hpp>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -36,9 +37,11 @@ namespace base64 {
                      "abcdefghijklmnopqrstuvwxyz"
                      "0123456789"
                      "+/")
+            //, decode(new unsigned char[257]) {
             {
             decode = new unsigned char [ 257 ] ;
             memset ( decode, 0, 256 ) ;
+            //memset( decode.get() , 0 , 256 );
             for ( int i=0; i<64; i++ ) {
                 decode[ encode[i] ] = i;
             }
@@ -46,6 +49,9 @@ namespace base64 {
             test();
         }
         void test() {
+            //assert( strlen( (char*)encode ) == 64 );
+            //for ( int i=0; i<26; i++ )
+            //    assert( encode[i] == toupper( encode[i+26] ) );
         }
 
         char e( int x ) {
@@ -61,6 +67,7 @@ namespace base64 {
         const unsigned char * encode;
     public:
         unsigned char *decode ;
+        //boost::scoped_array<unsigned char> decode;
     };
 
     extern Alphabet alphabet;

@@ -59,6 +59,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSVSANN_HDINPUT ) ;
       SDB_ASSERT( NULL != header, "header should not be NULL" ) ;
 
+      /// do not accept any ballot
       if ( MSG_CLS_BALLOT == header->opCode )
       {
          next = id() ;
@@ -92,6 +93,7 @@ namespace engine
       }
       else
       {
+         /// error msg
          next = id() ;
       }
       PD_TRACE_EXIT ( SDB__CLSVSANN_HDINPUT ) ;

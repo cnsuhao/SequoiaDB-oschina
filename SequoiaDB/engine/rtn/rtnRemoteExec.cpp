@@ -149,6 +149,7 @@ namespace engine
             goto error ;
          }
 
+         // build message
          rc = msgBuildCMRequest ( &pCMRequest, &reqSize, remoCode,
                                    arg1, arg2, arg3, arg4 ) ;
          if ( rc )
@@ -158,6 +159,7 @@ namespace engine
             goto error ;
          }
 
+         // send message
          rc = pmdSend ( pCMRequest, ((MsgHeader*)pCMRequest)->messageLength,
                         &sock, pmdGetThreadEDUCB() ) ;
          if ( rc )
@@ -166,6 +168,7 @@ namespace engine
             goto error ;
          }
 
+         // receive message
          rc = pmdRecv ( (CHAR*)&packetLength, sizeof (SINT32), &sock,
                         pmdGetThreadEDUCB() ) ;
          if ( rc )
@@ -183,6 +186,7 @@ namespace engine
             rc = SDB_INVALIDARG ;
             goto error ;
          }
+         // free at the end of this function
          pReceiveBuffer = (CHAR*)SDB_OSS_MALLOC ( packetLength + 1 ) ;
          if ( !pReceiveBuffer )
          {
@@ -204,11 +208,13 @@ namespace engine
          pReceiveBuffer[ packetLength ] = 0 ;
       }
 
+      // process reply
       {
          vector<BSONObj> objList ;
          SINT64 contextID  = 0 ;
          SINT32 startFrom = 0 ;
          SINT32 numReturned = 0 ;
+         // extract message
          rc = msgExtractReply ( pReceiveBuffer, retCode, &contextID,
                                 &startFrom, &numReturned, objList ) ;
          if ( rc )

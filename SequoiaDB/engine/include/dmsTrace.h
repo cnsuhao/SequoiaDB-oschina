@@ -29,6 +29,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef dmsTRACE_H__
 #define dmsTRACE_H__
+// Component: dms
 #define SDB__DMSSMS__RSTMAX                                0x1000000000382L
 #define SDB__DMSSMS_RSVPAGES                               0x1000000000383L
 #define SDB__DMSSMS_RLSPAGES                               0x1000000000384L

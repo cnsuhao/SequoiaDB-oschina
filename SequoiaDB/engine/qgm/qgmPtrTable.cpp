@@ -112,6 +112,7 @@ namespace engine
       PTR_TABLE::const_iterator itr = _table.find( f ) ;
       if ( _table.end() == itr )
       {
+         // new string
          CHAR *newStr = ossStrdup( begin ) ;
          _stringTable.push_back( newStr ) ;
 

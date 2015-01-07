@@ -75,6 +75,7 @@ namespace engine
                PD_LOG ( PDDEBUG, "EDU[%lld, %s] is terminated", cb->getID(),
                         getEDUName( cb->getType() ) ) ;
             }
+            //Dispatch event msg to session
             else if ( PMD_EDU_EVENT_MSG == event._eventType )
             {
 #if defined ( SDB_ENGINE )
@@ -94,6 +95,7 @@ namespace engine
                   timeDiff = 0 ;
                }
 
+               // if msg in the buff time over 2 seconds
                if ( timeDiff > 2 )
                {
                   PD_LOG( PDINFO, "Session[%s] msg[opCode:[%d]%d, requestID: "
@@ -106,6 +108,7 @@ namespace engine
                pSession->dispatchMsg ( pSession->netHandle(), pMsg,
                                        &timeDiff ) ;
 
+               // if msg processed time over 20 seconds
                if ( timeDiff > 20 )
                {
                   PD_LOG( PDINFO, "Session[%s] msg[opCode:[%d]%d, requestID: "
@@ -125,6 +128,7 @@ namespace engine
                pSession->dispatch ( &event ) ;
             }
 
+            //Relase memory
             pmdEduEventRelase( event, cb ) ;
             event.reset () ;
          }

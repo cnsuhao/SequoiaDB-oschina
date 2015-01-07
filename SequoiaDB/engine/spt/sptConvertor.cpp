@@ -59,6 +59,7 @@ INT32 sptConvertor::toBson( JSObject *obj , bson **bs )
    INT32 rc = SDB_OK ;
    SDB_ASSERT( NULL != _cx && NULL != bs, "can not be NULL" ) ;
 
+   /// can not use SDB_OSS_MALLOC
    *bs = bson_create() ;
    if ( NULL == *bs )
    {
@@ -173,6 +174,7 @@ BOOLEAN sptConvertor::_addSpecialObj( JSObject *obj,
    }
 
    {
+   /// get the first ele
    jsid id = properties->vector[0] ;
    jsval fieldName ;
    std::string name ;
@@ -192,6 +194,7 @@ BOOLEAN sptConvertor::_addSpecialObj( JSObject *obj,
       goto error ;
    }
 
+   /// start with '$'
    if ( SPT_CONVERTOR_SPE_OBJSTART != name.at(0) )
    {
       goto error ;
@@ -439,6 +442,7 @@ BOOLEAN sptConvertor::_addSpecialObj( JSObject *obj,
          goto error ;
       }
 
+      /// we can not push '\0' to bson
       bson_append_binary( bs, key, binType,
                           decode, decodeSize - 1 ) ;
       SDB_OSS_FREE( decode ) ;
@@ -555,6 +559,7 @@ INT32 sptConvertor::_appendToBson( const std::string &name,
             }
             else
             {
+               /// do noting
             }
          }
          break ;
@@ -608,6 +613,7 @@ INT32 sptConvertor::toString( JSContext *cx,
                               std::string &str )
 {
    INT32 rc = SDB_OK ;
+   //CHAR *utf8 = NULL ;
    SDB_ASSERT( NULL != cx, "impossible" ) ;
    size_t len = 0 ;
    JSString *jsStr = JS_ValueToString( cx, val ) ;
@@ -647,6 +653,10 @@ INT32 sptConvertor::toString( JSContext *cx,
       }
    }
 done:
+//   if ( NULL != utf8 )
+//   {
+//      SDB_OSS_FREE( utf8 ) ;
+//   }
    return rc ;
 }
 

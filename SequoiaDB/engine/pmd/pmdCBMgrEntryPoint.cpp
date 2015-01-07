@@ -58,6 +58,7 @@ namespace engine
          goto error ;
       }
 
+      //Wait event msg and dispatch msg
       while ( !cb->isDisconnected() )
       {
          if ( cb->waitEvent( eventData, OSS_ONE_SEC ) )
@@ -67,8 +68,10 @@ namespace engine
                PD_LOG ( PDDEBUG, "EDU[%lld, %s] is terminated", cb->getID(),
                         getEDUName( cb->getType() ) ) ;
             }
+            //Dispatch event msg to cb manager
             else if ( PMD_EDU_EVENT_MSG == eventData._eventType )
             {
+               //restore handle
                pObj->dispatchMsg( (NET_HANDLE)eventData._userData,
                                   (MsgHeader*)(eventData._Data) ) ;
             }
@@ -77,6 +80,7 @@ namespace engine
                pObj->dispatchEvent ( &eventData ) ;
             }
 
+            //Relase memory
             pmdEduEventRelase( eventData, cb ) ;
             eventData.reset () ;
          }

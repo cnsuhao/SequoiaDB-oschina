@@ -293,6 +293,7 @@ namespace engine
       }
       else
       {
+         /// do nothing.
       }
 
       rc = stream.truncate( 0, cb ) ;

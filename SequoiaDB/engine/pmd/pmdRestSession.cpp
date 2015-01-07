@@ -169,6 +169,7 @@ namespace engine
 
       while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
       {
+         // sniff wether has data
          rc = sniffData( _pSessionInfo ? OSS_ONE_SEC :
                          PMD_REST_SESSION_SNIFF_TIMEOUT ) ;
          if ( SDB_TIMEOUT == rc )
@@ -190,8 +191,10 @@ namespace engine
             break ;
          }
 
+         // if interrupted, kill all context
          if ( _pEDUCB->isInterrupted( TRUE ) )
          {
+            // delete all context
             INT64 contextID = -1 ;
             while ( -1 != ( contextID = _pEDUCB->contextPeek() ) )
             {
@@ -202,6 +205,7 @@ namespace engine
          _pEDUCB->resetInterrupt() ;
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
 
+         // recv rest header
          rc = pAdptor->recvRequestHeader( this ) ;
          if ( rc )
          {
@@ -217,9 +221,12 @@ namespace engine
             }
             break ;
          }
+         // session is not exist
          if ( !_pSessionInfo )
          {
+            // find session id
             pAdptor->getHttpHeader( this, FIELD_NAME_SESSIONID, &pSessionID ) ;
+            // if 'SessionID' exist, attach the sessionInfo
             if ( pSessionID )
             {
                PD_LOG( PDINFO, "Rest session: %s", pSessionID ) ;
@@ -227,11 +234,13 @@ namespace engine
                                   pSessionID ) ;
             }
 
+            // if session exist, restore
             if ( _pSessionInfo )
             {
                restoreSession() ;
             }
          }
+         // recv body
          rc = pAdptor->recvRequestBody( this, httpCommon, &pFilePath, 
                                         bodySize ) ;
          if ( rc )
@@ -249,13 +258,16 @@ namespace engine
             break ;
          }
 
+         // update active time
          if ( _pSessionInfo )
          {
             _pSessionInfo->active() ;
          }
 
+         // increase process event count
          _pEDUCB->incEventCount() ;
 
+         // activate edu
          if ( SDB_OK != ( rc = pEDUMgr->activateEDU( _pEDUCB ) ) )
          {
             PD_LOG( PDERROR, "Session[%s] activate edu failed, rc: %d",
@@ -263,12 +275,14 @@ namespace engine
             break ;
          }
 
+         // process msg
          rc = _processRestMsg( httpCommon, pFilePath ) ;
          if ( rc )
          {
             break ;
          }
 
+         // wait edu
          if ( SDB_OK != ( rc = pEDUMgr->waitEDU( _pEDUCB ) ) )
          {
             PD_LOG( PDERROR, "Session[%s] wait edu failed, rc: %d",
@@ -276,6 +290,7 @@ namespace engine
             break ;
          }
 
+         // release body msg
          if ( pFilePath )
          {
             releaseBuff( pFilePath, bodySize ) ;
@@ -314,6 +329,7 @@ namespace engine
 
       while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
       {
+         // sniff wether has data
          rc = sniffData( _pSessionInfo ? OSS_ONE_SEC :
                          PMD_REST_SESSION_SNIFF_TIMEOUT ) ;
          if ( rc < 0 )
@@ -321,8 +337,10 @@ namespace engine
             break ;
          }
 
+         // if interrupted, kill all context
          if ( _pEDUCB->isInterrupted( TRUE ) )
          {
+            // delete all context
             INT64 contextID = -1 ;
             while ( -1 != ( contextID = _pEDUCB->contextPeek() ) )
             {
@@ -335,6 +353,7 @@ namespace engine
          _pEDUCB->resetInterrupt() ;
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
 
+         // recv rest header
          rc = pAdptor->recvRequestHeader( this ) ;
          if ( rc )
          {
@@ -351,6 +370,7 @@ namespace engine
             break ;
          }
 
+         // recv body
          rc = pAdptor->recvRequestBody( this, httpCommon, &pFilePath, bodySize ) ;
          if ( rc )
          {
@@ -367,8 +387,10 @@ namespace engine
             break ;
          }
 
+         // increase process event count
          _pEDUCB->incEventCount() ;
 
+         // activate edu
          if ( SDB_OK != ( rc = pEDUMgr->activateEDU( _pEDUCB ) ) )
          {
             PD_LOG( PDERROR, "Session[%s] activate edu failed, rc: %d",
@@ -376,12 +398,14 @@ namespace engine
             break ;
          }
 
+         // process msg
          rc = _processRestMsg1( pAdptor, httpCommon, pFilePath ) ;
          if ( rc )
          {
             break ;
          }
 
+         // wait edu
          if ( SDB_OK != ( rc = pEDUMgr->waitEDU( _pEDUCB ) ) )
          {
             PD_LOG( PDERROR, "Session[%s] wait edu failed, rc: %d",
@@ -389,6 +413,7 @@ namespace engine
             break ;
          }
 
+         // release body msg
          if ( pFilePath )
          {
             releaseBuff( pFilePath, bodySize ) ;
@@ -495,6 +520,8 @@ namespace engine
             _fetchOneContext( contextID, fetchOneBuff ) ;
             if ( -1 != contextID )
             {
+               // -1 != contextID means we have more data to send. 
+               // so we should enable chunk mod;
                pAdaptor->setChunkModal( this ) ;
             }
          }
@@ -645,6 +672,8 @@ namespace engine
               && ossStrcmp( pSubCommand, OM_CHECK_SESSION_REQ ) != 0
               && !isAuthOK() )
          {
+            // except login_rep and check_seesion_req, other commands can only 
+            // execute in authrity status
             BSONObjBuilder builder ;
             builder.append( OM_REST_RES_RETCODE, 
                             SDB_PMD_SESSION_NOT_EXIST ) ;
@@ -818,6 +847,7 @@ namespace engine
 
    void _pmdRestSession::_onDetach()
    {
+      // rollback transaction
       if ( DPS_INVALID_TRANS_ID != eduCB()->getTransID() )
       {
          INT32 rc = rtnTransRollback( eduCB(), _pDPSCB ) ;
@@ -825,9 +855,12 @@ namespace engine
          {
             PD_LOG( PDERROR, "Session[%s] rollback trans info failed, rc: %d",
                     sessionName(), rc ) ;
+            // We do not jump to error because we have to delete context
+            // regardless whether rollback success or not
          }
       }
 
+      // delete all context
       INT64 contextID = -1 ;
       while ( -1 != ( contextID = eduCB()->contextPeek() ) )
       {
@@ -836,6 +869,7 @@ namespace engine
 
       eduCB()->setClientSock( NULL ) ;
 
+      // save session info
       if ( _pSessionInfo )
       {
          saveSession() ;
@@ -1656,6 +1690,7 @@ namespace engine
       BSONObj splitEndQuery ;
       BSONObj query ;
 
+      //1.FIELD_NAME_NAME & FIELD_NAME_SOURCE & FIELD_NAME_TARGET must exist
       pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, 
                           &pCollection ) ;
       if ( NULL == pCollection )
@@ -1682,6 +1717,7 @@ namespace engine
          goto error ;
       }
 
+      //2.FIELD_NAME_SPLITENDQUERY pr FIELD_NAME_SPLITPERCENT must exist one 
       pAdaptor->getQuery( _restSession, FIELD_NAME_SPLITPERCENT, &pPercent ) ;
       if ( NULL == pPercent )
       {

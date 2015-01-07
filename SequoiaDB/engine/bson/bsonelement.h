@@ -65,6 +65,7 @@ namespace bson {
             UserException if the element is not of the required type. Example:
 
             string foo = obj["foo"].String();
+            // exception if not a string type or DNE
         */
         string String()             const { return chk(bson::String).valuestr(); }
         Date_t Date()               const { return chk(bson::Date).date(); }
@@ -242,6 +243,7 @@ namespace bson {
             return *reinterpret_cast< const int* >( value() );
         }
 
+        // for objects the size *includes* the size of the size field
         int objsize() const {
             return *reinterpret_cast< const int* >( value() );
         }
@@ -270,6 +272,7 @@ namespace bson {
         }
         /** Get the scope SavedContext of a CodeWScope data element. */
         const char * codeWScopeScopeData() const {
+            // TODO fix
             return codeWScopeCode() + strlen( codeWScopeCode() ) + 1;
         }
 
@@ -284,22 +287,26 @@ namespace bson {
         /** Get raw binary data.  Element must be of type BinData. Doesn't
             handle type 2 specially */
         const char *binData(int& len) const {
+            // BinData: <int len> <byte subtype> <byte[len] data>
             assert( type() == BinData );
             len = valuestrsize();
             return value() + 5;
         }
         /** Get binary data.  Element must be of type BinData. Handles type 2 */
         const char *binDataClean(int& len) const {
+            // BinData: <int len> <byte subtype> <byte[len] data>
             if (binDataType() != ByteArrayDeprecated) {
                 return binData(len);
             }
             else {
+                // Skip extra size
                 len = valuestrsize() - 4;
                 return value() + 5 + 4;
             }
         }
 
         BinDataType binDataType() const {
+            // BinData: <int len> <byte subtype> <byte[len] data>
             assert( type() == BinData );
             unsigned char c = (value() + 4)[0];
             return (BinDataType)c;
@@ -399,6 +406,7 @@ namespace bson {
             return compareElementValues(*this,other) < 0;
         }
 
+        // @param maxLen don't scan more than maxLen bytes
         explicit BSONElement(const char *d, int maxLen) : data(d) {
             if ( eoo() ) {
                 totalSize = 1;

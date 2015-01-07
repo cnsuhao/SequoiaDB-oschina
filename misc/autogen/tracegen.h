@@ -9,6 +9,7 @@
 #include <sstream>
 #include "filenamegen.h"
 
+// output file path
 #define TRACEFILENAMEPATH SOURCEPATH "include/pdTrace.h"
 #define TRACEFILENAMEPATH1 SOURCEPATH "pd/pdFunctionList.cpp"
 #define TRACEINCLUDEPATH SOURCEPATH "include/"

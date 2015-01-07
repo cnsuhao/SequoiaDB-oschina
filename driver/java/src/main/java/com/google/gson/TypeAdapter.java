@@ -94,6 +94,28 @@ import java.io.Writer;
  *
  * @since 2.1
  */
+// non-Javadoc:
+//
+// <h3>JSON Conversion</h3>
+// <p>A type adapter registered with Gson is automatically invoked while serializing
+// or deserializing JSON. However, you can also use type adapters directly to serialize
+// and deserialize JSON. Here is an example for deserialization: <pre>   {@code
+//
+//   String json = "{'origin':'0,0','points':['1,2','3,4']}";
+//   TypeAdapter<Graph> graphAdapter = gson.getAdapter(Graph.class);
+//   Graph graph = graphAdapter.fromJson(json);
+// }</pre>
+// And an example for serialization: <pre>   {@code
+//
+//   Graph graph = new Graph(...);
+//   TypeAdapter<Graph> graphAdapter = gson.getAdapter(Graph.class);
+//   String json = graphAdapter.toJson(graph);
+// }</pre>
+//
+// <p>Type adapters are <strong>type-specific</strong>. For example, a {@code
+// TypeAdapter<Date>} can convert {@code Date} instances to JSON and JSON to
+// instances of {@code Date}, but cannot convert any other types.
+//
 public abstract class TypeAdapter<T> {
 
   /**

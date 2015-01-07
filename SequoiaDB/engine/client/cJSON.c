@@ -207,6 +207,7 @@ static const char *parse_number(cJSON *item,const char *num)
       }
       else
       {
+         // if subscale = 0, that means we don't need to translate into double, which may cause loose precision
          n2=(((long long)sign)*n2) ;
       }
    }
@@ -408,6 +409,9 @@ static void local_time ( time_t *Time, struct tm *TM )
 #if defined (__linux__ )
    localtime_r( Time, TM ) ;
 #elif defined (_WIN32)
+   // The Time represents the seconds elapsed since midnight (00:00:00),
+   // January 1, 1970, UTC. This value is usually obtained from the time
+   // function.
    localtime_s( TM, Time ) ;
 #endif
 } ;
@@ -494,6 +498,7 @@ static const char *parse_value(cJSON *item,const char *value,int isKey,int isMon
       {
          ++value_temp ;
       }
+       //timestamp
       if ( isMongo && *value_temp == 't' )
       {
          value_temp2 = parse_Mongo_Timestamp ( item, value ) ;
@@ -506,30 +511,37 @@ static const char *parse_value(cJSON *item,const char *value,int isKey,int isMon
       {
          return parse_dollar_command ( item, value, cJSON_Timestamp ) ;
       }
+      //date
       else if ( !strncmp ( value_temp, "$date", 5 ) )
       {
          return parse_dollar_command ( item, value, cJSON_Date ) ;
       }
+      //regex
       else if ( !strncmp ( value_temp, "$regex", 6 ) )
       {
          return parse_dollar_command ( item, value, cJSON_Regex ) ;
       }
+      //oid
       else if( !strncmp ( value_temp, "$oid", 4 ) )
       {
          return parse_dollar_command ( item, value, cJSON_Oid ) ;
       }
+      //binary
       else if( !strncmp ( value_temp, "$binary", 7 ) )
       {
          return parse_dollar_command ( item, value, cJSON_Binary ) ;
       }
+      //maxKey
       else if( !strncmp ( value_temp, "$maxKey", 7 ) )
       {
          return parse_dollar_command ( item, value, cJSON_MaxKey ) ;
       }
+      //minKey
       else if( !strncmp ( value_temp, "$minKey", 7 ) )
       {
          return parse_dollar_command ( item, value, cJSON_MinKey ) ;
       }
+      //undefined
       else if( !strncmp ( value_temp, "$undefined", 10 ) )
       {
          return parse_dollar_command ( item, value, cJSON_Undefined ) ;

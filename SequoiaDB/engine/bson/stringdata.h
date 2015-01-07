@@ -1,3 +1,4 @@
+// stringdata.h
 
 /*    Copyright 2010 10gen Inc.
  *
@@ -52,11 +53,14 @@ namespace bson {
         StringData( const string& s )
             : _data(s.c_str()), _size((unsigned) s.size()) {}
 
+        // Construct a StringData explicitly, for the case of a literal whose
+        // size is known at compile time.
         struct LiteralTag {};
         template<size_t N>
         StringData( const char (&val)[N], LiteralTag )
             : _data(&val[0]), _size(N-1) {}
 
+        // accessors
         const char* const data() const { return _data; }
         const unsigned size() const { return _size; }
 

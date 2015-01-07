@@ -19,6 +19,7 @@
 #define _SDB_PYTHON_DRIVER_UTIL_HPP_
 
 #include "ossFeat.hpp"
+// the following two options will be redefined in Python
 #undef _XOPEN_SOURCE
 #undef _POSIX_C_SOURCE
 #include <Python.h>
@@ -40,6 +41,7 @@
 
 #define PARSE_PYTHON_ARGS PyArg_ParseTuple
 
+///< new and delete 
 #define NEW_CPPOBJECT( pObject, CLASSNAME ) \
    pObject = new (std::nothrow) CLASSNAME()
 
@@ -177,6 +179,7 @@
       }                                                                 \
    }while( FALSE ) 
 
+///<  macros used in module declaration
 #define DEFINE_MODULE(modulename, methods)   \
 static struct PyModuleDef moduledef = {      \
    PyModuleDef_HEAD_INIT,                    \

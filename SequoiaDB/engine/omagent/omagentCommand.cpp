@@ -43,12 +43,14 @@ using namespace bson ;
 
 namespace engine
 {
+   // command list:
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaScanHost )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaBasicCheckHost )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaInstallRemoteAgent )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaCheckHost )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaUninstallRemoteAgent )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaAddHost )
+//   IMPLEMENT_OACMD_AUTO_REGISTER( _omaAddHost2 )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaRemoveHost )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaInsDBBus )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaUninsDBBus )
@@ -122,6 +124,7 @@ namespace engine
 
       for ( ; it != _jsFiles.end(); it++ )
       {
+         /// caller need to deal with error, when js file had been add
          if ( it->first == name )
          {
             rc = SDB_INVALIDARG ;
@@ -182,6 +185,7 @@ namespace engine
 
    INT32 _omaCommand::prime()
    {
+      // add some common files
       addJsFile ( FILE_DEFINE ) ;
       addJsFile ( FILE_ERROR ) ;
       addJsFile ( FILE_COMMON ) ;
@@ -209,6 +213,7 @@ namespace engine
                       "excute, rc = %d", rc ) ;
          goto error ;
       }
+      // get scope
       _scope = sdbGetOMAgentMgr()->getScope() ;
       if ( !_scope )
       {
@@ -216,6 +221,7 @@ namespace engine
          PD_LOG_MSG ( PDERROR, "Failed to get scope, rc = %d", rc ) ;
          goto error ;
       }
+      // execute js
       rc = _scope->eval( _content.c_str(), _content.size(),
                          "", 1, SPT_EVAL_FLAG_NONE, rval, detail ) ;
       if ( rc )
@@ -230,6 +236,7 @@ namespace engine
          retObj = bob.obj() ;
          goto error ;
       }
+      // adapt the result
       rc = final ( rval, retObj ) ;
       if ( rc )
       {
@@ -375,6 +382,7 @@ namespace engine
       {
          BSONObj obj( pInstallInfo ) ;
 
+         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; "
                       "var %s = %s; var %s = %s; var %s = %s; ",
                       JS_ARG_BUS, obj.toString(FALSE, TRUE).c_str(),
@@ -419,6 +427,7 @@ namespace engine
       {
          BSONObj obj( pInstallInfo ) ;
 
+         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; "
                       "var %s = %s; var %s = %s; var %s = %s; ",
                       JS_ARG_BUS, obj.toString(FALSE, TRUE).c_str(),
@@ -469,6 +478,7 @@ namespace engine
       {
          BSONObj bus( pInstallInfo ) ;
          BSONObj sys ;
+         // program path
          rc = _getProgPath ( prog_path, OSS_MAX_PATHSIZE ) ;
          if ( rc )
          {
@@ -478,6 +488,7 @@ namespace engine
          }
          sys = BSON( OMA_FIELD_PROG_PATH << prog_path ) ;
 
+         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; "
                       "var %s = %s; var %s = %s; var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str(),
@@ -516,6 +527,7 @@ namespace engine
       UINT32 found = 0 ;
       CHAR tmp[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
+      // program path
       rc = ossGetEWD ( tmp, OSS_MAX_PATHSIZE ) ;
       if ( rc )
       {
@@ -572,6 +584,7 @@ namespace engine
       {
          BSONObj bus( pInstallInfo ) ;
 
+         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Check host info passes argument: %s",
@@ -624,6 +637,7 @@ namespace engine
       {
          BSONObj bus( pInstallInfo ) ;
 
+         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Uninstall remote sdbcm passes argument: %s",
@@ -671,6 +685,7 @@ namespace engine
          BSONObj bus( pInstallInfo ) ;
          _addHostInfo = bus.getOwned() ;
 
+         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Add hosts passes argument: %s",
@@ -716,6 +731,7 @@ namespace engine
          PD_LOG ( PDERROR, "Get field[%s] failed, rc: %d", "", rc ) ;
          goto error ;
       } 
+      // get rc 
       rc = omaGetIntElement ( addHostResult, OMA_FIELD_ERRNO, retErrno ) ; 
       if ( rc )
       {
@@ -727,6 +743,7 @@ namespace engine
       {
          PD_LOG ( PDERROR, "Failed to add all the hosts, "
                   "going to rollback, rc = %d", retErrno ) ;
+         // extract info for rollback
          rc = _getRollbackInfo( addHostResult , rollbackInfo ) ;
          if ( rc )
          {
@@ -756,6 +773,7 @@ namespace engine
       }
 
    done:
+      // build return result
        _buildRetResult( result, retObj ) ;
       return rc ;
    error:
@@ -771,6 +789,7 @@ namespace engine
 
       try
       {
+         // get rollback hosts
          ele = addHostResult.getField ( OMA_FIELD_HOSTINFO ) ;
          if ( Array != ele.type() )
          {
@@ -814,6 +833,7 @@ namespace engine
                }
             }
          }
+         // extract rollback host info from input info
          ele = _addHostInfo.getField ( OMA_FIELD_HOSTINFO ) ;
          if ( Array != ele.type() )
          {
@@ -907,6 +927,7 @@ namespace engine
       const CHAR *pDetail = NULL ;
       string str = "" ;
 
+      // get error detail from add hosts result
       rc = omaGetStringElement( addHostResult, OMA_FIELD_DETAIL, &pDetail ) ;
       if ( rc )
       {
@@ -914,6 +935,7 @@ namespace engine
                   OMA_FIELD_DETAIL, rc ) ;
          goto error ;
       }
+      // get detail from rollback result
       ele = rollbackResult.getField ( OMA_FIELD_HOSTINFO ) ;
       if ( Array != ele.type() )
       {
@@ -961,6 +983,7 @@ namespace engine
             str += arr.toString( TRUE, FALSE ).c_str() ;
          }
       }
+      // return the total error detail
       ossSnprintf( pBuf, OMA_BUFF_SIZE, "%s%s", pDetail, str.c_str() ) ;  
       PD_LOG_MSG ( PDERROR, pBuf ) ;
 
@@ -1046,6 +1069,7 @@ namespace engine
       {
          BSONObj bus( pInstallInfo ) ;
 
+         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Remove hosts passes argument: %s",
@@ -1073,6 +1097,7 @@ namespace engine
    }
 
    /******************************* add db business **************************/
+   // _omaInsDBBus
    _omaInsDBBus::_omaInsDBBus ()
    {
    }
@@ -1104,6 +1129,7 @@ namespace engine
    }
 
    /******************************* uninstall db business *********************/
+   // _omaUninsDBBus
    _omaUninsDBBus::_omaUninsDBBus ()
    {
    }
@@ -1150,6 +1176,7 @@ namespace engine
    INT32 _omaQueryTaskProgress::init ( const CHAR *pInstallInfo )
    {
       INT32 rc = SDB_OK ;
+      // parse bson to get task id
       BSONElement ele ;
       BSONObj arg( pInstallInfo ) ;
       try
@@ -1170,6 +1197,7 @@ namespace engine
                       "received exception: %s", e.what() ) ;
          goto error ;
       }
+      // get task manager
       _taskMgr = getTaskMgr() ;
 
    done:
@@ -1219,10 +1247,12 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BSONObj bus( pInstallInfo ) ;
+      // build js file argument
       ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                    JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
       PD_LOG ( PDDEBUG, "Update hosts info passes argument: %s",
                _jsFileArgs ) ;
+      // set js file
       rc = addJsFile ( FILE_UPDATE_HOSTS_INFO, _jsFileArgs ) ;
       if ( rc )
       {
@@ -1255,6 +1285,7 @@ namespace engine
       {
          BSONObj bus( pInstallInfo ) ;
 
+         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "_omaQueryHostStatus passes argument: %s",
@@ -1289,6 +1320,7 @@ namespace engine
       goto done ;
    }
 
+   // _omaCreateVirtualCoord
    _omaCreateVirtualCoord::_omaCreateVirtualCoord ()
    {
    }
@@ -1314,6 +1346,7 @@ namespace engine
          {
             bus = BSONObj(pInstallInfo).getOwned() ;
          }
+         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Create temp coord passes argument: %s",
@@ -1362,6 +1395,7 @@ namespace engine
       goto done ;
    }
 
+   // _omaRemoveVirtualCoord
    _omaRemoveVirtualCoord::_omaRemoveVirtualCoord (
                                               const CHAR *pVCoordSvcName )
    {
@@ -1380,6 +1414,7 @@ namespace engine
          BSONObj sys = BSON (
                  OMA_FIELD_VCOORDSVCNAME << _vCoordSvcName ) ;
 
+         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Remove temp coord passes argument: %s",
@@ -1427,6 +1462,7 @@ namespace engine
       goto done ;
    }
 
+   // _omaAddHostRollbackInternal
    _omaAddHostRollbackInternal::_omaAddHostRollbackInternal()
    {
    }
@@ -1441,6 +1477,7 @@ namespace engine
       try
       {
          BSONObj bus( pInstallInfo ) ;
+         // build js file arguments
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Rollback add hosts passes argument: %s",

@@ -102,6 +102,7 @@ enum MIG_OP_TYPE
       }
    } ;
 
+   /// 64KB
    struct migFileHeader 
    {
       CHAR eyeCatcher[8] ;

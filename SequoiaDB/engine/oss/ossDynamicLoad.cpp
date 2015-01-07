@@ -61,6 +61,7 @@ _flags(dlOpenMode)
 }
 
 PD_TRACE_DECLARE_FUNCTION ( SDB_OSSMODULEHANDLE_INIT, "_ossModuleHandle::init" ) ;
+// load module
 INT32 _ossModuleHandle::init ()
 {
    INT32 rc = SDB_OK ;
@@ -80,12 +81,14 @@ INT32 _ossModuleHandle::init ()
    }
    PD_TRACE3 ( SDB_OSSMODULEHANDLE_INIT, PD_PACK_STRING(_moduleName),
                PD_PACK_STRING(_libPath), PD_PACK_UINT(_flags) ) ;
+   // copy module name to local and remove everything after (
    ossStrncpy ( strModule, _moduleName, sizeof(strModule) ) ;
    p = ossStrchr ( strModule, '(' ) ;
    if ( p )
    {
       *p = '\0' ;
    }
+   // if the path is provided, let's make sure it exists
    if ( _libPath[0] )
    {
       INT32 pathLen = 0 ;
@@ -100,8 +103,10 @@ INT32 _ossModuleHandle::init ()
                     _libPath, rc ) ;
       ossStrncat ( strPath, _libPath, sizeof(strPath) ) ;
       pathLen = ossStrlen ( strPath ) ;
+      // to add / at end of path
       if ( strPath[pathLen-1] != OSS_FILE_SEP_CHAR )
       {
+         // make sure we have sufficient size
          if ( pathLen >= OSS_MAX_PATHSIZE )
          {
             PD_LOG ( PDERROR, "library path is too long: %s",
@@ -109,10 +114,12 @@ INT32 _ossModuleHandle::init ()
             rc = SDB_INVALIDARG ;
             goto error ;
          }
+         // append path with / and set next char to 0
          strPath[pathLen-1] = OSS_FILE_SEP_CHAR ;
          strPath[pathLen]   = '\0' ;
       }
    }
+   // append module name
    if ( ossStrlen ( strPath ) + ossStrlen ( _moduleName ) <= sizeof(strPath) )
    {
       PD_LOG ( PDERROR, "path + module name is too long: %s:%s",
@@ -122,6 +129,7 @@ INT32 _ossModuleHandle::init ()
    }
    ossStrncat ( strPath, _moduleName, OSS_MAX_PATHSIZE ) ;
 #if defined (_LINUX)
+   // try to open and load
    handle = dlopen ( strPath, _flags | RTLD_NOW ) ;
    if ( !handle )
    {
@@ -130,10 +138,13 @@ INT32 _ossModuleHandle::init ()
       rc = SDB_SYS ;
       goto error ;
    }
+   // when we successfully opened library, let's initialize members
    _isInitialized = TRUE ;
    _moduleHandle = handle ;
+   // clear errors
    dlerror() ;
 #elif defined (_WINDOWS)
+   // avoid popup a window if the dll was not found
    errorMode = SetErrorMode ( SEM_NOOPENFILEERRORBOX |
                               SEM_FAILCRITICALERRORS ) ;
    _moduleHandle = LoadLibrary ( (LPCTSTR)strPath ) ;

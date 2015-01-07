@@ -202,6 +202,7 @@ namespace engine
 
       BOOLEAN equals( const BYTE *oid, UINT32 sequence ) const
       {
+         /// compare sequence first.
          return ( _sequence == sequence &&
                   0 == ossMemcmp( _oid, oid, DMS_LOB_OID_LEN ) ) ?
                 TRUE : FALSE ;

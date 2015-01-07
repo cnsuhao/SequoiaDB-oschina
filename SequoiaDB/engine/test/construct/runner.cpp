@@ -152,6 +152,8 @@ void caseRunner::_getJob(job &j)
    UINT32 rand2 = rand;
    _mtx.get();
 
+   /// insert, delete, update, query are all UINT64,
+   /// but rand is UINT32, it could affect rand result
    rand %= _range();
    type = _type(rand);
 
@@ -186,6 +188,7 @@ INT32 caseRunner::_insert(const job &j, sdbclient::sdb &conn)
    }
    else
    {
+      /// do nothing
    }
 
    rc = cs.getCollection(j._collection.c_str(), collection);

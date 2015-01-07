@@ -133,7 +133,9 @@ public class DBCollection {
 	public void setMainKeys(String[] keys) throws BaseException {
 		if (keys == null)
 			throw new BaseException("SDB_INVALIDARG", (Object[])keys);
+		// remove the main keys set in last time
 		mainKeys.clear();
+		// add the new main keys
 		if (keys.length == 0)
 			return;
 		for(String k : keys)
@@ -242,6 +244,7 @@ public class DBCollection {
 	 */
 	public <T> void save(T type) throws BaseException
 	{
+		// transform java object to bson object
 		BSONObject obj;
 		try
 		{
@@ -253,6 +256,7 @@ public class DBCollection {
 		}
 		BSONObject matcher = new BasicBSONObject();
 		BSONObject modifer = new BasicBSONObject(); 
+		// if user don't specify main keys, use default one "_id"
 		if (mainKeys.isEmpty())
 		{
 			Object id = obj.get(SequoiadbConstants.OID);
@@ -264,7 +268,9 @@ public class DBCollection {
 			}
 			else
 			{
+				// build condtion
 				matcher.put(SequoiadbConstants.OID, id);
+				// build rule
 				modifer.put("$set", obj);
 				upsert(matcher, modifer, null);
 			}
@@ -272,6 +278,7 @@ public class DBCollection {
 		else
 		{ // if user specify main keys, use these main keys
 			Iterator<String> it = mainKeys.iterator();
+			// build condition
 			while (it.hasNext())
 			{
 				String key = it.next();
@@ -280,6 +287,7 @@ public class DBCollection {
 				else
 					matcher.put(key, null);
 			}
+			// build rule
 			modifer.put("$set", obj);
 			upsert(matcher, modifer, null);
 		}
@@ -303,6 +311,7 @@ public class DBCollection {
 	public <T> void save(List<T> type) throws BaseException {
 		if (type == null || type.size() == 0)
 			throw new BaseException("SDB_INVALIDARG", type);
+		// transform java object to bson object
 		List<BSONObject> objs = new ArrayList<BSONObject>();
 		try {
 			Iterator<T> it = type.iterator(); 
@@ -316,6 +325,7 @@ public class DBCollection {
 		BSONObject modifer = new BasicBSONObject();
 		BSONObject obj = null;
 		Iterator<BSONObject> ite = objs.iterator();
+		// if user don't specify main keys, use default one "_id"
 		if (mainKeys.isEmpty()) {
 			while(ite != null && ite.hasNext()) {
 				obj = ite.next();
@@ -325,7 +335,9 @@ public class DBCollection {
 						((ObjectId) id).notNew();
 					insert(obj);
 				} else {
+					// build condtion
 					matcher.put(SequoiadbConstants.OID, id);
+					// build rule
 					modifer.put("$set", obj);
 					upsert(matcher, modifer, null);
 				}
@@ -334,6 +346,7 @@ public class DBCollection {
 			while (ite != null && ite.hasNext()) {
 				obj = ite.next();
 				Iterator<String> i = mainKeys.iterator();
+				// build condition
 				while (i.hasNext()) {
 					String key = i.next();
 					if (obj.containsField(key))
@@ -341,6 +354,7 @@ public class DBCollection {
 					else
 						matcher.put(key, null);
 				}
+				// build rule
 				modifer.put("$set", obj);
 				upsert(matcher, modifer, null);
 			}
@@ -394,8 +408,10 @@ public class DBCollection {
 		int flags = rtnSDBMessage.getFlags();
 		if (flags != 0)
 			throw new BaseException(flags, insertor);
+		// shrink the memory
 		/*
 		int capacity = insert_buffer.capacity();
+		// if the capacity large then 16m, halves it
 		if(capacity >= 8 * DEF_BULK_BUFFER_LENGTH) {
 			insert_buffer.position(0);
 			insert_buffer.limit(capacity/2);
@@ -468,6 +484,8 @@ public class DBCollection {
 			matcher = dummy;
 		if (hint == null)
 			hint = dummy;
+		// Delete
+		// long reqId = 0;
 		SDBMessage sdbMessage = new SDBMessage();
 
 		sdbMessage.setVersion(0);
@@ -475,6 +493,8 @@ public class DBCollection {
 		sdbMessage.setPadding((short) 0);
 		sdbMessage.setFlags(0);
 		sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
+		// sdbMessage.setResponseTo(reqId);
+		// reqId++;
 		sdbMessage.setCollectionFullName(collectionFullName);
 		sdbMessage.setRequestID(sequoiadb.getNextRequstID());
 		sdbMessage.setMatcher(matcher);
@@ -1210,6 +1230,7 @@ public class DBCollection {
 	 */
 	public void split(String sourceGroupName, String destGroupName,
 			BSONObject splitCondition, BSONObject splitEndCondition) throws BaseException {
+		// check arguments
 		if((null == sourceGroupName || sourceGroupName.equals("")) ||
 		   (null == destGroupName || destGroupName.equals("")) ||
 		    null == splitCondition){
@@ -1248,6 +1269,7 @@ public class DBCollection {
 	 */
 	public void split(String sourceGroupName, String destGroupName,
 			double percent) throws BaseException {
+		// check arguments
 		if((null == sourceGroupName || sourceGroupName.equals("")) ||
 		   (null == destGroupName || destGroupName.equals("")) ||
 		   (percent <= 0.0 || percent > 100.0)){
@@ -1295,6 +1317,7 @@ public class DBCollection {
 			               String destGroupName,
 			               BSONObject splitCondition,
 			               BSONObject splitEndCondition) throws BaseException {
+		// check arguments
 		if((null == sourceGroupName || sourceGroupName.equals("")) ||
 		   (null == destGroupName || destGroupName.equals("")) ||
 		    null == splitCondition){
@@ -1308,6 +1331,7 @@ public class DBCollection {
 		obj.put(SequoiadbConstants.FIELD_NAME_SPLITQUERY, splitCondition);
 		if(null != splitEndCondition)
 			obj.put(SequoiadbConstants.FIELD_NAME_SPLITENDQUERY, splitEndCondition);
+		// async:true
 		obj.put(SequoiadbConstants.FIELD_NAME_ASYNC, true);
 		String commandString = SequoiadbConstants.ADMIN_PROMPT
 				+ SequoiadbConstants.CMD_NAME_SPLIT;
@@ -1319,6 +1343,7 @@ public class DBCollection {
 			throw new BaseException(flags, sourceGroupName, destGroupName,
 					splitCondition, splitEndCondition);
 		}
+		// build cursor object to get result from database
 		DBCursor cursor = new DBCursor(rtnSDBMessage, this);
 		if (!cursor.hasNext())
 			throw new BaseException("SDB_CAT_TASK_NOTFOUND");
@@ -1344,6 +1369,7 @@ public class DBCollection {
 	 */
 	public long splitAsync(String sourceGroupName, String destGroupName,
 			               double percent) throws BaseException {
+		// check arguments
 		if((null == sourceGroupName || sourceGroupName.equals("")) ||
 		   (null == destGroupName || destGroupName.equals("")) ||
 		   (percent <= 0.0 || percent > 100.0)){
@@ -1355,7 +1381,9 @@ public class DBCollection {
 		obj.put(SequoiadbConstants.FIELD_NAME_SOURCE, sourceGroupName);
 		obj.put(SequoiadbConstants.FIELD_NAME_TARGET, destGroupName);
 		obj.put(SequoiadbConstants.FIELD_NAME_SPLITPERCENT, percent);
+		// async:true
 		obj.put(SequoiadbConstants.FIELD_NAME_ASYNC, true);
+		// command
 		String commandString = SequoiadbConstants.ADMIN_PROMPT
 				+ SequoiadbConstants.CMD_NAME_SPLIT;
 		BSONObject dummy = new BasicBSONObject();
@@ -1366,6 +1394,7 @@ public class DBCollection {
 			throw new BaseException(flags, sourceGroupName, destGroupName,
 					                percent);
 		}
+		// build cursor object to get result from database
 		DBCursor cursor = new DBCursor(rtnSDBMessage, this);
 		if (!cursor.hasNext())
 			throw new BaseException("SDB_CAT_TASK_NOTFOUND");
@@ -1492,19 +1521,23 @@ public class DBCollection {
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	public void attachCollection( String subClFullName,BSONObject options ) throws BaseException {
+		// check arguments
 		if ( null == subClFullName || subClFullName.equals("") ||
 		     null == options ||
 		     null == collectionFullName || collectionFullName.equals("") ) {
 			throw new BaseException("SDB_INVALIDARG", subClFullName,
 			        options, collectionFullName);
 		}
+		// command
 		String command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.CMD_NAME_ATTACH_CL;
+		// build condition
 		BSONObject newobj = new BasicBSONObject();
 		newobj.put(SequoiadbConstants.FIELD_NAME_NAME, collectionFullName);
 		newobj.put(SequoiadbConstants.FIELD_NAME_SUBCLNAME, subClFullName);
 		for (String key : options.keySet()){
 			newobj.put(key, options.get(key));
 		}
+		// build message/send/receive/extract
 		SDBMessage rtnSDBMessage = adminCommand ( command, newobj, null, null, null,
 				      			                  0, -1, 0 );
 		int flags = rtnSDBMessage.getFlags();
@@ -1521,14 +1554,18 @@ public class DBCollection {
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	public void detachCollection( String subClFullName ) throws BaseException {
+		// check arguments
 		if ( null == subClFullName || subClFullName.equals("") ||
 		     null == collectionFullName || collectionFullName.equals("") ) {
 			throw new BaseException("SDB_INVALIDARG", subClFullName);
 		}
+		// command
 		String command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.CMD_NAME_DETACH_CL;
+		// build condition
 		BSONObject newobj = new BasicBSONObject();
 		newobj.put(SequoiadbConstants.FIELD_NAME_NAME, collectionFullName);
 		newobj.put(SequoiadbConstants.FIELD_NAME_SUBCLNAME, subClFullName);
+		// build message/send/receive/extract
 		SDBMessage rtnSDBMessage = adminCommand ( command, newobj, null, null, null,
 				      			                  0, -1, 0 );
 		int flags = rtnSDBMessage.getFlags();
@@ -1553,13 +1590,17 @@ public class DBCollection {
 	 * @exception com.sequoiadb.exception.BaseException
 	 */	
 	public void alterCollection( BSONObject options ) throws BaseException {
+		// check arguments
 		if ( null == options ) {
 			throw new BaseException("SDB_INVALIDARG", options);
 		}
+		// command
 		String command = SequoiadbConstants.ADMIN_PROMPT + SequoiadbConstants.CMD_NAME_ALTER_COLLECTION;
+		// build condition
 		BSONObject newobj = new BasicBSONObject();
 		newobj.put(SequoiadbConstants.FIELD_NAME_NAME, collectionFullName);
 		newobj.put(SequoiadbConstants.FIELD_NAME_OPTIONS, options);
+		// build message/send/receive/extract
 		SDBMessage rtnSDBMessage = adminCommand ( command, newobj, null, null, null,
 				      			                  0, -1, 0 );
 		int flags = rtnSDBMessage.getFlags();
@@ -1571,6 +1612,8 @@ public class DBCollection {
 	private SDBMessage adminCommand(String commandString, BSONObject query,
 			BSONObject selector, BSONObject orderBy, BSONObject hint,
 			long skipRows, long returnRows, int flag) throws BaseException {
+		// Admin command request
+		// int reqId = 0;
 		SDBMessage sdbMessage = new SDBMessage();
 		BSONObject dummy = new BasicBSONObject();
 		if (query == null)
@@ -1589,6 +1632,8 @@ public class DBCollection {
 		sdbMessage.setPadding((short) 0);
 		sdbMessage.setFlags(flag);
 		sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
+		// sdbMessage.setResponseTo(reqId);
+		// reqId++;
 		sdbMessage.setRequestID(sequoiadb.getNextRequstID());
 		sdbMessage.setSkipRowsCount(skipRows);
 		sdbMessage.setReturnRowsCount(returnRows);
@@ -1611,6 +1656,7 @@ public class DBCollection {
 	
 	private List<BSONObject> getMoreCommand(SDBMessage rtnSDBMessage)
 			throws BaseException {
+		// GetMore request
 		long reqId = rtnSDBMessage.getRequestID();
 		List<Long> contextIds = rtnSDBMessage.getContextIDList();
 		List<BSONObject> fullList = new ArrayList<BSONObject>();
@@ -1618,6 +1664,8 @@ public class DBCollection {
 		while (hasMore) {
 			SDBMessage sdbMessage = new SDBMessage();
 			sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
+			// sdbMessage.setResponseTo(reqId);
+			// reqId++;
 			sdbMessage.setContextIDList(contextIds);
 			sdbMessage.setRequestID(reqId);
 			sdbMessage.setNumReturned(-1);

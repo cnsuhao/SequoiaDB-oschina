@@ -89,6 +89,7 @@ fetch:
          }
 
          SDB_ASSERT( NULL == _fetch.next, "impossible" ) ;
+      //   SDB_ASSERT( _splitby.relegation() == _fetch.alias, "impossible" ) ;
          {
          std::string fieldName = _splitby.attr().toString() ;
          BSONElement ele = _fetch.obj.getField( fieldName ) ;
@@ -116,6 +117,7 @@ fetch:
             _itr = BSONObjIterator( ele.embeddedObject() ) ;
             if ( !_itr.more() )
             {
+               /// empty array.
                PD_LOG( PDDEBUG, "element [%s] is a empty array",
                        ele.fieldName() ) ;
                BSONObjBuilder builder ;

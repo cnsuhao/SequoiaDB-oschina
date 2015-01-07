@@ -59,6 +59,7 @@ namespace engine
       QGM_PLAN_TYPE_SPLIT,
       QGM_PLAN_TYPE_HASHJOIN,
 
+      //
       QGM_PLAN_TYPE_MAX,
    } ;
 

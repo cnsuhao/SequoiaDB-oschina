@@ -89,6 +89,7 @@ namespace engine
       }
    }
 
+   // initialize log manager
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR_INIT, "_dpsReplicaLogMgr::init" )
    INT32 _dpsReplicaLogMgr::init ( const CHAR *path, UINT32 pageNum )
    {
@@ -98,6 +99,7 @@ namespace engine
 
       _transCB = sdbGetTransCB() ;
 
+      // free in destructor
       _pages = SDB_OSS_NEW _dpsLogPage[pageNum];
       if ( NULL == _pages )
       {
@@ -105,6 +107,7 @@ namespace engine
          PD_LOG (PDERROR, "new _dpsLogPage[pageNum] failed!" );
          goto error;
       }
+      // set ID for each page
       for ( UINT32 i = 0; i < pageNum; i++ )
       {
          _pages[i].setNumber( i );
@@ -117,6 +120,7 @@ namespace engine
          DPS_SUB_BIT = ~pageNum ;
       }
 
+      // initialize log files
       rc = _logger.init( path );
       if ( rc )
       {
@@ -124,6 +128,7 @@ namespace engine
          goto error;
       }
 
+      //if restored from file, need to fill the memory pages
       if ( !_logger.getStartLSN( FALSE ).invalid() )
       {
          rc = _restore () ;
@@ -159,6 +164,7 @@ namespace engine
       _dpsMergeBlock mergeBlock ;
       dpsLogRecordHeader &head = mergeBlock.record().head();
 
+      //set restore begin
       _restoreFlag = TRUE ;
 
       if ( beginLsn.invalid() )
@@ -167,8 +173,10 @@ namespace engine
          goto error ;
       }
 
+      //truncate
       _movePages( beginLsn.offset, beginLsn.version ) ;
 
+      //load from file to fill
       while ( beginLsn.offset % file->size() < length )
       {
          rc = _logger.load ( beginLsn, &block ) ;
@@ -195,6 +203,7 @@ namespace engine
       }
 
       {
+         //reset the idle size
          UINT32 fileIdleSize = file->getIdleSize() +
                               (&_pages[_work])->getLength() ;
          if ( fileIdleSize % DPS_DEFAULT_PAGE_SIZE != 0 )
@@ -231,6 +240,7 @@ namespace engine
       UINT32 logFileSz = _logger.getLogFileSz() ;
       BOOLEAN locked = FALSE ;
 
+      // all pages memory less than data size
       if ( _totalSize < head._length )
       {
          PD_LOG ( PDERROR, "dps total memory size[%d] less than block size[%d]",
@@ -261,25 +271,37 @@ namespace engine
 
       if ( !block.isRow() )
       {
+      // is the full record able to sit in the same log file?
       if ( ( _lsn.offset / logFileSz ) !=
             ( _lsn.offset + head._length - 1 ) / logFileSz )
       {
+         // if the log is replicated and hit this logic, something really
+         // goes wrong, because the dummy record should already be inserted
+         // in primary node
          SDB_ASSERT ( !block.isRow(), "replicated log record should never"
                       " hit this part" ) ;
+         // we are going to insert a dummy log record
          UINT32 dummyLogSize = logFileSz - ( _lsn.offset % logFileSz ) ;
          SDB_ASSERT ( dummyLogSize >= sizeof ( dpsLogRecordHeader ),
                       "dummy log size is smaller than log head" ) ;
          SDB_ASSERT ( dummyLogSize % sizeof(SINT32) == 0,
                       "dummy log size is not 4 bytes aligned" ) ;
 
+         // set dummyhead as a reference to log head
          dpsLogRecordHeader &dummyhead =
                            info.getDummyBlock().record().head() ;
+         // initialize dummyhead
          dummyhead._length = dummyLogSize ;
          dummyhead._type   = LOG_TYPE_DUMMY ;
+         // allocate the space in metadata and page, receive dummynodes for the
+         // nodes contains dummy record, and offset for where to start
          _allocate ( dummyhead._length, info.getDummyBlock().pageMeta() ) ;
 
+         // share lock the pages we are going to write
          SHARED_LOCK_NODES ( info.getDummyBlock().pageMeta()) ;
+         // send the pages into queue
          _push2SendQueue ( info.getDummyBlock().pageMeta() ) ;
+         // change global metadata
          dummyhead._lsn = _lsn.offset ;
          dummyhead._version = _lsn.version ;
          dummyhead._preLsn = _currentLsn.offset ;
@@ -294,6 +316,8 @@ namespace engine
          }
       }
 
+      // after we push dummy record, we have to check if the rest of space able
+      // to put a log head in log file
       if ( ( (_lsn.offset+head._length) / logFileSz ) !=
            ( (_lsn.offset+head._length+
               sizeof(dpsLogRecordHeader)) / logFileSz ) )
@@ -301,12 +325,17 @@ namespace engine
          SDB_ASSERT ( !block.isRow(), "replicated log record should never"
                       " hit this part" ) ;
          head._length = logFileSz - _lsn.offset % logFileSz ;
+         //head._length += logFileSz - ((_lsn.offset+head._length)%logFileSz) ;
       }
       }
+      // now let's continue allocate the real data
       _allocate( head._length, block.pageMeta() );
 
+      // and share lock the nodes with real data
       SHARED_LOCK_NODES( block.pageMeta() ) ;
+      // push them into queue together with dummy record
       _push2SendQueue( block.pageMeta() ) ;
+      // assign lsn if it's not from replica side
       if ( !block.isRow() )
       {
          head._lsn = _lsn.offset;
@@ -318,6 +347,7 @@ namespace engine
          SDB_ASSERT ( _lsn.offset == head._lsn, "row lsn error" ) ;
          _lsn.version = head._version ;
       }
+      // change global metadata
       _currentLsn = _lsn ;
       _lsn.offset += head._length ;
 
@@ -329,6 +359,7 @@ namespace engine
       }
 
    done:
+      // unlock metadata
       if ( locked )
       {
          _mtx.release();
@@ -348,6 +379,7 @@ namespace engine
       SDB_ASSERT ( _transCB != NULL, "transCB can't be null!" ) ;
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR_WRITEDATA );
 
+      // if has dummy block
       if ( info.hasDummy() )
       {
          _mergeLogs( info.getDummyBlock(), info.getDummyBlock().pageMeta());
@@ -443,6 +475,7 @@ namespace engine
       UINT32 pageOffset = offset % DPS_DEFAULT_PAGE_SIZE ;
       DPS_LSN invalidLsn ;
 
+      //out of range clear all pages
       if ( _currentLsn.invalid()
          || ( _getStartLsn().offset > offset || _lsn.offset < offset ) )
       {
@@ -475,6 +508,7 @@ namespace engine
             _work = _decPageID ( _work ) ;
          }
 
+         //read current lsn
          dpsLogRecordHeader header ;
          rc = _parse ( _work, pageOffset, sizeof (dpsLogRecordHeader),
                       (CHAR*)&header ) ;
@@ -527,6 +561,7 @@ namespace engine
          goto error ;
       }
 
+      // wait queue empty
       while ( !_queSize.compare( 0 ) )
       {
          ossSleep ( 100 ) ;
@@ -547,6 +582,8 @@ namespace engine
          goto error ;
       }
 
+      //in the exist range and at the last work(not flush)
+      //the file can not move
       if ( offset >= tmpBeginOffset && offset <= tmpLsnOffset
          && tmpWork == _work && !tmpCurLsn.invalid() )
       {
@@ -560,6 +597,7 @@ namespace engine
          goto error ;
       }
 
+      //out for memory range but in file range, need to restore
       if ( !_logger.getStartLSN().invalid() && offset < tmpBeginOffset )
       {
          rc = _restore () ;
@@ -589,6 +627,7 @@ namespace engine
       goto done ;
    }
 
+   // get the first LSN in buffer
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__GETSTARTLSN, "_dpsReplicaLogMgr::_getStartLsn" )
    DPS_LSN _dpsReplicaLogMgr::_getStartLsn ()
    {
@@ -616,6 +655,7 @@ namespace engine
       return lsn ;
    }
 
+   // search lsn in memory
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__SEARCH, "_dpsReplicaLogMgr::_search" )
    INT32 _dpsReplicaLogMgr::_search ( const DPS_LSN &lsn, _dpsMessageBlock *mb,
                                       BOOLEAN onlyHeader )
@@ -634,10 +674,13 @@ namespace engine
       pageSub = ( lsn.offset / DPS_DEFAULT_PAGE_SIZE ) % _pageNum ;
       offset  = lsn.offset % DPS_DEFAULT_PAGE_SIZE ;
 
+      // lock metadata
       _mtx.get () ;
       mtxLocked = TRUE ;
 
       beginLSN = _getStartLsn() ;
+      // if there's no LSN we can find at all, let's return
+      // SDB_DPS_LOG_NOT_IN_BUF
       if ( beginLSN.invalid() )
       {
          PD_LOG( PDERROR, "begin lsn invalid [offset:%lld] [version:%d]",
@@ -646,6 +689,9 @@ namespace engine
          goto error ;
       }
       lastLSN = _lsn ;
+      // if the requested lsn is not in range, we return same thing as well
+      // note lastLSN is _lsn, which represent the current LSN that has not been
+      // written yet. So if requested LSN >= lastLSN, we are out of range
       if ( 0 > lsn.compareOffset(beginLSN.offset) )
       {
          PD_LOG( PDDEBUG, "lsn %lld is smaller than membegin %lld",
@@ -659,11 +705,14 @@ namespace engine
          goto error ;
       }
 
+      // exclusive lock the page
       (&_pages[pageSub])->lock() ;
       pageLocked = TRUE ;
+      // release metadata
       _mtx.release() ;
       mtxLocked = FALSE ;
 
+      // first let's read lsn head in order to get the size of log record
       rc = _parse ( pageSub, offset, sizeof(dpsLogRecordHeader),
                    (CHAR*)&head ) ;
       if ( rc )
@@ -681,6 +730,7 @@ namespace engine
          goto error ;
       }
 
+      // set head length to len
       if ( onlyHeader )
       {
          len = sizeof( dpsLogRecordHeader ) ;
@@ -706,6 +756,7 @@ namespace engine
       }
       else
       {
+         // then let's read the log
          rc = _parse ( pageSub, offset, len, mb->writePtr() ) ;
       }
 
@@ -717,6 +768,7 @@ namespace engine
          PD_LOG ( PDERROR, "Failed to parse entire log, rc = %d", rc ) ;
          goto error ;
       }
+      // update mb
       mb->writePtr ( len + mb->length () ) ;
 
    done :
@@ -745,6 +797,8 @@ namespace engine
       UINT32 needParseLen = len;
       UINT32 outOffset    = 0;
       SDB_ASSERT ( out, "out can't be NULL" ) ;
+      // make sure what we need does not exceed total buffer size, this is
+      // sanity check
       if ( offset + len >= _pageNum*DPS_DEFAULT_PAGE_SIZE )
       {
          PD_LOG ( PDERROR, "offset + len is greater than buffer size, "
@@ -791,22 +845,28 @@ namespace engine
          rc = SDB_DPS_LOG_NOT_IN_FILE ;
          goto error ;
       }
+      // if we indicates searching for memory, let's do internal index seach
+      // note we ALWAYS search for mem
       {
          rc = _search( minLsn, mb, onlyHeader );
          if ( rc )
          {
+            // if we can't find it from memory
             if ( SDB_DPS_LOG_NOT_IN_BUF == rc &&
                  DPS_SEARCH_FILE & type )
             {
+               // if we also want to find from file
                rc = _logger.load( minLsn, mb, onlyHeader );
                if ( rc )
                {
+                  // we can't find from both memory and file
                   PD_LOG ( PDINFO, "Failed to find [%lld, %d]from memory and "
                            "file, rc = %d", minLsn.offset, minLsn.version,
                            rc ) ;
                   goto error ;
                }
             }
+            // if we don't want to find from file
             else
             {
                PD_LOG ( PDDEBUG, "Failed to find [%lld, %d] from memory, "
@@ -823,6 +883,8 @@ namespace engine
       goto done ;
    }
 
+   // allocate len bytes, returns nodes for which nodes contains data, and
+   // offset for the starting point in the first page
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__ALLOCATE, "_dpsReplicaLogMgr::_allocate" )
    void _dpsReplicaLogMgr::_allocate( UINT32 len,
                                       dpsPageMeta &allocated )
@@ -835,36 +897,52 @@ namespace engine
       SDB_ASSERT ( _totalSize > len,
                   "total memory size must grater than record size" ) ;
 
+      // make sure there's enough space
       while ( _idleSize.peek() < needAlloc )
       {
          PD_LOG ( PDWARNING, "No space in log buffer for %d bytes, currently "
                   "left %d bytes", needAlloc, _idleSize.peek() ) ;
          _allocateEvent.wait ( OSS_ONE_SEC ) ;
       }
+      // get the current working offset in the first page
       allocated.offset = WORK_PAGE->getLength();
       allocated.beginSub = _work ;
 
       do
       {
          pageNum++ ;
+         // for the first page, let's set beginLSN
          if ( 1 == pageNum )
          {
             DPS_LSN beginLSN = WORK_PAGE->getBeginLSN () ;
             if ( ( beginLSN.invalid() ) ||
                  ( _lsn.offset - beginLSN.offset > DPS_DEFAULT_PAGE_SIZE ) )
             {
+               // if the range is not within one page, that means the begin lsn
+               // is not for the current round ( already out of date ), so let's
+               // set it
                WORK_PAGE->setBeginLSN ( _lsn ) ;
             }
          }
          else
          {
+            // otherwise set begin lsn to DPS_INVALID_LSN,
+            // this happen to the last page as
+            // well, because at the moment regardless whether it will include
+            // more user data, it doesn't have any meaning LSN at all
+            // If we have more data coming to the last page later, it will hit
+            // the previous condition and setBeginLSN then
             DPS_LSN invalid ;
             invalid.version = _lsn.version ;
             WORK_PAGE->setBeginLSN ( invalid ) ;
          }
+         // how much space left in the page?
          UINT32 pageIdle = WORK_PAGE->getLastSize();
+         // is it large enough to allocate all? otherwise allocate rest
          INT32 allocLen = pageIdle < needAlloc ? pageIdle : needAlloc;
+         // reserve space in the page
          WORK_PAGE->allocate( allocLen );
+         // how much data still left?
          needAlloc -= allocLen;
 
          if ( _begin == _work && _rollFlag )
@@ -872,6 +950,8 @@ namespace engine
             _begin = _incPageID ( _begin ) ;
          }
 
+         // if we don't have any extra space in the current page, let's move to
+         // next
          if ( 0 == WORK_PAGE->getLastSize() )
          {
             _work = _incPageID ( _work ) ;
@@ -883,6 +963,7 @@ namespace engine
          }
       } while ( needAlloc > 0 ) ;
 
+      // reduce the total free space in metadata
       _idleSize.sub( len ) ;
       allocated.pageNum = pageNum ;
       allocated.totalLen = len ;
@@ -893,6 +974,8 @@ namespace engine
    void _dpsReplicaLogMgr::_push2SendQueue( const dpsPageMeta &allocated )
    {
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR__PSH2SNDQUEUE );
+      // push pages into flush queue. Note all nodes should be shared locked at
+      // the moment
 
       SDB_ASSERT( allocated.valid(), "impossible" ) ;
       for ( UINT32 i = 0; i < allocated.pageNum; ++i )
@@ -917,6 +1000,7 @@ namespace engine
       return ;
    }
 
+   // copy logs into buffer
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__MRGLOGS, "_dpsReplicaLogMgr::_mergeLogs" )
    void _dpsReplicaLogMgr::_mergeLogs( _dpsMergeBlock &block,
                                        const dpsPageMeta &meta )
@@ -925,20 +1009,25 @@ namespace engine
       UINT32 offset = meta.offset ;
       UINT32 work = meta.beginSub ;
       dpsLogRecordHeader &head = block.record().head() ;
+      // first we copy head
       _mergePage( (CHAR *)&head,
                   sizeof( dpsLogRecordHeader ),
                   work,
                   offset);
 
+      /// dummy log has no body.
       if ( LOG_TYPE_DUMMY == head._type )
       {
          goto done ;
       }
 
       {
+      // and then copy body
       dpsLogRecord::iterator itr( &(block.record()) ) ;
       if ( block.isRow())
       {
+         /// row data's size should always be one.
+         /// and dataheader should not be merged.
          BOOLEAN res = itr.next() ;
          SDB_ASSERT( res, "impossible" ) ;
          const _dpsRecordEle &dataMeta = itr.dataMeta() ;
@@ -961,6 +1050,8 @@ namespace engine
             mergeSize += dataMeta.len ;
          }
 
+         /// the len might be changed in preparePages().
+         /// we add a stop flag to record for loading.
          if (  mergeSize <= head._length -
                            sizeof(dpsRecordEle) -
                            sizeof(dpsLogRecordHeader))
@@ -976,6 +1067,8 @@ namespace engine
       return;
    }
 
+   // copy data into buffer, return workSub = current working node, and offset
+   // for the offset in the current working node
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR__MRGPAGE, "_dpsReplicaLogMgr::_mergePage" )
    void _dpsReplicaLogMgr::_mergePage( const CHAR *src,
                                        UINT32 len,
@@ -1010,12 +1103,14 @@ namespace engine
       return;
    }
 
+   // entry function to flush buffer to disk
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR_RUN, "_dpsReplicaLogMgr::run" )
    INT32 _dpsReplicaLogMgr::run( _pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR_RUN );
       _dpsLogPage *page = NULL;
+      // wait for queue for 1 second
       if ( _queue.timed_wait_and_pop( page, OSS_ONE_SEC  ) )
       {
          if ( cb )
@@ -1037,6 +1132,9 @@ namespace engine
       goto done ;
    }
 
+   // flush all is flushing all pages to disk except the current working one
+   // note this function SHOULD NOT BE CALLED ANYWHERE IN ENGINE
+   // this function is ONLY USED IN TESTCASE
    INT32 _dpsReplicaLogMgr::flushAll()
    {
       INT32 rc = SDB_OK ;
@@ -1050,6 +1148,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR__FLUSHALL );
       _dpsLogPage *page = NULL ;
+      // clean up queue
       while ( TRUE )
       {
          if ( !_queue.try_pop( page ) )
@@ -1075,6 +1174,10 @@ namespace engine
       goto done ;
    }
 
+   // this function is called during database shutdown
+   // this function flush all dirty pages AND the working copy to disk, so this
+   // function should ONLY be when database is shutdown. Otherwise please call
+   // flushAll()
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR_TEARDOWN, "_dpsReplicaLogMgr::tearDown" )
    INT32 _dpsReplicaLogMgr::tearDown()
    {
@@ -1092,6 +1195,7 @@ namespace engine
       {
          page = WORK_PAGE;
          _work = _incPageID ( _work ) ;
+         // fill the rest to '0'
          ossMemset( page->mb()->writePtr(), 0, page->getLastSize() ) ;
          _queSize.inc() ;
          rc = _flushPage( page, TRUE );
@@ -1116,6 +1220,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR__FLUSHPAGE );
       SDB_ASSERT ( page, "page can't be NULL" ) ;
       UINT32 length = 0 ;
+      // note in tearDown it may call _flushPage with non-full page
       page->lock();
       page->unlock();
       rc = _logger.flush( page->mb(), page->getBeginLSN(), shutdown );

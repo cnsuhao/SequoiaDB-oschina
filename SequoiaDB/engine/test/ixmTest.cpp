@@ -42,6 +42,7 @@ int main ( int argc, char **argv )
    CHAR inputBuffer[1024] ;
    ixmIndexCB *indexCB = NULL ;
 
+   // Jun dirty test
    ossValuePtr startOffset = DMS_PAGE_SIZE64K + DMS_SME_LEN ;
    CHAR * addPtr = (CHAR*)startOffset ;
    ossPrimitiveFileOp storageUint ;
@@ -69,6 +70,7 @@ int main ( int argc, char **argv )
    }
    storageUint.Close() ;
    return rc ;
+   // Jun dirty test
 
    printf("size=%d\n", (INT32)sizeof(ixmKeyNode));
    rc = myUnit.open("./", "./", "./", TRUE ) ;
@@ -98,6 +100,7 @@ int main ( int argc, char **argv )
       printf ( "Invalid BSON Key\n" ) ;
       return 0 ;
    }
+   // create index CB at page 1, for object 0 in myUnit
    indexCB = new ixmIndexCB ( 1, indexDef, 0, myUnit.index(), NULL ) ;
    if ( !indexCB )
    {
@@ -157,9 +160,12 @@ int main ( int argc, char **argv )
    }
    return 0 ;
    INT32 dummyRid = 0 ;
+   // insert 10000 index keys
    while ( dummyRid < 10000 )
    {
+      //printf("Please input query object: ");
       ossMemset ( inputBuffer, 0, sizeof(inputBuffer) ) ;
+      //gets(inputBuffer) ;
       sprintf(inputBuffer, "{c1:%d}", abs(rand()) % 100 ) ;
       inputBuffer[ossStrlen(inputBuffer)]=0 ;
       BSONObj inputObj ;
@@ -169,6 +175,7 @@ int main ( int argc, char **argv )
          printf ( "Invalid BSON Key\n" ) ;
          return 0 ;
       }
+      //printf("input: %s\n", inputObj.toString().c_str()) ;
       rc = indexCB->getKeysFromObject ( inputObj, keySet ) ;
       if ( rc )
       {
@@ -181,6 +188,7 @@ int main ( int argc, char **argv )
       Ordering ordering = Ordering::make(indexCB->keyPattern()) ;
       for ( it = keySet.begin() ; it != keySet.end(); it++ )
       {
+         //printf("\t%s\n", (*it).toString().c_str()) ;
          ixmIndexInsertRequestImpl *impl = new
                ixmIndexInsertRequestImpl(dmsRecordID(0,2*dummyRid), (*it),
                ordering, indexCB) ;
@@ -210,9 +218,12 @@ int main ( int argc, char **argv )
    }
 
 
+   // remove indexes test
+   // insert 10000 index keys
    while ( dummyRid >= 0 )
    {
       ossMemset ( inputBuffer, 0, sizeof(inputBuffer) ) ;
+      //gets(inputBuffer) ;
       strcpy ( inputBuffer, "{c1:10}") ;
       inputBuffer[ossStrlen(inputBuffer)]=0 ;
       BSONObj inputObj ;
@@ -222,6 +233,7 @@ int main ( int argc, char **argv )
          printf ( "Invalid BSON Object\n" ) ;
          continue ;
       }
+      //printf("input: %s\n", inputObj.toString().c_str()) ;
       rc = indexCB->getKeysFromObject ( inputObj, keySet ) ;
       if ( rc )
       {

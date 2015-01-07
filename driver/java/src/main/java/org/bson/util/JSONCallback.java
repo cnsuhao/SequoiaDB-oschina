@@ -1,3 +1,4 @@
+// JSONCallback.java
 
 /**
  *      Copyright (C) 2008 10gen Inc.
@@ -48,6 +49,7 @@ public class JSONCallback extends BasicBSONCallback {
 		Object o = super.objectDone();
 		BSONObject b = (BSONObject) o;
 
+		// override the object if it's a special type
 		if (!_lastArray) {
 			if (b.containsField("$oid")) {
 				o = new ObjectId((String) b.get("$oid"));
@@ -69,6 +71,7 @@ public class JSONCallback extends BasicBSONCallback {
 							new ParsePosition(0));
 
 					if (o == null) {
+						// try older format with no ms
 						format = new SimpleDateFormat(_secDateFormat);
 						format.setCalendar(new GregorianCalendar(new
 						    SimpleTimeZone(0, "GMT")));
@@ -77,6 +80,7 @@ public class JSONCallback extends BasicBSONCallback {
 					}
 
 					if (o == null) {
+                        // try older format with day
                         format = new SimpleDateFormat(_dayDateFormat);
                         format.setCalendar(new GregorianCalendar(
                                 new SimpleTimeZone(0, "GMT")));
@@ -100,6 +104,9 @@ public class JSONCallback extends BasicBSONCallback {
 							.lastIndexOf('.') + 1);
 
 					SimpleDateFormat format = new SimpleDateFormat(_secTSFormat);
+					// Convert to GMT
+					// format.setCalendar(new GregorianCalendar(new
+					// SimpleTimeZone(0, "GMT")));
 					Date date = null;
 					try {
 						date = format.parse(dateStr);

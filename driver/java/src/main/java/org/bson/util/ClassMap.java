@@ -1,3 +1,4 @@
+// ClassMap.java
 
 /**
  *      Copyright (C) 2008 10gen Inc.
@@ -48,6 +49,7 @@ public class ClassMap<T>  {
     }
 
     private final class ComputeFunction implements Function<Class<?>, T> {
+        //@Override
         public T apply(Class<?> a) {
             for (Class<?> cls : getAncestry(a)) {
                 T result = map.get(cls);

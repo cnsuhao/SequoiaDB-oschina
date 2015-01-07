@@ -121,6 +121,7 @@ INT32 _dpsFilterOption::handle( const po::options_description &desc,
       _cmdData.output = TRUE ;
    }
 
+   ///< we should deal with lsn filter first
    if( vm.count( DPS_LOG_FILTER_LSN ) && vm.count( DPS_LOG_FILTER_LAST ) )
    {
       printf( "--lsn cannot be used with --last!!\n" ) ;

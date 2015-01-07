@@ -44,6 +44,8 @@
 #include "../client/client.h"
 #include "../util/csv2rawbson.hpp"
 
+//#define MIG_MAX_READ_BUFFER (256*1024*1024)
+//#define MIG_INC_READ_BUFFER (4194304)
 
 enum IMPRTTYPE
 {

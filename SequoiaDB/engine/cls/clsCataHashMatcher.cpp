@@ -113,6 +113,9 @@ namespace engine
          {
             if ( _logicType != CLS_CATA_LOGIC_AND )
             {
+               // $or: upgrade to universe set.
+               // CLS_CATA_LOGIC_INVALID means it is the only element also
+               // upgrade to universe set.
                upgradeToUniverse();
             }
          }
@@ -129,6 +132,7 @@ namespace engine
 
       if ( CLS_CATA_LOGIC_OR == _logicType && _fieldSet.size() >= 1 )
       {
+         // _fieldSet can't be $or relations, must be $and relations
          clsCataHashPredTree *pChild = NULL ;
          pChild = SDB_OSS_NEW clsCataHashPredTree( _shardingKey ) ;
          PD_CHECK( pChild != NULL, SDB_OOM, error, PDERROR,
@@ -142,6 +146,7 @@ namespace engine
       iter = _fieldSet.find( pFieldName ) ;
       if ( iter != _fieldSet.end() )
       {
+         // ex: a = 1 and a = 2, is not impossible
          if ( 0 != beField.woCompare( iter->second, FALSE ) )
          {
             clear() ;
@@ -329,6 +334,7 @@ namespace engine
          buf << _logicType << ": " ;
       }
 
+      // predicate
       if ( _fieldSet.size() > 0 )
       {
          MAP_CLSCATAHASHPREDFIELDS::const_iterator cit = _fieldSet.begin() ;
@@ -350,6 +356,7 @@ namespace engine
          buf << "{ isNull: true }" ;
       }
 
+      // sub
       for ( UINT32 i = 0 ; i < _children.size() ; ++i )
       {
          buf << _children[ i ]->toString() ;
@@ -359,6 +366,7 @@ namespace engine
       return buf.str() ;
    }
 
+   // note: don't delete shardingkey before delete clsCataHashMatcher
    clsCataHashMatcher::clsCataHashMatcher( const BSONObj &shardingKey )
    :_predicateSet( shardingKey ),
    _shardingKey( shardingKey )
@@ -456,18 +464,24 @@ namespace engine
       {
          const CHAR *pFieldName = beField.fieldName() ;
 
+         // the regular expresion is regarded as universe set
          if ( beField.type() != Array )
          {
             if ( predicateSet.getLogicType() != CLS_CATA_LOGIC_AND )
             {
+               // $or: upgrade to universe set.
+               // CLS_CATA_LOGIC_INVALID means it is the only element also
+               // upgrade to universe set.
                predicateSet.upgradeToUniverse();
             }
+            // $and: ignore the element
             goto done ;
          }
 
          if ( 'a' == pFieldName[1] && 'n' == pFieldName[2] &&
               'd' == pFieldName[3] && 0 == pFieldName[4] )
          {
+            // parse "$and"
             if ( predicateSet.getLogicType() == CLS_CATA_LOGIC_OR )
             {
                pPredicateSet = SDB_OSS_NEW clsCataHashPredTree( _shardingKey ) ;
@@ -488,6 +502,7 @@ namespace engine
          else if ( 'o' == pFieldName[1] && 'r' == pFieldName[2] &&
                    0 == pFieldName[3] )
          {
+            // parse "$or"
             if ( predicateSet.getLogicType() == CLS_CATA_LOGIC_AND )
             {
                pPredicateSet = SDB_OSS_NEW clsCataHashPredTree( _shardingKey ) ;
@@ -509,8 +524,12 @@ namespace engine
          {
             if ( predicateSet.getLogicType() != CLS_CATA_LOGIC_AND )
             {
+               // $or: upgrade to universe set.
+               // CLS_CATA_LOGIC_INVALID means it is the only element also
+               // upgrade to universe set.
                predicateSet.upgradeToUniverse();
             }
+            // $and: ignore the element
             goto done ;
          }
 
@@ -531,6 +550,8 @@ namespace engine
             }
             if ( isNewChild )
             {
+               // after call addchild the predicateset
+               // will free by its father.
                predicateSet.addChild( pPredicateSet );
                isNewChild = FALSE ;
             }
@@ -568,6 +589,7 @@ namespace engine
          BSONElement beTmp = _shardingKey.getField( pFieldName ) ;
          if ( beTmp.eoo() )
          {
+            // ignore the field which is not sharding-key
             goto done ;
          }
          if ( beField.type() == Object )
@@ -581,6 +603,9 @@ namespace engine
             {
                if ( predicateSet.getLogicType() != CLS_CATA_LOGIC_AND )
                {
+                  // $or: upgrade to universe set.
+                  // CLS_CATA_LOGIC_INVALID means it is the only element also
+                  // upgrade to universe set.
                   predicateSet.upgradeToUniverse() ;
                }
                goto done;

@@ -59,6 +59,7 @@ namespace engine
       netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
       rtnCoordOperator *pRollbackOperator = NULL;
 
+      // fill default-reply(insert success)
       MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
       replyHeader.header.messageLength = sizeof( MsgOpReply );
       replyHeader.header.opCode        = MSG_BS_INSERT_RES;
@@ -500,11 +501,14 @@ namespace engine
 
             if ( SDB_CLS_NOT_PRIMARY == rcTmp )
             {
+               // the priority of return code:
+               // SDB_CLS_NOT_PRIMARY < SDB_CLS_COORD_NODE_CAT_VER_OLD < others
                rc = rc ? rc : rcTmp ;
 
                CoordGroupInfoPtr groupInfoTmp ;
                rcTmp = rtnCoordGetGroupInfo( cb, pReply->header.routeID.columns.groupID,
                                              TRUE, groupInfoTmp ) ;
+               // get the return code if update groupInfo failed
                if ( rcTmp )
                {
                   rc = rcTmp ;
@@ -547,10 +551,15 @@ namespace engine
 
       if ( groupObjsMap.size() == 0 )
       {
+         // it is the first time,
+         // parse the data from input-message(pReceiveBuffer)
          rc = shardDataByGroup( cataInfo, count, pInsertor, groupObjsMap ) ;
       }
       else
       {
+         // it is not the first time,
+         // now the catalog info has been update,
+         // re-shard the remain data by new catalog info
          rc = reshardData( cataInfo, groupObjsMap ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to shard the data by group(rc=%d)",
@@ -574,6 +583,10 @@ namespace engine
 
       if ( groupObjsMap.size() == 1 && !hasSendSomeData )
       {
+         // only one group should be send to,
+         // no data is sent successfully,
+         // then send the source-message to the group directly,
+         // this save memory copy
          GroupObjsMap::iterator iterMap = groupObjsMap.begin();
          rc = insertToAGroup( pReceiveBuffer, iterMap->first,
                               pRouteAgent, cb );
@@ -635,15 +648,22 @@ namespace engine
 
       if ( groupSubCLMap.size() == 0 )
       {
+         // it is the first time,
+         // parse the data from input-message(pReceiveBuffer)
          rc = shardDataByGroup( cataInfo, count, pInsertor, cb,
                                 groupSubCLMap ) ;
       }
       else
       {
+         // it is not the first time,
+         // now the catalog info has been update,
+         // some data maybe sent to the node,
+         // re-shard the remain data by new catalog info
          rc = reshardData( cataInfo, cb, groupSubCLMap );
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to shard the data(rc=%d)", rc ) ;
 
+      // build transaction session
       if ( cb->isTransaction() )
       {
          CoordGroupList groupLst;
@@ -667,6 +687,7 @@ namespace engine
                       rc ) ;
       }
 
+      // send the data to node
       rc = insertToGroups( groupMsgMap, (MsgOpInsert *)pReceiveBuffer,
                            pRouteAgent, cb, successGroupList ) ;
       if ( rc != SDB_OK )

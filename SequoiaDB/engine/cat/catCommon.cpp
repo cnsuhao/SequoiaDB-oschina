@@ -59,12 +59,14 @@ namespace engine
       }
       PD_TRACE2 ( SDB_CATGROUPNAMEVALIDATE, PD_PACK_STRING ( pName ),
                   PD_PACK_UINT ( isSys ) ) ;
+      // name is within valid length
       if ( ossStrlen ( pName ) > OSS_MAX_GROUPNAME_SIZE )
       {
          PD_LOG ( PDWARNING, "group name %s is too long",
                   pName ) ;
          goto error ;
       }
+      // group name should not start from SYS nor $ if it's not SYSTEM created
       if ( !isSys &&
            ( ossStrncmp ( pName, "SYS", ossStrlen ( "SYS" ) ) == 0 ||
              ossStrncmp ( pName, "$", ossStrlen ( "$" ) ) == 0 ) )
@@ -73,6 +75,7 @@ namespace engine
                   pName ) ;
          goto error ;
       }
+      // there shouldn't be any dot in the name
       if ( ossStrchr ( pName, '.' ) != NULL )
       {
          PD_LOG ( PDWARNING, "group name should not contain dot(.): %s",
@@ -102,6 +105,10 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATDOMAINOPTIONSEXTRACT ) ;
 
+      // we use std string here because
+      // 1) compare if a group name already exist, and we don't need to write
+      // comparitor
+      // 2) it's not performance sensitive code
       std::set <std::string> groupNameList ;
       INT32 expectedOptSize = 0 ;
       BSONElement beGroupList = options.getField ( CAT_GROUPS_NAME ) ;
@@ -112,12 +119,15 @@ namespace engine
          goto error ;
       }
 
+      // iterate each element for group, validate each group must be exist
       if ( beGroupList.type() == Array )
       {
          BSONArrayBuilder gpInfoBuilder ;
          BSONObjIterator it ( beGroupList.embeddedObject() ) ;
          while ( it.more() )
          {
+            // for each element in group, first we need to check if it's string,
+            // and we need to make sure it's in group list
             BSONObj groupInfo ;
             BSONObjBuilder oneGroup ;
             BSONElement gpID ;
@@ -176,6 +186,7 @@ namespace engine
          ++ expectedOptSize ;
       }
 
+      /// check option auto split
       {
       BSONElement autoSplit = options.getField( CAT_DOMAIN_AUTO_SPLIT ) ;
       if ( !autoSplit.eoo() && autoSplit.isBoolean() )
@@ -188,6 +199,7 @@ namespace engine
       }
       }
 
+      /// check option auto rebalance
       {
       BSONElement autoRebalance = options.getField( CAT_DOMAIN_AUTO_REBALANCE ) ;
       if ( !autoRebalance.eoo() && autoRebalance.isBoolean() )
@@ -276,15 +288,19 @@ namespace engine
       SINT32 replyBufferSize = 0 ;
 
       PD_TRACE_ENTRY ( SDB_CATQUERYANDGETMORE ) ;
+      // first initialize reply buffer, note the caller is responsible to free
+      // the memory
       rc = rtnReallocBuffer ( (CHAR**)ppReply, &replyBufferSize, replySize,
                               SDB_PAGE_SIZE ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to realloc buffer, rc = %d", rc ) ;
       ossMemset ( *ppReply, 0, replySize ) ;
 
+      // perform query
       rc = rtnQuery ( collectionName, selector, matcher, orderBy, hint, flags,
                       cb, numToSkip, numToReturn, dmsCB, rtnCB, contextID ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to perform query, rc = %d", rc ) ;
 
+      // extract all results
       while ( TRUE )
       {
          rtnContextBuf buffObj ;
@@ -301,16 +317,20 @@ namespace engine
             goto error ;
          }
 
+         // reply is always 4 bytes aligned like in context
          replySize = ossRoundUpToMultipleX ( replySize, 4 ) ;
          rc = rtnReallocBuffer ( (CHAR**)ppReply, &replyBufferSize,
                                  replySize + buffObj.size(), SDB_PAGE_SIZE ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to realloc buffer, rc = %d", rc ) ;
 
+         // copy the new records from context buffer to reply buffer
          ossMemcpy ( &((CHAR*)(*ppReply))[replySize], buffObj.data(),
                      buffObj.size() ) ;
          (*ppReply)->numReturned += buffObj.recordNum() ;
+         // update the current offset of reply
          replySize               += buffObj.size() ;
       }
+      // finally update reply header
       (*ppReply)->header.messageLength = replySize ;
       (*ppReply)->flags                = SDB_OK ;
       (*ppReply)->contextID            = -1 ;
@@ -349,11 +369,13 @@ namespace engine
       rtnContextBuf buffObj ;
 
       PD_TRACE_ENTRY ( SDB_CATGETONEOBJ ) ;
+      // query
       rc = rtnQuery( collectionName, selector, matcher, dummyObj, hint,
                      0, cb, 0, 1, dmsCB, rtnCB, contextID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to query from %s, rc: %d",
                    collectionName, rc ) ;
 
+      // get more
       rc = rtnGetMore( contextID, 1, buffObj, cb, rtnCB ) ;
       if ( rc )
       {
@@ -364,6 +386,7 @@ namespace engine
          goto error ;
       }
 
+      // copy obj
       try
       {
          BSONObj resultObj( buffObj.data() ) ;
@@ -1165,11 +1188,13 @@ namespace engine
 
       rtnContextBuf buffObj ;
 
+      // query
       rc = rtnQuery( CAT_TASK_INFO_COLLECTION, dummyObj, dummyObj, orderby,
                      dummyObj, 0, cb, 0, 1, dmsCB, rtnCB, contextID ) ;
       PD_RC_CHECK( rc, PDWARNING, "Failed to query from %s, rc: %d",
                    CAT_TASK_INFO_COLLECTION, rc ) ;
 
+      // get more
       rc = rtnGetMore( contextID, 1, buffObj, cb, rtnCB ) ;
       if ( rc )
       {
@@ -1180,6 +1205,7 @@ namespace engine
          goto error ;
       }
 
+      // copy obj
       try
       {
          BSONObj resultObj( buffObj.data() ) ;
@@ -1342,6 +1368,7 @@ namespace engine
 
       rc = catGetOneObj( CAT_HISTORY_COLLECTION, dummy, mather,
                          dummy, cb, result ) ;
+      // not exist
       if ( SDB_DMS_EOC == rc )
       {
 #if defined ( _DEBUG )
@@ -1367,6 +1394,7 @@ namespace engine
          {
             goto done ;
          }
+         // update
          else
          {
 #if defined ( _DEBUG )
@@ -1437,6 +1465,7 @@ namespace engine
       {
          BSONObj matcher = BSON( CAT_COLLECTION_NAME << clFullName ) ;
 
+         // 1) Remove all collection task
          rc = catRemoveTask( matcher, cb, w ) ;
          if ( rc && SDB_CAT_TASK_NOTFOUND != rc )
          {
@@ -1444,6 +1473,7 @@ namespace engine
          }
          rc = SDB_OK ;
 
+         // 2) Remove the collection info
          rc = catRemoveCL( clFullName, cb, dmsCB, dpsCB, w ) ;
          if ( rc )
          {
@@ -1452,30 +1482,32 @@ namespace engine
 
          catSaveBucketVersion( clFullName, cataInfo.getVersion(), cb, w ) ;
 
+         // 3) Pull collection from collection space info
          rc = catDelCLFromCS( szCSName, szCLName, cb, dmsCB, dpsCB, w ) ;
          if ( rc )
          {
             goto error ;
          }
 
+         // 4) Update maincl catalog-info( if it is sub-collection )
          if ( !cataInfo.getMainCLName().empty() )
          {
             BOOLEAN isMainExist = FALSE;
             BSONObj mainCLObj;
             clsCatalogSet mainCataInfo( cataInfo.getMainCLName().c_str() );
             rc = catCheckCollectionExist( cataInfo.getMainCLName().c_str(),
-                                       isMainExist, mainCLObj, cb );
+                                          isMainExist, mainCLObj, cb );
             PD_RC_CHECK( rc, PDERROR,
-                        "failed to get main-collection info(rc=%d)",
-                        rc );
+                         "Failed to get main-collection info(rc=%d)",
+                         rc );
             if (!isMainExist )
             {
                goto done;
             }
             rc = mainCataInfo.updateCatSet( mainCLObj );
             PD_RC_CHECK( rc, PDERROR,
-                        "failed to parse catalog-info of main-collection(%s)",
-                        cataInfo.getMainCLName().c_str() );
+                         "Failed to parse catalog-info of main-collection(%s)",
+                         cataInfo.getMainCLName().c_str() );
             if ( !mainCataInfo.isMainCL() )
             {
                PD_LOG( PDWARNING, "main-collection have been changed" );
@@ -1484,30 +1516,31 @@ namespace engine
 
             rc = mainCataInfo.delSubCL( clFullName );
             PD_RC_CHECK( rc, PDERROR,
-                        "failed to delete the sub-collection(rc=%d)",
-                        rc );
+                         "Failed to delete the sub-collection(rc=%d)",
+                         rc );
             {
             BSONObj newMainCLObj = mainCataInfo.toCataInfoBson();
             rc = catUpdateCatalog( cataInfo.getMainCLName().c_str(),
-                                 newMainCLObj, cb, w );
+                                   newMainCLObj, cb, w );
             PD_RC_CHECK( rc, PDERROR,
-                        "failed to update the catalog of main-collection(%s)",
-                        cataInfo.getMainCLName().c_str() );
+                         "Failed to update the catalog of main-collection(%s)",
+                         cataInfo.getMainCLName().c_str() );
             }
          }
+         // 5) delete sub-collection( if it is main-collection )
          else if ( cataInfo.isMainCL() )
          {
             std::vector< std::string > subCLLst;
             std::vector< std::string >::iterator iterLst;
             rc = cataInfo.getSubCLList( subCLLst );
             PD_RC_CHECK( rc, PDERROR,
-                        "failed to get sub-collection list(rc=%d)" );
+                         "Failed to get sub-collection list(rc=%d)" );
             iterLst = subCLLst.begin();
             while( iterLst != subCLLst.end() )
             {
                std::vector<UINT32>  groupList;
                rc = catUnlinkCL( clFullName, iterLst->c_str(), cb,
-                                 dmsCB, dpsCB, w, groupList );
+                                 dmsCB, dpsCB, w, groupList ) ;
                if ( SDB_DMS_NOTEXIST == rc )
                {
                   rc = SDB_OK;
@@ -1515,19 +1548,19 @@ namespace engine
                   continue;
                }
                PD_RC_CHECK( rc, PDERROR,
-                           "failed to unlink the sub-collection(%s) "
-                           "from main-collection(%s)(rc=%d)",
-                           clFullName, iterLst->c_str(), rc );
+                            "Failed to unlink the sub-collection(%s) "
+                            "from main-collection(%s)(rc=%d)",
+                            clFullName, iterLst->c_str(), rc );
                if ( delSubCL )
                {
-                  rc = catRemoveCLEx( iterLst->c_str(), cb, dmsCB, dpsCB, w );
+                  rc = catRemoveCLEx( iterLst->c_str(), cb, dmsCB, dpsCB, w ) ;
                   PD_CHECK( SDB_OK == rc || SDB_DMS_NOTEXIST == rc, rc, error,
-                           PDERROR,
-                           "failed to remove the sub-collection(%s)(rc=%d)",
-                           iterLst->c_str(), rc );
-                  rc = SDB_OK;
+                            PDERROR,
+                            "Failed to remove the sub-collection(%s)(rc=%d)",
+                            iterLst->c_str(), rc ) ;
+                  rc = SDB_OK ;
                }
-               ++iterLst;
+               ++iterLst ;
             }
          }
       }
@@ -1564,6 +1597,7 @@ namespace engine
          BSONObj matcher = BSON( CAT_COLLECTION_SPACE_NAME << csName ) ;
          BSONObj dummy ;
 
+         // 1) remove all collection for each
          BSONElement ele = boSpace.getField( CAT_COLLECTION ) ;
          if ( Array == ele.type() )
          {
@@ -1601,6 +1635,7 @@ namespace engine
             goto error ;
          }
 
+         // 2) remove collection space item
          rc = rtnDelete( CAT_COLLECTION_SPACE_COLLECTION, matcher, dummy,
                          0, cb, dmsCB, dpsCB, w ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to delete collection space[%s] item"
@@ -1714,6 +1749,7 @@ namespace engine
 
       try
       {
+         // check sub-collection
          rc = catCheckCollectionExist( subCLName, isSubExist, subCLObj, cb );
          PD_RC_CHECK(rc, PDERROR,
                      "failed to get sub-collection info(rc=%d)",
@@ -1740,12 +1776,14 @@ namespace engine
          }
 
          {
+         // sub-collection could not be a main-collection
          BSONElement beIsMainCL = subCLObj.getField( CAT_IS_MAINCL );
          PD_CHECK( !beIsMainCL.booleanSafe(), SDB_INVALID_SUB_CL, error, PDERROR,
                   "sub-collection could not be a main-collection!" );
          }
 
          {
+         // get sub-collection group-list
          BSONElement beCataInfo = subCLObj.getField( CAT_CATALOGINFO_NAME );
          BSONObj boCataInfo;
          PD_CHECK( beCataInfo.type() == Array, SDB_INVALIDARG, error, PDERROR,
@@ -1768,6 +1806,7 @@ namespace engine
                   "the collection(%s) has no group-info!", subCLName );
          }
 
+         // check main-collection
          rc = catCheckCollectionExist( mainCLName, isMainExist, mainCLObj, cb );
          PD_RC_CHECK( rc, PDERROR,
                      "failed to get partitioned-collection info(rc=%d)",
@@ -1788,6 +1827,7 @@ namespace engine
                      "failed to add sub-collection(rc=%d)",
                      rc );
 
+         // update sub-collection catalog info
          if ( !hasUpdateSubCL )
          {
             BSONObjBuilder subClBuilder;
@@ -1801,6 +1841,7 @@ namespace engine
             hasUpdateSubCL = TRUE;
          }
 
+         // update main-collection catalog info
          {
          BSONObj newMainCLObj = cataInfo.toCataInfoBson();
          rc = catUpdateCatalog( mainCLName, newMainCLObj, cb, w );
@@ -1838,49 +1879,52 @@ namespace engine
       clsCatalogSet cataInfo( mainCLName );
       try
       {
+         // check sub-collection
          rc = catCheckCollectionExist( subCLName, isSubExist, subCLObj, cb );
-         PD_RC_CHECK(rc, PDERROR,
-                     "failed to get sub-collection info(rc=%d)",
-                     rc );
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get sub-collection info(rc=%d)",
+                      rc );
          PD_CHECK( isSubExist, SDB_DMS_NOTEXIST, error, PDERROR,
-                  "sub-collection is not exist!" );
+                   "Sub-collection is not exist!" );
          {
          BSONElement beMainCLName = subCLObj.getField( CAT_MAINCL_NAME );
          if ( beMainCLName.type() == String )
          {
             std::string strMainCLName = beMainCLName.str();
             PD_CHECK( 0 == ossStrcmp( strMainCLName.c_str(), mainCLName ),
-                     SDB_INVALIDARG, error, PDERROR,
-                     "failed to unlink sub-collection(%s), "
-                     "the original main-collection is %s not %s",
-                     subCLName, strMainCLName.c_str(), mainCLName );
+                      SDB_INVALIDARG, error, PDERROR,
+                      "Failed to unlink sub-collection(%s), "
+                      "the original main-collection is %s not %s",
+                      subCLName, strMainCLName.c_str(), mainCLName );
             needUpdateSubCL = TRUE;
          }
          }
 
          {
+         // get sub-collection group-list
          BSONElement beCataInfo = subCLObj.getField( CAT_CATALOGINFO_NAME );
          BSONObj boCataInfo;
          PD_CHECK( beCataInfo.type() == Array, SDB_INVALIDARG, error, PDERROR,
-                  "invalid sub-collecton, failed to get the field(%s)",
-                  CAT_CATALOGINFO_NAME );
+                   "Invalid sub-collecton, failed to get the field(%s)",
+                   CAT_CATALOGINFO_NAME );
          boCataInfo = beCataInfo.embeddedObject();
          BSONObjIterator iterArr( boCataInfo );
          while ( iterArr.more() )
          {
             BSONElement beTmp = iterArr.next();
             PD_CHECK( beTmp.type() == Object, SDB_INVALIDARG, error, PDERROR,
-                     "invalid catalog info(%s)", subCLName );
+                      "Invalid catalog info(%s)", subCLName );
             BSONObj boTmp = beTmp.embeddedObject();
             BSONElement beGroupId = boTmp.getField( CAT_GROUPID_NAME );
             PD_CHECK( beGroupId.isNumber(), SDB_INVALIDARG, error, PDERROR,
-                     "failed to get the field(%s)", CAT_GROUPID_NAME );
+                      "Failed to get the field(%s)", CAT_GROUPID_NAME );
             groupList.push_back( beGroupId.numberInt() );
          }
          PD_CHECK( groupList.size() != 0, SDB_SYS, error, PDERROR,
-                  "the collection(%s) has no group-info!", subCLName );
+                   "The collection(%s) has no group-info!", subCLName );
          }
 
+         // check main-collection
          rc = catCheckCollectionExist( mainCLName, isMainExist, mainCLObj, cb );
          PD_RC_CHECK( rc, PDERROR,
                      "failed to get main-collection info(rc=%d)",
@@ -1889,37 +1933,33 @@ namespace engine
          {
             rc = cataInfo.updateCatSet( mainCLObj );
             PD_RC_CHECK( rc, PDERROR,
-                        "failed to parse catalog-info of main-collection(%s)",
-                        mainCLName );
+                         "Failed to parse catalog-info of main-collection(%s)",
+                         mainCLName );
             PD_CHECK( cataInfo.isMainCL(), SDB_INVALID_MAIN_CL, error, PDERROR,
-                     "source collection must be main-collection!" );
+                      "Source collection must be main-collection!" );
 
             rc = cataInfo.delSubCL( subCLName );
             PD_RC_CHECK( rc, PDERROR,
-                        "failed to delete the sub-collection(rc=%d)",
-                        rc );
+                         "Failed to delete the sub-collection(rc=%d)",
+                         rc );
          }
 
+         // update sub-collection catalog info
          if ( needUpdateSubCL )
          {
-            BSONObjBuilder subClBuilder;
-            subClBuilder.appendElements( subCLObj );
-            subClBuilder.append( CAT_MAINCL_NAME, mainCLName );
-            BSONObj newSubCLObj = subClBuilder.done();
-            rc = catUpdateCatalog( subCLName, newSubCLObj, cb, w );
-
-            BSONObj emptyObj;
+            BSONObj emptyObj ;
             BSONObj match = BSON( CAT_CATALOGNAME_NAME << subCLName );
             BSONObj updator = BSON( "$inc" << BSON( CAT_VERSION_NAME << 1 ) <<
                                     "$unset" << BSON( CAT_MAINCL_NAME << "" ) );
             rc = rtnUpdate( CAT_COLLECTION_INFO_COLLECTION, match, updator,
-                           emptyObj, 0, cb, dmsCB, dpsCB, w );
+                            emptyObj, 0, cb, dmsCB, dpsCB, w );
             PD_RC_CHECK( rc, PDERROR,
-                        "failed to update the catalog of sub-collection(%s)",
-                        subCLName );
-            needUpdateSubCL = FALSE;
+                         "Failed to update the catalog of sub-collection(%s)",
+                         subCLName ) ;
+            needUpdateSubCL = FALSE ;
          }
 
+         // update main-collection catalog info
          if ( isMainExist )
          {
             BSONObj newMainCLObj = cataInfo.toCataInfoBson();
@@ -1991,6 +2031,7 @@ namespace engine
                             "collection[%s], rc: %d", ele.valuestr(),
                             pCLFullName, rc ) ;
             }
+            // create index
             rc = rtnCreateIndexCommand( pCLFullName, indexDef, cb, dmsCB,
                                         dpsCB, sys ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to create index[%s] for "

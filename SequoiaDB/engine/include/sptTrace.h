@@ -29,6 +29,7 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef sptTRACE_H__
 #define sptTRACE_H__
+// Component: spt
 #define SDB_OBJ2BSON                                       0x80000000000000L
 #define SDB_BSON_DESTRUCTOR                                0x80000000000001L
 #define SDB_BSON_CONSTRUCTOR                               0x80000000000002L
