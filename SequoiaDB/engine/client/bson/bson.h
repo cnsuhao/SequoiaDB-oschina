@@ -59,31 +59,12 @@
 #define SDB_EXTERN_C_END
 #endif
 
-//#if defined(SDB_HAVE_STDINT) || __STDC_VERSION__ >= 199901L
 #include <stdint.h>
-//#elif defined(SDB_HAVE_UNISTD)
-//#include <unistd.h>
-//#elif defined(SDB_USE__INT64)
-//typedef __int64 int64_t;
-//typedef unsigned __int64 uint64_t;
-//#elif defined(SDB_USE_LONG_LONG_INT)
-//typedef long long int int64_t;
-//typedef unsigned long long int uint64_t;
-//#else
-//#error Must compile with c99 or define SDB_HAVE_STDINT, SDB_HAVE_UNISTD, SDB_USE__INT64, or SDB_USE_LONG_LONG_INT.
-//#endif
 
-//#ifdef SDB_BIG_ENDIAN
-//#define bson_little_endian64(out, in) ( bson_swap_endian64(out, in) )
-//#define bson_little_endian32(out, in) ( bson_swap_endian32(out, in) )
-//#define bson_big_endian64(out, in) ( memcpy(out, in, 8) )
-//#define bson_big_endian32(out, in) ( memcpy(out, in, 4) )
-//#else
 #define bson_little_endian64(out, in) ( memcpy(out, in, 8) )
 #define bson_little_endian32(out, in) ( memcpy(out, in, 4) )
 #define bson_big_endian64(out, in) ( bson_swap_endian64(out, in) )
 #define bson_big_endian32(out, in) ( bson_swap_endian32(out, in) )
-//#endif
 
 SDB_EXTERN_C_START
 
@@ -260,7 +241,6 @@ SDB_EXPORT const char *bson_data( const bson *b );
  * @param bson the raw data to print.
  * @param depth the depth to recurse the object.x
  */
-//SDB_EXPORT void bson_print_raw( const char *bson , int depth );
 
 /**
  * Print a string representation of a BSON object to buffer.

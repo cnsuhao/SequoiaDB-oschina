@@ -45,13 +45,11 @@ class ClassAncestry {
 	private static <T> void computeAncestry(Class<T> c, List<Class<?>> result) {
 		if ((c == null) || (c == Object.class)) { return; }
 
-		// first interfaces (looks backwards but is not)
 		Class<?>[] interfaces = c.getInterfaces();
 		for (int i = interfaces.length - 1; i >= 0; i--) {
 			computeAncestry(interfaces[i], result);
 		}
 
-		// next superclass
 		computeAncestry(c.getSuperclass(), result);
 
 		if (!result.contains(c)) result.add(c);

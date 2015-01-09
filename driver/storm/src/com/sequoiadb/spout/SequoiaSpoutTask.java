@@ -32,7 +32,6 @@ public class SequoiaSpoutTask implements Callable<Boolean>, Serializable,
 	private BSONObject query;
 	private BSONObject selector;
 
-	// Keeps the running state
 	private AtomicBoolean running = new AtomicBoolean(true);
 
 	/**
@@ -90,7 +89,6 @@ public class SequoiaSpoutTask implements Callable<Boolean>, Serializable,
 			space = sdb.getCollectionSpace(dbName);
 		} catch (BaseException e) {
 			LOG.error("SequoiaDB Exception:", e);
-			// Die fast
 			throw new RuntimeException(e);
 		}
 	}
@@ -116,9 +114,7 @@ public class SequoiaSpoutTask implements Callable<Boolean>, Serializable,
 	public Boolean call() throws Exception {
 		try {
 			String collectionName = this.collectionNames[0];
-			// Set up the collection
 			this.collection = space.getCollection(collectionName);
-			// provide the query object
 			cursor = this.collection.query(query, selector, null, null);
 
 			while (running.get()) {
@@ -131,11 +127,6 @@ public class SequoiaSpoutTask implements Callable<Boolean>, Serializable,
 
 					queue.put(obj);
 				} else {
-					// Sleep for 50ms and then wake up
-					// For get new insert records.
-					// TODO: sequoiadb cursor cann't get the new insert
-					// record after
-					// cursor reach eof.
 					Thread.sleep(50);
 				}
 			}

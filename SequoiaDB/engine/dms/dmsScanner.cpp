@@ -180,7 +180,6 @@ namespace engine
          goto error ;
       }
 
-      // send pre-load request
       if ( bPreLoadEnabled && DMS_INVALID_EXTENT != _extent->_nextExtent )
       {
          pBPSCB->sendPreLoadRequest ( bpsPreLoadReq( _pSu->CSID(),
@@ -190,7 +189,6 @@ namespace engine
 
       _cb   = cb ;
       _next = _extent->_firstRecordOffset ;
-      // unset first run
       _firstRun = FALSE ;
 
    done:
@@ -212,14 +210,12 @@ namespace engine
          rc = _firstInit( cb ) ;
          PD_RC_CHECK( rc, PDWARNING, "first init failed, rc: %d", rc ) ;
       }
-      // have locked, but not trans, need to release record X lock
       else if ( _needUnLock && DMS_INVALID_OFFSET != _curRID._offset )
       {
          _pTransCB->transLockRelease( cb, _pSu->logicalID(), _context->mbID(),
                                       &_curRID ) ;
       }
 
-      // skip extent all
       if ( !_match && _skipNum > 0 && _skipNum >= _extent->_recCount )
       {
          _skipNum -= _extent->_recCount ;
@@ -241,14 +237,11 @@ namespace engine
                PD_CHECK( SDB_DPS_TRANS_APPEND_TO_WAIT == rc, rc, error, PDERROR,
                          "Failed to get record, append lock-wait-queue failed, "
                          "rc: %d", rc ) ;
-               // now haved append to lock-wait-queue, release latch and then
-               // wait the lock
                _context->pause() ;
                rc = _pTransCB->waitLock( cb, _pSu->logicalID(),
                                          _context->mbID(), &_curRID ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to wait record lock, rc: %d",
                             rc ) ;
-               // got the record-X-Lock, re-get the latch
                rc = _context->resume() ;
                if ( rc )
                {
@@ -306,7 +299,6 @@ namespace engine
             DMS_MON_OP_COUNT_INC( _pMonAppCB, MON_DATA_READ, 1 ) ;
             DMS_MON_OP_COUNT_INC( _pMonAppCB, MON_READ, 1 ) ;
 
-            // math
             if ( _match )
             {
                result = TRUE ;
@@ -579,7 +571,6 @@ namespace engine
          _includeEndKey = TRUE ;
       }
 
-      // reset start/end RID
       if ( _getStartRID()->isNull() )
       {
          if ( 1 == _scanner->getDirection() )
@@ -657,7 +648,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to resum ixscan, rc: %d", rc ) ;
 
       _cb   = cb ;
-      // unset first run
       _firstRun = FALSE ;
       _onceRestNum = (INT64)pmdGetKRCB()->getOptionCB()->indexScanStep() ;
 
@@ -700,7 +690,6 @@ namespace engine
          rc = _firstInit( cb ) ;
          PD_RC_CHECK( rc, PDWARNING, "first init failed, rc: %d", rc ) ;
       }
-      // have locked, but not trans, need to release record X lock
       else if ( _needUnLock && DMS_INVALID_OFFSET != _curRID._offset )
       {
          _pTransCB->transLockRelease( cb, _pSu->logicalID(), _context->mbID(),
@@ -723,7 +712,6 @@ namespace engine
          }
          SDB_ASSERT( _curRID.isValid(), "rid msut valid" ) ;
 
-         // index block scan
          if ( _indexBlockScan )
          {
             INT32 result = 0 ;
@@ -739,7 +727,6 @@ namespace engine
                }
                if ( result < 0 )
                {
-                  // need to relocate
                   rc = _scanner->relocateRID( *_getStartKey(),
                                               *_getStartRID() ) ;
                   PD_RC_CHECK( rc, PDERROR, "Failed to relocateRID, rc: %d",
@@ -762,7 +749,6 @@ namespace engine
             }
          }
 
-         // don't read data
          if ( !_match && _skipNum > 0 )
          {
             --_skipNum ;
@@ -781,8 +767,6 @@ namespace engine
                PD_CHECK( SDB_DPS_TRANS_APPEND_TO_WAIT == rc, rc, error, PDERROR,
                          "Failed to get record, append lock-wait-queue failed, "
                          "rc: %d", rc ) ;
-               // now haved append to lock-wait-queue, release latch and then
-               // wait the lock
                rc = _scanner->pauseScan( _recordXLock ? FALSE : TRUE ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to pause scan, rc: %d", rc ) ;
 
@@ -791,7 +775,6 @@ namespace engine
                                          _context->mbID(), &_curRID ) ;
                PD_RC_CHECK( rc, PDERROR, "Failed to wait record lock, rc: %d",
                             rc ) ;
-               // got the record-X-Lock, re-get the latch
                rc = _context->resume() ;
                if ( rc )
                {
@@ -814,7 +797,6 @@ namespace engine
                }
             }
          }
-         // Note: index scan can't find deleting record
          /*
          if ( OSS_BIT_TEST( DMS_RECORD_FLAG_DELETING,
                             DMS_RECORD_GETATTR(_curRecordPtr) ) )
@@ -849,7 +831,6 @@ namespace engine
          DMS_MON_OP_COUNT_INC( _pMonAppCB, MON_DATA_READ, 1 ) ;
          DMS_MON_OP_COUNT_INC( _pMonAppCB, MON_READ, 1 ) ;
 
-         // math
          if ( _match )
          {
             result = TRUE ;

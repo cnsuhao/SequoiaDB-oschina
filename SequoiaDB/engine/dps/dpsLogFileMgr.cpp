@@ -64,7 +64,6 @@ namespace engine
 
    #define UPDATE_SUB( a ) { a = ++a % _files.size();}
 
-   // constructor
    _dpsLogFileMgr::_dpsLogFileMgr( class _dpsReplicaLogMgr *replMgr ):_work(0),
    _logicalWork(0)
    {
@@ -76,7 +75,6 @@ namespace engine
       _begin = 0 ;
    }
 
-   // destructor
    _dpsLogFileMgr::~_dpsLogFileMgr()
    {
       LOG_LOOP_BEGIN ( _files.size() )
@@ -88,7 +86,6 @@ namespace engine
       _files.clear();
    }
 
-   // initialize log file manager
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGFILEMGR_INIT, "_dpsLogFileMgr::init" )
    INT32 _dpsLogFileMgr::init( const CHAR *path )
    {
@@ -96,12 +93,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DPSLGFILEMGR_INIT );
       SDB_ASSERT( path, "path can not be NULL!") ;
       CHAR LOG_BUILDER[OSS_MAX_PATHSIZE+1] = {0} ;
-      // temp buffer stores log file sequence up to 0xFFFFFFFF, which is
-      // 4294967295 ( 10 bytes )
       CHAR tmp[11] = {0} ;
       ossMemset ( tmp, 0, sizeof(tmp) ) ;
-      // make sure path + OSS_FILE_SEP + DPS_LOG_FILE_PREFIX + xxx + 0
-      // is less or equal to OSS_MAX_PATHSIZE
       if ( ossStrlen ( path ) + ossStrlen ( DPS_LOG_FILE_PREFIX ) +
            sizeof(tmp) + 2 > OSS_MAX_PATHSIZE )
       {
@@ -110,7 +103,6 @@ namespace engine
          goto error ;
       }
       LOG_LOOP_BEGIN( _logFileNum )
-         // memory is free in destructor, or by end of error in this function
          _dpsLogFile *file = SDB_OSS_NEW _dpsLogFile();
          if ( NULL == file )
          {
@@ -118,7 +110,6 @@ namespace engine
             PD_LOG ( PDERROR, "Memory can't be allocated for dpsLogFile");
             goto error;
          }
-         // push log file to vector array
          _files.push_back( file );
          ossMemset( LOG_BUILDER, 0, sizeof(LOG_BUILDER) );
          ossMemcpy( LOG_BUILDER, path, ossStrlen( path ) );
@@ -127,9 +118,6 @@ namespace engine
                      ossStrlen( DPS_LOG_FILE_PREFIX ) );
          ossSnprintf ( tmp, sizeof(tmp), "%d", i );
          ossStrncat( LOG_BUILDER, tmp, ossStrlen( tmp ));
-         // initialize log file for each newly created one
-         // we set readonly to FALSE, so that each log file is opened with
-         // WRITEONLY option
          rc = file->init( LOG_BUILDER, _logFileSz, _logFileNum );
          if ( rc )
          {
@@ -144,7 +132,6 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__DPSLGFILEMGR_INIT, rc );
       return rc;
    error:
-      // free memory if error occurs
       LOG_LOOP_BEGIN ( _files.size() )
          SDB_OSS_DEL LOG_LOOP_FILE ;
       LOG_LOOP_END
@@ -160,7 +147,6 @@ namespace engine
       UINT32 i = 0 ;
       UINT32 beginLogID = DPS_INVALID_LOG_FILE_ID ;
 
-      //find begin
       while ( i < _files.size() )
       {
          file = _files [i] ;
@@ -186,7 +172,6 @@ namespace engine
          ++i ;
       }
 
-      //find work
       UINT32 tmpWork = _begin ;
       i = 0 ;
       while ( _files[tmpWork]->getIdleSize() == 0 && i < _files.size() )
@@ -203,7 +188,6 @@ namespace engine
          ++i ;
       }
 
-      //reset other
       while ( i < _files.size () )
       {
          if ( _files[tmpWork]->header()._logID != DPS_INVALID_LOG_FILE_ID )
@@ -216,7 +200,6 @@ namespace engine
          ++i ;
       }
 
-      //find logical work
       if ( _files[_work]->header()._logID != DPS_INVALID_LOG_FILE_ID )
       {
          _logicalWork = _files[_work]->header()._logID ;
@@ -228,26 +211,15 @@ namespace engine
       PD_TRACE_EXIT ( SB__DPSLGFILEMGR__ANLYS ) ;
    }
 
-   // get the first LSN in log file manager
    DPS_LSN _dpsLogFileMgr::getStartLSN ( BOOLEAN mustExist )
    {
-      // if the next file got first LSN, that means we have looped at least 1
-      // round, so the earliest LSN will be the next one
       DPS_LSN lsn =  LOG_FILE ( _work + 1 )->getFirstLSN ( mustExist ) ;
       if ( !lsn.invalid() )
          return lsn ;
-      // otherwise if the LSN for next file is invalid, that means we haven't
-      // write into that file yet, so the earliest LSN will be in file 0
       else
          return LOG_FILE ( _begin )->getFirstLSN ( mustExist ) ;
    }
 
-   // write a log buffer into file
-   // Note this function will change file pointer so the mb should always be
-   // full ( length() = DPS_DEFAULT_PAGE_SIZE ), except during database shutdown
-   // period. Otherwise it will cause serious log corruption
-   // Again, NEVER flush a partial fulled page into file unless it's during
-   // database shutdown
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGFILEMGR_FLUSH, "_dpsLogFileMgr::flush" )
    INT32 _dpsLogFileMgr::flush( _dpsMessageBlock *mb,
                                 const DPS_LSN &beginLsn,
@@ -256,21 +228,15 @@ namespace engine
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB__DPSLGFILEMGR_FLUSH );
 
-      // first we get the number of bytes need to write into log file
-      // by our design, the mb->length() should always be same as
-      // DPS_DEFAULT_PAGE_SIZE, except during tearDown phase
       SDB_ASSERT ( shutdown || mb->length() == DPS_DEFAULT_PAGE_SIZE,
                    "mb length must be DPS_DEFAULT_PAGE_SIZE unless it's "
                    "shutdown" ) ;
-      // since we always write every dps page, so we shouldn't write out of
-      // bound, so we will hit idleSize = 0 when log file is filled up
       if ( WORK_FILE->getIdleSize() == 0 )
       {
          _work = _incFileID ( _work ) ;
          _incLogicalFileID () ;
       }
 
-      // empty file or full file(roll over)
       if ( WORK_FILE->getIdleSize() == 0 ||
            ( WORK_FILE->getIdleSize() == WORK_FILE->size() &&
              WORK_FILE->header()._logID == DPS_INVALID_LOG_FILE_ID ) )
@@ -278,7 +244,6 @@ namespace engine
          WORK_FILE->reset( _logicalWork, beginLsn.offset, beginLsn.version ) ;
       }
 
-      // write into log file for page size
       rc = WORK_FILE->write ( mb->startPtr(), DPS_DEFAULT_PAGE_SIZE ) ;
       if ( rc )
       {
@@ -293,7 +258,6 @@ namespace engine
       goto done;
    }
 
-   // retrieve lsn, find the log record and fill up mb
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGFILEMGR_LOAD, "_dpsLogFileMgr::load" )
    INT32 _dpsLogFileMgr::load( const DPS_LSN &lsn, _dpsMessageBlock *mb,
                                BOOLEAN onlyHeader )
@@ -304,7 +268,6 @@ namespace engine
       UINT32 sub    = ( UINT32 )( lsn.offset / _logFileSz  % _files.size() ) ;
       dpsLogRecordHeader head ;
       UINT32 len = 0 ;
-      // read log head
       rc = LOG_FILE( sub )->read( lsn.offset, sizeof(dpsLogRecordHeader),
                                   (CHAR*)&head ) ;
       if ( rc )
@@ -312,17 +275,14 @@ namespace engine
          PD_LOG ( PDERROR, "Failed to read log file %d, rc = %d", sub, rc ) ;
          goto error ;
       }
-      // get the lsn
       if ( lsn.offset != head._lsn )
       {
-          /// to do , head version is not correct now.
          PD_LOG ( PDERROR, "Invalid LSN is read from log file, expect %lld, %d,"
                   "actual %lld, %d", lsn.offset, lsn.version, head._lsn,
                   head._version ) ;
          rc = SDB_DPS_LOG_NOT_IN_FILE ;
          goto error ;
       }
-      // sanity check, make sure lsn size must be greater than header size
       if ( head._length < sizeof(dpsLogRecordHeader) )
       {
          PD_LOG ( PDERROR, "LSN length[%u] is smaller than dps log head",
@@ -340,7 +300,6 @@ namespace engine
          len = head._length ;
       }
 
-      // make sure we have enough space
       if ( mb->idleSize() < len )
       {
          rc = mb->extend ( len - mb->idleSize() ) ;
@@ -350,17 +309,13 @@ namespace engine
             goto error ;
          }
       }
-      // copy head info memory
       ossMemcpy( mb->writePtr(), &head, sizeof(dpsLogRecordHeader ) ) ;
-      // update write ptr
       mb->writePtr( mb->length() + sizeof( dpsLogRecordHeader ) ) ;
-      // if only header, don't read body
       if ( onlyHeader )
       {
          goto done ;
       }
 
-      // read body
       rc = LOG_FILE( sub )->read ( lsn.offset + sizeof(dpsLogRecordHeader ),
                                    head._length - sizeof( dpsLogRecordHeader ),
                                    mb->writePtr() ) ;
@@ -369,11 +324,9 @@ namespace engine
          PD_LOG ( PDERROR, "Failed to read from log file %d for %d bytes, "
                   "rc = %d", sub, head._length-sizeof(dpsLogRecordHeader),
                   rc ) ;
-         // rollback write ptr
          mb->writePtr( mb->length() - sizeof( dpsLogRecordHeader ) ) ;
          goto error ;
       }
-      // update write ptr
       mb->writePtr ( mb->length() + head._length -
                      sizeof( dpsLogRecordHeader ) ) ;
 
@@ -409,7 +362,6 @@ namespace engine
                offset <= _files[_work]->getFirstLSN().offset +
                _files[_work]->getLength() ) )
          {
-            // at the end of file, need set idle to 0
             if ( file != _work )
             {
                SDB_ASSERT( 0 == fileOffset, "File offset must be 0" ) ;
@@ -417,7 +369,6 @@ namespace engine
                SDB_ASSERT( 0 == _files[_work]->getIdleSize(),
                            "Idle size must be 0" ) ;
             }
-            // not end of file
             else
             {
                _files[_work]->idleSize ( _logFileSz - fileOffset ) ;
@@ -443,7 +394,6 @@ namespace engine
          ++i ;
       }
 
-      //out of all dps files lsn range
       if ( i == _logFileNum )
       {
          _begin = file ;

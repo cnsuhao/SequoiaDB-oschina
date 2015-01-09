@@ -46,12 +46,9 @@ namespace engine
 {
    _dpsMessageBlock::_dpsMessageBlock( UINT32 size )
    {
-      // we allocate extra 1 byte so that the write pointer will not point to
-      // somewhere outside the buffer
       _start = ( CHAR * )SDB_OSS_MALLOC( size + 1 );
       _read = _start;
       _write = _start;
-      // if we failed to allocate memory, then let's use _size=0
       if ( _start )
          _size = size;
       else
@@ -113,13 +110,10 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSMSGBLK_EXTEND );
-      // make sure read/write pointers are greater or equao to start
       SDB_ASSERT ( _write >= _start, "invalid write pointer position" ) ;
       SDB_ASSERT ( _read >= _start, "invalid read pointer position" ) ;
-      // get offset of write/read pointer compare to start
       ossValuePtr writeOffset = _write - _start ;
       ossValuePtr readOffset = _read - _start ;
-      // memory is freed in destructor
       CHAR *pNewAddr = ( CHAR * )SDB_OSS_REALLOC( _start, _size + len + 1 ) ;
       if ( !pNewAddr )
       {
@@ -128,10 +122,8 @@ namespace engine
          rc = SDB_OOM ;
          goto error;
       }
-      // if the address is changed
       if ( pNewAddr != _start )
       {
-         // fix start/read/write address
          _start = pNewAddr ;
          _write = _start + writeOffset ;
          _read = _start + readOffset ;

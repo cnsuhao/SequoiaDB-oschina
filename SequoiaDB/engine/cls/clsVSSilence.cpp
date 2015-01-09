@@ -72,7 +72,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSVSSL_HDTMOUT ) ;
       _timeout() += millisec ;
 
-      /// silence time must be higher than brk time.
       if ( pmdGetOptionCB()->sharingBreakTime() + 1000 <= _timeout() )
       {
          next = CLS_ELECTION_STATUS_SEC ;

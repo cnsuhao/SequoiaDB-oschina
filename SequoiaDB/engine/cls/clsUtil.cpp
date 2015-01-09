@@ -70,30 +70,25 @@ namespace engine
       INT32 erc = endLsn.compare( remoteLsn ) ;
 
 
-      /// fbegin > remote
       if ( 0 < frc )
       {
          goto done ;
       }
-      /// fbein <= remote < membegin
       if ( frc <= 0 && 0 < mrc )
       {
          status = CLS_SYNC_STATUS_RC ;
          goto done ;
       }
-      /// membegin <= remote < end
       else if ( mrc <= 0 && 0 < erc )
       {
          status = CLS_SYNC_STATUS_PEER ;
          goto done ;
       }
-      /// end == remote
       else if ( 0 == erc )
       {
          status = CLS_SYNC_STATUS_PEER ;
          goto done ;
       }
-      /// end < remote
       else
       {
          goto done ;

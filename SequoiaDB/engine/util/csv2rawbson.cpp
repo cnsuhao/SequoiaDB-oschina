@@ -149,18 +149,14 @@ INT32 csvParser::_parseValue( _valueData &valueData, CHAR *pBuffer, INT32 size )
    INT32 rc = SDB_OK ;
    pBuffer = _trim( pBuffer, size ) ;
 
-   //is string "xxxxxx"
    if ( _delChar == *pBuffer &&
         _delChar == *(pBuffer + size - 1) )
    {
-      //++pBuffer ;
-      //size -= 2 ;
       valueData.type = CSV_TYPE_STRING ;
       valueData.pVarString = pBuffer ;
       valueData.stringSize = size ;
       goto done ;
    }
-   //is string xxxxx"
    else if ( _delChar != *pBuffer &&
              _delChar == *(pBuffer + size - 1) )
    {
@@ -169,7 +165,6 @@ INT32 csvParser::_parseValue( _valueData &valueData, CHAR *pBuffer, INT32 size )
       valueData.stringSize = size ;
       goto done ;
    }
-   //is string "xxxxx
    else if ( _delChar == *pBuffer &&
              _delChar != *(pBuffer + size - 1) )
    {
@@ -178,10 +173,8 @@ INT32 csvParser::_parseValue( _valueData &valueData, CHAR *pBuffer, INT32 size )
       valueData.stringSize = size ;
       goto done ;
    }
-   //not string  xxxxx
    else
    {
-      //is number?
       if ( size == CSV_STR_TRUE_SIZE &&
            ossStrncasecmp( pBuffer, CSV_STR_TRUE, CSV_STR_TRUE_SIZE ) == 0 )
       {
@@ -773,7 +766,6 @@ INT32 csvParser::_headerEscape( CHAR *pBuffer, INT32 size,
           ( !_isHeaderline && pBuffer[0] == CSV_STR_QUOTES &&
             pBuffer[size-1] == CSV_STR_QUOTES ) ) )
    {
-      // "xxxx"
       size -= 2 ;
       ++pBuffer ;
       for ( INT32 i = 0; i < size - 1; ++i )
@@ -799,7 +791,6 @@ INT32 csvParser::_valueEscape( CHAR *pBuffer, INT32 size,
    if ( size > 1 &&
         pBuffer[0] == _delChar && pBuffer[size-1] == _delChar )
    {
-      // "xxxx"
       size -= 2 ;
       ++pBuffer ;
       for ( INT32 i = 0; i < size - 1; ++i )
@@ -842,7 +833,6 @@ INT32 csvParser::_parseField( _fieldData &fieldData, CHAR *pBuffer, INT32 size )
    pType = _findSpace( pBuffer, unreadSize ) ;
    if ( pType )
    {
-      // field [space] xxx
       fieldSize = pType - pBuffer ;
       ( *pType ) = '\0' ;
       ++pType ;
@@ -851,7 +841,6 @@ INT32 csvParser::_parseField( _fieldData &fieldData, CHAR *pBuffer, INT32 size )
       pDefault = _findSpace( pType, unreadSize ) ;
       if ( pDefault )
       {
-         // field [space] type [space] xxx
          typeSize = pDefault - pType ;
          ( *pDefault ) = '\0' ;
          ++pDefault ;
@@ -860,7 +849,6 @@ INT32 csvParser::_parseField( _fieldData &fieldData, CHAR *pBuffer, INT32 size )
          pValue = _findSpace( pDefault, unreadSize ) ;
          if ( pValue )
          {
-            // field [space] type [space] xxxx [space] xxx
             defaultSize = pValue - pDefault ;
             ( *pValue ) = '\0' ;
             ++pValue ;
@@ -869,17 +857,14 @@ INT32 csvParser::_parseField( _fieldData &fieldData, CHAR *pBuffer, INT32 size )
             valueSize = unreadSize ;
             for ( INT32 i = 0; i < typeSum; ++i )
             {
-               //type
                if ( typeSize == _CSVTYPESTRSIZE[ i ] &&
                     ossStrncasecmp( pType, _pCSVTYPESTR[ i ],
                                     _CSVTYPESTRSIZE[ i ] ) == 0 )
                {
-                  //default
                   if ( defaultSize == CSV_STR_DEFAULT_SIZE &&
                        ossStrncasecmp( pDefault, CSV_STR_DEFAULT,
                                        CSV_STR_DEFAULT_SIZE ) == 0 )
                   {
-                     // field [space] type [space] default [space] xxx
                      fieldData.type = (CSV_TYPE)_CSVTYPENUM[ i ] ;
                      fieldData.hasDefVal = TRUE ;
                      switch( fieldData.type )
@@ -1092,7 +1077,6 @@ the format is:  field [type] [default <default value>]" ) ;
          }
          else
          {
-            // field [space] type [space] xxxxx
             rc = SDB_INVALIDARG ;
             PD_LOG ( PDERROR, "CSV header error, \
 the format is:  field [type] [default <default value>]" ) ;
@@ -1101,7 +1085,6 @@ the format is:  field [type] [default <default value>]" ) ;
       }
       else
       {
-         // field [space] type
          typeSize = size - ( pType - pBuffer ) ;
          for ( INT32 i = 0; i < typeSum; ++i )
          {
@@ -1121,7 +1104,6 @@ the format is:  field [type] [default <default value>]" ) ;
    }
    else
    {
-      // field
       fieldSize = size ;
       fieldData.type = CSV_TYPE_AUTO ;
       goto finish ;
@@ -1472,21 +1454,17 @@ INT32 csvParser::_string2regex( _csvRegex &value, CHAR *pBuffer, INT32 size )
    INT32 rc = SDB_OK ;
    if( 0 < size )
    {
-      // /pattern.....
       if( CSV_STR_BACKSLASH == pBuffer[0] )
       {
          for( INT32 i = 1; i < size; ++i )
          {
-            // /pattern/
             if( CSV_STR_BACKSLASH == pBuffer[i] )
             {
-               // /pattern/
                pBuffer[i] = '\0' ;
                if( i + 1 >= size )
                {
                   value.pPattern = pBuffer + 1 ;
                }
-               // /pattern/options
                else
                {
                   value.pPattern = pBuffer + 1 ;
@@ -1522,15 +1500,12 @@ INT32 csvParser::_string2binary( _csvBinary &value, CHAR *pBuffer, INT32 size )
    CHAR *pDeStr = NULL ;
    if( 0 < size )
    {
-      // (xxxxxxxxx
       if( CSV_STR_LEFTBRACKET == pBuffer[0] )
       {
          for( INT32 i = 1; i < size; ++i )
          {
-            // (xx)
             if( CSV_STR_RIGHTBRACKET == pBuffer[i] )
             {
-               // (xxxx)
                if( i + 1 >= size )
                {
                   rc = SDB_INVALIDARG ;
@@ -1538,7 +1513,6 @@ INT32 csvParser::_string2binary( _csvBinary &value, CHAR *pBuffer, INT32 size )
                            size, pBuffer, rc ) ;
                   goto error ;
                }
-               // (xxxx)xxxx
                else
                {
                   pStr = pBuffer + i + 1 ;
@@ -1591,7 +1565,6 @@ INT32 csvParser::_string2binary( _csvBinary &value, CHAR *pBuffer, INT32 size )
             }
          }
       }
-      // xxxxx
       else
       {
          base64Len = getDeBase64Size( pBuffer ) ;
@@ -2043,7 +2016,6 @@ INT32 csvParser::csv2bson( CHAR *pBuffer, INT32 size, CHAR **ppRawbson )
    INT32   fieldSize    = 0 ;
    INT32   fieldNum     = 0 ;
    INT32   autoFieldNum = 1 ;
-   //field sum
    INT32   fieldSumNum  = _vField.size() ;
    BOOLEAN isString     = FALSE;
    CHAR   *pCursor      = pBuffer ;
@@ -2064,7 +2036,6 @@ INT32 csvParser::csv2bson( CHAR *pBuffer, INT32 size, CHAR **ppRawbson )
             leftField = _trim( leftField, fieldSize ) ;
             if ( fieldSize == 0 )
             {
-               //NULL or default value
                if ( fieldSumNum <= fieldNum )
                {
                   if ( _addField )
@@ -2104,7 +2075,6 @@ INT32 csvParser::csv2bson( CHAR *pBuffer, INT32 size, CHAR **ppRawbson )
             }
             else
             {
-               //NULL or default value
                if ( fieldSumNum <= fieldNum )
                {
                   if ( _addField )
@@ -2179,7 +2149,6 @@ the field appears delChar, rc = %d", rc ) ;
          leftField = _trim( leftField, fieldSize ) ;
          if ( fieldSize == 0 )
          {
-            //NULL or default value
             if ( fieldSumNum <= fieldNum )
             {
                if ( _addField )
@@ -2219,7 +2188,6 @@ the field appears delChar, rc = %d", rc ) ;
          }
          else
          {
-            //NULL or default value
             if ( fieldSumNum <= fieldNum )
             {
                if ( _addField )

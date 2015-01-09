@@ -107,7 +107,6 @@ namespace engine
          }
          else
          {
-            /// do nothing.
          }
       }
       catch ( std::exception &e )

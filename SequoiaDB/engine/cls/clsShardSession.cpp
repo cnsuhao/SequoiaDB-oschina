@@ -138,7 +138,6 @@ namespace engine
            ( _pEDUCB->getTransID() == DPS_INVALID_TRANS_ID ||
            !(sdbGetReplCB()->primaryIsMe())))
       {
-         // will be release
          ret = TRUE ;
          goto done ;
       }
@@ -191,7 +190,6 @@ namespace engine
          PD_LOG( PDWARNING, "we get a w<0 here." ) ;
          w = 1 ;
       }
-      // if w is 1, not get groupSize
       else if ( w > 1 )
       {
          INT16 nodes = (INT16)_pReplSet->groupSize() ;
@@ -200,18 +198,14 @@ namespace engine
             w = nodes ;
          }
       }
-      /// if 0 == w, according to w in cata.
       else
       {
-         /// do nothing.
       }
 
-      // not primary
       if ( !_pReplSet->primaryIsMe () )
       {
          rc = SDB_CLS_NOT_PRIMARY ;
       }
-      // node is not enough
       else if ( w > 1 && (INT16)(_pReplSet->ailves()) < w )
       {
          rc = SDB_CLS_NODE_NOT_ENOUGH ;
@@ -259,7 +253,6 @@ namespace engine
       }
       _pCatAgent->release_r () ;
 
-      //not update catalog info or version is old, need to update catalog
       if ( curVer < 0 || curVer < version )
       {
          rc = curVer < 0 ? SDB_CLS_NO_CATALOG_INFO :
@@ -324,7 +317,6 @@ namespace engine
          goto error ;
       }
 
-      //Send message
       if ( size > 0 )
       {
          rc = routeAgent()->syncSend ( _netHandle, (MsgHeader *)header, 
@@ -347,7 +339,6 @@ namespace engine
       goto done ;
    }
 
-   //message fuctions
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__ONOPMSG, "_clsShdSession::_onOPMsg" )
    INT32 _clsShdSession::_onOPMsg ( NET_HANDLE handle, MsgHeader * msg )
    {
@@ -412,8 +403,6 @@ namespace engine
                rc = _onInterruptMsg( handle, msg ) ;
                break ;
 #if defined (_DEBUG)
-            // for authentication message through sharding port, we simply
-            // return OK
             case MSG_AUTH_VERIFY_REQ :
             case MSG_AUTH_CRTUSR_REQ :
             case MSG_AUTH_DELUSR_REQ :
@@ -465,7 +454,6 @@ namespace engine
                break ;
          }
 
-         //Need to update catalog info
          if ( ( SDB_CLS_NO_CATALOG_INFO == rc ||
                 SDB_CLS_DATA_NODE_CAT_VER_OLD == rc ||
                 SDB_CLS_COORD_NODE_CAT_VER_OLD == rc ) && loopTime < 1 )
@@ -479,7 +467,6 @@ namespace engine
                continue ;
             }
          }
-         //catalog has the collection, so need to create, no compression
          else if ( (SDB_DMS_CS_NOTEXIST == rc || SDB_DMS_NOTEXIST == rc)
                    && _pCollectionName && _pReplSet->primaryIsMe() )
          {
@@ -510,7 +497,6 @@ namespace engine
 
       if ( MSG_BS_INTERRUPTE == msg->opCode )
       {
-         //not to reply
          goto done ;
       }
 
@@ -521,7 +507,6 @@ namespace engine
          rc = SDB_SYS ;
       }
 
-      //Build reply message
       _replyHeader.header.opCode = MAKE_REPLY_TYPE( msg->opCode ) ;
       _replyHeader.header.messageLength = sizeof ( MsgOpReply ) ;
       _replyHeader.header.requestID = msg->requestID ;
@@ -616,7 +601,6 @@ namespace engine
       BOOLEAN isMainCL = FALSE;
       UINT32 groupCount = 0 ;
 
-      // get sharding key
       _pCatAgent->lock_r() ;
       clsCatalogSet *set = _pCatAgent->collectionSet( clFullName ) ;
       if ( NULL == set )
@@ -737,7 +721,6 @@ namespace engine
       _pCollectionName = pCollectionName ;
       _pEDUCB->writingDB( TRUE ) ; // it call must before _checkCata
 
-      //check version
       rc = _checkCata ( pUpdate->version, pCollectionName, w, isMainCL ) ;
       if ( SDB_OK != rc )
       {
@@ -820,7 +803,6 @@ namespace engine
       _pCollectionName = pCollectionName ;
       _pEDUCB->writingDB( TRUE ) ;  // it call must before _checkCata
 
-      //check catalog
       rc = _checkCata ( pInsert->version, pCollectionName, w, isMainCL ) ;
       if ( SDB_OK != rc )
       {
@@ -898,7 +880,6 @@ namespace engine
       _pCollectionName = pCollectionName ;
       _pEDUCB->writingDB( TRUE ) ;  // it call must before _checkCata
 
-      //check cata
       rc = _checkCata ( pDelete->version, pCollectionName, w, isMainCL ) ;
       if ( SDB_OK != rc )
       {
@@ -987,7 +968,6 @@ namespace engine
       {
          rtnContextBase *pContext = NULL ;
          _pCollectionName = pCollectionName ;
-         //check cata
          w = 1 ;
          rc = _checkCata ( pQuery->version, pCollectionName, w, isMainCL ) ;
          if ( SDB_OK != rc )
@@ -1032,7 +1012,6 @@ namespace engine
                goto error ;
             }
 
-            // query with return data
             if ( ( flags & FLG_QUERY_WITH_RETURNDATA ) && NULL != pContext )
             {
                rc = pContext->getMore( -1, buffObj, _pEDUCB ) ;
@@ -1097,7 +1076,6 @@ namespace engine
             w = 1 ;
          }
 
-         //check cata
          if ( pCommand->collectionFullName() &&
               SDB_OK != ( rc = _checkCata( pQuery->version,
                           pCommand->collectionFullName(),
@@ -1114,8 +1092,6 @@ namespace engine
 
          PD_LOG ( PDDEBUG, "Command: %s", pCommand->name () ) ;
 
-         /// sometimes we can not get catainfo from command
-         /// request. here if w < 1, we set it with 1.
          if ( w < 1 )
          {
             w = 1 ;
@@ -1129,7 +1105,6 @@ namespace engine
          }
          else
          {
-            //run command
             rc = rtnRunCommand( pCommand, getServiceType(),
                                 _pEDUCB, _pDmsCB, _pRtnCB,
                                 _pDpsCB, w, &contextID ) ;
@@ -1139,7 +1114,6 @@ namespace engine
             goto error ;
          }
 
-         //drop collection[space] should to remove catalog
          if ( CMD_RENAME_COLLECTION == pCommand->type() )
          {
             _pCatAgent->lock_w () ;
@@ -1252,7 +1226,6 @@ namespace engine
    INT32 _clsShdSession::_onInterruptMsg ( NET_HANDLE handle, MsgHeader * msg )
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDSESS__ONINRPTMSG ) ;
-      //delete all contextID
       if ( _pEDUCB )
       {
          INT64 contextID = -1 ;
@@ -2432,7 +2405,6 @@ namespace engine
          goto error ;
       }
 
-      /// if sequence 0 is not on this node, we have nothing to send back.
       if ( !meta.isEmpty() )
       {
          buffObj = rtnContextBuf( meta.objdata(),
@@ -2579,7 +2551,6 @@ namespace engine
       {
          PD_LOG ( PDERROR, "context %lld does not exist",
                   header->contextID ) ;
-         /// lob has already been closed.
          goto done ;
       }
 
@@ -2590,8 +2561,6 @@ namespace engine
          goto error ;
       }
 
-      /// do not check version coz we will not
-      ///  change any thing except close the context.
       lobContext = ( rtnContextShdOfLob * )context ;
       rc = lobContext->close( _pEDUCB ) ;
       if ( SDB_OK != rc )

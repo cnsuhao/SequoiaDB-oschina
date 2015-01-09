@@ -214,8 +214,6 @@ public class Node {
 
 	private SDBMessage adminCommand(String commandString, BSONObject obj)
 			throws BaseException {
-		// Admin command request
-		// int reqId = 0;
 		BSONObject dummyObj = new BasicBSONObject();
 		SDBMessage sdbMessage = new SDBMessage();
 		sdbMessage.setMatcher(obj);
@@ -226,8 +224,6 @@ public class Node {
 		sdbMessage.setPadding((short) 0);
 		sdbMessage.setFlags(0);
 		sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
-		// sdbMessage.setResponseTo(reqId);
-		// reqId++;
 		sdbMessage.setRequestID(rg.getSequoiadb().getNextRequstID());
 		sdbMessage.setSkipRowsCount(-1);
 		sdbMessage.setReturnRowsCount(-1);

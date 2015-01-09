@@ -51,8 +51,6 @@ INT32 _utilCSVParser::initialize ( _utilParserParamet *parserPara )
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB__UTILCSV__INIT );
-   //INT32 size = 0 ;
-   //check error
    if ( parserPara->blockNum <= 0 )
    {
       rc = SDB_INVALIDARG ;
@@ -73,8 +71,6 @@ INT32 _utilCSVParser::initialize ( _utilParserParamet *parserPara )
    _blockNum     = parserPara->blockNum ;
    _blockSize    = _bufferSize / _blockNum ;
    _accessModel  = parserPara->accessModel ;
-   //_buffer
-   //_buffer = (CHAR *)SDB_OSS_MALLOC ( _bufferSize ) ;
    mallocBufer ( _bufferSize ) ;
    if ( !_buffer )
    {
@@ -84,7 +80,6 @@ INT32 _utilCSVParser::initialize ( _utilParserParamet *parserPara )
    }
    _curBuffer = _buffer ;
    ossMemset ( _buffer, 0, _bufferSize ) ;
-   //IO
    if ( UTIL_GET_IO == _accessModel )
    {
       utilAccessParametLocalIO accessData ;
@@ -182,7 +177,6 @@ INT32 _utilCSVParser::getNextRecord ( UINT32 &startOffset,
             if ( isReadSize > _blockSize && isReadSize < _bufferSize )
             {
                _pBlock = 0 ;
-               //is read size use block number
                useBlockNum = ( (UINT32)( isReadSize / _blockSize ) ) ;
                if ( isReadSize % _blockSize > 0 )
                {
@@ -212,7 +206,6 @@ INT32 _utilCSVParser::getNextRecord ( UINT32 &startOffset,
                   continue ;
                }
                newReadSize = _blockSize - ( isReadSize % _blockSize ) ;
-               //ossMemset ( _buffer + isReadSize, 0, newReadSize ) ;
             }
             else
             {
@@ -237,7 +230,6 @@ INT32 _utilCSVParser::getNextRecord ( UINT32 &startOffset,
                   ++_pBlock ;
                   continue ;
                }
-               //ossMemset ( _buffer + isReadSize, 0, newReadSize ) ;
             }
          }
          else
@@ -248,7 +240,6 @@ INT32 _utilCSVParser::getNextRecord ( UINT32 &startOffset,
             }
             newReadSize = _blockSize ;
             pReadBuffer = _buffer + _pBlock * _blockSize ;
-            //ossMemset ( curBuffer, 0, _blockSize ) ;
          }
          rc = _pAccessData->readNextBuffer ( pReadBuffer, newReadSize ) ;
          if ( rc )

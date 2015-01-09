@@ -196,14 +196,11 @@ public final class Gson {
 
     List<TypeAdapterFactory> factories = new ArrayList<TypeAdapterFactory>();
 
-    // built-in type adapters that cannot be overridden
     factories.add(TypeAdapters.JSON_ELEMENT_FACTORY);
     factories.add(ObjectTypeAdapter.FACTORY);
 
-    // user's type adapters
     factories.addAll(typeAdapterFactories);
 
-    // type adapters for basic platform types
     factories.add(TypeAdapters.STRING_FACTORY);
     factories.add(TypeAdapters.INTEGER_FACTORY);
     factories.add(TypeAdapters.BOOLEAN_FACTORY);
@@ -236,10 +233,8 @@ public final class Gson {
     factories.add(TypeAdapters.ENUM_FACTORY);
     factories.add(TypeAdapters.CLASS_FACTORY);
 
-    // the excluder must precede all adapters that handle user-defined types
     factories.add(excluder);
 
-    // type adapters for composite and user-defined types
     factories.add(new CollectionTypeAdapterFactory(constructorConstructor));
     factories.add(new MapTypeAdapterFactory(constructorConstructor, complexMapKeySerialization));
     factories.add(new ReflectiveTypeAdapterFactory(
@@ -340,7 +335,6 @@ public final class Gson {
     }
 
     Map<TypeToken<?>, FutureTypeAdapter<?>> threadCalls = calls.get();
-    // the key and value type parameters always agree
     FutureTypeAdapter<T> ongoingCall = (FutureTypeAdapter<T>) threadCalls.get(type);
     if (ongoingCall != null) {
       return ongoingCall;
@@ -805,7 +799,6 @@ public final class Gson {
     } catch (IllegalStateException e) {
       throw new JsonSyntaxException(e);
     } catch (IOException e) {
-      // TODO(inder): Figure out whether it is indeed right to rethrow this as JsonSyntaxException
       throw new JsonSyntaxException(e);
     } finally {
       reader.setLenient(oldLenient);

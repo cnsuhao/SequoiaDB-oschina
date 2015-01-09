@@ -47,7 +47,6 @@ using namespace bson ;
 
 namespace engine
 {
-   // the shard mgr update some info from catalog timeout
    #define CLS_SHARD_TIMEOUT     (5*OSS_ONE_SEC)
 
    /*
@@ -209,7 +208,6 @@ namespace engine
                                 const std::string &service,
                                 NodeID &id ) ;
 
-      //msg functions
       protected:
          INT32 _onCatCatGroupRes ( NET_HANDLE handle, MsgHeader* msg ) ;
          INT32 _onCatalogReqMsg ( NET_HANDLE handle, MsgHeader* msg ) ;

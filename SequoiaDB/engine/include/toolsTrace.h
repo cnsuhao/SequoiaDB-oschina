@@ -29,7 +29,6 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef toolsTRACE_H__
 #define toolsTRACE_H__
-// Component: tools
 #define SDB_FORMATLOG                                      0x10000000041dL
 #define SDB_PARSEARG                                       0x10000000041eL
 #define SDB_DPSDUMP_MAIN                                   0x10000000041fL

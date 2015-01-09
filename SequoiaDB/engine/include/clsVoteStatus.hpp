@@ -105,7 +105,6 @@ namespace engine
 
       OSS_INLINE BOOLEAN _isAccepted()
       {
-         /// must be approved by myself
          return CLS_IS_MAJORITY( _acceptedNum + 1,
                                  _groupInfo->groupSize() ) ;
       }

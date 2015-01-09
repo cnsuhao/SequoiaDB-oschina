@@ -62,7 +62,6 @@ namespace engine
       PD_TRACE_ENTRY( SDB__QGMOPTISORT_INIT ) ;
       INT32 rc = SDB_OK ;
 
-      // create a sort unit
       qgmOprUnit *sortUnit = SDB_OSS_NEW qgmOprUnit( QGM_OPTI_TYPE_SORT ) ;
       if ( !sortUnit )
       {
@@ -93,7 +92,6 @@ namespace engine
             removeOprUnit( typeUnit, TRUE, TRUE ) ;
          }
          _orderby = *(oprUnit->getFields()) ;
-         // need to push frist
          _oprUnits.insert( _oprUnits.begin(), oprUnit ) ;
       }
       else if ( QGM_OPTI_TYPE_FILTER == oprUnit->getType() )

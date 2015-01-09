@@ -42,11 +42,9 @@
 
 namespace engine
 {
-   // Session Time out
    #define PMD_REST_SESSION_TIMEOUT             ( 10 * 60 * 1000 )
    #define PMD_FIX_BUFF_CATCH_NUMBER            ( 100 )
 
-   // max rest body size
    #define PMD_REST_MAX_BODY_SIZE               ( 64 * 1024 * 1024 )
 
    #define PMD_FIX_PTR_SIZE(x)                  ( x + sizeof(INT32) )
@@ -90,7 +88,6 @@ namespace engine
       pmdOptionsCB *pOptCB = pmdGetOptionCB() ;
       UINT16 port = 0 ;
 
-      // 1. create tcp listerner
       port = pOptCB->getServicePort() ;
       _pTcpListener = SDB_OSS_NEW ossSocket( port ) ;
       if ( !_pTcpListener )
@@ -108,7 +105,6 @@ namespace engine
                    "rc: %d", port, rc ) ;
       PD_LOG( PDEVENT, "Listerning on port[%d]", port ) ;
 
-      // 2. create http listerner
       rc = ossGetPort( pOptCB->getRestService(), port ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get port by service name: %s, "
                    "rc: %d", pOptCB->getRestService(), rc ) ;
@@ -142,18 +138,15 @@ namespace engine
       rc = _restAdptor.init( _fixBufSize, _maxRestBodySize, _restTimeout ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init rest adptor, rc: %d", rc ) ;
 
-      // start time sync edu
       rc = pEDUMgr->startEDU( EDU_TYPE_SYNCCLOCK, NULL, &eduID ) ;
       pEDUMgr->regSystemEDU( EDU_TYPE_SYNCCLOCK, eduID ) ;
 
-      // start tcp listern edu and http listerner edu
       rc = pEDUMgr->startEDU( EDU_TYPE_TCPLISTENER, (void*)_pTcpListener,
                               &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start tcp listerner, rc: %d",
                    rc ) ;
       pEDUMgr->regSystemEDU( EDU_TYPE_TCPLISTENER, eduID ) ;
 
-      // wait until tcp listener starts
       rc = pEDUMgr->waitUntil ( eduID, PMD_EDU_RUNNING ) ;
       PD_RC_CHECK( rc, PDERROR, "Wait Tcp Listerner active failed, rc: %d",
                    rc ) ;
@@ -164,7 +157,6 @@ namespace engine
                    rc ) ;
       pEDUMgr->regSystemEDU( EDU_TYPE_RESTLISTENER, eduID ) ;
 
-      // wait until http listener starts
       rc = pEDUMgr->waitUntil ( eduID, PMD_EDU_RUNNING ) ;
       PD_RC_CHECK( rc, PDERROR, "Wait rest Listener active failed, rc: %d",
                    rc ) ;
@@ -173,12 +165,10 @@ namespace engine
       {
          UINT32 pageTaskNum = pmdGetOptionCB()->getPageCleanNum() ;
          UINT32 pageIntervel = pmdGetOptionCB()->getPageCleanInterval() ;
-         // start page flush background task
          for ( UINT32 i = 0; i < pageTaskNum ; ++i )
          {
             startPageCleanerJob( NULL, (INT32)pageIntervel ) ;
          }
-         // start load job
          rtnStartLoadJob() ;
       }
 
@@ -206,7 +196,6 @@ namespace engine
          _pHttpListener = NULL ;
       }
 
-      // release fix buff catch
       _ctrlLatch.get() ;
       for ( UINT32 i = 0 ; i < _vecFixBuf.size() ; ++i )
       {
@@ -215,7 +204,6 @@ namespace engine
       _vecFixBuf.clear() ;
       _ctrlLatch.release() ;
 
-      // release session info
       restSessionInfo *pSessionInfo = NULL ;
       map<string, restSessionInfo*>::iterator it = _mapSessions.begin() ;
       while( it != _mapSessions.end() )
@@ -326,18 +314,13 @@ namespace engine
          goto error ;
       }
 
-      // get lock
       _ctrlLatch.get() ;
       newSession->_attr._sessionID = ossPack32To64( localIP, _sequence++ ) ;
       ossStrncpy( newSession->_attr._userName, userName.c_str(),
                   SESSION_USER_NAME_LEN ) ;
-      // add to session map
       _mapSessions[ _makeID( newSession ) ] = newSession ;
-      // add to user session map
       _add2UserMap( userName, newSession ) ;
-      // attach session
       newSession->_inNum.inc() ;
-      // release lock
       _ctrlLatch.release() ;
 
       if ( newSession )
@@ -368,7 +351,6 @@ namespace engine
             detachSessionInfo( pInfo ) ;
          }
 
-         // no use
          if ( !pInfo->isIn() )
          {
             SDB_OSS_DEL pInfo ;
@@ -395,7 +377,6 @@ namespace engine
       strValue = strValue.substr( 0, size - ossStrlen( tmp ) ) ;
       strValue += tmp ;
 
-      // set id
       pSessionInfo->_id = strValue ;
       return strValue ;
    }
@@ -405,14 +386,12 @@ namespace engine
    {
       map<string, vector<restSessionInfo*> >::iterator it ;
       it = _mapUser2Sessions.find( user ) ;
-      // the user first session
       if ( it == _mapUser2Sessions.end() )
       {
          vector<restSessionInfo*> vecSession ;
          vecSession.push_back( pSessionInfo ) ;
          _mapUser2Sessions.insert( make_pair( user, vecSession ) ) ;
       }
-      // the user already exist
       else
       {
          it->second.push_back( pSessionInfo ) ;
@@ -505,7 +484,6 @@ namespace engine
       SDB_ASSERT( PMD_FIX_BUFF_HEADER( pBuff ) == _fixBufSize,
                   "Buff is not alloc by fix buff" ) ;
 
-      // if fix buff catch is not full, push to catch
       _ctrlLatch.get() ;
       if ( _vecFixBuf.size() < PMD_FIX_BUFF_CATCH_NUMBER )
       {
@@ -524,7 +502,6 @@ namespace engine
    {
       CHAR *pBuff = NULL ;
 
-      // if fix buff catch is not empty, get from catch
       _ctrlLatch.get() ;
       if ( _vecFixBuf.size() > 0 )
       {
@@ -538,7 +515,6 @@ namespace engine
          goto done ;
       }
 
-      // alloc
       pBuff = ( CHAR* )SDB_OSS_MALLOC( PMD_FIX_PTR_SIZE( _fixBufSize ) ) ;
       if ( !pBuff )
       {

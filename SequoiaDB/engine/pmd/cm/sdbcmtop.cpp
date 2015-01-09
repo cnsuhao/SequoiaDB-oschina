@@ -123,7 +123,6 @@ namespace engine
          goto error ;
       }
 
-      // wait until process terminate
       while ( ossIsProcessRunning( pid ) )
       {
          ossSleep( OSS_ONE_SEC ) ;
@@ -221,7 +220,6 @@ namespace engine
 
       _stopSdbcm() ;
 
-      // wait sdbcmd quit
       while ( timewait > 0 )
       {
          --timewait ;
@@ -268,7 +266,6 @@ namespace engine
       BOOLEAN asProc = FALSE ;
 
       init ( desc, all ) ;
-      // validate arguments
       rc = utilReadCommandLine ( argc, argv, all, vm, FALSE ) ;
       if ( rc )
       {
@@ -276,17 +273,14 @@ namespace engine
          displayArg ( desc ) ;
          goto done ;
       }
-      /// read cmd first
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          displayArg( desc ) ;
-         //rc = SDB_PMD_HELP_ONLY ;
          goto done ;
       }
       if ( vm.count( PMD_OPTION_VERSION ) )
       {
          ossPrintVersion( "Sdb CM Stop version" ) ;
-         //rc = SDB_PMD_VERSION_ONLY ;
          goto done ;
       }
 #if defined( _WINDOWS )
@@ -296,7 +290,6 @@ namespace engine
       }
 #endif // _WINDOWS
 
-      // check user before create dir or files
       if ( !vm.count( PMD_OPTION_CURUSER ) )
       {
          UTIL_CHECK_AND_CHG_USER() ;
@@ -315,7 +308,6 @@ namespace engine
          ossPrintf( "Failed to build dialog path: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
-      // make sure the dir exist
       rc = ossMkdir( dialogFile, OSS_CREATE|OSS_READWRITE ) ;
       if ( rc && SDB_FE != rc )
       {
@@ -330,11 +322,9 @@ namespace engine
          ossPrintf( "Failed to build dialog file: %d"OSS_NEWLINE, rc ) ;
          goto error ;
       }
-      // enable pd log
       sdbEnablePD( dialogFile ) ;
       setPDLevel( PDINFO ) ;
 
-      // stop cm
       rc = stopSdbcm ( asProc ) ;
       if ( rc )
       {

@@ -1,4 +1,3 @@
-// @file oid.cpp
 
 /*    Copyright 2009 10gen Inc.
  *
@@ -23,15 +22,12 @@
 #include "lib/atomic_int.h"
 #include "lib/nonce.h"
 
-//#include <boost/static_assert.hpp>
 
-//BOOST_STATIC_ASSERT( sizeof(bson::OID) == 12 );
 
 using namespace Nonce;
 
 namespace bson {
 
-    // machine # before folding in the process id
     OID::MachineAndPid OID::ourMachine;
 
     unsigned OID::ourPid() {
@@ -49,18 +45,12 @@ namespace bson {
     void OID::foldInPid(OID::MachineAndPid& x) {
         unsigned p = ourPid();
         x._pid ^= (unsigned short) p;
-        // when the pid is greater than 16 bits, let the high bits modulate the
-        // machine id field.
         unsigned short& rest = (unsigned short &) x._machineNumber[1];
         rest ^= p >> 16;
     }
 
     OID::MachineAndPid OID::genMachineAndPid() {
-        //BOOST_STATIC_ASSERT( sizeof(OID::MachineAndPid) == 5 );
 
-        // this is not called often, so the following is not expensive, and
-        // gives us some testing that nonce generation is working right and that
-        // our OIDs are (perhaps) ok.
         {
             Nonce::nonce a = Nonce::security.getNonceInitSafe();
             Nonce::nonce b = Nonce::security.getNonceInitSafe();
@@ -74,7 +64,6 @@ namespace bson {
         return x;
     }
 
-    // after folding in the process id
     OID::MachineAndPid OID::ourMachineAndPid = OID::genMachineAndPid();
 /*
     void OID::regenMachineId() {
@@ -98,9 +87,6 @@ namespace bson {
 /*
     void OID::justForked() {
         MachineAndPid x = ourMachine;
-        // we let the random # for machine go into all 5 bytes of MachineAndPid,
-        // and the xor in the pid into _pid.  this reduces the probability of
-        // collisions.
         foldInPid(x);
         ourMachineAndPid = genMachineAndPid();
         assert( x != ourMachineAndPid );

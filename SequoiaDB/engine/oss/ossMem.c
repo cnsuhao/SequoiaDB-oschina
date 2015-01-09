@@ -42,7 +42,6 @@
 #include <malloc.h>
 #endif
 
-// in engine we always compile in C++, so we can include pd.hpp
 #if defined (SDB_ENGINE)
 #include "pd.hpp"
 #include "pdTrace.hpp"
@@ -90,8 +89,6 @@ UINT32 ossMemDebugSize = 0 ;
 #define OSS_MEM_MAX_SZ 4294967295LL
 #endif
 
-// in C version, we don't do anything
-// in C++, we keep track of all memory allocations from ossMemAlloc
 #if !defined (__cplusplus) || !defined (SDB_ENGINE)
 void ossMemTrack ( void *p ) {}
 void ossMemUnTrack ( void *p ) {}
@@ -109,12 +106,6 @@ static BOOLEAN ossMemSanityCheck ( void *p )
           ( *(UINT32*)(headerMem+OSS_MEM_HEAD_EYECATCHER2OFFSET) ==
             SDB_MEMHEAD_EYECATCHER2 ) ;
 }
-// this function verify whether a given pointer is at starting of a memory block
-// and not overflowed
-// basically we just move back ossMemDebugSize bytes and make sure it's all with
-// right guardian bytes
-// and then move back size bytes and make sure it's followed by GUARDEND and
-// GUARDSTOP
 static BOOLEAN ossMemVerify ( void *p )
 {
    CHAR *headerMem  = NULL ;
@@ -123,12 +114,9 @@ static BOOLEAN ossMemVerify ( void *p )
    UINT32 i         = 0 ;
    UINT64 size      = 0 ;
    CHAR *pEnd       = NULL ;
-   // return TRUE for NULL
    if ( !p )
       return TRUE ;
-   // get header
    headerMem = ((CHAR*)p) - OSS_MEM_HEADSZ ;
-   // sanity check eye catcher1
    if ( *(UINT32*)(headerMem+OSS_MEM_HEAD_EYECATCHER1OFFSET) !=
         SDB_MEMHEAD_EYECATCHER1 )
    {
@@ -138,7 +126,6 @@ static BOOLEAN ossMemVerify ( void *p )
 #endif
       return FALSE ;
    }
-   // sanity check eye catcher2
    if ( *(UINT32*)(headerMem+OSS_MEM_HEAD_EYECATCHER2OFFSET) !=
         SDB_MEMHEAD_EYECATCHER2 )
    {
@@ -148,7 +135,6 @@ static BOOLEAN ossMemVerify ( void *p )
 #endif
       return FALSE ;
    }
-   // sanity check isFree
    if ( *(UINT32*)(headerMem+OSS_MEM_HEAD_FREEDOFFSET) != 0 )
    {
 #if defined (SDB_ENGINE)
@@ -157,12 +143,9 @@ static BOOLEAN ossMemVerify ( void *p )
 #endif
       return FALSE ;
    }
-   // get debug size
    debugSize = *(UINT32*)(headerMem+OSS_MEM_HEAD_DEBUGOFFSET) ;
-   // do not verify if we don't have debug segment
    if ( 0 == debugSize )
       return TRUE ;
-   // debug size sanity check
    if ( debugSize > SDB_MEMDEBUG_MAXGUARDSIZE ||
         debugSize < SDB_MEMDEBUG_MINGUARDSIZE ||
         debugSize > ossMemDebugSize )
@@ -172,9 +155,7 @@ static BOOLEAN ossMemVerify ( void *p )
 #endif
       return FALSE ;
    }
-   // get real memory segment start point
    pStart = headerMem - debugSize ;
-   // make sure all guardian start got SDB_MEMDEBUG_GUARDSTART
    for ( i = 0; i < debugSize; ++i )
    {
       if ( *(pStart + i) != SDB_MEMDEBUG_GUARDSTART )
@@ -186,11 +167,8 @@ static BOOLEAN ossMemVerify ( void *p )
          return FALSE ;
       }
    }
-   // then check the size
    size = *(UINT64*)(headerMem+OSS_MEM_HEAD_SIZEOFFSET) ;
-   // then jump over size
    pEnd = ((CHAR*)p)+size ;
-   // check end byte
    if ( *pEnd != SDB_MEMDEBUG_GUARDEND )
    {
 #if defined (SDB_ENGINE)
@@ -199,7 +177,6 @@ static BOOLEAN ossMemVerify ( void *p )
 #endif
       return FALSE ;
    }
-   // make sure all guardian stop got SDB_MEMDEBUG_GUARDSTOP
    for ( i = SDB_MEMDEBUG_ENDPOS; i < debugSize; ++i )
    {
       if ( *(pEnd+i) != SDB_MEMDEBUG_GUARDSTOP )
@@ -225,12 +202,10 @@ static void ossMemFixHead ( CHAR *p,
    *(UINT32*)(p+OSS_MEM_HEAD_LINEOFFSET)    = line ;
    *(UINT32*)(p+OSS_MEM_HEAD_EYECATCHER2OFFSET) = SDB_MEMHEAD_EYECATCHER2 ;
    *(UINT32*)(p+OSS_MEM_HEAD_FREEDOFFSET)   = 0 ;
-   // if memory debug is enabled, let's keep track of all memory allocations
    if ( ossMemDebugEnabled )
       ossMemTrack ( p ) ;
 }
 
-// allocate extra header only, do not allocate memory debug section
 static void *ossMemAlloc1 ( size_t size, const CHAR* file, UINT32 line )
 {
    CHAR *p = NULL ;
@@ -242,7 +217,6 @@ static void *ossMemAlloc1 ( size_t size, const CHAR* file, UINT32 line )
    return ((CHAR*)p)+OSS_MEM_HEADSZ ;
 }
 
-// allocate extra header + debug segment
 static void *ossMemAlloc2 ( size_t size, const CHAR* file, UINT32 line )
 {
    CHAR *p          = NULL ;
@@ -252,36 +226,21 @@ static void *ossMemAlloc2 ( size_t size, const CHAR* file, UINT32 line )
    UINT64 totalSize = 0 ;
    debugSize = OSS_MIN ( debugSize, SDB_MEMDEBUG_MAXGUARDSIZE ) ;
    debugSize = OSS_MAX ( debugSize, SDB_MEMDEBUG_MINGUARDSIZE ) ;
-   // calculate how many bytes to fill up guardstop bytes
-   // need to subtract one byte for GUARDEND
    endSize = debugSize - SDB_MEMDEBUG_ENDPOS ;
-   // add size with 2 debug size, for begin and end
    totalSize = size + OSS_MEM_HEADSZ + ( debugSize<<1 ) ;
 
-   // actually allocate memory
    p = (CHAR*)malloc ( totalSize ) ;
-   // if allocation failed, return NULL
    if ( !p )
       return NULL ;
-   // initialize head
    ossMemFixHead ( p + debugSize, size, debugSize, file, line ) ;
-   // expected memory is starting from p + ossMemDebugSize
    expMem = p + debugSize + OSS_MEM_HEADSZ ;
-   // init START part
-   // fill start guardian bytes
    ossMemset ( p, SDB_MEMDEBUG_GUARDSTART, debugSize ) ;
 
-   // STOP PART
-   // fill stop gardian bytes
-   // first we set 1 byte to indicate normal end
    *(expMem + size) = SDB_MEMDEBUG_GUARDEND ;
-   // then we fill up stop guardian bytes
    ossMemset ( expMem+size+SDB_MEMDEBUG_ENDPOS,
                SDB_MEMDEBUG_GUARDSTOP,
                endSize ) ;
-   // put 0 into the memory block
    ossMemset ( expMem, 0, size ) ;
-   // return the pointer where actual data supposed to start
    return expMem ;
 }
 
@@ -294,7 +253,6 @@ void ossEnableMemDebug( BOOLEAN debugEnable, UINT32 memDebugSize )
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSMEMALLOC, "ossMemAlloc" )
 void* ossMemAlloc ( size_t size, const CHAR* file, UINT32 line )
 {
-//   PD_TRACE_ENTRY ( SDB__OSSMEMALLOC ) ;
    void *p = NULL ;
    if ( size == 0 )
       p = NULL ;
@@ -302,24 +260,19 @@ void* ossMemAlloc ( size_t size, const CHAR* file, UINT32 line )
       p = ossMemAlloc1 ( size, file, line ) ;
    else
       p = ossMemAlloc2 ( size, file, line ) ;
-//   PD_TRACE_EXIT ( SDB__OSSMEMALLOC ) ;
    return p ;
 }
 
-// reallocate memory with header + debug section
 static void *ossMemRealloc2 ( void* pOld, size_t size,
                               const CHAR* file, UINT32 line )
 {
-   // get original pointer
    CHAR *p          = NULL ;
    CHAR *expMem     = NULL ;
    CHAR *headerMem  = NULL ;
-   // for old memory block size
    UINT64 oldSize   = 0 ;
    UINT32 debugSize = ossMemDebugSize ;
    UINT32 endSize   = 0 ;
    UINT64 totalSize = 0 ;
-   // for the difference between old and new memory size
    UINT64 diffSize = 0 ;
    debugSize = OSS_MIN ( debugSize, SDB_MEMDEBUG_MAXGUARDSIZE ) ;
    debugSize = OSS_MAX ( debugSize, SDB_MEMDEBUG_MINGUARDSIZE ) ;
@@ -334,56 +287,33 @@ static void *ossMemRealloc2 ( void* pOld, size_t size,
 #endif
          ossPanic () ;
       }
-      // if memory check passes, let's calculate the real memory starting point
       headerMem = ((CHAR*)pOld) - OSS_MEM_HEADSZ ;
-      // get the debug size for this segment, note if the debugSize doens't
-      // match the current ossMemDebugSize, we do not change the current
-      // debugSize because it's realloc
       debugSize = *(UINT32*)(headerMem+OSS_MEM_HEAD_DEBUGOFFSET) ;
-      // get the original memory buffer size
       oldSize = *(UINT64*)(headerMem+OSS_MEM_HEAD_SIZEOFFSET) ;
-      // set the old-buffer as free
       *(UINT32*)(headerMem+OSS_MEM_HEAD_FREEDOFFSET) = 1 ;
       p = headerMem - debugSize ;
    }
-   // get the difference between old and new memory size
    if ( size > oldSize )
       diffSize = size - oldSize ;
-   // calculate how many bytes to fill up guardstop bytes
-   // need to subtract one byte for GUARDEND
    endSize = debugSize - SDB_MEMDEBUG_ENDPOS ;
-   // get total number of bytes including guardian page
    totalSize = size + OSS_MEM_HEADSZ + ( debugSize<<1 ) ;
-   // start reallocate memory
    p = (CHAR*)realloc ( p, totalSize ) ;
    if ( !p )
       return NULL ;
 
-   // initialize header
    ossMemFixHead ( p + debugSize, size, debugSize, file, line ) ;
-   // expected memory is starting from p + ossMemDebugSize
    expMem = p + OSS_MEM_HEADSZ + debugSize ;
-   // init START part
-   // fill start guardian bytes
    ossMemset ( p, SDB_MEMDEBUG_GUARDSTART, debugSize ) ;
 
-   // STOP PART
-   // fill stop gardian bytes
-   // first we set 1 byte to indicate normal end
    *(expMem + size) = SDB_MEMDEBUG_GUARDEND ;
-   // then we fill up stop guardian bytes
    ossMemset ( expMem+size+SDB_MEMDEBUG_ENDPOS,
                SDB_MEMDEBUG_GUARDSTOP,
                endSize ) ;
-   // if the new memory size is greater than old one, let's initialize 0 to the
-   // newly added part
    if ( diffSize )
       ossMemset ( expMem + oldSize, 0, diffSize ) ;
-   // return the pointer where actual data supposed to start
    return expMem ;
 }
 
-// reallocate memory with header only
 static void *ossMemRealloc1 ( void* pOld, size_t size,
                               const CHAR* file, UINT32 line )
 {
@@ -415,7 +345,6 @@ static void *ossMemRealloc1 ( void* pOld, size_t size,
 void* ossMemRealloc ( void* pOld, size_t size,
                       const CHAR* file, UINT32 line )
 {
-//   PD_TRACE_ENTRY ( SDB__OSSMEMREALLOC ) ;
    void *p = NULL ;
    if ( size == 0 )
       p = NULL ;
@@ -423,7 +352,6 @@ void* ossMemRealloc ( void* pOld, size_t size,
       p = ossMemRealloc1 ( pOld, size, file, line ) ;
    else
       p = ossMemRealloc2 ( pOld, size, file, line ) ;
-//   PD_TRACE_EXIT ( SDB__OSSMEMREALLOC ) ;
    return p ;
 }
 
@@ -444,11 +372,9 @@ void ossMemFree2 ( void *p )
       }
       headerMem = ((CHAR*)p) - OSS_MEM_HEADSZ ;
       debugSize = *(UINT32*)(headerMem+OSS_MEM_HEAD_DEBUGOFFSET) ;
-      // mark the memory is freed
       *(UINT32*)(headerMem+OSS_MEM_HEAD_FREEDOFFSET)   = 1 ;
       pStart = headerMem - debugSize ;
       free ( pStart ) ;
-      // remove memory if we enable memory debug
       if ( ossMemDebugEnabled )
          ossMemUnTrack ( pStart ) ;
    }
@@ -474,7 +400,6 @@ void ossMemFree1 ( void *p )
       {
          *(UINT32*)((CHAR*)pStart+OSS_MEM_HEAD_FREEDOFFSET)   = 1 ;
          free ( pStart ) ;
-         // remove memory if we enable memory debug
          if ( ossMemDebugEnabled )
             ossMemUnTrack ( pStart ) ;
       }
@@ -484,21 +409,16 @@ void ossMemFree1 ( void *p )
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSMEMFREE, "ossMemFree" )
 void ossMemFree ( void *p )
 {
-//   PD_TRACE_ENTRY ( SDB__OSSMEMFREE ) ;
    if ( !ossMemDebugEnabled || !ossMemDebugSize )
       ossMemFree1 ( p ) ;
    else
       ossMemFree2 ( p ) ;
-//   PD_TRACE_EXIT ( SDB__OSSMEMFREE ) ;
 }
 
 void *ossAlignedAlloc( UINT32 alignment, UINT32 size )
 {
 #if defined (_LINUX)
    void *ptr = NULL ;
-   /// returns zero on success, or one of the 
-   ///  error values listed in the next section on failure.
-   /// Note that errno is not set.
    INT32 rc = SDB_OK ;
    rc = posix_memalign( &ptr, alignment, size ) ;
    if ( SDB_OK != rc )

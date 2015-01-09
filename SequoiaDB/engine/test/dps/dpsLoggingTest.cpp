@@ -152,9 +152,6 @@ TEST(logWrapperTest, recordInsert_1)
    ASSERT_TRUE( itr.valid() ) ;
    BSONObj objData(itr.value());
    ASSERT_TRUE(0 == obj.woCompare(objData));
-//   obj.dump();
-//   cout << "\n=====" << endl;
-//   objData.dump();
    ossClose(file);
    deleteFiles() ;
    delete []buf;
@@ -388,7 +385,6 @@ TEST(logWrapperTest, recordAll_1)
 
    dpsMergeInfo mergeInfo ;
 
-   /////
    string name1("recordInsert");
    string clname1("collection");
    BSONObj obj1;
@@ -396,7 +392,6 @@ TEST(logWrapperTest, recordAll_1)
    wrapper.recordInsert(name1.c_str(), clname1.c_str(),obj1, mergeInfo);
    wrapper.writeData(mergeInfo) ;
 
-   /////
    string name2("recordUpdate");
    string clname2("collection");
    BSONObj oldMatch, newMatch ;
@@ -408,7 +403,6 @@ TEST(logWrapperTest, recordAll_1)
                         oldMatch, obj2, newMatch, obj2_1, mergeInfo);
    wrapper.writeData(mergeInfo) ;
 
-   /////
    string name3("recordDelete");
    string clname3("collection");
    BSONObj obj3;
@@ -417,17 +411,14 @@ TEST(logWrapperTest, recordAll_1)
                         obj3, mergeInfo);
    wrapper.writeData( mergeInfo ) ;
 
-   /////
    string name4("recordScrt_1");
    wrapper.recordCScrt(name4.c_str(), 4096, mergeInfo );
    wrapper.writeData( mergeInfo ) ;
 
-   /////
    string name5("recordSdel_1");
    wrapper.recordCSdel(name5.c_str(), mergeInfo);
    wrapper.writeData( mergeInfo ) ;
 
-   /////
    UINT64 len1 = ossRoundUpToMultipleX(sizeof(dpsLogInfo) + strlen(name1.c_str())+1 +strlen(clname1.c_str())+1+ obj1.objsize(), sizeof(SINT32));
    UINT64 len2 = ossRoundUpToMultipleX(sizeof(dpsLogInfo) + strlen(name2.c_str())+1 +strlen(clname2.c_str())+1+
                                        oldMatch.objsize()+obj2.objsize()+newMatch.objsize()+obj2_1.objsize(), sizeof(SINT32));
@@ -454,7 +445,6 @@ TEST(logWrapperTest, recordAll_1)
    ASSERT_TRUE(read == (SINT64)len);
 
 
-   ///
    _dpsLogInfo *info = (_dpsLogInfo *)buf;
    ASSERT_TRUE(info->_lsn == 0);
    ASSERT_TRUE(info->_length == len1 );
@@ -470,7 +460,6 @@ TEST(logWrapperTest, recordAll_1)
    BSONObj objData1(buf);
    ASSERT_TRUE(0 == obj1.woCompare(objData1));
 
-   /////
    buf = start + len1;
    info = (_dpsLogInfo *)buf;
    ASSERT_TRUE(info->_lsn == len1); cout << info->_lsn << " " << len1 << endl; 
@@ -490,7 +479,6 @@ TEST(logWrapperTest, recordAll_1)
    BSONObj objData2(buf);
    ASSERT_TRUE(0 == obj2.woCompare(objData2));
 
-   /////
    buf = start + len1 + len2;
    info = (_dpsLogInfo *)buf;
    ASSERT_TRUE(info->_lsn == len1+len2);
@@ -505,7 +493,6 @@ TEST(logWrapperTest, recordAll_1)
    ASSERT_TRUE( SDB_OK == rc );
    buf += strlen(name3.c_str())+1+strlen(clname3.c_str())+1;
 
-   /////
    buf = start + len1 + len2 + len3;
    info = (_dpsLogInfo *)buf;
    ASSERT_TRUE(info->_lsn == len1+len2+len3);
@@ -517,7 +504,6 @@ TEST(logWrapperTest, recordAll_1)
    rc = ossStrncmp(name4.c_str(), buf, strlen(name4.c_str())+1 );
    ASSERT_TRUE( SDB_OK == rc );
 
-   /////
    buf = start + len1 + len2 + len3 + len4;
    info = (_dpsLogInfo *)buf;
    ASSERT_TRUE(info->_lsn == len1+len2+len3+len4);
@@ -572,8 +558,6 @@ TEST(dpsReplicaLogMgrTest, search_index_1)
          break ;
       _dpsLogInfo *info = (_dpsLogInfo *)(mb.offset(0));
       ASSERT_TRUE(SDB_OK == rc);
-      //cout << info->_lsn << " " << info->_length << " " << info->_type << " "
-      //     << info->_namelen << endl;
       ASSERT_TRUE(info->_lsn == lsn.offset);
       ASSERT_TRUE(info->_version == lsn.version );
       if ( info->_type != LOG_TYPE_DUMMY )
@@ -634,8 +618,6 @@ TEST(dpsReplicaLogMgrTest, search_index_2)
          break ;
       _dpsLogInfo *info = (_dpsLogInfo *)(mb.offset(0));
       ASSERT_TRUE(SDB_OK == rc);
-      //cout << info->_lsn << " " << info->_length << " " << info->_type << " "
-      //     << info->_namelen << endl;
       ASSERT_TRUE(info->_lsn == lsn.offset);
       ASSERT_TRUE(info->_version == lsn.version);
       if ( info->_type != LOG_TYPE_DUMMY )
@@ -697,14 +679,11 @@ TEST(dpsReplicaLogMgrTest, search_file_1)
    INT32 count = 0 ;
    while ( TRUE )
    {
-//      cout << i << endl;
       rc = wrapper.search(lsn, &mb, DPS_SEARCH_FILE);
       if ( SDB_DPS_LSN_OUTOFRANGE == rc )
          break ;
       _dpsLogInfo *info = (_dpsLogInfo *)(mb.offset(0));
       ASSERT_TRUE(SDB_OK == rc);
-      //cout << info->_lsn << " " << info->_length << " " << info->_type << " "
-      //     << info->_namelen << endl;
       ASSERT_TRUE(info->_lsn == lsn.offset);
       ASSERT_TRUE(info->_version == lsn.version);
       if ( info->_type != LOG_TYPE_DUMMY )
@@ -758,7 +737,6 @@ TEST(dpsLogFileMgrTest, search_file_2)
    DEACTIVE_THREAD
    cout << "insert done" << endl;
    _dpsMessageBlock mb(len);
-   // get the earliest lsn on disk
    DPS_LSN lsn = wrapper.getStartLsn () ;
    INT32 count = 0 ;
    INT32 rc = SDB_OK ;
@@ -769,8 +747,6 @@ TEST(dpsLogFileMgrTest, search_file_2)
          break ;
       _dpsLogInfo *info = (_dpsLogInfo *)(mb.offset(0));
       ASSERT_TRUE(SDB_OK == rc);
-      //cout << info->_lsn << " " << info->_length << " " << info->_type << " "
-      //     << info->_namelen << endl;
       ASSERT_TRUE(info->_lsn == lsn.offset);
       ASSERT_TRUE(info->_version == lsn.version);
       if ( info->_type != LOG_TYPE_DUMMY )

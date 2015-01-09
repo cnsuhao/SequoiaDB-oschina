@@ -42,8 +42,6 @@ namespace engine
 {
    _dpsLogPage::_dpsLogPage()
    {
-   //   _dpsLogPage( DPS_DEFAULT_PAGE_SIZE );
-      // delete in destructor
       _mb = SDB_OSS_NEW _dpsMessageBlock( DPS_DEFAULT_PAGE_SIZE );
       if ( NULL == _mb )
       {
@@ -55,7 +53,6 @@ namespace engine
 
    _dpsLogPage::_dpsLogPage( UINT32 size )
    {
-      // delete in destructor
       _mb = SDB_OSS_NEW _dpsMessageBlock( size );
       if ( NULL == _mb )
       {
@@ -89,12 +86,10 @@ namespace engine
    }
 
 /*
-   // insert something into the log page
    INT32 _dpsLogPage::insert( const CHAR *src, UINT32 len )
    {
       INT32 rc = SDB_OK;
       UINT64 offset = 0;
-      // preallocate space from the page
       rc = allocate( len, offset );
       if ( rc )
       {
@@ -103,7 +98,6 @@ namespace engine
                  len, offset, rc ) ;
          goto error;
       }
-      // fill up the data into given offset
       rc = fill( offset, src, len );
       if ( rc )
       {
@@ -117,7 +111,6 @@ namespace engine
       goto done ;
    }
 */
-   // fill up data into log page
    PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGPAGE, "_dpsLogPage::fill" )
    INT32 _dpsLogPage::fill( UINT32 offset, const CHAR *src, UINT32 len )
    {
@@ -142,7 +135,6 @@ namespace engine
       goto done ;
    }
 
-   // reserve space from a given page
    PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGPAGE2, "_dpsLogPage::allocate" )
    INT32 _dpsLogPage::allocate( UINT32 len )
    {
@@ -159,9 +151,7 @@ namespace engine
             goto error ;
          }
       }
-      // make sure we get enough space
       SDB_ASSERT ( getLastSize() >= len, "len is greater than buffer size" ) ;
-      // change current writing position
       _mb->writePtr( len + _mb->length() );
 
    done :
@@ -171,7 +161,6 @@ namespace engine
       goto done ;
    }
 
-   // allocate and return the offset
    INT32 _dpsLogPage::allocate( UINT32 len, UINT64 &offset )
    {
       offset = getLength();

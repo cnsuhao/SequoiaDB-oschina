@@ -97,6 +97,8 @@ namespace engine
                                          string &sdbPasswd, 
                                          string &sdbUserGroup ) ;
 
+         INT32           _getQueryPara( BSONObj &selector, BSONObj &matcher,
+                                        BSONObj order, BSONObj hint) ;
          INT32           _queryTable( const string &tableName, 
                                       const BSONObj &selector, 
                                       const BSONObj &matcher,
@@ -104,10 +106,13 @@ namespace engine
                                       const BSONObj &hint, SINT32 flag,
                                       SINT64 numSkip, SINT64 numReturn, 
                                       list<BSONObj> &records ) ;
+         string          _getLanguage() ;
+         void            _setFileLanguageSep() ;
 
       protected:
          restAdaptor*    _restAdaptor ;
          pmdRestSession* _restSession ;
+         string          _languageFileSep ;
    };
 
    class omLogoutCommand : public omAuthCommand
@@ -180,10 +185,6 @@ namespace engine
 
       public:
          virtual INT32   doCommand() ;
-
-      protected:
-         INT32           _getQueryPara( BSONObj &selector, BSONObj &matcher,
-                                        BSONObj order, BSONObj hint ) ;
    };
 
    struct omScanHostInfo
@@ -343,7 +344,6 @@ namespace engine
          virtual INT32   doCommand() ;
 
       protected:
-                         // overwrite
          INT32           _getRestHostList( string &clusterName, 
                                            list<BSONObj> &hostInfo ) ;
 
@@ -366,7 +366,6 @@ namespace engine
          INT32           _getPacketFullPath( char *path ) ;
          INT32           _checkHostExistence( list<BSONObj> &hostInfoList ) ;
 
-         //***********************
          INT32           _addHost2( const string &clusterName, 
                                     list<BSONObj> &hostInfoList, 
                                     UINT64 &taskID ) ;
@@ -374,7 +373,6 @@ namespace engine
                                                list<BSONObj> &hostInfoList, 
                                                BSONObj &conf ) ;
          INT32           _addHostByAgent( BSONObj &conf, UINT64 taskID ) ;
-         //************************
    };
 
    class omListHostCommand : public omCreateClusterCommand
@@ -391,10 +389,6 @@ namespace engine
          void            _sendHostInfo2Web( list<BSONObj> &hosts ) ;
 
       private:
-         INT32           _listHostByCluster( const string &cluster, 
-                                             list<BSONObj> &hosts ) ;
-         INT32           _listHostByBusiness( const string &business, 
-                                              list<BSONObj> &hosts ) ;
    } ;
 
    class omQueryHostCommand : public omListHostCommand
@@ -430,6 +424,8 @@ namespace engine
                                      BSONArrayBuilder &arrayBuilder ) ;
          BOOLEAN        _isStringValue( ptree &pt ) ;
          BOOLEAN        _isArray( ptree &pt ) ;
+
+         INT32          _getBusinessList( list<BSONObj> &businessList ) ;
 
       protected:
          string          _rootPath ;

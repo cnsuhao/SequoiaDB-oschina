@@ -713,7 +713,6 @@ mparse_readfd(struct mparse *curp, int fd, const char *file)
 
 	if (-1 == fd)
 		if (-1 == (fd = open(file, O_RDONLY, 0))) {
-//			perror(file);
 			curp->file_status = MANDOCLEVEL_SYSERR;
 			goto out;
 		}

@@ -70,8 +70,6 @@ namespace engine
                     const BSONElement *&out,
                     BOOLEAN *pExisted = NULL ) ;
 
-      /// ensure that obj will not be released until
-      /// u do not use this var or set a new value.
       INT32 setVar( const varItem &item,
                     const BSONObj &obj ) ;
 

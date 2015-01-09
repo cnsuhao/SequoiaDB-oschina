@@ -335,7 +335,6 @@ void RCGen::genWeb ()
    {
       string first = codelist[i].first ;
       string second = codelist[i].second ;
-      // replace all "$" to "\$" for web
       first = replace_all ( first, "$", "\\$" ) ;
       second = replace_all ( second, "$", "\\$" ) ;
       fout << setw(6) << -(i+1) << " => \"" << first << ": " << second << "\"" ;
@@ -407,10 +406,7 @@ void RCGen::genDoc ()
    {
       cout << "can't open file: " << docpath << endl ;
       cout << "please ignore this error if it's github build" << endl ;
-      // return instead of exit with -1
-      // because in github build we don't have doc anymore
       return ;
-      // exit (-1) ;
    }
 
    fout << std::left ;

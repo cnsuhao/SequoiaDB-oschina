@@ -99,7 +99,6 @@ const UINT32 RTN_LOOP_WRITE_LEN = DMS_PAGE_SIZE512K * 4 ;
       SDB_ASSERT( 0 <= offset && NULL != data, "invalid arguments" ) ;
       SDB_ASSERT( _writeData.empty(), "the last write has not been done" ) ;
       
-      /// TOOD: seek write ?
       if ( offset != _curOffset )
       {
          PD_LOG( PDERROR, "invalid offset:%lld, current offset:%lld"
@@ -109,7 +108,6 @@ const UINT32 RTN_LOOP_WRITE_LEN = DMS_PAGE_SIZE512K * 4 ;
          goto error ;
       }
 
-      /// never cached data
       if ( 0 == _cachedSz )
       {
          _writeData.tuple.columns.offset = offset ;
@@ -119,7 +117,6 @@ const UINT32 RTN_LOOP_WRITE_LEN = DMS_PAGE_SIZE512K * 4 ;
       }
       else
       {
-         /// join cached data and write data.
          SDB_ASSERT( _cachedSz < _pageSize, "impossible" ) ;
          INT32 mvSize = _pageSize - _cachedSz ;
          mvSize = ( UINT32 )mvSize <= len ? mvSize : len ;
@@ -193,13 +190,11 @@ const UINT32 RTN_LOOP_WRITE_LEN = DMS_PAGE_SIZE512K * 4 ;
          }
          else
          {
-            /// cache data
             goto done ;
          }
       }
       else if ( _pageSize == _cachedSz )
       {
-         /// we should find the exact offset.
          SINT64 offset = _writeData.empty() ?
                          _curOffset : _writeData.tuple.columns.offset ;
          t.columns.len = _cachedSz ;
@@ -289,7 +284,6 @@ const UINT32 RTN_LOOP_WRITE_LEN = DMS_PAGE_SIZE512K * 4 ;
          UINT32 lenOfTuple = _pageSize - offsetOfTuple ;
          if ( ( lobLen - currentOffset ) < lenOfTuple )
          {
-            /// we want to read a whole piece unless hit the end of lob.
             lenOfTuple = lobLen - currentOffset ;
          }
 

@@ -20,7 +20,6 @@ import org.bson.io.Bits;
 import org.bson.types.ObjectId;
 import static org.bson.BSON.*;
 
-// Java
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.DataInputStream;
@@ -31,7 +30,6 @@ import java.io.UnsupportedEncodingException;
  */
 public class NewBSONDecoder implements BSONDecoder {
 
-    //@Override
     public BSONObject readObject(final byte [] pData) {
         _length = pData.length;
         final BasicBSONCallback c = new BasicBSONCallback();
@@ -39,9 +37,7 @@ public class NewBSONDecoder implements BSONDecoder {
         return (BSONObject)c.get();
    }
 
-    //@Override
     public BSONObject readObject(final InputStream pIn) throws IOException {
-        // Slurp in the data and convert to a byte array.
         _length = Bits.readInt(pIn);
 
         if (_data == null || _data.length < _length) {
@@ -53,7 +49,6 @@ public class NewBSONDecoder implements BSONDecoder {
         return readObject(_data);
     }
 
-    //@Override
     public int decode(final byte [] pData, final BSONCallback pCallback) {
         _data = pData;
         _pos = 4;
@@ -62,7 +57,6 @@ public class NewBSONDecoder implements BSONDecoder {
         return _length;
     }
 
-    //@Override
     public int decode(final InputStream pIn, final BSONCallback pCallback) throws IOException {
         _length = Bits.readInt(pIn);
 
@@ -209,7 +203,6 @@ public class NewBSONDecoder implements BSONDecoder {
             case STRING: {  _callback.gotString(name, readUtf8Str()); return true; }
 
             case OID: {
-                // OID is stored as big endian
 
                 final int p1 = Bits.readIntBE(_data, _pos);
                 _pos += 4;

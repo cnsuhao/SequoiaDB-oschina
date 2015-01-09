@@ -69,13 +69,11 @@ namespace engine
       {
          SOCKET s ;
          rc = pListerner->accept ( &s, NULL, NULL ) ;
-         // if we don't get anything for a period of time, let's loop
          if ( SDB_TIMEOUT == rc || SDB_TOO_MANY_OPEN_FD == rc  )
          {
             rc = SDB_OK ;
             continue ;
          }
-         // if we receive error due to database down, we finish
          if ( rc && PMD_IS_DB_DOWN )
          {
             rc = SDB_OK ;
@@ -98,7 +96,6 @@ namespace engine
          cb->incEventCount() ;
          ++mondbcb->numConnects ;
 
-         // assign the socket to the arg
          void *pData = NULL ;
          *((SOCKET *) &pData) = s ;
 
@@ -109,8 +106,6 @@ namespace engine
             continue ;
          }
 
-         // now we have a tcp socket for a new connection, let's get an agent
-         // Note the new new socket sent passing to startEDU
          rc = eduMgr->startEDU ( EDU_TYPE_RESTAGENT, pData, &agentEDU ) ;
 
          if ( rc )
@@ -118,7 +113,6 @@ namespace engine
             PD_LOG( ( rc == SDB_QUIESCED ? PDWARNING : PDERROR ),
                     "Failed to start edu, rc: %d", rc ) ;
 
-            // close remote connection if we can't create new thread
             ossSocket newsock ( &s ) ;
             newsock.close () ;
             continue ;
@@ -158,8 +152,6 @@ namespace engine
       }
       else if ( SDB_ROLE_COORD == pmdGetDBRole() )
       {
-         //TODO: _CoordProcessor
-         //cb->setClientSock( &s ) ;
          _pmdCoordProcessor processor ;
          restSession.attachProcessor( &processor ) ;
          processor.attachSession( &restSession ) ;

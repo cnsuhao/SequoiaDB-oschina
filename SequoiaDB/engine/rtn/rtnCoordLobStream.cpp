@@ -190,7 +190,6 @@ namespace engine
              .appendBool( FIELD_NAME_LOB_IS_MAIN_SHD, FALSE ) ;
       if ( SDB_LOB_MODE_R == mode )
       {
-         /// send meta data to every group.
          builder.append( FIELD_NAME_LOB_META_DATA, _metaObj ) ;
       }
 
@@ -240,7 +239,6 @@ namespace engine
             goto error ;
          }
 
-         /// when retry is true, we need to close contexts on nodes those returned ok.
          rc = _addSubStreamsFromReply() ;
          if ( SDB_OK != rc )
          {
@@ -334,7 +332,6 @@ namespace engine
          else
          {
             continue ;
-            /// sth wrong happened, do again.
          }
       } while ( TRUE ) ;
 
@@ -534,7 +531,6 @@ namespace engine
       BOOLEAN reshard = TRUE ;
       MsgOpLob header ;
 
-      /// will reassign length
       _initHeader( header, MSG_BS_LOB_WRITE_REQ,
                    0, -1 ) ;
 
@@ -567,7 +563,6 @@ namespace engine
                continue ;
             }
 
-            /// we have pushed part of header to body.
             header.header.messageLength = sizeof( MsgHeader ) +
                                            dg.bodyLen ;
             header.contextID = dg.contextID ;
@@ -942,8 +937,6 @@ namespace engine
          }
          else
          {
-            /// here we only need to close opened sub streams.
-            /// do not reopen new streams.
             continue ;
          }
       } while ( TRUE ) ;
@@ -983,7 +976,6 @@ namespace engine
             PD_LOG( PDERROR, "failed to kill sub context on node[%d:%hd], rc:%d",
                     itr->second.id.columns.groupID,
                     itr->second.id.columns.nodeID, rc ) ;
-            /// try to rollback all substreams, so do not goto error.
          }
       }
 
@@ -1207,7 +1199,6 @@ namespace engine
          goto error ;
       }
 
-       /// TODO: rewrite this part when new coord session is done.
       while ( !replyQueue.empty() )
       {
          MsgOpReply *replyHeader = ( MsgOpReply * )( replyQueue.front() ) ;
@@ -1217,7 +1208,6 @@ namespace engine
 
          if ( SDB_OK == flag )
          {
-            /// replyHeader will be released by _clearMsgData()    
             _results.push_back( replyHeader ) ;
             continue ;
          }
@@ -1251,7 +1241,6 @@ namespace engine
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to refresh group info:%d", rc ) ;
-               /// do not goto error, we need to free replyHeader
             }
          }
          else if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == flag )
@@ -1264,7 +1253,6 @@ namespace engine
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to update catalog info:%d", rc ) ;
-               /// do not goto error, we need to free replyHeader
             }
          }
          else
@@ -1322,8 +1310,6 @@ namespace engine
 
       SDB_ASSERT( _subs.empty(), "impossible" ) ;
 
-      /// main stream was opened before, the meta piece may be synced
-      ///  to other group. we open all streams as normal.
       rc = _openOtherStreams( getFullName(), getOID(), _getMode(), cb ) ;
       if ( SDB_OK != rc )
       {
@@ -1427,7 +1413,6 @@ namespace engine
          }
       }
 
-      /// we need to keep reply msg in memory.
       {
       std::vector<MsgOpReply *>::const_iterator itr = _results.begin() ;
       for ( ; itr != _results.end(); ++itr )

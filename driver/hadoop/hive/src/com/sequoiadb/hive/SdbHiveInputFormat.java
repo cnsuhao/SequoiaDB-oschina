@@ -62,22 +62,6 @@ public class SdbHiveInputFormat extends
 			System.out.println(TableScanDesc.FILTER_TEXT_CONF_STR + "=" + filterTextSerialized);
 			
 			
-//			int useHiveApi_byUtilities = chooseHiveApi_byUtilities();
-//			
-//			switch( useHiveApi_byUtilities ){
-//			case 0 :
-//				//open source hive0.12 api support
-//				filterExpr = Utilities.deserializeExpression(
-//						filterExprSerialized, jobConf);
-//				break;
-//			case 1 : 
-//				//cloudera cdh5.0.0 beta2 hive0.12 api support
-//				filterExpr = Utilities.deserializeExpression(
-//						filterExprSerialized);
-//				break;	
-//			default : 
-//				break;
-//			}
 			
 			Method method=null;
 			
@@ -85,36 +69,27 @@ public class SdbHiveInputFormat extends
 				method=Utilities.class.getDeclaredMethod("deserializeExpression",String.class,Configuration.class);
 				filterExpr=(ExprNodeDesc) method.invoke(null, filterExprSerialized,jobConf);
 			} catch (SecurityException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (NoSuchMethodException e) {
 				try {
 					method=Utilities.class.getDeclaredMethod("deserializeExpression", String.class);
 					filterExpr=(ExprNodeDesc) method.invoke(null, filterExprSerialized);
 				} catch (SecurityException e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				} catch (NoSuchMethodException e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				} catch (IllegalArgumentException e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				} catch (IllegalAccessException e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				} catch (InvocationTargetException e1) {
-					// TODO Auto-generated catch block
 					e1.printStackTrace();
 				}
 			} catch (IllegalArgumentException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (IllegalAccessException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (InvocationTargetException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}	
 		}
@@ -161,20 +136,15 @@ public class SdbHiveInputFormat extends
 			findHiveVersion = true;
 			returnNum = 0;
 		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
-//			e.printStackTrace();
 			try {
 				Method method = Utilities.class.getDeclaredMethod("deserializeExpression", parameterTypes_cdh5_0_0beta2Hive);
 				findHiveVersion = true;
 				returnNum = 1;
 			} catch (SecurityException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			} catch (NoSuchMethodException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 			

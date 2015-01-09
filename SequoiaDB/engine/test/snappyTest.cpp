@@ -96,7 +96,6 @@ namespace po = boost::program_options ;
        ( COMMANDS_STRING(OPTION_NUMRECORDS, ",r"), boost::program_options::value<int>(), "number of records" ) \
        ( COMMANDS_STRING(OPTION_COMPRESS, ",p"), boost::program_options::value<std::string>(), "compress the record or not(default no)" )
 
-// define the number of occurance in each layer for each data type
 INT32 gNumDouble    = 1 ;
 INT32 gNumString    = 1 ;
 INT32 gNumObject    = 1 ;
@@ -128,11 +127,8 @@ INT32 bsonAddField ( INT32 level, INT32 &fieldID, BSONType type,
 {
    INT32 rc = SDB_OK ;
    CHAR fieldBuffer[FIELD_NAME_LEN] = {0} ;
-   // if we hit end of loop, let's exit
-   // note special case for Object and Array type, we exit at level 1
    if ( 0 == level )
       goto done ;
-   // build field name by prefix+id for obj, or id for array
    if ( !isArray )
    {
       ossStrcpy ( fieldBuffer, FIELD_NAME_PREFIX ) ;
@@ -171,7 +167,6 @@ INT32 bsonAddField ( INT32 level, INT32 &fieldID, BSONType type,
       case Object :
       {
          BSONObj obj ;
-         // for object and array, we exit when level = 1
          if ( 1 >= level )
             goto done ;
          obj = bsonGen ( level - 1, fieldID, FALSE ) ;
@@ -269,7 +264,6 @@ BSONObj bsonGen ( INT32 level, INT32 &fieldID, BOOLEAN isArray )
    BSONObjBuilder ob ;
    BSONObj emptyObj ;
    vector<BSONType> fieldList ;
-   // build all field types we need to generate
    for ( INT32 i = 0; i < gNumDouble; ++i )
       fieldList.push_back(NumberDouble) ;
    for ( INT32 i = 0; i < gNumString; ++i )
@@ -359,7 +353,6 @@ INT32 testUncompress ( BOOLEAN compress )
    pCurrent = pAddress ;
    if ( compress )
    {
-      // read first record and calcualte the size of uncompress buffer
       rc = GetUncompressedLength ( pCurrent+4, 5,
                                    &uncompressedLength ) ;
       if ( FALSE == rc )
@@ -368,9 +361,6 @@ INT32 testUncompress ( BOOLEAN compress )
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // estimate the uncompressed length and double the buffer
-      // since all records should have similar buffer size, let's hope double
-      // the buffer will be large enough for all rest of data
       pUncompressedBuffer = (CHAR*)SDB_OSS_MALLOC(uncompressedLength*2 ) ;
       if ( !pUncompressedBuffer )
       {
@@ -380,7 +370,6 @@ INT32 testUncompress ( BOOLEAN compress )
          goto error ;
       }
    }
-   // record timestamp before loop
    tk1.sample () ;
    while ( (UINT64)pCurrent - (UINT64)pAddress < fileSize )
    {
@@ -456,7 +445,6 @@ INT32 testCompress ( INT32 bsonLevel, INT32 loopRound, BOOLEAN compress )
       goto error ;
    }
 
-   // record timestamp before loop
    tk1.sample () ;
    for ( INT32 i = 0; i < loopRound; ++i )
    {

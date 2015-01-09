@@ -1,4 +1,3 @@
-// @file time_support.h
 
 /*    Copyright 2010 10gen Inc.
  *
@@ -40,8 +39,6 @@ namespace bson {
 #endif
     }
 
-    // uses ISO 8601 dates without trailing Z
-    // colonsOk should be false when creating filenames
     inline string terseCurrentTime(bool colonsOk=true) {
         struct tm t;
         time_t_to_Struct( time(0) , &t );
@@ -59,7 +56,6 @@ namespace bson {
         return now.date();
     }
 
-    // parses time of day in "hh:mm" format assuming 'hh' is 00-23
     inline bool toPointInTime( const string& str , boost::posix_time::ptime*
       timeOfDay ) {
         int hh = 0;
@@ -68,7 +64,6 @@ namespace bson {
             return false;
         }
 
-        // verify that time is well formed
         if ( ( hh / 24 ) || ( mm / 60 ) ) {
             return false;
         }
@@ -165,10 +160,6 @@ namespace bson {
     }
 #endif
 
-    // // note this wraps
-    // inline int tdiff(unsigned told, unsigned tnew) {
-    //     return WrappingInt::diff(tnew, told);
-    // }
 
     /** curTimeMillis will overflow - use curTimeMicros64 instead if you care
         about that. */
@@ -194,7 +185,6 @@ namespace bson {
         return (((unsigned long long) xt.sec) * 1000000) + t;
     }
 
-    // measures up to 1024 seconds.  or, 512 seconds with tdiff that is...
     inline unsigned curTimeMicros() {
         boost::xtime xt;
         boost::xtime_get(&xt, boost::TIME_UTC_);
@@ -227,7 +217,6 @@ namespace bson {
         }
 
         unsigned long long micros(unsigned long long & n) const {
-            // returns cur time in addition to timer result
             n = curTimeMicros64();
             return n - old;
         }

@@ -73,22 +73,16 @@ namespace engine
       dpsTransCBLockInfo *pLockInfo = NULL;
       BOOLEAN isIXLocked = FALSE;
 
-      // get intention-lock at first
-      // it is not need to get intention-lock while lock space
       if ( lockId._collectionID != DMS_INVALID_MBID )
       {
          iLockId = lockId ;
          if ( lockId._recordOffset != DMS_INVALID_OFFSET )
          {
-            // lock a record,
-            // intent to get collection IX-LOCK at first
             iLockId._recordExtentID = DMS_INVALID_EXTENT;
             iLockId._recordOffset = DMS_INVALID_OFFSET;
          }
          else
          {
-            // lock collection,
-            // intent to get space IX-LOCK at first
             iLockId._collectionID = DMS_INVALID_MBID;
          }
          rc = acquireIX( eduCB, iLockId);
@@ -100,21 +94,15 @@ namespace engine
          isIXLocked = TRUE;
       }
 
-      // search in self-educb,
-      // it means got the lock if found
       pLockInfo = eduCB->getTransLock( lockId );
       if ( pLockInfo != NULL && pLockInfo->isLockMatch( DPS_TRANSLOCK_X ))
       {
-         // if lock-type is matched,
-         // then increase reference and return success
          pLockInfo->incRef();
          goto done;
       }
 
       if ( pLockInfo )
       {
-         // got the lock, but lock-level is not match.
-         // try to upgrade lock-level
          rc = upgrade( eduCB, lockId, pLockInfo, DPS_TRANSLOCK_X );
          if ( SDB_OK == rc )
          {
@@ -123,8 +111,6 @@ namespace engine
       }
       else
       {
-         // try to get X-Lock
-         // search in lock-bucket-list
          rc = getBucket( lockId, pLockBucket );
          PD_RC_CHECK( rc, PDERROR, "Failed to get the lock-bucket, "
                       "get X-lock failed(rc=%d)", rc );
@@ -161,22 +147,16 @@ namespace engine
       dpsTransCBLockInfo *pLockInfo = NULL;
       BOOLEAN isISLocked = FALSE;
 
-      // get intention-lock at first
-      // it is not need to get intention-lock while lock space
       if ( lockId._collectionID != DMS_INVALID_MBID )
       {
          iLockId = lockId ;
          if ( lockId._recordOffset != DMS_INVALID_OFFSET )
          {
-            // lock a record,
-            // intent to get collection IS-LOCK at first
             iLockId._recordExtentID = DMS_INVALID_EXTENT;
             iLockId._recordOffset = DMS_INVALID_OFFSET;
          }
          else
          {
-            // lock collection,
-            // intent to get space IS-LOCK at first
             iLockId._collectionID = DMS_INVALID_MBID;
          }
          rc = acquireIS( eduCB, iLockId);
@@ -186,21 +166,15 @@ namespace engine
          isISLocked = TRUE;
       }
 
-      // search in self-educb at first,
-      // it means got the lock if found
       pLockInfo = eduCB->getTransLock( lockId );
       if ( pLockInfo != NULL && pLockInfo->isLockMatch( DPS_TRANSLOCK_S ))
       {
-         // if lock-type is matched,
-         // then increase reference and return success
          pLockInfo->incRef();
          goto done;
       }
 
       if ( pLockInfo )
       {
-         // got the lock, but lock-level is not match.
-         // try to upgrade lock-level
          rc = upgrade( eduCB, lockId, pLockInfo, DPS_TRANSLOCK_S );
          if ( SDB_OK == rc )
          {
@@ -209,8 +183,6 @@ namespace engine
       }
       else
       {
-         // try to get S-Lock
-         // search in lock-bucket-list
          rc = getBucket( lockId, pLockBucket );
          PD_RC_CHECK( rc, PDERROR, "Failed to get the lock-bucket, "
                       "get S-lock failed(rc=%d)", rc );
@@ -251,7 +223,6 @@ namespace engine
       dpsTransCBLockInfo *pLockInfo = NULL;
       BOOLEAN isISLocked = FALSE;
 
-      // lock collection, get IS-Lock of space at first
       if ( lockId._collectionID != DMS_INVALID_MBID )
       {
          isLockId._logicCSID = lockId._logicCSID;
@@ -261,21 +232,15 @@ namespace engine
          isISLocked = TRUE;
       }
 
-      // search in self-educb,
-      // it means got the lock if found
       pLockInfo = eduCB->getTransLock( lockId );
       if ( pLockInfo != NULL && pLockInfo->isLockMatch( DPS_TRANSLOCK_IX ))
       {
-         // if lock-type is matched,
-         // then increase reference and return success
          pLockInfo->incRef();
          goto done;
       }
 
       if ( pLockInfo )
       {
-         // got the lock, but lock-level is not match
-         // try to upgrade lock-level
          rc = upgrade( eduCB, lockId, pLockInfo, DPS_TRANSLOCK_IX );
          if ( SDB_OK == rc )
          {
@@ -284,12 +249,10 @@ namespace engine
       }
       else
       {
-         // search in lock-bucket-list
          rc = getBucket( lockId, pLockBucket );
          PD_RC_CHECK( rc, PDERROR, "Failed to get the lock-bucket, "
                       "get IX-lock failed(rc=%d)", rc );
 
-         // get IX-lock
          eduCB->addLockInfo( lockId, DPS_TRANSLOCK_IX );
          rc = pLockBucket->acquire( eduCB, lockId, DPS_TRANSLOCK_IX );
          if ( rc )
@@ -327,7 +290,6 @@ namespace engine
       dpsTransCBLockInfo *pLockInfo = NULL;
       BOOLEAN isISLocked = FALSE;
 
-      // lock collection, get IS-Lock of space at first
       if ( lockId._collectionID != DMS_INVALID_MBID )
       {
          sLockId._logicCSID = lockId._logicCSID;
@@ -337,22 +299,17 @@ namespace engine
          isISLocked = TRUE;
       }
 
-      // search in self-educb,
-      // it means got the lock if found
       pLockInfo = eduCB->getTransLock( lockId );
       if ( pLockInfo != NULL )
       {
-         // if lock-type is matched then return success
          pLockInfo->incRef();
          goto done;
       }
 
-      // search in lock-bucket-list
       rc = getBucket( lockId, pLockBucket );
       PD_RC_CHECK( rc, PDERROR, "Failed to get the lock-bucket, "
                    "get IS-lock failed(rc=%d)", rc );
 
-      // get IS-lock
       eduCB->addLockInfo( lockId, DPS_TRANSLOCK_IS );
       rc = pLockBucket->acquire( eduCB, lockId, DPS_TRANSLOCK_IS );
       if ( rc )
@@ -385,8 +342,6 @@ namespace engine
       dpsTransCBLockInfo *pLockInfo = NULL;
       INT64 lockRef = 0;
 
-      // get local lock-info and
-      // decrease the reference of lock
       pLockInfo = eduCB->getTransLock( lockId );
       PD_CHECK( pLockInfo, SDB_OK, done, PDWARNING,
                 "duplicate release lock(%s)",
@@ -394,7 +349,6 @@ namespace engine
       lockRef = pLockInfo->decRef();
       if ( lockRef <= 0 )
       {
-         // release lock in bucket at first
          rc = getBucket( lockId, pLockBucket );
          if ( rc )
          {
@@ -406,27 +360,21 @@ namespace engine
             pLockBucket->release( eduCB, lockId );
          }
 
-         // delete local lock-info
          eduCB->delLockInfo( lockId );
          pLockInfo = NULL;
       }
 
-      // release the intention-lock
       if ( lockId._collectionID != DMS_INVALID_MBID )
       {
          iLockId = lockId;
          if ( lockId._recordOffset != DMS_INVALID_OFFSET )
          {
-            // locked a record,
-            // release the collection's intention-lock
             iLockId._recordExtentID = DMS_INVALID_EXTENT;
             iLockId._recordOffset = DMS_INVALID_OFFSET;
             release( eduCB, iLockId );
          }
          else
          {
-            // locked a collection,
-            // release the space's S-LOCK
             iLockId._collectionID = DMS_INVALID_MBID;
             release( eduCB, iLockId );
          }
@@ -457,7 +405,6 @@ namespace engine
          {
             pLockBucket->release( eduCB, iterLst->first );
          }
-         // delete local lock-info
          SDB_OSS_DEL iterLst->second;
          pLockLst->erase( iterLst++ );
       }
@@ -476,16 +423,13 @@ namespace engine
       DPS_TRANSLOCK_TYPE lastLockType;
       dpsLockBucket *pLockBucket = NULL;
 
-      // check if valid upgrade.
       rc = upgradeCheck( pLockInfo->getType(), lockType );
-      //SDB_ASSERT ( SDB_OK == rc, "lock upgrade is illegal" );
       PD_RC_CHECK( rc, PDERROR, "Upgrade lock failed(rc=%d)", rc );
 
       rc = getBucket( lockId, pLockBucket );
       PD_RC_CHECK( rc, PDERROR, "Failed to get lock-bucket, upgrade lock "
                    "failed(rc=%d)", rc );
 
-      // upgrade lock-level
       lastLockType = pLockInfo->getType();
       pLockInfo->setType( lockType );
       rc = pLockBucket->upgrade( eduCB, lockId, lockType );
@@ -505,10 +449,6 @@ namespace engine
    INT32 dpsTransLock::upgradeCheck( DPS_TRANSLOCK_TYPE srcType,
                                      DPS_TRANSLOCK_TYPE dstType )
    {
-      // valid upgrade:
-      // IS--->IX
-      //  S--->X
-      // IS--->S
       if ( (dstType - srcType == 1 && srcType != DPS_TRANSLOCK_IX ) ||
            (dstType - srcType == 2 && dstType != DPS_TRANSLOCK_X ) )
       {
@@ -566,31 +506,22 @@ namespace engine
       dpsTransLockId iLockId;
       dpsTransCBLockInfo *pLockInfo = NULL;
 
-      // search in self-educb at first,
-      // it means got the lock if found
       pLockInfo = eduCB->getTransLock( lockId );
       if ( pLockInfo != NULL && pLockInfo->isLockMatch( DPS_TRANSLOCK_S ))
       {
-         // if lock-type is matched return ok
          goto done;
       }
 
-      // test intention-lock at first
-      // it is not need to get intention-lock while lock space
       if ( lockId._collectionID != DMS_INVALID_MBID )
       {
          iLockId = lockId ;
          if ( lockId._recordOffset != DMS_INVALID_OFFSET )
          {
-            // lock a record,
-            // intent to get collection IS-LOCK at first
             iLockId._recordExtentID = DMS_INVALID_EXTENT;
             iLockId._recordOffset = DMS_INVALID_OFFSET;
          }
          else
          {
-            // lock collection,
-            // intent to get space IS-LOCK at first
             iLockId._collectionID = DMS_INVALID_MBID;
          }
          rc = testIS( eduCB, iLockId );
@@ -601,14 +532,10 @@ namespace engine
 
       if ( pLockInfo )
       {
-         // got the lock, but lock-level is not match.
-         // try to upgrade lock-level
          rc = testUpgrade( eduCB, lockId, pLockInfo, DPS_TRANSLOCK_S );
       }
       else
       {
-         // try to get X-Lock
-         // search in lock-bucket-list
          rc = getBucket( lockId, pLockBucket );
          PD_RC_CHECK( rc, PDERROR, "Failed to test the lock-bucket, "
                       "get lock-bucket failed(rc=%d)", rc );
@@ -633,16 +560,13 @@ namespace engine
       INT32 rc = SDB_OK;
       dpsLockBucket *pLockBucket = NULL;
 
-      // check if valid upgrade.
       rc = upgradeCheck( pLockInfo->getType(), lockType );
-      //SDB_ASSERT ( SDB_OK == rc, "lock upgrade is illegal" );
       PD_RC_CHECK( rc, PDERROR, "Upgrade lock failed(rc=%d)", rc );
 
       rc = getBucket( lockId, pLockBucket );
       PD_RC_CHECK( rc, PDERROR, "Failed to get lock-bucket, upgrade lock "
                    "failed(rc=%d)", rc );
 
-      // upgrade lock-level
       rc = pLockBucket->test( eduCB, lockId, lockType );
       PD_RC_CHECK( rc, PDERROR, "Upgrade lock failed(rc=%d)", rc ) ;
 
@@ -665,16 +589,12 @@ namespace engine
       dpsTransLockId sLockId;
       dpsTransCBLockInfo *pLockInfo = NULL;
 
-      // search in self-educb at first,
-      // it means got the lock if found
       pLockInfo = eduCB->getTransLock( lockId );
       if ( pLockInfo != NULL )
       {
-         // if lock-type is matched then return success
          goto done;
       }
 
-      // lock collection, test IS-Lock of space at first
       if ( lockId._collectionID != DMS_INVALID_MBID )
       {
          sLockId._logicCSID = lockId._logicCSID;
@@ -683,12 +603,10 @@ namespace engine
                       "test IS-lock failed(rc=%d)", rc );
       }
 
-      // search in lock-bucket-list
       rc = getBucket( lockId, pLockBucket );
       PD_RC_CHECK( rc, PDERROR, "Failed to get the lock-bucket, "
                    "test IS-lock failed(rc=%d)", rc );
 
-      // get IS-lock
       rc = pLockBucket->test( eduCB, lockId, DPS_TRANSLOCK_IS );
       PD_RC_CHECK( rc, PDINFO, "Failed to test the IS-lock(rc=%d)", rc );
 
@@ -708,31 +626,22 @@ namespace engine
       dpsTransLockId iLockId;
       dpsTransCBLockInfo *pLockInfo = NULL;
 
-      // search in self-educb at first,
-      // it means got the lock if found
       pLockInfo = eduCB->getTransLock( lockId );
       if ( pLockInfo != NULL && pLockInfo->isLockMatch( DPS_TRANSLOCK_X ))
       {
-         // if lock-type is matched then return success
          goto done;
       }
 
-      // test intention-lock at first
-      // it is not need to get intention-lock while lock space
       if ( lockId._collectionID != DMS_INVALID_MBID )
       {
          iLockId = lockId ;
          if ( lockId._recordOffset != DMS_INVALID_OFFSET )
          {
-            // lock a record,
-            // intent to get collection IX-LOCK at first
             iLockId._recordExtentID = DMS_INVALID_EXTENT;
             iLockId._recordOffset = DMS_INVALID_OFFSET;
          }
          else
          {
-            // lock collection,
-            // intent to get space S-LOCK at first
             iLockId._collectionID = DMS_INVALID_MBID;
          }
          rc = testIX( eduCB, iLockId);
@@ -743,14 +652,10 @@ namespace engine
 
       if ( pLockInfo )
       {
-         // got the lock, but lock-level is not match.
-         // try to upgrade lock-level
          rc = testUpgrade( eduCB, lockId, pLockInfo, DPS_TRANSLOCK_X );
       }
       else
       {
-         // try to get X-Lock
-         // search in lock-bucket-list
          rc = getBucket( lockId, pLockBucket );
          PD_RC_CHECK( rc, PDERROR, "Failed to get the lock-bucket, "
                       "test X-lock failed(rc=%d)", rc );
@@ -777,17 +682,12 @@ namespace engine
       dpsTransLockId sLockId;
       dpsTransCBLockInfo *pLockInfo = NULL;
 
-      // search in self-educb at first,
-      // it means got the lock if found
       pLockInfo = eduCB->getTransLock( lockId );
       if ( pLockInfo != NULL && pLockInfo->isLockMatch( DPS_TRANSLOCK_IX ))
       {
-         // if lock-type is matched,
-         // then increase reference and return success
          goto done;
       }
 
-      // get IS-Lock of space at first
       if ( lockId._collectionID != DMS_INVALID_MBID )
       {
          sLockId._logicCSID = lockId._logicCSID;
@@ -798,18 +698,14 @@ namespace engine
 
       if ( pLockInfo )
       {
-         // got the lock, but lock-level is not match
-         // try to upgrade lock-level
          rc = testUpgrade( eduCB, lockId, pLockInfo, DPS_TRANSLOCK_IX );
       }
       else
       {
-         // search in lock-bucket-list
          rc = getBucket( lockId, pLockBucket );
          PD_RC_CHECK( rc, PDERROR, "Failed to get the lock-bucket, "
                       "test IX-lock failed(rc=%d)", rc );
 
-         // test IX-lock
          rc = pLockBucket->test( eduCB, lockId, DPS_TRANSLOCK_IX );
       }
       PD_RC_CHECK( rc, PDINFO, "Failed to test the IX-lock(rc=%d)", rc );
@@ -831,22 +727,16 @@ namespace engine
       dpsTransCBLockInfo *pLockInfo = NULL;
       BOOLEAN isIXLocked = FALSE;
 
-      // get intention-lock at first
-      // it is not need to get intention-lock while lock space
       if ( lockId._collectionID != DMS_INVALID_MBID )
       {
          iLockId = lockId ;
          if ( lockId._recordOffset != DMS_INVALID_OFFSET )
          {
-            // lock a record,
-            // intent to get collection IX-LOCK at first
             iLockId._recordExtentID = DMS_INVALID_EXTENT;
             iLockId._recordOffset = DMS_INVALID_OFFSET;
          }
          else
          {
-            // lock collection,
-            // intent to get space S-LOCK at first
             iLockId._collectionID = DMS_INVALID_MBID;
          }
          rc = tryIX( eduCB, iLockId);
@@ -856,21 +746,15 @@ namespace engine
          isIXLocked = TRUE;
       }
 
-      // search in self-educb,
-      // it means got the lock if found
       pLockInfo = eduCB->getTransLock( lockId );
       if ( pLockInfo != NULL && pLockInfo->isLockMatch( DPS_TRANSLOCK_X ))
       {
-         // if lock-type is matched,
-         // then increase reference and return success
          pLockInfo->incRef();
          goto done;
       }
 
       if ( pLockInfo )
       {
-         // got the lock, but lock-level is not match.
-         // try to upgrade lock-level
          rc = tryUpgrade( eduCB, lockId, pLockInfo, DPS_TRANSLOCK_X );
          if ( SDB_OK == rc )
          {
@@ -879,8 +763,6 @@ namespace engine
       }
       else
       {
-         // try to get X-Lock
-         // search in lock-bucket-list
          rc = getBucket( lockId, pLockBucket );
          PD_RC_CHECK( rc, PDERROR, "Failed to get the lock-bucket, "
                       "get X-lock failed(rc=%d)", rc );
@@ -916,22 +798,16 @@ namespace engine
       dpsTransCBLockInfo *pLockInfo = NULL;
       BOOLEAN isISLocked = FALSE;
 
-      // get intention-lock at first
-      // it is not need to get intention-lock while lock space
       if ( lockId._collectionID != DMS_INVALID_MBID )
       {
          iLockId = lockId ;
          if ( lockId._recordOffset != DMS_INVALID_OFFSET )
          {
-            // lock a record,
-            // intent to get collection IS-LOCK at first
             iLockId._recordExtentID = DMS_INVALID_EXTENT;
             iLockId._recordOffset = DMS_INVALID_OFFSET;
          }
          else
          {
-            // lock collection,
-            // intent to get space S-LOCK at first
             iLockId._collectionID = DMS_INVALID_MBID;
          }
          rc = tryIS( eduCB, iLockId);
@@ -941,21 +817,15 @@ namespace engine
          isISLocked = TRUE;
       }
 
-      // search in self-educb at first,
-      // it means got the lock if found
       pLockInfo = eduCB->getTransLock( lockId );
       if ( pLockInfo != NULL && pLockInfo->isLockMatch( DPS_TRANSLOCK_S ))
       {
-         // if lock-type is matched,
-         // then increase reference and return success
          pLockInfo->incRef();
          goto done;
       }
 
       if ( pLockInfo )
       {
-         // got the lock, but lock-level is not match.
-         // try to upgrade lock-level
          rc = tryUpgrade( eduCB, lockId, pLockInfo, DPS_TRANSLOCK_S );
          if ( SDB_OK == rc )
          {
@@ -964,8 +834,6 @@ namespace engine
       }
       else
       {
-         // try to get S-Lock
-         // search in lock-bucket-list
          rc = getBucket( lockId, pLockBucket );
          PD_RC_CHECK( rc, PDERROR, "Failed to get the lock-bucket, "
                       "get S-lock failed(rc=%d)", rc );
@@ -1004,7 +872,6 @@ namespace engine
       dpsTransCBLockInfo *pLockInfo = NULL;
       BOOLEAN isISLocked = FALSE;
 
-      // get S-Lock of space at first
       if ( lockId._collectionID != DMS_INVALID_MBID )
       {
          sLockId._logicCSID = lockId._logicCSID;
@@ -1014,21 +881,15 @@ namespace engine
          isISLocked = TRUE;
       }
 
-      // search in self-educb,
-      // it means got the lock if found
       pLockInfo = eduCB->getTransLock( lockId );
       if ( pLockInfo != NULL && pLockInfo->isLockMatch( DPS_TRANSLOCK_IX ))
       {
-         // if lock-type is matched,
-         // then increase reference and return success
          pLockInfo->incRef();
          goto done;
       }
 
       if ( pLockInfo )
       {
-         // got the lock, but lock-level is not match
-         // try to upgrade lock-level
          rc = tryUpgrade( eduCB, lockId, pLockInfo, DPS_TRANSLOCK_IX );
          if ( SDB_OK == rc )
          {
@@ -1037,12 +898,10 @@ namespace engine
       }
       else
       {
-         // search in lock-bucket-list
          rc = getBucket( lockId, pLockBucket );
          PD_RC_CHECK( rc, PDERROR, "Failed to get the lock-bucket, "
                       "get IX-lock failed(rc=%d)", rc );
 
-         // get IX-lock
          eduCB->addLockInfo( lockId, DPS_TRANSLOCK_IX );
          rc = pLockBucket->tryAcquire( eduCB, lockId, DPS_TRANSLOCK_IX );
          if ( rc )
@@ -1076,7 +935,6 @@ namespace engine
       dpsTransCBLockInfo *pLockInfo = NULL;
       BOOLEAN isISLocked = FALSE;
 
-      // get IS-Lock of space at first
       if ( lockId._collectionID != DMS_INVALID_MBID )
       {
          sLockId._logicCSID = lockId._logicCSID;
@@ -1086,22 +944,17 @@ namespace engine
          isISLocked = TRUE;
       }
 
-      // search in self-educb,
-      // it means got the lock if found
       pLockInfo = eduCB->getTransLock( lockId );
       if ( pLockInfo != NULL )
       {
-         // if lock-type is matched then return success
          pLockInfo->incRef();
          goto done;
       }
 
-      // search in lock-bucket-list
       rc = getBucket( lockId, pLockBucket );
       PD_RC_CHECK( rc, PDERROR, "Failed to get the lock-bucket, "
                    "get IS-lock failed(rc=%d)", rc );
 
-      // get IS-lock
       eduCB->addLockInfo( lockId, DPS_TRANSLOCK_IS );
       rc = pLockBucket->tryAcquire( eduCB, lockId, DPS_TRANSLOCK_IS );
       if ( rc )
@@ -1132,16 +985,13 @@ namespace engine
       DPS_TRANSLOCK_TYPE lastLockType;
       dpsLockBucket *pLockBucket = NULL;
 
-      // check if valid upgrade.
       rc = upgradeCheck( pLockInfo->getType(), lockType );
-      //SDB_ASSERT ( SDB_OK == rc, "lock upgrade is illegal" );
       PD_RC_CHECK( rc, PDERROR, "Upgrade lock failed(rc=%d)", rc );
 
       rc = getBucket( lockId, pLockBucket );
       PD_RC_CHECK( rc, PDERROR, "Failed to get lock-bucket, upgrade lock "
                    "failed(rc=%d)", rc );
 
-      // upgrade lock-level
       lastLockType = pLockInfo->getType();
       pLockInfo->setType( lockType );
       rc = pLockBucket->tryAcquire( eduCB, lockId, lockType );
@@ -1168,16 +1018,13 @@ namespace engine
       DPS_TRANSLOCK_TYPE lastLockType;
       dpsLockBucket *pLockBucket = NULL;
 
-      // check if valid upgrade.
       rc = upgradeCheck( pLockInfo->getType(), lockType );
-      //SDB_ASSERT ( SDB_OK == rc, "lock upgrade is illegal" );
       PD_RC_CHECK( rc, PDERROR, "Upgrade lock failed(rc=%d)", rc );
 
       rc = getBucket( lockId, pLockBucket );
       PD_RC_CHECK( rc, PDERROR, "Failed to get lock-bucket, upgrade lock "
                    "failed(rc=%d)", rc );
 
-      // upgrade lock-level
       lastLockType = pLockInfo->getType();
       pLockInfo->setType( lockType );
       rc = pLockBucket->tryAcquireOrAppend( eduCB, lockId, lockType, TRUE );
@@ -1215,8 +1062,6 @@ namespace engine
       dpsTransLockId iLockId;
       dpsTransCBLockInfo *pLockInfo = NULL;
 
-      // get collection IX-LOCK at first
-      // it is not need to get intention-lock while lock space
       iLockId = lockId ;
       iLockId._recordExtentID = DMS_INVALID_EXTENT;
       iLockId._recordOffset = DMS_INVALID_OFFSET;
@@ -1224,21 +1069,15 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get the intention-lock, "
                    "get X-lock failed(rc=%d)", rc );
 
-      // search in self-educb,
-      // it means got the lock if found
       pLockInfo = eduCB->getTransLock( lockId );
       if ( pLockInfo != NULL && pLockInfo->isLockMatch( DPS_TRANSLOCK_X ))
       {
-         // if lock-type is matched,
-         // then increase reference and return success
          pLockInfo->incRef();
          goto done;
       }
 
       if ( pLockInfo )
       {
-         // got the lock, but lock-level is not match.
-         // try to upgrade lock-level
          rc = tryUpgradeOrAppendHead( eduCB, lockId, pLockInfo, DPS_TRANSLOCK_X );
          if ( SDB_OK == rc )
          {
@@ -1247,8 +1086,6 @@ namespace engine
       }
       else
       {
-         // try to get X-Lock
-         // search in lock-bucket-list
          rc = getBucket( lockId, pLockBucket );
          PD_CHECK( SDB_OK == rc, rc, errorclear, PDERROR,
                    "Failed to get the lock-bucket, get X-lock failed(rc=%d)",

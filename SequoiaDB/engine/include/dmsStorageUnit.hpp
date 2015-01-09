@@ -140,7 +140,6 @@ namespace engine
                             _monIndex &resultIndex,
                             dmsMBContext *context = NULL ) ;
 
-      // only for LOAD
       public:
          OSS_INLINE void    mapExtent2DelList( dmsMB * mb, dmsExtent * extAddr,
                                            SINT32 extentID ) ;
@@ -152,7 +151,6 @@ namespace engine
 
          OSS_INLINE void    addExtentRecordCount( dmsMB *mb, UINT32 count ) ;
 
-      // for dmsCB
       protected:
          OSS_INLINE void  _setLogicalCSID( UINT32 logicalID ) ;
 
@@ -225,13 +223,11 @@ namespace engine
                                                UINT32 newAttributes,
                                                dmsMBContext *context = NULL ) ;
 
-         //loadExtentA is not init extent records
          INT32    loadExtentA ( dmsMBContext *mbContext, const CHAR *pBuffer,
                                 UINT16 numPages, const BOOLEAN toLoad = FALSE,
                                 SINT32 *allocatedExtent = NULL,
                                 dmsExtent **tExtAddr = NULL ) ;
 
-         //loadExtent will init extent records
          INT32    loadExtent ( dmsMBContext *mbContext, const CHAR *pBuffer,
                                UINT16 numPages ) ;
 

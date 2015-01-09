@@ -206,9 +206,6 @@ static void local_time ( time_t *Time, struct tm *TM )
 #if defined (__linux__ )
    localtime_r( Time, TM ) ;
 #elif defined (_WIN32)
-   // The Time represents the seconds elapsed since midnight (00:00:00),
-   // January 1, 1970, UTC. This value is usually obtained from the time
-   // function.
    localtime_s( TM, Time ) ;
 #endif
 }
@@ -222,7 +219,6 @@ static INT32 strlen_a ( const CHAR *data )
    }
    while ( data && *data )
    {
-      //the JSON standard does not need to be escaped single quotation marks
       /*if ( data[0] == '\'' ||
            data[0] == '\"' ||
            data[0] == '\\' )*/
@@ -233,7 +229,6 @@ static INT32 strlen_a ( const CHAR *data )
            data[0] == '\n' ||
            data[0] == '\r' ||
            data[0] == '\t' )
-//         data[0] == '/' || )
       {
          ++len ;
       }
@@ -266,7 +261,6 @@ static void bsonConvertJsonRawConcat ( CHAR **pbuf, INT32 *left, const CHAR *dat
       {
          switch ( *data )
          {
-         //the JSON standard does not need to be escaped single quotation marks
          /*case '\'':
          {
            pTempBuf[i] = '\\' ;
@@ -524,7 +518,6 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
           * string */
          if ( toCSV )
          {
-            // we don't support BIN DATA in csv output
             break ;
          }
          bin_type = bson_iterator_bin_type( &i ) ;
@@ -632,7 +625,6 @@ static BOOLEAN bsonConvertJson ( CHAR **pbuf,
           * options string. */
          if ( toCSV )
          {
-            // we don't support CSV for regex
             break ;
          }
          bsonConvertJsonRawConcat ( pbuf, left, "{ \"$regex\": \"", FALSE ) ;
@@ -1227,7 +1219,6 @@ BOOLEAN bsonToJson ( CHAR *buffer, INT32 bufsize, const bson *b,
     INT32 leftsize = bufsize ;
     if ( bufsize <= 0 || !buffer || !b )
        return FALSE ;
-    //memset ( pbuf, 0, bufsize ) ;
     result = bsonConvertJson ( &pbuf, &leftsize, b->data, 1, toCSV, skipUndefined ) ;
     if ( !result || !leftsize )
        return FALSE ;

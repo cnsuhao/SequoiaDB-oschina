@@ -68,7 +68,6 @@ namespace engine
 
       job->attachOut () ;
 
-      // remove from job mgr
       jobMgr->_removeJob ( cb->getID(), rc ) ;
 
       PD_TRACE_EXITRC ( SDB_PMDBGJOBENTPNT, rc );

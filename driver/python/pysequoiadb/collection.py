@@ -308,8 +308,8 @@ class collection(object):
          pysequoiadb.error.SDBBaseError
       Info:
          flags : 0 or 1. 
-         0 : stop insertting record when an error occurred
-         1 : continue insertting records even though error occurred
+         0 : stop insertting when hit index key duplicate error
+         1 : continue insertting records even though index key duplicate error hit
       """
       if not isinstance(flags, int):
          raise SDBTypeError("flags must be an instance of int")
@@ -489,6 +489,8 @@ class collection(object):
       Exceptions:
          pysequoiadb.error.SDBTypeError
          pysequoiadb.error.SDBBaseError
+      Note:
+         sort will be ignored when sort key is not exist in result set
       """
 
       bson_condition = None

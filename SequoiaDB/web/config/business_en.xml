@@ -1,0 +1,6 @@
+<BusinessList type="array">
+        <FILLER>
+        	<BusinessType>sequoiadb</BusinessType>
+        	<BusinessDesc>database</BusinessDesc> 
+        </FILLER>
+</BusinessList>

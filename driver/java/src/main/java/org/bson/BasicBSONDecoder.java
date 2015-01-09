@@ -106,7 +106,6 @@ public class BasicBSONDecoder implements BSONDecoder {
         final int read = _in.numRead() - start;
 
         if ( read != len ){
-            //throw new IllegalArgumentException( "bad data.  lengths don't match " + read + " != " + len );
         }
 
         return len;
@@ -156,7 +155,6 @@ public class BasicBSONDecoder implements BSONDecoder {
             break;
 
         case OID:
-            // OID is stored as big endian
             _callback.gotObjectId( name , new ObjectId( _in.readIntBE() , _in.readIntBE() , _in.readIntBE() ) );
             break;
 
@@ -299,7 +297,6 @@ public class BasicBSONDecoder implements BSONDecoder {
         protected int _need( final int num )
                 throws IOException {
 
-            //System.out.println( "p: " + _pos + " l: " + _len + " want: " + num );
 
             if ( _len - _pos >= num ){
                 final int ret = _pos;
@@ -319,7 +316,6 @@ public class BasicBSONDecoder implements BSONDecoder {
                 _len = remaining;
             }
 
-            // read as much as possible into buffer
             int maxToRead = Math.min( _max - _read - remaining , _inputBuffer.length - _len );
             while ( maxToRead > 0 ){
                 int x = _raw.read( _inputBuffer , _len ,  maxToRead);
@@ -371,7 +367,6 @@ public class BasicBSONDecoder implements BSONDecoder {
 
         public void fill( byte b[] , int len )
                 throws IOException {
-            // first use what we have
             final int have = _len - _pos;
             final int tocopy = Math.min( len , have );
             System.arraycopy( _inputBuffer , _pos , b , 0 , tocopy );
@@ -400,7 +395,6 @@ public class BasicBSONDecoder implements BSONDecoder {
 
             boolean isAscii = true;
 
-            // short circuit 1 byte strings
             _random[0] = read();
             if (_random[0] == 0) {
                 return "";
@@ -442,7 +436,6 @@ public class BasicBSONDecoder implements BSONDecoder {
         public String readUTF8String()
                 throws IOException {
             final int size = readInt();
-            // this is just protection in case it's corrupted, to avoid huge strings
             if ( size <= 0 || size > MAX_STRING )
                 throw new BSONException( "bad string size: " + size );
 

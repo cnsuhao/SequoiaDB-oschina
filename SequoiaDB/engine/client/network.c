@@ -151,13 +151,11 @@ INT32 clientSend ( SOCKET sock, const CHAR *pMsg, INT32 len, INT32 timeout )
       FD_SET ( sock, &fds ) ;
       rc = select ( maxFD + 1, NULL, &fds, NULL,
                     timeout>=0?&maxSelectTime:NULL ) ;
-      // 0 means timeout
       if ( 0 == rc )
       {
          rc = SDB_TIMEOUT ;
          goto done ;
       }
-      // if < 0, means something wrong
       if ( 0 > rc )
       {
          rc = SOCKET_GETLASTERROR ;
@@ -169,14 +167,12 @@ INT32 clientSend ( SOCKET sock, const CHAR *pMsg, INT32 len, INT32 timeout )
 #endif
             == rc )
          {
-            // if we failed due to interrupt, let's continue
             continue ;
          }
          rc = SDB_NETWORK ;
          goto error ;
       }
 
-      // if the socket we interested is not receiving anything, let's continue
       if ( FD_ISSET ( sock, &fds ) )
       {
          break ;
@@ -216,20 +212,17 @@ INT32 clientRecv ( SOCKET sock, CHAR *pMsg, INT32 len, INT32 timeout )
       goto done ;
    maxSelectTime.tv_sec = timeout / 1000000 ;
    maxSelectTime.tv_usec = timeout % 1000000 ;
-   // wait loop until either we timeout or get a message
    while ( TRUE )
    {
       FD_ZERO ( &fds ) ;
       FD_SET ( sock, &fds ) ;
       rc = select ( maxFD + 1, &fds, NULL, NULL,
                     timeout>=0?&maxSelectTime:NULL ) ;
-      // 0 means timeout
       if ( 0 == rc )
       {
          rc = SDB_TIMEOUT ;
          goto done ;
       }
-      // if < 0, means something wrong
       if ( 0 > rc )
       {
          rc = SOCKET_GETLASTERROR ;
@@ -246,7 +239,6 @@ INT32 clientRecv ( SOCKET sock, CHAR *pMsg, INT32 len, INT32 timeout )
          rc = SDB_NETWORK ;
          goto error ;
       }
-      // if the socket is not receiving anything, let's continue
       if ( FD_ISSET ( sock, &fds ) )
       {
          break ;
@@ -271,7 +263,6 @@ INT32 clientRecv ( SOCKET sock, CHAR *pMsg, INT32 len, INT32 timeout )
       }
       else
       {
-         // if rc < 0
          rc = SOCKET_GETLASTERROR ;
 #if defined (_WINDOWS)
          if ( WSAETIMEDOUT == rc )

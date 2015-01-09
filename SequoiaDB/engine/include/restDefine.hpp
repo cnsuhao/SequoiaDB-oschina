@@ -142,60 +142,36 @@ struct httpConnection
 {
 /* request */
 
-   //key size
    INT32 _tempKeyLen ;
-   //value size
    INT32 _tempValueLen ;
-   // \r\n number
    INT32 _CRLFNum ;
-   //http header buffer size
    INT32 _headerSize ;
-   //recv temp a part of the body size
    INT32 _partSize ;
-   //temp query size
    INT32 _querySize ;
 
 /* response */
 
-   //response first record size
    INT32 _firstRecordSize ;
-   //response body size
    INT32 _responseSize ;
-   //chunk model
    BOOLEAN _isChunk ;
-   //is send http header(chunk model)
    BOOLEAN _isSendHttpHeader ;
 
 /* request */
 
-   //flag is parser key or value, true: key, false: value
    BOOLEAN _isKey ;
-   //client send common type
    HTTP_PARSE_COMMON _common ;
-   //get file's type
    HTTP_FILE_TYPE _fileType ;
-   //recv header buffer
    CHAR *_pHeaderBuf ;
-   //recv temp a part of the body
    CHAR *_pPartBody ;
-   //recv body buffer
    CHAR *_pBodyBuf ;
-   //send buffer
    CHAR *_pSendBuffer ;
-   //temp key buffer
    CHAR *_pTempKey ;
-   //temp value buffer ;
    CHAR *_pTempValue ;
-   //temp query
    CHAR *_pQuery ;
-   //path
    const CHAR *_pPath ;
 
-   //http parser
    http_parser _httpParser ;
-   //header list
    COLNAME_MAP _requestHeaders ;
-   //query list
    COLNAME_MAP _requestQuery ;
 
 /* response */

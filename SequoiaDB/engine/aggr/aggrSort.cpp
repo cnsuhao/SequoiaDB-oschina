@@ -132,7 +132,6 @@ namespace engine
                   {
                      obOpField.type = SQL_GRAMMAR::DESC;
                   }
-                  //obOpField.type = beField.number() > 0 ? (SQL_GRAMMAR::ASC) : (SQL_GRAMMAR::DESC);
                   orderBy.push_back( obOpField );
                }
             }

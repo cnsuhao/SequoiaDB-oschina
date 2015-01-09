@@ -43,9 +43,6 @@
 namespace engine
 {
 
-   ////////////////////////////////////////////////////////////////////////////
-   // background job implements //
-   ////////////////////////////////////////////////////////////////////////////
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNINDEXJOB__RTNINDEXJOB, "_rtnIndexJob::_rtnIndexJob" )
    _rtnIndexJob::_rtnIndexJob ( RTN_JOB_TYPE type, const CHAR *pCLName,
@@ -77,14 +74,12 @@ namespace engine
          case RTN_JOB_CREATE_INDEX :
             {
                _jobName = "CreateIndex-" ;
-               // need to get the index name
                _indexName = _indexObj.getStringField( IXM_NAME_FIELD ) ;
             }
             break ;
          case RTN_JOB_DROP_INDEX :
             {
                _jobName = "DropIndex-" ;
-               // need to get the index name
                _indexEle = _indexObj.getField( IXM_NAME_FIELD ) ;
                if ( _indexEle.eoo() )
                {
@@ -119,7 +114,6 @@ namespace engine
                   }
 
                   _indexEle.Val( oid ) ;
-                  // get index extent
                   rc = su->index()->getIndexCBExtent( mbContext, oid,
                                                       idxExtent ) ;
                   if ( SDB_OK != rc )
@@ -330,7 +324,6 @@ namespace engine
             }
             collectionFlag = mbContext->mb()->_flag ;
 
-            // unlock collection
 
             if ( DMS_IS_MB_FLAG_LOAD_LOAD ( collectionFlag ) )
             {

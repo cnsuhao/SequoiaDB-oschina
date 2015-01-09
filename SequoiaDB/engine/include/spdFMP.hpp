@@ -58,8 +58,6 @@ namespace engine
       UINT32 getSeqID() const { return _seqID ; }
 
    public:
-      /// timeout is sec.
-      /// user should call getOwned if necessary.
       virtual INT32 read( BSONObj &msg, _pmdEDUCB *cb,
                           BOOLEAN ignoreTimeout = TRUE ) ;
 

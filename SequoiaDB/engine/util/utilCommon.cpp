@@ -233,7 +233,6 @@ namespace engine
       static BOOLEAN _init = FALSE ;
       static ossSpinXLatch _lock ;
 
-      // init retobj
       if ( FALSE == _init )
       {
          _lock.get() ;
@@ -251,14 +250,12 @@ namespace engine
          _lock.release() ;
       }
 
-      // check flags
       if ( flags < -SDB_MAX_ERROR || flags > SDB_MAX_WARNING )
       {
          PD_LOG ( PDERROR, "Error code error[rc:%d]", flags ) ;
          flags = SDB_SYS ;
       }
 
-      // return new obj
       if ( detail && *detail != 0 )
       {
          BSONObjBuilder bb ;
@@ -267,7 +264,6 @@ namespace engine
          bb.append ( OP_ERR_DETAIL, detail ) ;
          return bb.obj() ;
       }
-      // return fix obj
       return _retObj[ SDB_MAX_ERROR + flags ] ;
    }
 
@@ -284,7 +280,6 @@ namespace engine
    utilShellRCItem* utilGetShellRCMap()
    {
       static utilShellRCItem s_srcMap[] = {
-         // map begin
          MAP_SHELL_RC_ITEM( SDB_SRC_SUC, SDB_OK )
          MAP_SHELL_RC_ITEM( SDB_SRC_IO, SDB_IO )
          MAP_SHELL_RC_ITEM( SDB_SRC_PERM, SDB_PERM )
@@ -298,7 +293,6 @@ namespace engine
          MAP_SHELL_RC_ITEM( SDB_SRC_CANNOT_LISTEN, SDB_NET_CANNOT_LISTEN )
          MAP_SHELL_RC_ITEM( SDB_SRC_CAT_AUTH_FAILED, SDB_CAT_AUTH_FAILED )
          MAP_SHELL_RC_ITEM( SDB_SRC_INVALIDARG, SDB_INVALIDARG )
-         // map end
          { 0, 0, 1 }
       } ;
       return &s_srcMap[0] ;

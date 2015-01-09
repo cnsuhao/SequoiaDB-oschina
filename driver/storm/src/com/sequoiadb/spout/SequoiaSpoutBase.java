@@ -23,8 +23,6 @@ public abstract class SequoiaSpoutBase extends BaseRichSpout {
 	private static Logger LOG = Logger.getLogger(SequoiaSpoutBase.class);
 	protected static SequoiaObjectGrabber wholeDocumentMapper = null;
 
-	// Hard coded static mapper for whole document map
-	// pass the mapper to construct function to modify default mapper
 	static {
 		wholeDocumentMapper = new SequoiaObjectGrabber() {
 			@Override
@@ -41,18 +39,15 @@ public abstract class SequoiaSpoutBase extends BaseRichSpout {
 		};
 
 	}
-	// Internal state
 	private String dbName;
 	private BSONObject query;
 	protected SequoiaObjectGrabber mapper;
 	protected Map<String, SequoiaObjectGrabber> fields;
 
-	// Strom variables
 	protected Map conf;
 	protected TopologyContext context;
 	protected SpoutOutputCollector collector;
 
-	// Handles the incoming messages
 	protected LinkedBlockingQueue<BSONObject> queue = new LinkedBlockingQueue<BSONObject>(
 			1024);
 
@@ -95,8 +90,6 @@ public abstract class SequoiaSpoutBase extends BaseRichSpout {
 		this.dbName = dbName;
 		this.collectionNames = collectionNames;
 		this.query = query;
-		// if the mapper is not set, then set the "document" filed to whole
-		// document object.
 		this.mapper = (mapper == null) ? wholeDocumentMapper : mapper;
 	}
 
@@ -108,7 +101,6 @@ public abstract class SequoiaSpoutBase extends BaseRichSpout {
 	@Override
 	public void open(Map conf, TopologyContext context,
 			SpoutOutputCollector collector) {
-		// save parameters from storm
 		this.conf = conf;
 		this.context = context;
 		this.collector = collector;
@@ -121,15 +113,12 @@ public abstract class SequoiaSpoutBase extends BaseRichSpout {
 				selector.put(field, null);
 			}
 			
-			//select _id field, because emit to colector need record's _id.
 			selector.put("_id", null);
 		}
 
-		// Set up an executor
 		this.spoutTask = new SequoiaSpoutTask(queue, host, port, userName,
 				password, dbName, collectionNames, query, selector);
 
-		// Start scan thread
 		Thread thread = new Thread(this.spoutTask);
 		thread.start();
 	}
@@ -141,7 +130,6 @@ public abstract class SequoiaSpoutBase extends BaseRichSpout {
 
 	@Override
 	public void declareOutputFields(OutputFieldsDeclarer declarer) {
-		// Set output fields
 		declarer.declare(new Fields(this.mapper.fields()));
 	}
 

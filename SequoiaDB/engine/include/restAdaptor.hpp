@@ -45,7 +45,6 @@
 #include "restDefine.hpp"
 #include <map>
 
-//recv and send timeout
 #define REST_TIMEOUT             ( 30 * OSS_ONE_SEC )
 
 namespace engine
@@ -57,7 +56,6 @@ namespace engine
       INT32 _maxHttpBodySize ;
       INT32 _timeout ;
       void *_pSettings ;
-      //_restConvertMsg _convertObj ;
    private:
       static INT32 on_message_begin( void *pData ) ;
       static INT32 on_headers_complete( void *pData ) ;

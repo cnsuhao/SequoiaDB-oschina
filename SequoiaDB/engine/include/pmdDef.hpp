@@ -75,7 +75,6 @@ namespace engine
    */
    union PMD_EVENT_MESSAGES
    {
-      // for PMD_EDU_EVENT_TIMEOUT
       struct timeoutMsg
       {
          UINT64   timerID ;
@@ -142,7 +141,6 @@ namespace engine
    */
    enum EDU_TYPES
    {
-      //System EDU Type
       EDU_TYPE_TCPLISTENER                = 0,
       EDU_TYPE_RESTLISTENER,
       EDU_TYPE_REPR,
@@ -162,7 +160,6 @@ namespace engine
       EDU_TYPE_SYNCCLOCK,
       EDU_TYPE_PIPESLISTENER,
 
-      // Agent EDU Type Begin
       EDU_TYPE_AGENT_BEGIN,
 
       EDU_TYPE_AGENT,
@@ -170,10 +167,8 @@ namespace engine
       EDU_TYPE_REPLAGENT,
       EDU_TYPE_RESTAGENT,
 
-      // Agent EDU Type END
       EDU_TYPE_AGENT_END,
 
-      //background job EDU Type
       EDU_TYPE_BACKGROUND_JOB,
 
       EDU_TYPE_LOADWORKER,
@@ -187,15 +182,10 @@ namespace engine
    */
    enum EDU_STATUS
    {
-      // EDU Manager initialize status to this
       PMD_EDU_CREATING = 0,
-      // EDU should change status to running when serve a request
       PMD_EDU_RUNNING,
-      // EDU should change to wait after request result send back
       PMD_EDU_WAITING,
-      // EDU should change status to idle when get into pool
       PMD_EDU_IDLE,
-      // Before terminating, EDU should set to destroy
       PMD_EDU_DESTROY,
       PMD_EDU_UNKNOW,
       PMD_EDU_STATUS_MAXIMUM = PMD_EDU_UNKNOW

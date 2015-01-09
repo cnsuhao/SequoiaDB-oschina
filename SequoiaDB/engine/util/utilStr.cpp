@@ -173,7 +173,6 @@ namespace engine
          goto error ;
       }
 
-      /// '\0' is contained.
       for ( UINT32 i = 0; i < size ; i++ )
       {
          tmp[i] = ( src[i] >= 'a' && src[i] <= 'z' ) ?
@@ -444,7 +443,6 @@ namespace engine
       }
 
       pToken = ossStrtok( pVersionStr, pDelim, &pLast ) ;
-      // XXX version: 1.8
       if ( !pToken )
       {
          rc = SDB_INVALIDARG ;
@@ -454,14 +452,12 @@ namespace engine
       {
          CHAR *pTokenTmp = NULL ;
          CHAR *pLastTmp = NULL ;
-         // 1.8
          CHAR *pVerPtr = ossStrstr( pToken, ":" ) ;
          if ( !pVerPtr )
          {
             rc = SDB_INVALIDARG ;
             goto error ;
          }
-         // 1
          pTokenTmp = ossStrtok( pVerPtr, " .", &pLastTmp ) ;
          if ( !pTokenTmp )
          {
@@ -470,7 +466,6 @@ namespace engine
          }
          version = ossAtoi( pTokenTmp ) ;
 
-         // 8
          pTokenTmp = ossStrtok( NULL, " .", &pLastTmp ) ;
          if ( !pTokenTmp )
          {
@@ -480,7 +475,6 @@ namespace engine
          subVersion = ossAtoi( pTokenTmp ) ;
       }
 
-      // Release: 14702
       pToken = ossStrtok( NULL, pDelim, &pLast ) ;
       if ( !pToken )
       {
@@ -501,7 +495,6 @@ namespace engine
          release = ossAtoi( releaseStr.c_str() ) ;
       }
 
-      // 2014-08-31-23.18.18(Debug)
       pToken = ossStrtok( NULL, pDelim, &pLast ) ;
       if ( !pToken )
       {

@@ -1,4 +1,3 @@
-// embedded_builder.h
 
 /*    Copyright 2009 10gen Inc.
  *
@@ -17,18 +16,14 @@
 
 #pragma once
 
-//#include <boost/shared_ptr.hpp>
 
 namespace bson {
 
-    // utility class for assembling hierarchical objects
     class EmbeddedBuilder {
     public:
         EmbeddedBuilder( BSONObjBuilder *b ) {
             _builders.push_back( make_pair( "", b ) );
         }
-        // It is assumed that the calls to prepareContext will be made with the 'name'
-        // parameter in lex ascending order.
         void prepareContext( string &name ) {
             int i = 1, n = _builders.size();
             while( i < n &&
@@ -92,7 +87,6 @@ namespace bson {
         BSONObjBuilder *back() { return _builders.back().second; }
 
         vector< pair< string, BSONObjBuilder * > > _builders;
-        //vector< boost::shared_ptr< BSONObjBuilder > > _builderStorage;
         vector<BSONObjBuilder*> _builderStorage ;
 
     };

@@ -53,17 +53,14 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_FLDNMCHK );
-      // field name can't be NULL and can't be empty
       PD_CHECK ( pFieldName && pFieldName[0] != '\0',
                  SDB_INVALIDARG, error, PDWARNING,
                  "Target field name must exist and can't be empty" ) ;
 
-      // field name shouldn't include .
       PD_CHECK ( ossStrchr ( pFieldName, '.' ) == NULL,
                  SDB_INVALIDARG, error, PDWARNING,
                  "Target field name should not include '.': %s",
                  pFieldName ) ;
-      // field name can't start with $
       PD_CHECK ( pFieldName[0] != '$',
                  SDB_INVALIDARG, error, PDWARNING,
                  "Target field name should not start with '$': %s",
@@ -87,23 +84,18 @@ namespace engine
       const CHAR *pDotSource = (CHAR*)ossStrchr ( pSourceName, '.' ) ;
       PD_CHECK ( pDotSource, SDB_INVALIDARG, error, PDWARNING,
                  "Unable to find alias for source" ) ;
-      // temporarily set it to 0
       *(CHAR*)pDotSource = '\0' ;
-      // make sure outer and inner doesn't use same alias
       PD_CHECK ( ossStrcmp ( pOuterAlias, pInnerAlias ) != 0,
                  SDB_INVALIDARG, error, PDWARNING,
                  "alias for outer and inner side shouldn't be same" ) ;
-      // find which side is the field coming from
       if ( ossStrcmp ( pSourceName, pOuterAlias ) == 0 )
          _side = MERGE_SELECTOR_SIDE_OUTER ;
       else if ( ossStrcmp ( pSourceName, pInnerAlias ) == 0 )
          _side = MERGE_SELECTOR_SIDE_INNER ;
-      // make sure it's either outer or inner
       PD_CHECK ( MERGE_SELECTOR_SIDE_UNKNOWN != _side,
                  SDB_INVALIDARG, error, PDWARNING,
                  "Alias %s doesn't match any outer (%s) or inner (%s)",
                  pSourceName, pOuterAlias, pInnerAlias ) ;
-      // source name should be 1 byte after '.' ( skip alias )
       _pSourceName = pDotSource + 1 ;
       if ( pTargetName )
       {
@@ -115,7 +107,6 @@ namespace engine
       }
       else
       {
-         // locate to the last '.' and get the embedded field name
          _pTargetName = (CHAR*)ossStrrchr ( _pSourceName, '.' ) ;
          if ( _pTargetName )
             _pTargetName++ ;
@@ -131,7 +122,6 @@ namespace engine
                pOuterAlias, pInnerAlias, pSourceName,
                _pSourceName, _pTargetName ) ;
    done :
-      // restore back to .
       if ( pDotSource )
          *(CHAR*)pDotSource = '.' ;
       PD_TRACE_EXITRC ( SDB__MRGSE_INIT, rc );
@@ -145,14 +135,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__MTHMRGSEL__ADDSEL );
-      // when we add selector, we have 2 mode
-      // 1) specify outer side in field name
-      // 2) specify inner side in field name
-      // if user does not specify the side, we return error
-      // each element must be <string>:<string|null> mode, with original alias to
-      // target alias.
-      // if target is null, we keep using original alias ( remove outer/inner
-      // side field name if exists )
       MergeSelectorElement me ;
       if ( ele.type() == String )
          rc = me.init ( ele.fieldName (), ele.valuestr (),
@@ -214,8 +196,6 @@ namespace engine
       BSONElement ele = obj.getFieldDotted ( pSourceName ) ;
       if ( ele.eoo() )
       {
-         // if we are not able to find the field, let's build null using
-         // target name field name
          b.appendNull ( pTargetName ) ;
       }
       else
@@ -236,18 +216,10 @@ namespace engine
       SDB_ASSERT(_initialized, "The selector has not been initialized, please "
                  "call 'loadPattern' before using it" ) ;
 
-      // create a builder with 10% extra space for buffer
       BSONObjBuilder builder ( (int)(target.objsize()*1.1));
 
-      // index for select, should be less than _selectorElements.size()
       SINT32 selectorIndex = 0 ;
 
-      // create a new object based on the source
-      // "" is empty root, builder is BSONObjBuilder
-      // es is our iterator, and selectorIndex is the current selector we are
-      // going to apply
-      // when this call returns SDB_OK, we should call builder.obj() to create
-      // BSONObject from the builder.
       while ( (selectorIndex)<(SINT32)_selectorElements.size() )
       {
          MergeSelectorElement &ele = _selectorElements[selectorIndex] ;
@@ -266,8 +238,6 @@ namespace engine
                        ele._pSourceName, ele._pTargetName, rc ) ;
          selectorIndex++ ;
       }
-      // now target owns the builder buffer, since obj() will decouple() the
-      // buffer from builder, and assign holder to the new BSONObj
       target=builder.obj();
    done :
       PD_TRACE_EXITRC ( SDB__MTHMRGSEL_SELECT, rc );

@@ -30,10 +30,6 @@ import java.util.Set;
  * @author Joel Leitch
  */
 public final class JsonObject extends JsonElement {
-  // We are using a linked hash map because it is important to preserve
-  // the order in which elements are inserted. This is needed to ensure
-  // that the fields of an object are inserted in the order they were
-  // defined in the class.
   private final StringMap<JsonElement> members = new StringMap<JsonElement>();
 
   /**

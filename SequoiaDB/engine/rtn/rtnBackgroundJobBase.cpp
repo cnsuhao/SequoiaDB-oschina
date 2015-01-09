@@ -111,7 +111,6 @@ namespace engine
 
       ossScopedLock lock ( &_latch, EXCLUSIVE ) ;
 
-      // if mutex, need to stop
       if ( RTN_JOB_MUTEX_NONE != type )
       {
          _rtnBaseJob *itJob = NULL ;
@@ -135,7 +134,6 @@ namespace engine
                   if ( pEDUID )
                   {
                      *pEDUID = it->first ;
-                     //_mapResult[newEDUID] = SDB_OK ;
                   }
                   SDB_OSS_DEL pJob ;
                   pJob = NULL ;
@@ -144,17 +142,11 @@ namespace engine
                else
                {
                   _stopJob ( it->first ) ;
-                  // need to get remove latch to ensure job not delete
                   _latchRemove.get() ;
-                  // need to release _latch for the case job to start job
                   _latch.release() ;
-                  // wait job detach
                   itJob->waitDetach () ;
-                  // need to get _latch
                   _latch.get() ;
-                  // need to release remove latch for job to delete
                   _latchRemove.release() ;
-                  // need to re-value for it
                   it = _mapJobs.begin() ;
                   continue ;
                }
@@ -169,7 +161,6 @@ namespace engine
          goto error ;
       }
 
-      // start new edu
       rc = _eduMgr->startEDU( EDU_TYPE_BACKGROUND_JOB, (void*)pJob,
                               &newEDUID ) ;
       if ( SDB_OK != rc )
@@ -179,11 +170,8 @@ namespace engine
          goto error ;
       }
 
-      // wait edu attach in
       pJob->waitAttach () ;
-      // add to map
       _mapJobs[newEDUID] = pJob ;
-      //_mapResult[newEDUID] = SDB_OK ;
 
       if ( pEDUID )
       {
@@ -235,7 +223,6 @@ namespace engine
 
       _latch.release() ;
 
-      // free memory
       if ( pJob )
       {
          ossScopedLock lock( &_latchRemove, EXCLUSIVE ) ;

@@ -134,7 +134,6 @@ size_t snprintf(char* pBuffer, size_t iLength, const char* pFormat, ...)
    va_start(ap, pFormat);
    n=_vsnprintf_s(pBuffer, iLength, _TRUNCATE, pFormat, ap);
    va_end(ap);
-   // Set terminate if the length is greater than buffer size
    if((n<0) || (size_t)n>=iLength)
       n=iLength-1;
    pBuffer[n]='\0';

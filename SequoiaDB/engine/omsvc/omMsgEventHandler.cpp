@@ -67,7 +67,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      // main cb msg
       if ( header->TID == 0 )
       {
          CHAR *pNewMsg = NULL ;
@@ -89,15 +88,12 @@ namespace engine
             goto error ;
          }
 
-         // copy msg
          ossMemcpy( pNewMsg, msg, header->messageLength ) ;
          pNewMsg[ header->messageLength ] = 0 ;
-         // push event
          _pMainCB->postEvent( pmdEDUEvent( PMD_EDU_EVENT_MSG,
                                            PMD_EDU_MEM_ALLOC,
                                            pNewMsg, (UINT64)handle ) ) ;
       }
-      // session msg
       else
       {
          SDB_ASSERT( _pRSManager, "Remote Session Manager can't be NULL" ) ;

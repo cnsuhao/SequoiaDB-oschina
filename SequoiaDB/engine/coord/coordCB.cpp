@@ -132,7 +132,6 @@ namespace engine
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
       vector< _pmdOptionsMgr::_pmdAddrPair > catAddrs = optCB->catAddrs() ;
 
-      // 1. create objs
       _pNetWork = SDB_OSS_NEW _netRouteAgent( &_multiRouteAgent ) ;
       if ( !_pNetWork )
       {
@@ -151,7 +150,6 @@ namespace engine
       }
       _catGroupInfo = CoordGroupInfoPtr( pGroupInfo ) ;
 
-      // 2. init param
       for ( UINT32 i = 0 ; i < catAddrs.size() ; ++i )
       {
          if ( 0 == catAddrs[i]._host[ 0 ] )
@@ -164,9 +162,7 @@ namespace engine
          addCatNodeAddr( id, catAddrs[i]._host, catAddrs[i]._service ) ;
       }
 
-      // 3. set startup ok
       pmdGetStartup().ok( TRUE ) ;
-      // set nodeid and group name
       pmdGetKRCB()->setGroupName( COORD_GROUPNAME ) ;
       {
          MsgRouteID id ;
@@ -187,10 +183,8 @@ namespace engine
       pmdEDUMgr* pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
       EDUID eduID = PMD_INVALID_EDUID ;
 
-      // set to primary
       pmdSetPrimary( TRUE ) ;
 
-      // 1. start coord net work
       rc = pEDUMgr->startEDU ( EDU_TYPE_COORDNETWORK, (void*)netWork(),
                                &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start coord network edu, rc: %d",
@@ -207,7 +201,6 @@ namespace engine
 
    INT32 _CoordCB::deactive ()
    {
-      // 1. stop io
       if ( _pNetWork )
       {
          _pNetWork->stop() ;
@@ -235,7 +228,6 @@ namespace engine
       if ( _catGroupInfo->getGroupItem()->groupVersion() !=
            groupInfo->getGroupItem()->groupVersion() )
       {
-         // need to update local config
          string oldCfg, newCfg ;
          pmdOptionsCB *optCB = pmdGetOptionCB() ;
          optCB->toString( oldCfg ) ;
@@ -300,7 +292,6 @@ namespace engine
       GROUP_NAME_MAP_IT it = _groupNameMap.find ( name ) ;
       if ( it != _groupNameMap.end() )
       {
-         // the same
          if ( it->second == id )
          {
             rc = SDB_OK ;
@@ -360,16 +351,12 @@ namespace engine
 
    void _CoordCB::addGroupInfo ( CoordGroupInfoPtr &groupInfo )
    {
-      // TODO:delete the outTime groupInfo
-      // TODO:check version
       ossScopedLock _lock( &_nodeGroupMutex, EXCLUSIVE ) ;
 
       _nodeGroupInfo[groupInfo->getGroupID()] = groupInfo ;
 
-      // clear group name map
       _clearGroupName( groupInfo->getGroupID() ) ;
 
-      // add to group name map
       _addGroupName( groupInfo->groupName(), groupInfo->getGroupID() ) ;
    }
 
@@ -378,7 +365,6 @@ namespace engine
       ossScopedLock _lock(&_nodeGroupMutex, EXCLUSIVE) ;
       _nodeGroupInfo.erase( groupID ) ;
 
-      // clear group name map
       _clearGroupName( groupID ) ;
    }
 
@@ -414,8 +400,6 @@ namespace engine
    void _CoordCB::updateCataInfo ( const std::string &collectionName,
                          CoordCataInfoPtr &cataInfo )
    {
-      // TODO:update catalogue info
-      // TODO:delete the outTime groupInfo
       ossScopedLock _lock( &_cataInfoMutex, EXCLUSIVE );
       _cataInfoMap[collectionName] = cataInfo ;
    }

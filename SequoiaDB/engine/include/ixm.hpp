@@ -57,7 +57,6 @@ namespace engine
 
    #define IXM_PAGE_SIZE4K  DMS_PAGE_SIZE4K
 
-   // (4096-32)/4-16 ( page size - page head ) / max records in 4k - metadata
    #define IXM_KEY_MAX_SIZE            1000
    #define IXM_INVALID_OFFSET          0
    #define IXM_INDEX_NAME_SIZE         1024
@@ -109,9 +108,6 @@ namespace engine
          return ( _extent == rhs._extent &&
                   _slot == rhs._slot) ;
       }
-      // <0 if current object sit before argment rid
-      // =0 means extent/offset are the same
-      // >0 means current obj sit after argment rid
       INT32 compare ( const _ixmRecordID &rhs )
       {
          if (_extent != rhs._extent)
@@ -162,7 +158,6 @@ namespace engine
       dmsExtentID _logicID ;
       dmsExtentID _rootExtentID ;
       dmsExtentID _scanExtLID ;  // only when flag is IXM_INDEX_FLAG_CREATING,
-                                 // the _scanExtLID is valid
       UINT16      _type ;
       CHAR        _reserved[6] ;
    } ;
@@ -200,23 +195,15 @@ namespace engine
       typedef class _IDToInsert _IDToInsert ;
 #pragma pack()
 
-      // raw data for control block extent
       ixmIndexCBExtent *_extent ;
-      // whether if this CB is initialized
       BOOLEAN _isInitialized ;
-      // object for index def
       BSONObj     _infoObj ;
-      // associated storage unit pointer
       _dmsStorageIndex *_pIndexSu ;
       _dmsContext      *_pContext ;
-      // page size
       INT32 _pageSize ;
-      // current version
       UINT8       _version ;
-      // extent ID for the control block extent
       dmsExtentID _extentID ;
 
-      // Whether the given extent is a valid control block
       OSS_INLINE BOOLEAN _verify()
       {
          if ( IXM_EXTENT_CB_EYECATCHER0 != _extent->_eyeCatcher[0] ||
@@ -230,7 +217,6 @@ namespace engine
          }
          return TRUE ;
       }
-      // load metadata from extent
       void _init()
       {
          if ( !_verify() )
@@ -239,7 +225,6 @@ namespace engine
             return ;
          }
          _version = _extent->_version ;
-         // create index def from page
          try
          {
             _infoObj = BSONObj ( ((CHAR*)_extent) +
@@ -254,18 +239,12 @@ namespace engine
          _isInitialized = TRUE ;
       }
 
-      // we want index key generator able to directly access control block
-      // private data
       friend class _ixmIndexKeyGen ;
 
    public:
-      // Before using ixmIndexCB, after create the object user must check
-      // isInitialized ()
-      // create index details from existing extent
       _ixmIndexCB ( dmsExtentID extentID,
                     _dmsStorageIndex *pIndexSu,
                     _dmsContext *context ) ;
-      // create index details into a newly allocated extent
       _ixmIndexCB ( dmsExtentID extentID,
                     const BSONObj &infoObj,
                     UINT16 mbID ,
@@ -344,7 +323,6 @@ namespace engine
                       "index details must be initialized first" ) ;
          _extent->_scanExtLID = extLID ;
       }
-      // remove all field name from bson object
       BSONObj getKeyFromQuery ( const BSONObj & query ) const
       {
          SDB_ASSERT ( _isInitialized,
@@ -392,22 +370,18 @@ namespace engine
                  -1 if doesn't exist
        */
       INT32 keyPatternOffset( const CHAR *key ) const;
-      // is the given field exist in the index?
       BOOLEAN inKeyPattern( const CHAR *key ) const
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;
          return keyPatternOffset( key ) >= 0 ;
       }
-      // return the name of index
       OSS_INLINE const CHAR *getName()
       {
          SDB_ASSERT ( _isInitialized,
                       "index details must be initialized first" ) ;
          return _infoObj.getStringField( IXM_NAME_FIELD ) ;
       }
-      // Is this _id index?
-      // _id index got only one field and contains _id keyword
       static BOOLEAN isSysIndexPattern ( const BSONObj &pattern )
       {
          BSONObjIterator i(pattern);
@@ -422,7 +396,6 @@ namespace engine
                       "index details must be initialized first" ) ;
          return isSysIndexPattern( keyPattern() );
       }
-      // get the version of index, 0 by default
       static INT32 versionForIndexObj( const BSONObj &obj )
       {
          BSONElement e = obj[ IXM_V_FIELD ];
@@ -439,7 +412,6 @@ namespace engine
          return versionForIndexObj( _infoObj );
       }
 
-      /// generate index type from input bsonobj.
       static BOOLEAN generateIndexType( const BSONObj &obj, UINT16 &type )
       {
          BOOLEAN rc = TRUE ;
@@ -482,8 +454,6 @@ namespace engine
                {
                   if ( hasGeo || hasOther )
                   {
-                     /// one index can only have one geo field.
-                     /// 2d index must be the first field.
                      goto error ;
                   }
                   type |= IXM_EXTENT_TYPE_2D ;
@@ -510,28 +480,21 @@ namespace engine
          goto done ;
       }
 
-      // check whether a given object is valid, usually this is called before
-      // creating index
       static BOOLEAN validateKey ( const BSONObj &obj, BOOLEAN isSys = FALSE )
       {
          INT32 fieldCount = 0 ;
          BOOLEAN idIndex = isSys ;
-         // make sure the index def is not too large
          if ( obj.objsize() + sizeof(_IDToInsert) +
               IXM_INDEX_CB_EXTENT_METADATA_SIZE >= IXM_PAGE_SIZE4K )
          {
             return FALSE ;
          }
-         // make sure the object contains key and name field, and may include
-         // "v", "dropDups", "unique" fields, and not include any other fields
          UINT16 type = 0 ;
          if ( !generateIndexType( obj, type ) )
          {
-            // if the key field is not object or not valid.
             return FALSE ;
          }
          fieldCount ++ ;
-         // if this is id index
          if ( !idIndex &&
               isSysIndexPattern ( obj.getObjectField( IXM_KEY_FIELD ) ))
          {
@@ -539,17 +502,14 @@ namespace engine
          }
          if ( ossStrlen ( obj.getStringField( IXM_NAME_FIELD )) == 0 )
          {
-            // if not have string name field, return FALSE
             return FALSE ;
          }
          fieldCount ++ ;
-         // validate index name, only idIndex can start with $
          if ( SDB_OK != dmsCheckIndexName ( obj.getStringField(IXM_NAME_FIELD),
                                             idIndex ) )
          {
             return FALSE ;
          }
-         // name can't be too long
          if ( ossStrlen ( obj.getStringField(IXM_NAME_FIELD) )
               >= IXM_INDEX_NAME_SIZE )
          {
@@ -575,8 +535,6 @@ namespace engine
          {
             fieldCount ++ ;
          }
-//         return fieldCount == obj.nFields() ;
-         // make sure no other fields, unless it is a geo index.
          if ( fieldCount != obj.nFields() )
          {
             return FALSE ;
@@ -584,7 +542,6 @@ namespace engine
          return TRUE ;
       }
 
-      // get the uniqueness
       BOOLEAN unique() const
       {
          SDB_ASSERT ( _isInitialized,
@@ -592,7 +549,6 @@ namespace engine
          return _infoObj[ IXM_UNIQUE_FIELD ].trueValue() ;
       }
 
-      // get enforcement
       BOOLEAN enforced() const
       {
          SDB_ASSERT ( _isInitialized,

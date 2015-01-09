@@ -29,7 +29,6 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef ossTRACE_H__
 #define ossTRACE_H__
-// Component: oss
 #define SDB_OSSTS2STR                                      0x1000000029cL
 #define SDB_OSSGETCPUUSG                                   0x1000000029dL
 #define SDB_OSSGETCPUUSG2                                  0x1000000029eL

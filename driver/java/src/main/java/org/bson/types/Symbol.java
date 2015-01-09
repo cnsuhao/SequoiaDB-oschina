@@ -1,4 +1,3 @@
-// Symbol.java
 
 /**
  *      Copyright (C) 2009 10gen Inc.

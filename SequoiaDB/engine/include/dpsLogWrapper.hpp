@@ -134,10 +134,6 @@ namespace engine
          return _initialized ;
       }
 
-      // note flushAll function is ONLY USED IN TESTCASE
-      // engine should NEVER call flushAll in any situation.
-      // The log write thread supposed to call run() in order to flush dirty
-      // pages once at a time
       OSS_INLINE INT32 flushAll()
       {
          SDB_ASSERT ( _initialized, "shouldn't call flushAll without init" ) ;

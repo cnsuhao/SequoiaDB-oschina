@@ -59,8 +59,6 @@ public class SequoiadbConfigUtil {
 	public static final String JOB_QUERY_STRING = "sequoiadb.query.json";
 	public static final String JOB_SELECTOR_STRING = "sequoiadb.selector.json";
 	public static final String JOB_PREFEREDINSTANCE="sequoiadb.preferedinstance";
-//	public static final String JOB_ORDERBY_STRING = "sequoiadb.orderby.json";
-	//Bulk insert number
 	public static final String JOB_OUT_BULKNUM = "sequoiadb.out.bulknum";
 
 	public static Class<? extends Mapper> getMapper(Configuration conf) {
@@ -172,7 +170,4 @@ public class SequoiadbConfigUtil {
 	public static String getOutputPasswd(Configuration conf){
 		return conf.get(JOB_OUTPUT_PASSWD,null);
 	}
-//	public static String getOrderbyString( Configuration conf){
-//		return conf.get(JOB_ORDERBY_STRING, null);
-//	} 
 }

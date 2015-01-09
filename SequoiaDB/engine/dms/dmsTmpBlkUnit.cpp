@@ -62,7 +62,6 @@ namespace engine
       return ss.str() ;
    }
 
-/////////////////////_dmsTmpBlkUnit
    _dmsTmpBlkUnit::_dmsTmpBlkUnit()
    :_totalSize(0),
     _opened(0)
@@ -121,7 +120,6 @@ namespace engine
          {
             PD_LOG( PDERROR, "failed to close file:%s, rc=%d",
                     _fullPath.c_str(), rc ) ;
-            /// do not goto error.
          }
 
          rc = ossDelete( _fullPath.c_str() ) ;

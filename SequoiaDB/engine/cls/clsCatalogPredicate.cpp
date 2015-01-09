@@ -68,8 +68,6 @@ namespace engine
          goto done ;
       }
 
-      // if the child is universe set and the logic type is "$or",
-      // then upgrade to universe set
       if ( CLS_CATA_LOGIC_OR == _logicType )
       {
          upgradeToUniverse() ;
@@ -85,7 +83,6 @@ namespace engine
    void clsCatalogPredicateTree::clear()
    {
       PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE_CLEAR ) ;
-      // clear the children
       clsCatalogPredicateTree *pTmp = NULL ;
       while ( !_children.empty() )
       {
@@ -94,7 +91,6 @@ namespace engine
          SDB_OSS_DEL( pTmp ) ;
       }
 
-      // clear the predicateSet
       _predicateSet.clear() ;
 
       PD_TRACE_EXIT ( SDB_CLSCATAPREDICATETREE_CLEAR );
@@ -204,13 +200,11 @@ namespace engine
          buf << _logicType << ": " ;
       }
 
-      // predicate
       if ( _predicateSet.predicates().size() > 0 )
       {
          buf << _predicateSet.toString() ;
       }
 
-      // sub
       for ( UINT32 i = 0 ; i < _children.size() ; ++i )
       {
          buf << _children[ i ]->toString() ;
@@ -277,12 +271,10 @@ namespace engine
          const rtnStartStopKey &matcherBound =
             itr->second._startStopKeys[ ssKeyPos ] ;
 
-         // compare low bound
          rsCmp = rtnKeyCompare( lowBound, matcherBound._stopKey._bound ) ;
          if ( rsCmp > 0 || ( rsCmp == 0 &&
               !matcherBound._stopKey._inclusive ) )
          {
-            // low bound > stop key, goto next start stop key
             ++ssKeyPos ;
             goto retry ;
          }
@@ -292,12 +284,10 @@ namespace engine
             goto done ;
          }
 
-         // compare up bound
          rsCmp = rtnKeyCompare( upBound, matcherBound._startKey._bound ) ;
          if ( rsCmp < 0 || ( rsCmp == 0 &&
               !matcherBound._startKey._inclusive ) )
          {
-            // up bound < start key, goto next start stop key
             ++ssKeyPos ;
             goto retry ;
          }
@@ -308,7 +298,6 @@ namespace engine
          }
       }
 
-      // in the range
       result = TRUE ;
 
    done:
@@ -376,7 +365,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN rsTmp = TRUE ;
 
-      // PD_TRACE_ENTRY ( SDB_CLSCATAPREDICATETREE_MATCHES ) ;
       const map<string, rtnPredicate> &predicates = _predicateSet.predicates() ;
       if ( isUniverse() )
       {
@@ -402,10 +390,6 @@ namespace engine
                   goto check_children ;
                }
 
-               // the size of _startStopKeys must be "0" or "1":
-               // "0": it is means the matcher is empty set.
-               // "1": it is normal set include universe set.
-               // other: it is $ne
                if ( iterMap->second._startStopKeys.size() != 1 )
                {
                   rsTmp = TRUE ;
@@ -417,7 +401,6 @@ namespace engine
                BSONElement upBound ;
                INT32 rsCmp = 0 ;
 
-               // lowBound <= upBound
                if ( beShardingKey.numberInt() >= 0 )
                {
                   if ( iterLB.more() )
@@ -563,7 +546,6 @@ namespace engine
 
    done:
       result = rsTmp;
-      // PD_TRACE_EXITRC ( SDB_CLSCATAPREDICATETREE_MATCHES, rc ) ;
       return rc;
    error:
       goto done;

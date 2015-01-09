@@ -15,7 +15,6 @@ import backtype.storm.topology.OutputFieldsDeclarer;
 import backtype.storm.tuple.Tuple;
 
 public class SequoiaInsertBolt extends SequoiaBoltBase {
-	//private static Logger LOG = Logger.getLogger(SequoiaInsertBolt.class);
 
 	private LinkedBlockingQueue<Tuple> queue = new LinkedBlockingQueue<Tuple>(
 			1024);
@@ -35,9 +34,7 @@ public class SequoiaInsertBolt extends SequoiaBoltBase {
 		task = new SequoiaBoltTask (queue, this.sdb, this.space, this.collection, this.mapper) {
 			@Override
 			public void execute(Tuple tuple) {
-				//Build a basic object
 				BSONObject object = new BasicBSONObject();
-				//Map and save the object;
 				collection.insert(mapper.map(object, tuple));
 			}
 		};
@@ -50,7 +47,6 @@ public class SequoiaInsertBolt extends SequoiaBoltBase {
 	public void execute(Tuple tuple) {
 		queue.add(tuple);
 		
-		//Execute after insert action
 		afterExecuteTuple(tuple);
 	}
 
@@ -60,7 +56,6 @@ public class SequoiaInsertBolt extends SequoiaBoltBase {
 
 	@Override
 	public void afterExecuteTuple(Tuple tuple) {
-		//No thing to do
 	}
 
 	@Override

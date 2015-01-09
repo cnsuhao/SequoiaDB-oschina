@@ -30,8 +30,6 @@
  */
 
 
-// This Header File is automatically generated, you MUST NOT modify this file anyway!
-// On the contrary, you can modify the xml file "sequoiadb/misc/autogen/rclist.xml" if necessary!
 
 #ifndef OSSERR_H_
 #define OSSERR_H_

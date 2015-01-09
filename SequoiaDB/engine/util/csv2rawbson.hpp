@@ -56,9 +56,6 @@
 #define CSV_STR_REGEX      "regex"
 #define CSV_STR_BINARY     "binary"
 #define CSV_STR_NUMBER     "number"
-//#define CSV_STR_UNDEFINED  "undefined"
-//#define CSV_STR_MINKEY     "minKey"
-//#define CSV_STR_MAXKEY     "maxKey"
 
 /* type value */
 #define CSV_STR_TRUE       "true"
@@ -83,9 +80,6 @@
 #define CSV_STR_REGEX_SIZE       ( sizeof( CSV_STR_REGEX ) - 1 )
 #define CSV_STR_BINARY_SIZE      ( sizeof( CSV_STR_BINARY ) - 1 )
 #define CSV_STR_NUMBER_SIZE      ( sizeof( CSV_STR_NUMBER ) - 1 )
-//#define CSV_STR_UNDEFINED_SIZE   ( sizeof( CSV_STR_UNDEFINED ) - 1 )
-//#define CSV_STR_MINKEY_SIZE      ( sizeof( CSV_STR_MINKEY ) - 1 )
-//#define CSV_STR_MAXKEY_SIZE      ( sizeof( CSV_STR_MAXKEY ) - 1 )
 
 #define CSV_STR_TRUE_SIZE        ( sizeof( CSV_STR_TRUE ) - 1 )
 #define CSV_STR_FALSE_SIZE       ( sizeof( CSV_STR_FALSE ) - 1 )
@@ -135,7 +129,6 @@ private:
    struct _fieldData : public SDBObject
    {
       CSV_TYPE type ;
-      // second type
       CSV_TYPE subType ;
       INT32 stringSize ;
       INT32 varInt ;
@@ -228,7 +221,6 @@ private:
    INT32 _string2date2( INT64 &value, CHAR *pBuffer, INT32 size ) ;
    INT32 _string2regex( _csvRegex &value, CHAR *pBuffer, INT32 size ) ;
    INT32 _string2binary( _csvBinary &value, CHAR *pBuffer, INT32 size ) ;
-   //INT32 _string2null( CHAR *pBuffer, INT32 size ) ;
    CHAR *_findSpace( CHAR *pBuffer, INT32 &size ) ;
    CHAR *_skipSpace( CHAR *pBuffer, INT32 &size ) ;
    INT32 _headerEscape( CHAR *pBuffer, INT32 size,

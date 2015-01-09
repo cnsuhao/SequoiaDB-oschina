@@ -37,7 +37,6 @@ public final class Primitives {
   /** A map from wrapper types to their corresponding primitive types. */
   private static final Map<Class<?>, Class<?>> WRAPPER_TO_PRIMITIVE_TYPE;
 
-  // Sad that we can't use a BiMap. :(
 
   static {
     Map<Class<?>, Class<?>> primToWrap = new HashMap<Class<?>, Class<?>>(16);
@@ -91,7 +90,6 @@ public final class Primitives {
    * </pre>
    */
   public static <T> Class<T> wrap(Class<T> type) {
-    // cast is safe: long.class and Long.class are both of type Class<Long>
     @SuppressWarnings("unchecked")
     Class<T> wrapped = (Class<T>) PRIMITIVE_TO_WRAPPER_TYPE.get(
         $Gson$Preconditions.checkNotNull(type));
@@ -108,7 +106,6 @@ public final class Primitives {
    * </pre>
    */
   public static <T> Class<T> unwrap(Class<T> type) {
-    // cast is safe: long.class and Long.class are both of type Class<Long>
     @SuppressWarnings("unchecked")
     Class<T> unwrapped = (Class<T>) WRAPPER_TO_PRIMITIVE_TYPE.get(
         $Gson$Preconditions.checkNotNull(type));

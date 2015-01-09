@@ -1,4 +1,3 @@
-// Transformer.java
 
 /**
  *      Copyright (C) 2008 10gen Inc.

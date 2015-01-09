@@ -64,7 +64,6 @@ namespace engine
       CLS_TASK_STATUS_CANCELED= 3,  // canceled
       CLS_TASK_STATUS_META    = 4,  // when meta( ex:catalog info ) changed
       CLS_TASK_STATUS_FINISH  = 9,  // when stopped, this should be the last
-                                    // status before the task is removed
       CLS_TASK_STATUS_END     = 10  // nothing should have this status
    } ;
 
@@ -160,9 +159,7 @@ namespace engine
 #define CLS_SPLIT_MASK_SHARDINGKEY        0x00000400
 #define CLS_SPLIT_MASK_SHARDINGTYPE       0x00000800
 #define CLS_SPLIT_MASK_PERCENT            0x00001000
-//#define CLS_SPLIT_MASK_LOCKEND            0x00002000
 
-//#define CLS_SPLIT_TASK_LOCK_END           "LockEnd"
 
    class _clsSplitTask : public _clsTask
    {
@@ -219,7 +216,6 @@ namespace engine
          BSONObj                 _shardingKey ;
          CLS_TASK_TYPE           _taskType ;
          FLOAT64                 _percent ;
-         //BOOLEAN                 _lockEnd ;
 
       private:
          std::string             _taskName ;

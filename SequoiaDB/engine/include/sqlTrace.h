@@ -29,5 +29,4 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef sqlTRACE_H__
 #define sqlTRACE_H__
-// Component: sql
 #endif

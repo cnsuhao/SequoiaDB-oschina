@@ -86,54 +86,46 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__MBFLAG2STRING ) ;
       SDB_ASSERT ( pBuffer, "pBuffer can't be NULL" ) ;
       ossMemset ( pBuffer, 0, bufSize ) ;
-      // Free
       if ( DMS_IS_MB_FREE ( flag ) )
       {
          appendFlagString( pBuffer, bufSize, DMS_MB_FLAG_FREE_STR ) ;
          goto done ;
       }
 
-      // Used
       if ( OSS_BIT_TEST ( flag, DMS_MB_FLAG_USED ) )
       {
          appendFlagString( pBuffer, bufSize, DMS_MB_FLAG_USED_STR ) ;
          OSS_BIT_CLEAR( flag, DMS_MB_FLAG_USED ) ;
       }
-      // Dropped
       if ( OSS_BIT_TEST ( flag, DMS_MB_FLAG_DROPED ) )
       {
          appendFlagString( pBuffer, bufSize, DMS_MB_FLAG_DROPED_STR ) ;
          OSS_BIT_CLEAR( flag, DMS_MB_FLAG_DROPED ) ;
       }
 
-      // Offline Reorg
       if ( OSS_BIT_TEST ( flag, DMS_MB_FLAG_OFFLINE_REORG ) )
       {
          appendFlagString( pBuffer, bufSize, DMS_MB_FLAG_OFFLINE_REORG_STR ) ;
          OSS_BIT_CLEAR( flag, DMS_MB_FLAG_OFFLINE_REORG ) ;
 
-         // Shadow Copy
          if ( OSS_BIT_TEST ( flag, DMS_MB_FLAG_OFFLINE_REORG_SHADOW_COPY ) )
          {
             appendFlagString( pBuffer, bufSize,
                               DMS_MB_FLAG_OFFLINE_REORG_SHADOW_COPY_STR ) ;
             OSS_BIT_CLEAR( flag, DMS_MB_FLAG_OFFLINE_REORG_SHADOW_COPY ) ;
          }
-         // Truncate
          if ( OSS_BIT_TEST ( flag, DMS_MB_FLAG_OFFLINE_REORG_TRUNCATE ) )
          {
             appendFlagString( pBuffer, bufSize,
                               DMS_MB_FLAG_OFFLINE_REORG_TRUNCATE_STR ) ;
             OSS_BIT_CLEAR( flag, DMS_MB_FLAG_OFFLINE_REORG_TRUNCATE ) ;
          }
-         // Copy Back
          if ( OSS_BIT_TEST ( flag, DMS_MB_FLAG_OFFLINE_REORG_COPY_BACK ) )
          {
             appendFlagString( pBuffer, bufSize,
                               DMS_MB_FLAG_OFFLINE_REORG_COPY_BACK_STR ) ;
             OSS_BIT_CLEAR( flag, DMS_MB_FLAG_OFFLINE_REORG_COPY_BACK ) ;
          }
-         // Rebuild
          if ( OSS_BIT_TEST ( flag, DMS_MB_FLAG_OFFLINE_REORG_REBUILD ) )
          {
             appendFlagString( pBuffer, bufSize,
@@ -141,25 +133,21 @@ namespace engine
             OSS_BIT_CLEAR( flag, DMS_MB_FLAG_OFFLINE_REORG_REBUILD ) ;
          }
       }
-      // Online Reorg
       if ( OSS_BIT_TEST ( flag, DMS_MB_FLAG_ONLINE_REORG ) )
       {
          appendFlagString( pBuffer, bufSize, DMS_MB_FLAG_ONLINE_REORG_STR ) ;
          OSS_BIT_CLEAR( flag, DMS_MB_FLAG_ONLINE_REORG ) ;
       }
-      // load
       if ( OSS_BIT_TEST ( flag, DMS_MB_FLAG_LOAD ) )
       {
          appendFlagString( pBuffer, bufSize, DMS_MB_FLAG_LOAD_LOAD_STR ) ;
          OSS_BIT_CLEAR( flag, DMS_MB_FLAG_LOAD ) ;
 
-         // load
          if ( OSS_BIT_TEST ( flag, DMS_MB_FLAG_LOAD_LOAD ) )
          {
             appendFlagString( pBuffer, bufSize, DMS_MB_FLAG_LOAD_LOAD_STR ) ;
             OSS_BIT_CLEAR( flag, DMS_MB_FLAG_LOAD_LOAD ) ;
          }
-         // load build
          if ( OSS_BIT_TEST ( flag, DMS_MB_FLAG_LOAD_BUILD ) )
          {
             appendFlagString( pBuffer, bufSize, DMS_MB_FLAG_LOAD_BUILD_STR ) ;
@@ -167,7 +155,6 @@ namespace engine
          }
       }
 
-      // Test other bits
       if ( flag )
       {
          appendFlagString( pBuffer, bufSize, DMS_MB_FLAG_UNKNOWN ) ;
@@ -193,7 +180,6 @@ namespace engine
          OSS_BIT_CLEAR( attributes, DMS_MB_ATTR_COMPRESSED ) ;
       }
 
-      // Test other bits
       if ( attributes )
       {
          appendFlagString( pBuffer, bufSize, DMS_MB_FLAG_UNKNOWN ) ;
@@ -325,7 +311,6 @@ namespace engine
    void _dmsStorageData::syncMemToMmap ()
    {
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA_SYNCMEMTOMMAP ) ;
-      // write total count to disk
       for ( UINT32 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
          if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) )
@@ -442,7 +427,6 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__ONMAPMETA ) ;
-      // MME, 4MB
       rc = map ( DMS_MME_OFFSET, DMS_MME_SZ, (void**)&_dmsMME ) ;
       if ( rc )
       {
@@ -450,7 +434,6 @@ namespace engine
          goto error ;
       }
 
-      // load collection names in the SU
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; i++ )
       {
          if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) )
@@ -482,7 +465,6 @@ namespace engine
    void _dmsStorageData::_onClosed ()
    {
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__ONCLOSED ) ;
-      // write total count to disk
       syncMemToMmap () ;
 
       _dmsMME     = NULL ;
@@ -521,7 +503,6 @@ namespace engine
       {
          goto error ;
       }
-      // release lock
       if ( pLatch && locked )
       {
          if ( SHARED == mode )
@@ -534,7 +515,6 @@ namespace engine
          }
          locked = FALSE ;
       }
-      // write dps
       dpsCB->writeData( info ) ;
    done :
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATA__LOGDPS, rc ) ;
@@ -558,13 +538,11 @@ namespace engine
          goto error ;
       }
 
-      // release lock
       if ( needUnLock )
       {
          context->mbUnlock() ;
       }
 
-      // write dps
       dpsCB->writeData( info ) ;
    done :
       PD_TRACE_EXITRC ( SDB__DMSSTORAGEDATA__LOGDPS1, rc ) ;
@@ -611,15 +589,10 @@ namespace engine
       extAddr->init( numPages, context->mbID(),
                      (UINT32)numPages << pageSizeSquareRoot() ) ;
 
-      // and add the new extent into MB's extent chain
-      // now let's change the extent pointer into MB's extent list
-      // new extent->preextent always assign to _mbList.lastExtentID
       if ( TRUE == add2LoadList )
       {
          extAddr->_prevExtent = context->mb()->_loadLastExtentID ;
          extAddr->_nextExtent = DMS_INVALID_EXTENT ;
-         // if this is the load first extent in this MB, we assign
-         // firstExtentID to it
          if ( DMS_INVALID_EXTENT == context->mb()->_loadFirstExtentID )
          {
             context->mb()->_loadFirstExtentID = firstFreeExtentID ;
@@ -631,7 +604,6 @@ namespace engine
             prevExt->_nextExtent = firstFreeExtentID ;
          }
 
-         // MB's last extent always assigned to the new extent
          context->mb()->_loadLastExtentID = firstFreeExtentID ;
       }
       else
@@ -642,15 +614,11 @@ namespace engine
          /*
          extAddr->_prevExtent = context->mb()->_lastExtentID ;
 
-         // if this is the first extent in this MB, we assign firstExtentID to
-         // it
          if ( DMS_INVALID_EXTENT == context->mb()->_firstExtentID )
          {
             context->mb()->_firstExtentID = firstFreeExtentID ;
          }
 
-         // if there's previous record, we reassign the previous
-         // extent->nextExtent to this new extent
          if ( DMS_INVALID_EXTENT != extAddr->_prevExtent )
          {
             dmsExtent *prevExt = (dmsExtent*)extentAddr(extAddr->_prevExtent) ;
@@ -662,13 +630,10 @@ namespace engine
             extAddr->_logicID = DMS_INVALID_EXTENT + 1 ;
          }
 
-         // MB's last extent always assigned to the new extent
          context->mb()->_lastExtentID = firstFreeExtentID ;
          */
       }
 
-      // Once we put the extent into linked list, next we want to break such
-      // extent into multiple deleted records, and insert into delete list
       if ( map2DelList )
       {
          _mapExtent2DelList( context->mb(), extAddr, firstFreeExtentID ) ;
@@ -717,7 +682,6 @@ namespace engine
       }
 
       extAddr->_flag = DMS_EXTENT_FLAG_FREED ;
-      // change logical id
       extAddr->_logicID = DMS_INVALID_EXTENT ;
 
       rc = _releaseSpace( extentID, extAddr->_blockSize ) ;
@@ -761,8 +725,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
    retry:
-      // let's count which delete slots it fits
-      // divide by 32 first since our first slot is for <32 bytes
       dmsRecordSizeTemp = ( requiredSize-1 ) >> 5 ;
       deleteRecordSlot  = 0 ;
       while ( dmsRecordSizeTemp != 0 )
@@ -784,16 +746,13 @@ namespace engine
       {
          prevDeletedID.reset() ;
          prevExtentPtr =  0 ;
-         // get the first delete record from delete list
          foundDeletedID = _dmsMME->_mbList[context->mbID()]._deleteList[j] ;
          for ( i = 0 ; i < s_maxSearch ; ++i )
          {
-            // if we don't get a valid record id, we break to get next slot
             if ( foundDeletedID.isNull() )
             {
                break ;
             }
-            // otherwise we compare if the required slot is big enough for us
             extentPtr = extentAddr( foundDeletedID._extent ) ;
             if ( 0 == extentPtr )
             {
@@ -804,8 +763,6 @@ namespace engine
             }
 
             delRecordPtr = extentPtr + foundDeletedID._offset ;
-            // once the extent is valid, let's check the record is deleted
-            // and got sufficient size for us
             if( DMS_RECORD_FLAG_DELETED ==
                 DMS_DELETEDRECORD_GETFLAG( delRecordPtr ) &&
                 DMS_DELETEDRECORD_GETSIZE( delRecordPtr ) >= requiredSize )
@@ -816,19 +773,16 @@ namespace engine
                {
                   if ( 0 == prevExtentPtr )
                   {
-                     // it's just the first one from delete list, let's get it
                      context->mb()->_deleteList[j] =
                               DMS_DELETEDRECORD_GETNEXTRID( delRecordPtr ) ;
                   }
                   else
                   {
-                     // we need to link the previous delete record to the next
                      DMS_DELETEDRECORD_SETNEXTRID ( 
                               prevExtentPtr+prevDeletedID._offset,
                               DMS_DELETEDRECORD_GETNEXTRID ( delRecordPtr ) ) ;
                   }
                   resultID = foundDeletedID ;
-                  // change extent free space
                   ((dmsExtent*)extentPtr)->_freeSpace -=
                         DMS_DELETEDRECORD_GETSIZE( delRecordPtr ) ;
                   context->mbStat()->_totalDataFreeSpace -=
@@ -838,19 +792,16 @@ namespace engine
                }
                else
                {
-                  // can't increase i counter
                   --i ;
                }
             }
 
-            //for some reason this slot can't be reused, let's get to the next
             prevDeletedID  = foundDeletedID ;
             prevExtentPtr  = extentPtr ;
             foundDeletedID = DMS_DELETEDRECORD_GETNEXTRID( delRecordPtr ) ;
          }
       }
 
-      // no space, need to allocate extent
       {
          UINT32 reqPages = ( ( ( requiredSize + DMS_EXTENT_METADATA_SZ ) <<
                              DMS_RECORDS_PER_EXTENT_SQUARE ) + pageSize() -
@@ -892,17 +843,13 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
       lastExt = context->mb()->_lastExtentID ;
-      // reset delete list
       for ( UINT32 i = 0 ; i < dmsMB::_max ; i++ )
       {
          context->mb()->_deleteList[i].reset() ;
       }
-      // free all extent
       while ( DMS_INVALID_EXTENT != lastExt )
       {
-         // get the previous extent
          prevExt = ((dmsExtent*)extentAddr(lastExt))->_prevExtent ;
-         // free the extent
          rc = _freeExtent ( lastExt ) ;
          if ( rc )
          {
@@ -911,14 +858,11 @@ namespace engine
             SDB_ASSERT( SDB_OK == rc, "Free extent can't be failure" ) ;
          }
 
-         // set last to previous
          lastExt = prevExt ;
-         // update MB
          context->mb()->_lastExtentID = lastExt ;
       }
       context->mb()->_firstExtentID = DMS_INVALID_EXTENT ;
 
-      // free all load extent
       lastExt = context->mb()->_loadLastExtentID ;
       while ( DMS_INVALID_EXTENT != lastExt )
       {
@@ -962,7 +906,6 @@ namespace engine
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
-      // free all load extent
       lastExt = context->mb()->_loadLastExtentID ;
       while ( DMS_INVALID_EXTENT != lastExt )
       {
@@ -1011,28 +954,14 @@ namespace engine
                   PD_PACK_INT ( recordSize ),
                   PD_PACK_STRING ( "extentID" ),
                   PD_PACK_INT ( extentID ) ) ;
-      // assign flags to the memory
       DMS_DELETEDRECORD_SETFLAG( recordPtr, DMS_RECORD_FLAG_DELETED ) ;
       DMS_DELETEDRECORD_SETSIZE( recordPtr, recordSize ) ;
       DMS_DELETEDRECORD_SETMYOFFSET( recordPtr, offset ) ;
 
-      // change free space
       extAddr->_freeSpace += recordSize ;
       _mbStatInfo[mb->_blockID]._totalDataFreeSpace += recordSize ;
 
-      // let's count which delete slots it fits
-      // divide by 32 first since our first slot is for <32 bytes
       recordSize = ( recordSize - 1 ) >> 5 ;
-      // while loop, divde by 2 everytime, find the closest delete slot
-      // for example, for a given size 3000, we should go _4k (which is
-      // _deleteList[7], using 3000>>5=93
-      // then in a loop, first round we have 46, type=1
-      // then 23, type=2
-      // then 11, type=3
-      // then 5, type=4
-      // then 2, type=5
-      // then 1, type=6
-      // finally 0, type=7
 
       while ( (recordSize) != 0 )
       {
@@ -1040,14 +969,10 @@ namespace engine
          recordSize = ( recordSize >> 1 ) ;
       }
 
-      // make sure we don't mis calculated it
       SDB_ASSERT ( deleteRecordSlot < dmsMB::_max, "Invalid record size" ) ;
 
-      // set the first matching delete slot to the
-      // next rid for the deleted record
       DMS_DELETEDRECORD_SETNEXTRID ( recordPtr,
                                      mb->_deleteList [ deleteRecordSlot ] ) ;
-      // Then assign MB delete slot to the extent and offset
       mb->_deleteList[ deleteRecordSlot ]._extent = extentID ;
       mb->_deleteList[ deleteRecordSlot ]._offset = offset ;
       PD_TRACE_EXIT ( SDB__DMSSTORAGEDATA__SAVEDELETEDRECORD ) ;
@@ -1108,19 +1033,15 @@ namespace engine
          goto done ;
       }
 
-      // calculate the delete record size we need to use
       extentSize          = extAddr->_blockSize << pageSizeSquareRoot() ;
       extentUseableSpace  = extAddr->_freeSpace ;
       extAddr->_freeSpace = 0 ;
 
-      // make sure the delete record is not greater 16MB
       deleteRecordSize    = OSS_MIN ( extentUseableSpace,
                                            DMS_RECORD_MAX_SZ ) ;
-      // place first record offset
       recordOffset        = extentSize - extentUseableSpace ;
       curUseableSpace     = extentUseableSpace ;
 
-      // if extentUseableSpace > 16MB
       while ( curUseableSpace - deleteRecordSize >=
               (INT32)DMS_MIN_DELETEDRECORD_SZ )
       {
@@ -1143,7 +1064,6 @@ namespace engine
                              extentID ) ;
       }
 
-      // correct check
       SDB_ASSERT( extentUseableSpace == extAddr->_freeSpace,
                   "Extent[%d] free space invalid" ) ;
    done :
@@ -1172,20 +1092,15 @@ namespace engine
          goto error ;
       }
 
-      // SYSTEMP SU
       if ( isTempSU() )
       {
          extent->_prevExtent = context->mb()->_lastExtentID ;
 
-         // if this is the first extent in this MB, we assign firstExtentID to
-         // it
          if ( DMS_INVALID_EXTENT == context->mb()->_firstExtentID )
          {
             context->mb()->_firstExtentID = extID ;
          }
 
-         // if there's previous record, we reassign the previous
-         // extent->nextExtent to this new extent
          if ( DMS_INVALID_EXTENT != extent->_prevExtent )
          {
             dmsExtent *prevExt = (dmsExtent*)extentAddr(extent->_prevExtent) ;
@@ -1197,7 +1112,6 @@ namespace engine
             extent->_logicID = DMS_INVALID_EXTENT + 1 ;
          }
 
-         // MB's last extent always assigned to the new extent
          context->mb()->_lastExtentID = extID ;
       }
       else
@@ -1228,7 +1142,6 @@ namespace engine
             mbEx->setLastExtentID( segID, extID ) ;
             ++(mbEx->_header._usedSegNum) ;
 
-            // find prevExt
             INT32 tmpSegID = segID ;
             dmsExtentID tmpExtID = DMS_INVALID_EXTENT ;
             while ( DMS_INVALID_EXTENT != context->mb()->_firstExtentID &&
@@ -1335,7 +1248,6 @@ namespace engine
       PD_CHECK( initPages <= segmentPages(), SDB_INVALIDARG, error, PDERROR,
                 "Invalid pages: %u", initPages ) ;
 
-      // calc the reserve dps size
       if ( dpscb )
       {
          rc = dpsCLCrt2Record( _clFullName(pName, fullName, sizeof(fullName)),
@@ -1358,18 +1270,14 @@ namespace engine
 
       if ( !isTempSU () )
       {
-         // allocate mbEx extent
          rc = _findFreeSpace( mbExSize, mbExExtent, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Allocate metablock expand extent failed, "
                       "pageNum: %d, rc: %d", mbExSize, rc ) ;
       }
 
-      // first exclusive latch metadata, this shouldn't be replaced by SHARED to
-      // prevent racing with dropCollection
       ossLatch( &_metadataLatch, EXCLUSIVE ) ;
       metalocked = TRUE ;
 
-      // then let's make sure the collection name does not exist
       if ( DMS_INVALID_MBID != _collectionNameLookup ( pName ) )
       {
          rc = SDB_DMS_EXIST ;
@@ -1383,7 +1291,6 @@ namespace engine
          goto error ;
       }
 
-      // find a slot
       for ( UINT32 i = 0 ; i < DMS_MME_SLOTS ; ++i )
       {
          if ( DMS_IS_MB_FREE ( _dmsMME->_mbList[i]._flag ) ||
@@ -1393,7 +1300,6 @@ namespace engine
             break ;
          }
       }
-      // make sure we find free collection id
       if ( DMS_INVALID_MBID == newCollectionID )
       {
          PD_LOG ( PDERROR, "Unable to find free collection id" ) ;
@@ -1401,7 +1307,6 @@ namespace engine
          goto error ;
       }
 
-      // set mb meta data and header data
       logicalID = _dmsHeader->_MBHWM++ ;
       mb = &_dmsMME->_mbList[newCollectionID] ;
       mb->reset( pName, newCollectionID, logicalID, attributes ) ;
@@ -1419,7 +1324,6 @@ namespace engine
          mbExExtent = DMS_INVALID_EXTENT ;
       }
 
-      // write dps log
       if ( dpscb )
       {
          rc = _logDPS( dpscb, info, cb, &_metadataLatch, EXCLUSIVE,
@@ -1428,7 +1332,6 @@ namespace engine
                       "rc = %d", rc ) ;
       }
 
-      // release meta lock
       if ( metalocked )
       {
          ossUnlatch( &_metadataLatch, EXCLUSIVE ) ;
@@ -1441,7 +1344,6 @@ namespace engine
       }
       dropDps = dpscb ;
 
-      // create dms cb context
       rc = getMBContext( &context, newCollectionID, logicalID, EXCLUSIVE ) ;
       if ( rc )
       {
@@ -1454,7 +1356,6 @@ namespace engine
          goto error ;
       }
 
-      // allocate new extent
       if ( 0 != initPages )
       {
          rc = _allocateExtent( context, initPages, TRUE, FALSE, NULL ) ;
@@ -1462,7 +1363,6 @@ namespace engine
                       "failed, rc: %d", pName, rc ) ;
       }
 
-      // create $id index[s_idKeyObj]
       if ( FALSE == noIDIndex )
       {
          rc = _pIdxSU->createIndex( context, s_idKeyObj, cb, NULL, TRUE ) ;
@@ -1492,7 +1392,6 @@ namespace engine
       }
       if ( DMS_INVALID_MBID != newCollectionID )
       {
-         // drop collection
          INT32 rc1 = dropCollection( pName, cb, dropDps, sysCollection,
                                      context ) ;
          if ( rc1 )
@@ -1529,7 +1428,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Invalid collection name %s, rc: %d",
                    pName, rc ) ;
 
-      // calc the reserve dps size
       if ( dpscb )
       {
          rc = dpsCLDel2Record( _clFullName(pName, fullName, sizeof(fullName)),
@@ -1550,7 +1448,6 @@ namespace engine
          }
       }
 
-      // lock collection mb exclusive lock
       if ( NULL == context )
       {
          rc = getMBContext( &context, pName, EXCLUSIVE ) ;
@@ -1574,8 +1471,6 @@ namespace engine
          goto error ;
       }
 
-      // it is not need to lock that drop temp collection while startup
-      // which cb is NULL
       if ( cb && dpscb )
       {
          rc = pTransCB->transLockTryX( cb, _logicalCSID, context->mbID() ) ;
@@ -1584,17 +1479,14 @@ namespace engine
          isTransLocked = TRUE ;
       }
 
-      // drop all index
       rc = _pIdxSU->dropAllIndexes( context, cb, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to drop index for collection[%s], "
                    "rc: %d", pName, rc ) ;
 
-      // truncate the collection
       rc = _truncateCollection( context ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to truncate the collection[%s], rc: %d",
                    pName, rc ) ;
 
-      // truncate lob
       if ( _pLobSU->isOpened() )
       {
          rc = _pLobSU->truncate( context, cb, NULL ) ;
@@ -1602,11 +1494,9 @@ namespace engine
                       "rc: %d", pName, rc ) ;
       }
 
-      // change mb meta data
       DMS_SET_MB_FREE( context->mb()->_flag ) ;
       context->mb()->_logicalID-- ;
 
-      // free meta extent
       metaExt = ( dmsMetaExtent* )extentAddr( context->mb()->_mbExExtentID ) ;
       if ( metaExt )
       {
@@ -1614,16 +1504,13 @@ namespace engine
          metaExt->_flag = DMS_EXTENT_FLAG_FREED ;
       }
 
-      // release mb lock
       context->mbUnlock() ;
 
-      // change metadata
       ossLatch( &_metadataLatch, EXCLUSIVE ) ;
       metalocked = TRUE ;
       _collectionNameRemove( pName ) ;
       _dmsHeader->_numMB-- ;
 
-      // write dps log
       if ( dpscb )
       {
          rc = _logDPS( dpscb, info, cb, &_metadataLatch, EXCLUSIVE, metalocked,
@@ -1682,7 +1569,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Invalid collection name %s, rc: %d",
                    pName, rc ) ;
 
-      // calc the reserve dps size
       if ( dpscb )
       {
          rc = dpsCLTrunc2Record( _clFullName(pName, fullName, sizeof(fullName)),
@@ -1703,7 +1589,6 @@ namespace engine
          }
       }
 
-      // lock collection mb exclusive lock
       if ( NULL == context )
       {
          rc = getMBContext( &context, pName, EXCLUSIVE ) ;
@@ -1727,7 +1612,6 @@ namespace engine
          goto error ;
       }
 
-      // trans lock
       if ( cb && dpscb )
       {
          rc = pTransCB->transLockTryX( cb, _logicalCSID, context->mbID() ) ;
@@ -1736,7 +1620,6 @@ namespace engine
          isTransLocked = TRUE ;
       }
 
-      // pause mb lock and change metadata
       context->pause() ;
       ossLatch( &_metadataLatch, EXCLUSIVE ) ;
       if ( needChangeCLID )
@@ -1745,11 +1628,9 @@ namespace engine
       }
       ossUnlatch( &_metadataLatch, EXCLUSIVE ) ;
 
-      // resume context lock
       rc = context->resume() ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context resume falied, rc: %d", rc ) ;
 
-      // change mb metadata
       if ( needChangeCLID )
       {
          context->mb()->_logicalID = newCLID ;
@@ -1771,7 +1652,6 @@ namespace engine
                       pName, rc ) ;
       }
 
-      // write dps log
       if ( dpscb )
       {
          rc = _logDPS( dpscb, info, cb, context, DMS_INVALID_EXTENT, TRUE ) ;
@@ -1858,7 +1738,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Invalid new collection name %s, rc: %d",
                    newName, rc ) ;
 
-      // reserved log-size
       if ( dpscb )
       {
          rc = dpsCLRename2Record( getSuName(), oldName, newName, record ) ;
@@ -1878,7 +1757,6 @@ namespace engine
          }
       }
 
-      // lock metadata
       ossLatch ( &_metadataLatch, EXCLUSIVE ) ;
       metalocked = TRUE ;
 
@@ -1973,22 +1851,18 @@ namespace engine
       dpsMergeInfo info ;
       dpsLogRecord &logRecord       = info.getMergeBlock().record() ;
       SDB_DPSCB *dropDps            = NULL ;
-      // compression related
       BOOLEAN isCompressed          = FALSE ;
       const CHAR *compressedData    = NULL ;
       INT32 compressedDataSize      = 0 ;
-      // trans related
       DPS_TRANS_ID transID          = cb->getTransID() ;
       DPS_LSN_OFFSET preTransLsn    = cb->getCurTransLsn() ;
       DPS_LSN_OFFSET relatedLsn     = cb->getRelatedTransLSN() ;
       BOOLEAN  isTransLocked        = FALSE ;
-      // delete record related
       dmsRecordID foundDeletedID ;
       ossValuePtr extentPtr         = 0 ;
       ossValuePtr deletedRecordPtr  = 0 ;
       ossValuePtr insertedDataPtr   = 0 ;
 
-      // verify whether the record got "_id" inside
       BSONElement ele = record.getField ( DMS_ID_KEY_NAME ) ;
       if ( ele.type() == Array )
       {
@@ -1997,21 +1871,18 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // judge must oid
       if ( mustOID && ele.eoo() )
       {
          oid._oid.init() ;
          oidLen = oidEle.size() ;
          addOID = TRUE ;
       }
-      // check
       if ( record.objsize() + DMS_RECORD_METADATA_SZ + oidLen >
            DMS_RECORD_USER_MAX_SZ )
       {
          rc = SDB_DMS_RECORD_TOO_BIG ;
          goto error ;
       }
-      // judge is compress
       if ( OSS_BIT_TEST ( context->mb()->_attributes,
                           DMS_MB_ATTR_COMPRESSED ) )
       {
@@ -2019,46 +1890,35 @@ namespace engine
                              &compressedData, &compressedDataSize ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to compress record[%s], rc: %d",
                        record.toString().c_str(), rc ) ;
-         // 4 bytes len + compressed record
          dmsRecordSize = compressedDataSize + sizeof(INT32) ;
          PD_TRACE2 ( SDB__DMSSTORAGEDATA_INSERTRECORD,
                      PD_PACK_STRING ( "size after compress" ),
                      PD_PACK_UINT ( dmsRecordSize ) ) ;
                      
-         // if we find the record size is greater than non-compression, let's
-         // save non-compressed version
          if ( dmsRecordSize > (UINT32)(record.objsize() + oidLen) )
          {
             dmsRecordSize = record.objsize() ;
          }
          else
          {
-            // oid is already added into compression buffer, so let's unset
-            // addOID stuff
             addOID = FALSE ;
             oidLen = 0 ;
-            // set compression flag
             isCompressed = TRUE ;
          }
       }
       else
       {
-         // if not compressed, let's use object size
          dmsRecordSize = record.objsize() ;
       }
 
-      // add record metadata and oid
       dmsRecordSize += ( DMS_RECORD_METADATA_SZ + oidLen ) ;
-      // get the recordsize that we have to allocate
       dmsRecordSize *= DMS_RECORD_OVERFLOW_RATIO ;
-      // record is ALWAYS 4 bytes aligned
       dmsRecordSize = OSS_MIN( DMS_RECORD_MAX_SZ,
                                ossAlignX ( dmsRecordSize, 4 ) ) ;
       PD_TRACE2 ( SDB__DMSSTORAGEDATA_INSERTRECORD,
                   PD_PACK_STRING ( "size after align" ),
                   PD_PACK_UINT ( dmsRecordSize ) ) ;
 
-      // calc log reserve
       if ( dpscb )
       {
          _clFullName( context->mb()->_collectionName, fullName,
@@ -2088,11 +1948,9 @@ namespace engine
          }
       }
 
-      // lock mb
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
-      // then make sure the collection compatiblity
       if ( !dmsAccessAndFlagCompatiblity ( context->mb()->_flag,
                                            DMS_ACCESS_TYPE_INSERT ) )
       {
@@ -2102,7 +1960,6 @@ namespace engine
          goto error ;
       }
 
-      // find delete record
       rc = _reserveFromDeleteList( context, dmsRecordSize,
                                    foundDeletedID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Reserve delete record failed, rc: %d", rc ) ;
@@ -2124,7 +1981,6 @@ namespace engine
                      "transaction-X-lock of record failed, rc: %d", rc );
          isTransLocked = TRUE ;
       }
-      // insert to extent
       rc = _extentInsertRecord( context, deletedRecordPtr, dmsRecordSize,
                                 isCompressed ? (ossValuePtr)compressedData :
                                                (ossValuePtr)record.objdata(),
@@ -2135,14 +1991,10 @@ namespace engine
                                 TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to append record, rc: %d", rc ) ;
 
-      // update totalInsert monitor counter
       DMS_MON_OP_COUNT_INC( pMonAppCB, MON_INSERT, 1 ) ;
 
-      // mark the segment dirty
       _markDirty ( foundDeletedID._extent ) ;
 
-      // we have to create new object from deletedRecordPtr instead of using
-      // record object, because we may have to add OID into the object
       {
          DMS_RECORD_EXTRACTDATA ( deletedRecordPtr, insertedDataPtr ) ;
          BSONObj insertedObj ( (CHAR*)insertedDataPtr ) ;
@@ -2157,7 +2009,6 @@ namespace engine
       {
          dmsExtentID extLID = ((dmsExtent*)extentPtr)->_logicID ;
          info.clear() ;
-         /// here we create record again. the old one may not contain oid.
          rc = dpsInsert2Record( fullName, BSONObj((CHAR*)insertedDataPtr),
                                 transID, preTransLsn, relatedLsn, logRecord ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to build insert record, rc: %d",
@@ -2167,7 +2018,6 @@ namespace engine
          PD_RC_CHECK ( rc, PDERROR, "Failed to insert record into log, rc: %d",
                        rc ) ;
          dropDps = dpscb ;
-         // it is transaction operations
          if ( cb && transID != DPS_INVALID_TRANS_ID )
          {
             cb->setCurTransLsn( info.getMergeBlock().record().head()._lsn ) ;
@@ -2180,8 +2030,6 @@ namespace engine
       }
 
    done:
-      // release the lock immediately if it is not transaction-operation,
-      // the transaction-operation's lock will release in rollback or commit
       if ( isTransLocked && ( transID == DPS_INVALID_TRANS_ID || rc ) )
       {
          pTransCB->transLockRelease( cb, _logicalCSID, context->mbID(),
@@ -2230,7 +2078,6 @@ namespace engine
       rc = context->mbLock( EXCLUSIVE ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
-      // first we need to check if the delete record is large enough
       if ( DMS_DELETEDRECORD_GETSIZE ( deletedRecordPtr ) < dmsRecordSize )
       {
          rc = SDB_INVALIDARG ;
@@ -2240,23 +2087,18 @@ namespace engine
       deletedRecordOffset = DMS_DELETEDRECORD_GETMYOFFSET( deletedRecordPtr ) ;
       extent = (dmsExtent*)( deletedRecordPtr - deletedRecordOffset ) ;
 
-      // set to normal status
       DMS_RECORD_SETSTATE ( deletedRecordPtr, DMS_RECORD_FLAG_NORMAL ) ;
       DMS_RECORD_RESETATTR ( deletedRecordPtr ) ;
-      // if the record is compressed, let's set the flag
       if ( compressed )
       {
          DMS_RECORD_SETATTR ( deletedRecordPtr, DMS_RECORD_FLAG_COMPRESSED ) ;
       }
 
-      // and then need to check if we need to split deleted record
       if ( (DMS_DELETEDRECORD_GETSIZE( deletedRecordPtr ) - dmsRecordSize) >
            DMS_MIN_RECORD_SZ )
       {
-         // original offset+new size = new delete offset
          dmsOffset newOffset = DMS_DELETEDRECORD_GETMYOFFSET(deletedRecordPtr) +
                                dmsRecordSize ;
-         // original size - new size = new delete size
          INT32 newSize = DMS_DELETEDRECORD_GETSIZE(deletedRecordPtr) -
                          dmsRecordSize ;
          rc = _saveDeletedRecord ( context->mb(), extent, newOffset, newSize,
@@ -2266,13 +2108,9 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to save deleted record, rc: %d", rc ) ;
             goto error ;
          }
-         // set the original place with new dmsrecordSize
          DMS_RECORD_SETSIZE ( deletedRecordPtr, dmsRecordSize ) ;
       }
-      // if the leftover space is not good enough for a min_record, then we
-      // don't change the deletedRecordPtr size
 
-      // then for the original location we set new record header and copy data
       if ( NULL == extraOID )
       {
          DMS_RECORD_SETDATA ( deletedRecordPtr, ptr, len ) ;
@@ -2283,31 +2121,22 @@ namespace engine
       }
       DMS_RECORD_SETNEXTOFFSET ( deletedRecordPtr, DMS_INVALID_OFFSET ) ;
       DMS_RECORD_SETPREVOFFSET ( deletedRecordPtr, DMS_INVALID_OFFSET ) ;
-      // increase write counter
       DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
 
-      // no need to change offset
       if ( addIntoList )
       {
          dmsOffset   offset      = extent->_lastRecordOffset ;
-         // finally add the record into list
          extent->_recCount++ ;
          ++( _mbStatInfo[ context->mbID() ]._totalRecords ) ;
-         // if there is last record in the extent
          if ( DMS_INVALID_OFFSET != offset )
          {
-            // if there is already record in the extent
             ossValuePtr preRecord = ((ossValuePtr)extent + offset) ;
-            // set the next of previous point to the new record
             DMS_RECORD_SETNEXTOFFSET ( preRecord, deletedRecordOffset ) ;
-            // set the previous of current points to the original last
             DMS_RECORD_SETPREVOFFSET ( deletedRecordPtr, offset ) ;
          }
          extent->_lastRecordOffset = deletedRecordOffset ;
-         // then check for first record in extent
          if ( DMS_INVALID_OFFSET == extent->_firstRecordOffset )
          {
-            // we only change it when it points to nothing
             extent->_firstRecordOffset = deletedRecordOffset ;
          }
       }
@@ -2397,9 +2226,6 @@ namespace engine
          goto error ;
       }
 
-      // don't delete the record, someone are waitting for the record-X-Lock,
-      // mark the record's attr to DMS_RECORD_FLAG_DELETING and write the log
-      // the last one who get the record-X-Lock will delete the record.
       if ( pTransCB->hasWait( _logicalCSID, context->mbID(), &recordID ) )
       {
          if ( OSS_BIT_TEST ( DMS_RECORD_FLAG_DELETING,
@@ -2424,16 +2250,13 @@ namespace engine
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_READ, 1 ) ;
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_READ, 1 ) ;
          }
-         // delete index keys
          try
          {
             delObject = BSONObj( (CHAR*)deletedDataPtr ) ;
-            // first to reserve dps
             if ( NULL != dpscb )
             {
                _clFullName( context->mb()->_collectionName, fullName,
                             sizeof(fullName) ) ;
-               // reserved log-size
                rc = dpsDelete2Record( fullName, delObject, transID,
                                       preLsn, relatedLSN, record ) ;
                if ( SDB_OK != rc )
@@ -2456,12 +2279,10 @@ namespace engine
                   goto error ;
                }
             }
-            // then delete indexes
             rc = _pIdxSU->indexesDelete( context, recordID._extent,
                                          delObject, recordID, cb ) ;
             if ( rc )
             {
-               // if index delete fail, let's continue remove the record
                PD_LOG ( PDERROR, "Failed to delete indexes, rc: %d",rc ) ;
             }
          }
@@ -2474,7 +2295,6 @@ namespace engine
          }
       }
 
-      // no wait for X lock, delete really
       if ( FALSE == isNeedToSetDeleting )
       {
          rc = _extentRemoveRecord( context->mb(), recordID, 0, cb,
@@ -2485,22 +2305,18 @@ namespace engine
             _extentRemoveRecord( context->mb(), ovfRID, 0, cb ) ;
          }
       }
-      // set deleting attr
       else
       {
          DMS_RECORD_SETATTR( recordPtr, DMS_RECORD_FLAG_DELETING ) ;
-         // need to dec count
          --((dmsExtent*)extentPtr)->_recCount ;
          --( _mbStatInfo[ context->mbID() ]._totalRecords ) ;
       }
 
       if ( FALSE == isDeleting )
       {
-         // increase conter
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DELETE, 1 ) ;
       }
 
-      // if we are asked to log
       if ( dpscb && FALSE == isDeleting )
       {
          dmsExtentID extLID = ((dmsExtent*)extentPtr)->_logicID ;
@@ -2508,7 +2324,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to insert record into log, rc: %d",
                       rc ) ;
 
-         // it is transaction operations
          if ( cb && transID != DPS_INVALID_TRANS_ID )
          {
             cb->setCurTransLsn( info.getMergeBlock().record().head()._lsn );
@@ -2544,7 +2359,6 @@ namespace engine
       ossValuePtr extentPtr = extentAddr( recordID._extent ) ;
       ossValuePtr recordPtr = extentPtr + recordID._offset ;
 
-      // not over-flow to record
       if ( DMS_RECORD_FLAG_OVERFLOWT != DMS_RECORD_GETSTATE(recordPtr) )
       {
          dmsExtent *extent = (dmsExtent*)extentPtr ;
@@ -2576,10 +2390,8 @@ namespace engine
             --( _mbStatInfo[ mb->_blockID ]._totalRecords ) ;
          }
       }
-      //increase data write counter
       DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
 
-      // mark as dirty
       _markDirty ( recordID._extent ) ;
 
       rc = _saveDeletedRecord( mb, recordID, recordSize ) ;
@@ -2618,7 +2430,6 @@ namespace engine
       DPS_LSN_OFFSET preTransLsn = cb->getCurTransLsn() ;
       DPS_LSN_OFFSET relatedLSN = cb->getRelatedTransLSN() ;
 
-      // first we need to locate the mem addr of the extent
       extentPtr = extentAddr ( recordID._extent ) ;
       if ( !extentPtr )
       {
@@ -2644,7 +2455,6 @@ namespace engine
          rc = SDB_DMS_INCOMPATIBLE_MODE ;
          goto error ;
       }
-      // validate the extent is valid
       if ( !extent->validate( context->mbID() ) )
       {
          rc = SDB_SYS ;
@@ -2652,7 +2462,6 @@ namespace engine
       }
 #endif //_DEBUG
 
-      // get data
       if ( 0 == updatedDataPtr )
       {
          ossValuePtr recordPtr = extentPtr+recordID._offset ;
@@ -2672,7 +2481,6 @@ namespace engine
       try
       {
          BSONObj obj ( (const CHAR*)updatedDataPtr ) ;
-         // create a new object for updated record
          BSONObj newobj ;
          try
          {
@@ -2710,7 +2518,6 @@ namespace engine
          {
             _clFullName( context->mb()->_collectionName, fullName,
                          sizeof(fullName) ) ;
-            // reserved log-size
             rc = dpsUpdate2Record( fullName, oldMatch, oldChg, newMatch,
                                    newChg, transID, preTransLsn,
                                    relatedLSN, record ) ;
@@ -2752,10 +2559,8 @@ namespace engine
          goto error ;
       }
 
-      // increase update counter
       DMS_MON_OP_COUNT_INC( pMonAppCB, MON_UPDATE, 1 ) ;
 
-      // log update information
       if ( dpscb )
       {
          PD_LOG ( PDDEBUG, "oldChange: %s,%s\nnewChange: %s,%s",
@@ -2768,7 +2573,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to insert update record into log, "
                       "rc: %d", rc ) ;
 
-         // it is transaction operations
          if ( cb && transID != DPS_INVALID_TRANS_ID )
          {
             cb->setCurTransLsn( info.getMergeBlock().record().head()._lsn ) ;
@@ -2830,7 +2634,6 @@ namespace engine
          goto error ;
       }
 
-      // compress data
       if ( OSS_BIT_TEST(context->mb()->_attributes, DMS_MB_ATTR_COMPRESSED ) )
       {
          rc = dmsCompress( cb, (const CHAR*)ptr, len, &compressedData,
@@ -2839,8 +2642,6 @@ namespace engine
                        rc, BSONObj((CHAR*)ptr).toString().c_str() ) ;
 
          dmsRecordSize = compressedDataSize + sizeof(INT32) ;
-         // if we find the record size is greater than non-compression, let's
-         // save non-compressed version
          if ( dmsRecordSize > (UINT32)len )
          {
             dmsRecordSize = (UINT32)len ;
@@ -2852,15 +2653,11 @@ namespace engine
       }
       else
       {
-         // if not compressed, let's use original size
          dmsRecordSize = len ;
       }
 
-      // add metadata to size
       dmsRecordSize += DMS_RECORD_METADATA_SZ ;
       {
-         // before moving on, let's first make sure the new object doesn't
-         // violate any index unique rule
          BSONObj oriObj( (CHAR*)recordDataPtr ) ;
          BSONObj newObj( (CHAR*)ptr ) ;
          rc = _pIdxSU->indexesUpdate( context, extLID, oriObj, newObj,
@@ -2879,11 +2676,8 @@ namespace engine
          realRecordPtr = extentAddr(ovfRID._extent) + ovfRID._offset ;
       }
 
-      // if the current space is big enough for the whole record, let's put it
-      // here and return rightaway
       if ( dmsRecordSize <= DMS_RECORD_GETSIZE(realRecordPtr) )
       {
-         // unset compression flag if we decided not to compress the new record
          if ( isCompressed )
          {
             DMS_RECORD_SETATTR ( realRecordPtr, DMS_RECORD_FLAG_COMPRESSED ) ;
@@ -2896,24 +2690,19 @@ namespace engine
             DMS_RECORD_SETDATA ( realRecordPtr, ptr, len ) ;
          }
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_DATA_WRITE, 1 ) ;
-         // mark as dirty
          _markDirty ( recordID._extent ) ;
          goto done ;
       }
-      // over-flow recrod
       else
       {
          dmsRecordID foundDeletedID ;
          ossValuePtr extentPtr        = 0 ;
          ossValuePtr deletedRecordPtr = 0 ;
 
-         // get the recordsize that we have to allocate
          dmsRecordSize *= DMS_RECORD_OVERFLOW_RATIO ;
-         // record is ALWAYS 4 bytes aligned
          dmsRecordSize = OSS_MIN( DMS_RECORD_MAX_SZ,
                                   ossAlignX ( dmsRecordSize, 4 ) ) ;
 
-         // find a free spot from delete list
          rc = _reserveFromDeleteList ( context, dmsRecordSize,
                                        foundDeletedID, cb ) ;
          if ( rc )
@@ -2937,8 +2726,6 @@ namespace engine
             goto error_rollbackindex ;
          }
          deletedRecordPtr = extentPtr+foundDeletedID._offset ;
-         // pass FALSE to addIntoList so that we don't add the record into
-         // target extent's list
          rc = _extentInsertRecord ( context, deletedRecordPtr, dmsRecordSize,
                                     isCompressed?(ossValuePtr)compressedData:
                                                  (ossValuePtr)ptr,
@@ -2950,17 +2737,13 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to append record due to %d", rc ) ;
             goto error_rollbackindex ;
          }
-         // set remote record as overflowed to
          DMS_RECORD_SETSTATE ( deletedRecordPtr, DMS_RECORD_FLAG_OVERFLOWT ) ;
          DMS_RECORD_SETSTATE ( recordPtr, DMS_RECORD_FLAG_OVERFLOWF ) ;
          DMS_RECORD_SETOVF ( recordPtr, foundDeletedID ) ;
          if ( ovfRID.isValid() )
          {
-            // overflowed record removal is done here, and it will mark the
-            // segment dirty in the function
             _extentRemoveRecord( context->mb(), ovfRID, 0, cb ) ;
          }
-         // mark the segment as dirty
          _markDirty ( foundDeletedID._extent ) ;
       }
 
@@ -2972,7 +2755,6 @@ namespace engine
    error_rollbackindex :
       BSONObj oriObj( (CHAR*)recordDataPtr ) ;
       BSONObj newObj( (CHAR*)ptr ) ;
-      // rollback the change on index by switching obj and oriObj
       INT32 rc1 = _pIdxSU->indexesUpdate( context, extLID, newObj, oriObj,
                                           recordID, cb, TRUE ) ;
       if ( rc1 )
@@ -3024,7 +2806,6 @@ namespace engine
          goto error ;
       }
 
-      // validate extent
       if ( !extent->validate( context->mbID()) )
       {
          PD_LOG ( PDERROR, "Invalid extent[%d]", recordID._extent ) ;
@@ -3035,9 +2816,6 @@ namespace engine
 
       recordPtr = extentPtr + recordID._offset ;
 
-      // make sure the record is not deleted
-      // since we get the RID outside the latch scope, so there could be
-      // inconsistency happen, we need to make sure the flag is expected
       flag = DMS_RECORD_GETSTATE( recordPtr ) ;
       if ( DMS_RECORD_FLAG_DELETED == flag )
       {
@@ -3052,7 +2830,6 @@ namespace engine
       }
 
 #ifdef _DEBUG
-      // but the status shouldn't be in other flag
       if (  DMS_RECORD_FLAG_NORMAL != flag &&
             DMS_RECORD_FLAG_OVERFLOWF != flag )
       {
@@ -3063,7 +2840,6 @@ namespace engine
       }
 #endif //_DEBUG
 
-      // if this record is overflow from
       if ( DMS_RECORD_FLAG_OVERFLOWF == flag )
       {
          dmsRecordID ovfRID = DMS_RECORD_GETOVF ( recordPtr ) ;

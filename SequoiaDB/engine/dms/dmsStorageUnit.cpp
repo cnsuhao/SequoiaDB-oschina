@@ -76,7 +76,6 @@ namespace engine
       ossStrncpy( _storageInfo._suName, pSUName, DMS_SU_NAME_SZ ) ;
       _storageInfo._suName[DMS_SU_NAME_SZ] = 0 ;
       _storageInfo._sequence = sequence ;
-      // make secret value
       _storageInfo._secretValue = ossPack32To64( (UINT32)time(NULL),
                                                  (UINT32)(ossRand()*239641) ) ;
 
@@ -94,7 +93,6 @@ namespace engine
 
       if ( NULL != _pDataSu && NULL != _pIndexSu )
       {
-         /// reuse buf for lob
          ossMemset( dataFileName, 0, sizeof( dataFileName ) ) ;
          ossMemset( idxFileName, 0 , sizeof( idxFileName ) ) ;
          ossSnprintf( dataFileName, DMS_SU_FILENAME_SZ, "%s.%d.%s",
@@ -127,7 +125,6 @@ namespace engine
          SDB_OSS_DEL _pLobSu ;
          _pLobSu = NULL ;
       }
-      // _pDataSu must be delete at the last
       if ( _pDataSu )
       {
          SDB_OSS_DEL _pDataSu ;
@@ -150,7 +147,6 @@ namespace engine
          goto error ;
       }
 
-      // open data
       rc = _pDataSu->openStorage( pDataPath, createNew, delWhenExist ) ;
       if ( rc )
       {
@@ -161,7 +157,6 @@ namespace engine
          }
          goto error ;
       }
-      // open index
       rc = _pIndexSu->openStorage( pIndexPath, createNew, delWhenExist ) ;
       if ( rc )
       {
@@ -177,7 +172,6 @@ namespace engine
          goto error ;
       }
 
-      // open lob
       rc = _pLobSu->open( pLobPath, createNew, delWhenExist ) ;
       if ( SDB_OK != rc )
       {
@@ -276,12 +270,10 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DMSSU__RESETCOLLECTION ) ;
       SDB_ASSERT( context, "context can't be NULL" ) ;
 
-      // drop all indexes
       rc = _pIndexSu->dropAllIndexes( context, NULL, NULL ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Drop all indexes failed, rc: %d", rc ) ;
-         // don't go to error, continue
       }
 
       rc = _pDataSu->_truncateCollection( context ) ;
@@ -308,7 +300,6 @@ namespace engine
       dmsExtent *extAddr = NULL ;
       SINT32 allocatedExtent = DMS_INVALID_EXTENT ;
 
-      // allocate a new extent
       rc = _pDataSu->_allocateExtent( mbContext, numPages, FALSE, toLoad,
                                       &allocatedExtent ) ;
       if ( rc )
@@ -318,14 +309,11 @@ namespace engine
          goto error ;
       }
 
-      // get the address
       extAddr = (dmsExtent*)_pDataSu->extentAddr ( allocatedExtent ) ;
-      // copy data part
       ossMemcpy ( &((CHAR*)extAddr)[DMS_EXTENT_METADATA_SZ],
                   &pBuffer[DMS_EXTENT_METADATA_SZ],
                   _pDataSu->pageSize() * numPages  - DMS_EXTENT_METADATA_SZ ) ;
 
-      // reset header part
       extAddr->_recCount          = sourceExt->_recCount ;
       extAddr->_firstRecordOffset = sourceExt->_firstRecordOffset ;
       extAddr->_lastRecordOffset  = sourceExt->_lastRecordOffset ;
@@ -368,10 +356,8 @@ namespace engine
          goto error ;
       }
 
-      // reset delete list
       _pDataSu->_mapExtent2DelList( mbContext->mb(), extAddr,
                                     allocatedExtent ) ;
-      // add count
       addExtentRecordCount( mbContext->mb(), extAddr->_recCount ) ;
 
    done :
@@ -702,7 +688,6 @@ namespace engine
    {
       INT32 rc                     = SDB_OK ;
       BOOLEAN getContext           = FALSE ;
-      //dmsExtent *pExtent           = NULL ;
       recordNum                    = 0 ;
 
       PD_TRACE_ENTRY ( SDB__DMSSU_COUNTCOLLECTION ) ;
@@ -988,9 +973,7 @@ namespace engine
          indexItem._indexFlag = indexCB.getFlag () ;
          indexItem._scanExtLID = indexCB.scanExtLID () ;
          indexItem._version = indexCB.version () ;
-         // copy the index def to it's owned buffer
          indexItem._indexDef = indexCB.getDef().copy () ;
-         // add
          resultIndexes.push_back ( indexItem ) ;
       }
 
@@ -1047,7 +1030,6 @@ namespace engine
             resultIndex._indexFlag = indexCB.getFlag () ;
             resultIndex._scanExtLID = indexCB.scanExtLID () ;
             resultIndex._version = indexCB.version () ;
-            // copy the index def to it's owned buffer
             resultIndex._indexDef = indexCB.getDef().copy () ;
 
             rc = SDB_OK ;
@@ -1071,7 +1053,6 @@ namespace engine
                                     BOOLEAN sys )
    {
       PD_TRACE_ENTRY( SDB__DMSSU_DUMPINFO ) ;
-      // lock meta data
       _pDataSu->_metadataLatch.get_shared() ;
 
       dmsStorageData::COLNAME_MAP_IT it = _pDataSu->_collectionNameMap.begin() ;
@@ -1091,14 +1072,12 @@ namespace engine
          }
          ossStrncpy ( pBuffer, it->first, DMS_COLLECTION_NAME_SZ ) ;
          pBuffer[ DMS_COLLECTION_NAME_SZ ] = 0 ;
-         // add
          collectionList.push_back ( pBuffer ) ;
 
          ++it ;
       }
 
    done :
-      // release meta lock
       _pDataSu->_metadataLatch.release_shared() ;
       PD_TRACE_EXIT ( SDB__DMSSU_DUMPINFO ) ;
       return ;
@@ -1114,7 +1093,6 @@ namespace engine
       dmsMBStatInfo *mbStat = NULL ;
 
       PD_TRACE_ENTRY ( SDB__DMSSU_DUMPINFO1 ) ;
-      // lock meta
       _pDataSu->_metadataLatch.get_shared() ;
 
       dmsStorageData::COLNAME_MAP_IT it = _pDataSu->_collectionNameMap.begin() ;
@@ -1146,13 +1124,11 @@ namespace engine
                                  mbStat->_totalLobPages,
                                  mbStat->_totalDataFreeSpace,
                                  mbStat->_totalIndexFreeSpace ) ;
-         //add
          collectionList.insert ( collection ) ;
 
          ++it ;
       }
 
-      // release meta
       _pDataSu->_metadataLatch.release_shared() ;
       PD_TRACE_EXIT ( SDB__DMSSU_DUMPINFO1 ) ;
    }
@@ -1181,7 +1157,6 @@ namespace engine
       su._CSID = CSID() ;
       su._logicalCSID = LogicalCSID() ;
 
-      //add
       storageUnitList.insert ( su ) ;
    done :
       PD_TRACE_EXIT ( SDB__DMSSU_DUMPINFO2 ) ;
@@ -1360,7 +1335,6 @@ namespace engine
 
       dmsMBStatInfo *mbStat = NULL ;
 
-      // lock meta
       _pDataSu->_metadataLatch.get_shared() ;
 
       dmsStorageData::COLNAME_MAP_IT it = _pDataSu->_collectionNameMap.begin() ;
@@ -1379,7 +1353,6 @@ namespace engine
          ++it ;
       }
 
-      // release meta
       _pDataSu->_metadataLatch.release_shared() ;
       PD_TRACE_EXIT ( SDB__DMSSU_GETSTATINFO ) ;
    }

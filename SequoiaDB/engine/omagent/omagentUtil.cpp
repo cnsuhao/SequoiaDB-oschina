@@ -72,8 +72,6 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to allocate %d bytes send buffer",
                      newSize ) ;
             rc = SDB_OOM ;
-            // realloc does NOT free original memory if it fails, so we have to
-            // assign pointer to original
             *ppBuffer = pOrigMem ;
             goto error ;
          }
@@ -167,7 +165,6 @@ namespace engine
          goto error ;
       }
       result = TRUE ;
-      // close the socket
       sock.close() ;
 
    done:
@@ -177,7 +174,6 @@ namespace engine
 
    }
 
-   // get bson field
    INT32 omaGetIntElement ( const BSONObj &obj, const CHAR *fieldName,
                             INT32 &value )
    {
@@ -304,7 +300,6 @@ namespace engine
       string cmdline ;
       UINT32 exit = 0 ;
 
-      // verify the configuration file
       rc = ossAccess ( pCfgPath ) ;
       if ( rc )
       {
@@ -330,7 +325,6 @@ namespace engine
                   cmdline.c_str(), rc ) ;
          goto error ;
       }
-      // verify the executing result
       if ( exit == SDB_OK  )
       {
          UTIL_VEC_NODES nodes ;
@@ -360,8 +354,8 @@ namespace engine
          string nodeOut = omPickNodeOutString( outString, pSvcName ) ;
          if ( !nodeOut.empty() )
          {
-            PD_LOG( PDERROR, "node[%s] start failed, out info:%s%s",
-                    pSvcName, OSS_NEWLINE, nodeOut.c_str() ) ;
+            PD_LOG( PDERROR, "node[%s] start[cmd: %s] failed, out info:%s%s",
+                    pSvcName, cmdline.c_str(), OSS_NEWLINE, nodeOut.c_str() ) ;
          }
       }
 
@@ -395,8 +389,6 @@ namespace engine
                   rc ) ;
          goto error ;
       }
-      // call exec to run the command with arguments,
-      // do NOT wait until program finish
       rc = ossExec ( pArgumentBuffer, pArgumentBuffer, NULL,
                      OSS_EXEC_SSAVE, pid, result, NULL, NULL ) ;
       if ( rc )
@@ -406,7 +398,6 @@ namespace engine
          goto error ;
       }
 
-      // verify the executing result
       if ( result.termcode != OSS_EXIT_NORMAL )
       {
          rc = SDBCM_FAIL ;
@@ -476,7 +467,6 @@ namespace engine
 
    string omPickNodeOutString( const string &out, const CHAR *pSvcname )
    {
-      // %s: %u bytes out==>%s<==
       string nodeStr = out ;
       CHAR finder[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       const CHAR *pStr = out.c_str() ;

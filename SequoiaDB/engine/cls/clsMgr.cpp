@@ -50,7 +50,6 @@ using namespace bson ;
 namespace engine
 {
 
-   //The max del session deque size
    #define MAX_SHD_SESSION_CATCH_DEQ_SIZE          (1000)
 
    #define CLS_WAIT_CB_ATTACH_TIMEOUT              ( 300 * OSS_ONE_SEC )
@@ -197,7 +196,6 @@ namespace engine
       {
          _checkUnShardSessions( interval ) ;
 
-         // start split task
          _pClsMgr->_startInnerSession( CLS_SHARD, this ) ;
 
          goto done ;
@@ -261,7 +259,6 @@ namespace engine
       rc = _pmdAsycSessionMgr::handleSessionTimeout( timerID, interval ) ;
       if ( SDB_OK == rc )
       {
-         // start repl/fs sessions
          _pClsMgr->_startInnerSession( CLS_REPL, this ) ;
       }
 
@@ -320,7 +317,6 @@ namespace engine
                                               const NET_HANDLE &handle,
                                               pmdAsyncSession *pSession )
    {
-      // do nothing
    }
 
    pmdAsyncSession* _clsReplSessionMgr::_createSession( SDB_SESSION_TYPE sessionType,
@@ -340,7 +336,6 @@ namespace engine
          UINT32 tid = 0 ;
          ossUnpack32From64( sessionID, nodeID, tid ) ;
 
-         // nodeid the same with self node, can't create session
          if ( pmdGetNodeID().columns.nodeID != nodeID )
          {
             pSession = SDB_OSS_NEW clsReplSrcSession( sessionID ) ;
@@ -370,7 +365,6 @@ namespace engine
    BEGIN_OBJ_MSG_MAP( _clsMgr, _pmdObjBase )
       ON_MSG ( MSG_CAT_REG_RES, _onCatRegisterRes )
       ON_MSG ( MSG_CAT_QUERY_TASK_RSP, _onCatQueryTaskRes )
-      //ON_EVENT FUCTION MAP
    END_OBJ_MSG_MAP()
 
    _clsMgr::_clsMgr ()
@@ -418,7 +412,6 @@ namespace engine
       const CHAR* hostName = pmdGetKRCB()->getHostName() ;
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
 
-      // 1. init param
       ossStrncpy( _shdServiceName, optCB->shardService(),
                   OSS_MAX_SERVICENAME ) ;
       ossStrncpy( _replServiceName, optCB->replService(),
@@ -427,7 +420,6 @@ namespace engine
       INIT_OBJ_GOTO_ERROR ( getShardCB() ) ;
       INIT_OBJ_GOTO_ERROR ( getReplCB() ) ;
 
-      // 2. create listen socket
       nodeID.columns.serviceID = _replServiceID ;
       _replNetRtAgent.updateRoute( nodeID, hostName, _replServiceName ) ;
       rc = _replNetRtAgent.listen( nodeID ) ;
@@ -452,7 +444,6 @@ namespace engine
       PD_LOG ( PDEVENT, "Create sharding listen[ServiceName:%s] succeed",
                _shdServiceName ) ;
 
-      // 3. init session manager
       rc = _shardSessionMgr.init( &_shardNetRtAgent, &_shdTimerHandler,
                                   60 * OSS_ONE_SEC ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to init shard session manager, rc: %d",
@@ -463,7 +454,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to init repl session manager, rc: %d",
                    rc ) ;
 
-      // 4. set bussiness not ok( need wait register to change )
       pmdGetKRCB()->setBusinessOK( FALSE ) ;
 
    done:
@@ -478,7 +468,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSMGR_ACTIVE ) ;
 
-      // 1. start cls edu and shard edu
       _attachEvent.reset() ;
       rc = _startEDU ( EDU_TYPE_CLUSTER, PMD_EDU_UNKNOW,
                        (_pmdObjBase*)this, TRUE ) ;
@@ -500,7 +489,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Wait cluster-shard attach failed, rc: %d",
                    rc ) ;
 
-      // Start log notify
       rc = _startEDU( EDU_TYPE_CLSLOGNTY, PMD_EDU_UNKNOW,
                       (_pmdObjBase*)getReplCB(), TRUE ) ;
       if ( rc )
@@ -508,7 +496,6 @@ namespace engine
          goto error ;
       }
 
-      // 2. start net edus
       rc = _startEDU ( EDU_TYPE_SHARDR, PMD_EDU_RUNNING,
                        (netRouteAgent*)getShardRouteAgent(), TRUE ) ;
       if ( rc )
@@ -522,7 +509,6 @@ namespace engine
          goto error ;
       }
 
-      // 3. set timer
       _oneSecTimerID = setTimer ( CLS_REPL, OSS_ONE_SEC ) ;
 
       if ( CLS_INVALID_TIMERID == _oneSecTimerID )
@@ -541,7 +527,6 @@ namespace engine
          goto error ;
       }
 
-      // 4. send register msg
       _sendRegisterMsg () ;
 
    done:
@@ -553,15 +538,12 @@ namespace engine
 
    INT32 _clsMgr::deactive ()
    {
-      // 1. stop listen
       _replNetRtAgent.closeListen() ;
       _shardNetRtAgent.closeListen() ;
 
-      // 2. members to deactive
       _replObj.deactive() ;
       _shdObj.deactive() ;
 
-      // 3. stop io
       _replNetRtAgent.stop() ;
       _shardNetRtAgent.stop() ;
 
@@ -605,11 +587,9 @@ namespace engine
    {
       if ( EDU_TYPE_CLUSTER == pMainCB->getType() )
       {
-         //Set MsgHandler EDU
          _shdMsgHandlerObj.attach ( pMainCB ) ;
          _replMsgHandlerObj.attach ( pMainCB ) ;
 
-         //Set TimerHandler EDU
          _shdTimerHandler.attach ( pMainCB ) ;
          _replTimerHandler.attach ( pMainCB ) ;
       }
@@ -625,11 +605,9 @@ namespace engine
    {
       if ( EDU_TYPE_CLUSTER == pMainCB->getType() )
       {
-         //Set MsgHandler EDU
          _shdMsgHandlerObj.detach() ;
          _replMsgHandlerObj.detach () ;
 
-         //Set TimerHandler EDU
          _shdTimerHandler.detach () ;
          _replTimerHandler.detach () ;
       }
@@ -649,7 +627,6 @@ namespace engine
       pmdKRCB *pKRCB = pmdGetKRCB () ;
       pmdEDUMgr *pEDUMgr = pKRCB->getEDUMgr () ;
 
-      //Start EDU
       rc = pEDUMgr->startEDU( (EDU_TYPES)type, (void *)agrs, &eduID ) ;
       if ( SDB_OK != rc )
       {
@@ -658,13 +635,11 @@ namespace engine
          goto error ;
       }
 
-      //Resiter EDU Type
       if ( regSys )
       {
          pEDUMgr->regSystemEDU( (EDU_TYPES)type, eduID ) ;
       }
 
-      //Wait edu running
       if ( PMD_EDU_UNKNOW != waitStatus )
       {
          rc = pEDUMgr->waitUntil( (EDU_TYPES)type, waitStatus ) ;
@@ -697,7 +672,6 @@ namespace engine
                   primary ? "Primary" : "Secondary" ) ;
       }
 
-      // if business is not ok
       if ( !pmdGetStartup().isOK() )
       {
          return ;
@@ -705,29 +679,24 @@ namespace engine
 
       if ( primary && SDB_EVT_OCCUR_BEFORE == type )
       {
-         // inc dps log version
          sdbGetDPSCB()->incVersion() ;
       }
       else if ( !primary && SDB_EVT_OCCUR_BEFORE == type )
       {
-         // interrupt writing edus
          pmdGetKRCB()->getEDUMgr()->interruptWritingEDUS() ;
       }
 
-      // notify sub members
       getShardCB()->ntyPrimaryChange( primary, type ) ;
       getReplCB()->ntyPrimaryChange( primary, type ) ;
 
       if ( SDB_EVT_OCCUR_AFTER == type )
       {
-         // if change to primary, need to start query task
          if ( primary )
          {
             BSONObj match = BSON ( CAT_TARGETID_NAME <<
                                    _selfNodeID.columns.groupID ) ;
             startTaskCheck( match ) ;
          }
-         // if change to secondary, need to clean up all query task
          else
          {
             ossScopedLock lock ( &_clsLatch, EXCLUSIVE ) ;
@@ -735,7 +704,6 @@ namespace engine
          }
       }
 
-      // call other handler
       _callPrimaryChangeHandler( primary, type ) ;
 
       PD_TRACE_EXIT ( SDB__CLSMGR__ONPRMCHG );
@@ -815,7 +783,6 @@ namespace engine
 
       if ( isPrimary() )
       {
-         /// write sync cata info log
          SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
          dpsMergeInfo info ;
          info.setInfoEx( ~0, ~0, DMS_INVALID_EXTENT, NULL ) ;
@@ -967,8 +934,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSMGR__DFTMSGFUNC );
-      // the msg is not mine, dispatch to sub object
-      // restore the type
       INT32 type = (INT32) msg->TID ;
       UINT32 opCode = (UINT32)(msg->opCode) ;
       msg->TID = 0 ;
@@ -991,18 +956,15 @@ namespace engine
    void _clsMgr::onTimer ( UINT64 timerID, UINT32 interval )
    {
       PD_TRACE_ENTRY ( SDB__CLSMGR_ONTMR );
-      //Judge the timer is myself, if not my self will dispatch to sub object
       if ( timerID == _regTimerID )
       {
          _sendRegisterMsg () ;
       }
       else if ( timerID == _oneSecTimerID )
       {
-         //Check _deqShdDeletingSessions
          _shardSessionMgr.onTimer( interval ) ;
          _replSessionMgr.onTimer( interval ) ;
 
-         //prepare task
          _prepareTask () ;
 
          if ( _taskMgr.taskCount() > 0 &&
@@ -1085,7 +1047,6 @@ namespace engine
       MAPTASKQUERY::iterator it = _mapTaskQuery.begin () ;
       while ( it != _mapTaskQuery.end() )
       {
-         // send query msg to catalog
          rc = _sendQueryTaskReq ( it->first, "CAT", &(it->second) ) ;
          if ( SDB_OK != rc )
          {
@@ -1156,7 +1117,6 @@ namespace engine
          goto error ;
       }
 
-      //add to taskMgr, the task will delete in taskMgr whether suc or failed
       rc = _taskMgr.addTask( pTask, taskID ) ;
       if ( SDB_OK != rc )
       {
@@ -1168,7 +1128,6 @@ namespace engine
       _mapTaskID[ pTask->taskID() ] = taskID ;
       _clsLatch.release() ;
 
-      //start inner session
       tid = (UINT32)taskID ;
       rc = startInnerSession ( type, tid, (void *)pTask ) ;
 
@@ -1265,7 +1224,6 @@ namespace engine
 
       bsonBuilder.appendArray ( CAT_SERVICE_FIELD_NAME, arrayBuilder.arr() ) ;
 
-      // append IP address
       ossIPInfo ipInfo ;
       if ( ipInfo.getIPNum() > 0 )
       {
@@ -1274,7 +1232,6 @@ namespace engine
          ossIP* ip = ipInfo.getIPs() ;
          for ( INT32 i = ipInfo.getIPNum(); i > 0; i-- )
          {
-            // skip loopback IP
             if (0 != ossStrncmp( ip->ipAddr, OSS_LOOPBACK_IP,
                                  ossStrlen(OSS_LOOPBACK_IP)) )
             {
@@ -1288,7 +1245,6 @@ namespace engine
 
       BSONObj regObj = bsonBuilder.obj () ;
       UINT32 length = regObj.objsize () + sizeof ( MsgCatRegisterReq ) ;
-      // free by end of the function
       CHAR * buff = (CHAR *)SDB_OSS_MALLOC ( length ) ;
       MsgCatRegisterReq *pReq = NULL ;
 
@@ -1343,7 +1299,6 @@ namespace engine
       msg->TID = 0 ;
       msg->routeID.value = 0 ;
 
-      // send msg
       rc = sendToCatlog( msg ) ;
       PD_LOG ( PDDEBUG, "Send MSG_CAT_QUERY_TASK_REQ[%s] to catalog[rc:%d]",
                match->toString().c_str(), rc ) ;
@@ -1364,7 +1319,6 @@ namespace engine
       return _shdObj.updateCatGroup ( unsetPrimary, millisec ) ;
    }
 
-   //message function
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSMGR__ONCATREGRES, "_clsMgr::_onCatRegisterRes" )
    INT32 _clsMgr::_onCatRegisterRes ( NET_HANDLE handle, MsgHeader* msg )
    {
@@ -1373,7 +1327,6 @@ namespace engine
       NodeID nodeID ;
       _MsgCatRegisterRsp * res = (_MsgCatRegisterRsp*)msg ;
 
-      // have register succeed
       if ( _regTimerID == CLS_INVALID_TIMERID )
       {
          goto done ;
@@ -1393,7 +1346,6 @@ namespace engine
       }
 
       {
-         //get nodeid
          BSONObj object ( (const char*)(res->data) );
          BSONElement gidEl = object.getField ( CAT_GROUPID_NAME ) ;
          BSONElement nidEl = object.getField ( CAT_NODEID_NAME ) ;
@@ -1405,11 +1357,9 @@ namespace engine
             goto error ;
          }
 
-         //Kill register timer
          killTimer ( _regTimerID ) ;
          _regTimerID = CLS_INVALID_TIMERID ;
 
-         //Update the net route agent the local id
          _selfNodeID.columns.groupID = (UINT32)gidEl.Int () ;
          _selfNodeID.columns.nodeID = (UINT32)nidEl.Int () ;
          _shdObj.setNodeID( _selfNodeID ) ;
@@ -1424,21 +1374,17 @@ namespace engine
       nodeID.columns.serviceID = _shardServiceID ;
       _shardNetRtAgent.setLocalID ( nodeID ) ;
 
-      // set global id
       pmdSetNodeID( _selfNodeID ) ;
 
-      // callback event handler
       _callRegisterEventHandler() ;
 
       pmdGetKRCB()->setBusinessOK( TRUE ) ;
 
-      //Update the primary catlog node
       if ( SDB_OK != _shdObj.updatePrimary( msg->routeID, TRUE ) )
       {
          _shdObj.updateCatGroup ( FALSE ) ;
       }
 
-      //Active the shard and repl CBs
       rc = _shdObj.active () ;
       if ( rc != SDB_OK )
       {
@@ -1457,7 +1403,6 @@ namespace engine
       PD_TRACE_EXITRC (SDB__CLSMGR__ONCATREGRES, rc );
       return rc ;
    error:
-      //Need to shutdown
       if ( res->header.res == SDB_CAT_AUTH_FAILED )
       {
          PD_LOG ( PDSEVERE, "Catlog auth the db node failed, shutdown..." ) ;
@@ -1481,12 +1426,10 @@ namespace engine
       INT32 numReturned = 0 ;
       vector<BSONObj> objList ;
 
-      // need to update catalog group
       if ( SDB_CLS_NOT_PRIMARY == res->flags )
       {
          updateCatGroup( TRUE ) ;
       }
-      // need to clear the query task
       else if ( SDB_DMS_EOC == res->flags ||
                 SDB_CAT_TASK_NOTFOUND == res->flags )
       {
@@ -1510,7 +1453,6 @@ namespace engine
             goto error ;
          }
 
-         // find the task query map, and remove it
          {
             ossScopedLock lock ( &_clsLatch, EXCLUSIVE ) ;
             MAPTASKQUERY::iterator it = _mapTaskQuery.find ( msg->requestID ) ;
@@ -1521,14 +1463,12 @@ namespace engine
                rc = SDB_INVALIDARG ;
                goto error ;
             }
-            //remove the query task
             _mapTaskQuery.erase ( it ) ;
          }
 
          PD_LOG ( PDINFO, "The query task[%lld] has %d jobs", msg->requestID,
                   numReturned ) ;
 
-         // add task inner session
          {
             UINT32 index = 0 ;
             while ( index < objList.size() )

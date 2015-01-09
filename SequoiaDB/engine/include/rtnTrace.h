@@ -29,7 +29,6 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef rtnTRACE_H__
 #define rtnTRACE_H__
-// Component: rtn
 #define SDB_RTNGETCOUNT                                    0x400000006fcL
 #define SDB_RTNGETINDEXES                                  0x400000006fdL
 #define SDB_RTNGETCOMMANDENTRY                             0x400000006feL

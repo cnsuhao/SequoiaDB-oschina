@@ -174,14 +174,11 @@ extern CHAR FMP_COORD_SERVICE[OSS_MAX_PATHSIZE+1] ;
 extern CHAR *FMP_COORD_HOST ;
 extern CHAR g_UserName[ OSS_MAX_PATHSIZE + 1 ] ;
 extern CHAR g_Password[ OSS_MAX_PATHSIZE + 1 ] ;
-// g_disablePassEncode is defined in client.c, so we have to convert
-// cpp to C in order to link with fmp
 SDB_EXTERN_C_START
 extern BOOLEAN g_disablePassEncode ;
 SDB_EXTERN_C_END
 #endif // SDB_FMP
 
-// troff file's relative path
 #if defined (_WINDOWS)
 #define TF_REL_PATH "..\\doc\\manual\\"
 #else
@@ -196,16 +193,11 @@ OSS_INLINE JSObject *SDB_JSVAL_TO_OBJECT( jsval x )
       return JSVAL_TO_OBJECT(x) ;
 }
 
-// Caller should free *bs in the case of success
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OBJ2BSON, "objToBson" )
 static JSBool objToBson ( JSContext *cx , JSObject *obj , bson ** bs )
 {
    PD_TRACE_ENTRY ( SDB_OBJ2BSON );
    char *      js          = NULL ;
-//   jsval       objJson     = JSVAL_VOID ;
-//   jsval       arg         = JSVAL_VOID ;
-//   jsval       strJson     = JSVAL_VOID ;
-//   JSObject *  global      = NULL ;
    JSBool      ret         = JS_TRUE ;
    INT32 rc                = SDB_OK ;
 
@@ -229,11 +221,9 @@ static JSBool objToBson ( JSContext *cx , JSObject *obj , bson ** bs )
                                "stringify" , 1 , &arg , &strJson ) ;
    VERIFY ( ret ) ;
 
-   // js is freed in done:
    js = JS_EncodeString ( cx , JSVAL_TO_STRING ( strJson ) ) ;
    VERIFY ( js ) ;
 
-   // *bs will be freed by caller if succeed, or freed in error:
    *bs = bson_create() ;
    VERIFY ( *bs ) ;
 
@@ -254,7 +244,6 @@ error :
    goto done ;
 }
 
-// Bson
 // PD_TRACE_DECLARE_FUNCTION ( SDB_BSON_DESTRUCTOR, "bson_destructor" )
 static void bson_destructor ( JSContext *cx , JSObject *obj )
 {
@@ -284,8 +273,6 @@ static JSBool bson_constructor ( JSContext *cx , uintN argc , jsval *vp )
 {
    PD_TRACE_ENTRY ( SDB_BSON_CONSTRUCTOR );
    JSBool ret = JS_TRUE ;
-   // this constructor should never be called, internally or externally
-   // it is here just for the sake of defining Bson.prototype
    REPORT ( JS_FALSE , "use of new Bson() is forbidden, you should use "
                        "other functions to produce a Bson object" ) ;
 
@@ -312,7 +299,6 @@ static JSBool bson_to_json ( JSContext *cx , uintN argc , jsval *vp )
    size = bson_sprint_length ( record ) ;
    VERIFY ( size > 0 ) ;
 
-   // buf is freed in done:
    buf = (char *) JS_malloc ( cx , size ) ;
    VERIFY ( buf ) ;
 
@@ -337,9 +323,7 @@ static JSFunctionSpec bson_functions[] = {
     JS_FS_END
 } ;
 
-// end Bson
 
-// global functions
 // PD_TRACE_DECLARE_FUNCTION ( SDB_GLOBAL_PRINT, "global_print" )
 static JSBool global_print ( JSContext *cx , uintN argc , jsval *vp )
 {
@@ -352,7 +336,6 @@ static JSBool global_print ( JSContext *cx , uintN argc , jsval *vp )
                                "S" , &strVal ) ;
    REPORT ( ret , "print(): wrong arguments" ) ;
 
-   // val is freed in done:, use NULL replace cx
    val = (CHAR *) JS_EncodeString ( NULL , strVal ) ;
    if ( val )
    {
@@ -370,7 +353,6 @@ static JSBool global_print ( JSContext *cx , uintN argc , jsval *vp )
    JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
 
 done :
-   //SAFE_JS_FREE ( cx , val ) ;
    if ( val )
       free ( val ) ;
    PD_TRACE_EXIT ( SDB_GLOBAL_PRINT );
@@ -396,11 +378,9 @@ static JSBool trace_fmt ( JSContext *cx, uintN argc, jsval *vp )
                                &formatType , &strInput , &strOutput ) ;
    REPORT ( ret, "traceFmt(): wrong arguments" ) ;
 
-   // input is freed in done
    pInputName = (CHAR*) JS_EncodeString ( cx, strInput ) ;
    VERIFY ( pInputName ) ;
 
-   // output is freed in done
    pOutputName = (CHAR*) JS_EncodeString ( cx, strOutput ) ;
    VERIFY ( pOutputName ) ;
 
@@ -439,23 +419,19 @@ static JSBool global_help ( JSContext *cx , uintN argc , jsval *vp )
    CHAR *cate                                    = NULL ;
    CHAR *cmd                                    = NULL ;
 
-   // extract arguments
    ret = JS_ConvertArguments ( cx, argc, JS_ARGV ( cx , vp ),
                                "S/S", &strCate, &strCmd ) ;
    REPORT ( ret , "help(): wrong arguments" ) ;
 
-   // cate is freed in done:
    cate = (CHAR *) JS_EncodeString ( cx, strCate ) ;
    VERIFY ( cate ) ;
    if ( argc > 1 )
    {
-      // cmd is freed in done:
       cmd = (CHAR *) JS_EncodeString ( cx, strCmd ) ;
       VERIFY ( cmd ) ;
    }
 
 #if defined (SDB_SHELL)
-   // get the troff file path
    rc = getProgramPath( tfPath ) ;
    REPORT_RC ( SDB_OK == rc, "help()", rc ) ;
    len = ossStrlen(TF_REL_PATH) ;
@@ -465,7 +441,6 @@ static JSBool global_help ( JSContext *cx , uintN argc , jsval *vp )
       REPORT_RC ( SDB_OK == rc, "help()", rc ) ;
    }
    ossStrncat ( tfPath, TF_REL_PATH, ossStrlen(TF_REL_PATH) ) ;
-   // get manHelp instance and display xxx.help() or xxx.help(yyy)
    rc = manHelp::getInstance( tfPath ).getFileHelp( cate, cmd ) ;
    REPORT_RC ( SDB_OK == rc, "help()", rc ) ;
 #endif
@@ -489,7 +464,6 @@ static JSFunctionSpec global_functions[] = {
    JS_FS_END
 } ;
 
-// end global functions
 
 #if defined (SDB_CLIENT)
 #include "../client/client.h"
@@ -516,7 +490,6 @@ JSBool get_node_and_setproperty( JSContext *cx, jsval *vp,
                                  const CHAR *pHostName,
                                  const CHAR *pServiceName ) ;
 
-// SdbCursor
 // PD_TRACE_DECLARE_FUNCTION ( SDB_CURSOR_DESTRUCTOR, "cursor_destructor" )
 static void cursor_destructor ( JSContext *cx , JSObject *obj )
 {
@@ -528,8 +501,6 @@ static void cursor_destructor ( JSContext *cx , JSObject *obj )
    PD_TRACE_EXIT ( SDB_CURSOR_DESTRUCTOR );
 }
 
-// In the official documentation of Spider Monkey 1.8.5, the 3rd paramenter id
-// is said to be of type jsval, but it is actually jsid.
 // PD_TRACE_DECLARE_FUNCTION ( SDB_CURSOR_RESV, "cursor_resolve" )
 static JSBool cursor_resolve ( JSContext *cx , JSObject *obj , jsid id ,
                                uintN flags , JSObject ** objp )
@@ -583,8 +554,6 @@ static JSBool cursor_constructor ( JSContext *cx , uintN argc , jsval *vp )
    PD_TRACE_ENTRY ( SDB_CURSOR_CONSTRUCTOR );
    JSBool ret = JS_TRUE ;
 
-   // this constructor should never be called, internally or externally
-   // it is here just for the sake of defining SdbCursor.prototype
    REPORT ( JS_FALSE , "use of new SdbCursor() is forbidden, you should use "
                        "other functions to produce a SdbCursor object" ) ;
 
@@ -610,13 +579,10 @@ static JSBool cursor_next ( JSContext *cx , uintN argc , jsval *vp )
       JS_GetPrivate ( cx , JS_THIS_OBJECT ( cx , vp ) ) ;
    if ( ! cursor )
    {
-      // cursor can only be set to NULL when the cursor object is initialized
-      // so that means the empty set of records
       JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
       goto done ;
    }
 
-   // record will be freed in done:
    record = bson_create() ;
    VERIFY ( record ) ;
 
@@ -625,20 +591,6 @@ static JSBool cursor_next ( JSContext *cx , uintN argc , jsval *vp )
 
    if ( SDB_DMS_EOC == rc )
    {
-      // we set readNothing = TRUE if cursor doesn't read anything when hitting
-      // EOC
-      // there is an culprit that if user has two collections:
-      // cs.cl: 0 row
-      // cs.cl1: 1 row
-      // db.cs.cl.find() ; db.cs.cl1.find() <--- this will set ReadData to
-      // FALSE at first round, and set ReadData to TRUE at second round
-      // db.cs.cl1.find() ; db.cs.cl.find () <--- this will set ReadData to
-      // TRUE at first round, and set ReadData to FALSE at second round
-      // This means if users query empty collection then non-empty collection,
-      // the full statement will shows ReadData = TRUE, otherwise it will
-      // show ReadData = FALSE
-      // Thus, the rule can be represented as "ReadData" always represets
-      // the unemptyness of LAST result set in a statement.
       if ( 0 == ( ( (sdbCursorStruct*)*cursor )->_totalRead ) )
       {
          engine::sdbSetReadData( FALSE ) ;
@@ -660,7 +612,6 @@ static JSBool cursor_next ( JSContext *cx , uintN argc , jsval *vp )
 
    JS_SET_RVAL ( cx , vp , OBJECT_TO_JSVAL ( bsonObj ) ) ;
 
-   // copy will be set as private data of bsonObj, or will be freed in error:
    copy = bson_create() ;
    VERIFY ( copy ) ;
 
@@ -694,13 +645,10 @@ static JSBool cursor_current ( JSContext *cx , uintN argc , jsval *vp )
       JS_GetPrivate ( cx , JS_THIS_OBJECT ( cx , vp ) ) ;
    if ( ! cursor )
    {
-      // cursor can only be set to NULL when the cursor object is initialized
-      // so that means the empty set of records
       JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
       goto done ;
    }
 
-   // record will be freed in done:
    record = bson_create() ;
    VERIFY ( record ) ;
 
@@ -712,7 +660,6 @@ static JSBool cursor_current ( JSContext *cx , uintN argc , jsval *vp )
 
    JS_SET_RVAL ( cx , vp , OBJECT_TO_JSVAL ( bsonObj ) ) ;
 
-   // copy will be set as private data of bsonObj, or will be freed in error:
    copy = bson_create() ;
    VERIFY ( copy ) ;
 
@@ -748,8 +695,6 @@ static JSBool cursor_update_current ( JSContext *cx , uintN argc , jsval *vp )
 
    if ( ! cursor )
    {
-      // cursor can only be set to NULL when the cursor object is initialized
-      // so that means the empty set of records
       JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
       goto done ;
    }
@@ -758,7 +703,6 @@ static JSBool cursor_update_current ( JSContext *cx , uintN argc , jsval *vp )
          "SdbCursor.updateCurrent(): 1st argument must be valid update rule") ;
 
    objRule = JSVAL_TO_OBJECT ( argv[0] ) ;
-   // bsonRule is freed in done:
    VERIFY ( objToBson ( cx , objRule , &bsonRule ) ) ;
 
    rc = sdbUpdateCurrent ( *cursor , bsonRule ) ;
@@ -788,8 +732,6 @@ static JSBool cursor_delete_current ( JSContext *cx , uintN argc , jsval *vp )
       JS_GetPrivate ( cx , JS_THIS_OBJECT ( cx , vp ) ) ;
    if ( ! cursor )
    {
-      // cursor can only be set to NULL when the cursor object is initialized
-      // so that means the empty set of records
       JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
       goto done ;
    }
@@ -842,29 +784,20 @@ static JSFunctionSpec cursor_functions[] = {
    JS_FS ( "next", cursor_next, 0, 0 ),
    JS_FS ( "current", cursor_current, 0, 0 ),
    JS_FS ( "close", cursor_close, 0, 0 ),
-//   JS_FS ( "updateCurrent" , cursor_update_current , 1 , 0 ) ,
-//   JS_FS ( "deleteCurrent" , cursor_delete_current , 0 , 0 ) ,
    JS_FS_END
 } ;
 
-// end SdbCursor
 
-// count
 /*
 // PD_TRACE_DECLARE_FUNCTION ( SDB_COUNT_DESTRUCTOR, "count_destructor" )
 static void count_destructor ( JSContext *cx , JSObject *obj )
 {
    PD_TRACE_ENTRY ( SDB_COUNT_DESTRUCTOR );
-   //sdbCursorHandle *cursor = (sdbCursorHandle *) JS_GetPrivate ( cx , obj ) ;
-   //SAFE_RELEASE_CURSOR ( cursor ) ;
-   //SAFE_JS_FREE ( cx , cursor ) ;
    JS_SetPrivate ( cx , obj , NULL ) ;
    PD_TRACE_EXIT ( SDB_COUNT_DESTRUCTOR );
 }
 */
 
-// In the official documentation of Spider Monkey 1.8.5, the 3rd paramenter id
-// is said to be of type jsval, but it is actually jsid.
 // PD_TRACE_DECLARE_FUNCTION ( SDB_COUNT_RESV, "count_resolve" )
 static JSBool count_resolve ( JSContext *cx , JSObject *obj , jsid id ,
                                uintN flags , JSObject ** objp )
@@ -921,17 +854,13 @@ static JSBool count_constructor ( JSContext *cx , uintN argc , jsval *vp )
    JSObject *  obj            = NULL ;
    jsval       val            = JSVAL_VOID ;
    JSBool      ret            = JS_TRUE ;
-   // get the argument
    ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) , "o/oo" ,
                                &objCollection, &objCondition, &objHint ) ;
    REPORT ( ret , "new CLCount(): wrong arguments" ) ;
    VERIFY ( objCollection ) ;
-   // build the count_class
    obj = JS_NewObject ( cx , &count_class , NULL , NULL ) ;
    VERIFY ( obj ) ;
-   // set return obj
    JS_SET_RVAL ( cx , vp , OBJECT_TO_JSVAL ( obj ) ) ;
-   // set obj property
    val = OBJECT_TO_JSVAL ( objCollection ) ;
    VERIFY ( JS_SetProperty ( cx, obj, "_collection", &val ) ) ;
    val = OBJECT_TO_JSVAL ( objCondition ) ;
@@ -947,7 +876,6 @@ error:
    goto done ;
 }
 
-// SdbCollection
 // PD_TRACE_DECLARE_FUNCTION ( SDB_COLL_DESTRUCTOR, "collection_destructor" )
 static void collection_destructor ( JSContext *cx , JSObject *obj )
 {
@@ -980,8 +908,6 @@ static JSBool collection_constructor ( JSContext *cx , uintN argc , jsval *vp )
    PD_TRACE_ENTRY ( SDB_COLL_CONSTRUCTOR );
    JSBool ret = JS_TRUE ;
 
-   // this constructor should never be called, internally or externally
-   // it is here just for the sake of defining SdbCollection.prototype
    REPORT ( JS_FALSE, "use of new SdbCollection() is forbidden, you should use "
                        "other functions to produce a SdbCollection object" ) ;
 
@@ -1012,83 +938,66 @@ static JSBool collection_raw_find ( JSContext *cx , uintN argc , jsval *vp )
    JSObject *objCursor              = NULL ;
    INT32 rc                         = SDB_OK ;
    JSBool ret                       = JS_TRUE ;
-//   jsval val                        = JSVAL_VOID ;
    jsval *argv                      = JS_ARGV ( cx, vp ) ;
 
-   // get cl handle
    collection  = (sdbCollectionHandle *)
                   JS_GetPrivate ( cx , JS_THIS_OBJECT ( cx, vp ) ) ;
    REPORT ( collection , "SdbCollection.rawFind(): no collection handle" ) ;
 
-   // get the arguments
-   // condtion
    if ( JSVAL_IS_VOID( argv[0]) || JSVAL_IS_NULL( argv[0] ) )
    {
-      // use the default value 'NULL'
    }
    else if ( JSVAL_IS_OBJECT( argv[0] ) )
    {
       objCond = JSVAL_TO_OBJECT ( argv[0] ) ;
       VERIFY ( objCond ) ;
-      // bsonCond is freed in done
       VERIFY ( objToBson( cx, objCond, &bsonCond ) ) ;
    }
    else
    {
       REPORT ( FALSE , "SdbCollection.rawFind(): the 1st argument wrong" ) ;
    }
-   // selector
    if ( JSVAL_IS_VOID( argv[1]) || JSVAL_IS_NULL( argv[1] ) )
    {
-      // use the default value 'NULL'
    }
    else if ( JSVAL_IS_OBJECT( argv[1] ) )
    {
       objSel = JSVAL_TO_OBJECT ( argv[1] ) ;
       VERIFY ( objSel ) ;
-      // bsonSel is freed in done
       VERIFY ( objToBson( cx, objSel, &bsonSel ) ) ;
    }
    else
    {
       REPORT ( FALSE , "SdbCollection.rawFind(): the 2nd argument wrong" ) ;
    }
-   // order
    if ( JSVAL_IS_VOID( argv[2]) || JSVAL_IS_NULL( argv[2]) )
    {
-      // use the default value 'NULL'
    }
    else if ( JSVAL_IS_OBJECT( argv[2] ) )
    {
       objOrder = JSVAL_TO_OBJECT ( argv[2] ) ;
       VERIFY ( objOrder ) ;
-      // bsonOrder is freed in done
       VERIFY ( objToBson( cx, objOrder, &bsonOrder ) ) ;
    }
    else
    {
       REPORT ( FALSE , "SdbCollection.rawFind(): wrong argument in sort(<sort>)" ) ;
    }
-   // hint
    if ( JSVAL_IS_VOID( argv[3] ) || JSVAL_IS_NULL( argv[3] ) )
    {
-      // use the default value 'NULL'
    }
    else if ( JSVAL_IS_OBJECT( argv[3] ) )
    {
       objHint = JSVAL_TO_OBJECT ( argv[3] ) ;
       VERIFY ( objHint ) ;
-      // bsonHint is freed in done
       VERIFY ( objToBson( cx, objHint, &bsonHint ) ) ;
    }
    else
    {
       REPORT ( FALSE , "SdbCollection.rawFind(): wrong argument in hint(<hint>)" ) ;
    }
-   // numToSkip
    if ( JSVAL_IS_VOID( argv[4] ) || JSVAL_IS_NULL( argv[4] ) )
    {
-      // use the default num 0
    }
    else if ( JSVAL_IS_INT( argv[4] ) )
    {
@@ -1098,10 +1007,8 @@ static JSBool collection_raw_find ( JSContext *cx , uintN argc , jsval *vp )
    {
       REPORT ( FALSE , "SdbCollection.rawFind(): wrong argument in skip(<num>)" ) ;
    }
-   // numToRet
    if ( JSVAL_IS_VOID( argv[5] ) || JSVAL_IS_NULL( argv[5] ) )
    {
-      // use the default num -1
    }
    else if ( JSVAL_IS_INT( argv[5] ) )
    {
@@ -1111,10 +1018,8 @@ static JSBool collection_raw_find ( JSContext *cx , uintN argc , jsval *vp )
    {
       REPORT ( FALSE , "SdbCollection.rawFind(): wrong argument in limit(<num>)" ) ;
    }
-   // flags
    if ( JSVAL_IS_VOID( argv[6] ) || JSVAL_IS_NULL( argv[6] ) )
    {
-      // use the default num 0
    }
    else if ( JSVAL_IS_INT( argv[6] ) )
    {
@@ -1125,7 +1030,6 @@ static JSBool collection_raw_find ( JSContext *cx , uintN argc , jsval *vp )
       REPORT ( FALSE , "SdbCollection.rawFind(): wrong argument in flags(<num>)" ) ;
    }
 /*
-   // get arguments
    ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) , "/ooooii" ,
                                &objCond , &objSel , &objOrder , &objHint ,
                                &numToSkip , &numToRet ) ;
@@ -1159,7 +1063,6 @@ static JSBool collection_raw_find ( JSContext *cx , uintN argc , jsval *vp )
       VERIFY ( ret ) ;
    }
 */
-   // cursor is freed in error: or when rc = SDB_DMS_EOC
    cursor = (sdbCursorHandle *) JS_malloc ( cx , sizeof ( sdbCursorHandle ) ) ;
    VERIFY ( cursor ) ;
    *cursor = SDB_INVALID_HANDLE ;
@@ -1176,7 +1079,6 @@ static JSBool collection_raw_find ( JSContext *cx , uintN argc , jsval *vp )
 
    if ( SDB_DMS_EOC == rc )
    {
-      // query result is empty
       SAFE_JS_FREE ( cx , cursor ) ;
       cursor = NULL ;
    }
@@ -1219,7 +1121,6 @@ static JSBool collection_insert ( JSContext *cx , uintN argc , jsval *vp )
                                "ob" , &objData , &returnID ) ;
    REPORT ( ret , "SdbCollection._insert(): wrong arguments" ) ;
 
-   // bsonData is freed in done:
    if ( JS_FALSE == objToBson ( cx , objData , &bsonData ) )
    {
       rc = SDB_INVALIDARG ;
@@ -1280,7 +1181,6 @@ static JSBool collection_update ( JSContext *cx , uintN argc , jsval *vp )
             "SdbCollection.update(): 1st argument must be valid update rule") ;
 
    objRule = JSVAL_TO_OBJECT ( argv[0] ) ;
-   // bsonRule is freed in done:
    VERIFY ( objToBson ( cx , objRule , &bsonRule ) ) ;
 
    if ( argc >= 2 && SDB_JSVAL_IS_OBJECT ( argv[1] ) )
@@ -1289,7 +1189,6 @@ static JSBool collection_update ( JSContext *cx , uintN argc , jsval *vp )
       if ( objCond )
       {
          argv[1] = OBJECT_TO_JSVAL ( objCond ) ;
-         // bsonCond is freed in done:
          VERIFY ( objToBson( cx , objCond , &bsonCond ) ) ;
       }
    }
@@ -1300,7 +1199,6 @@ static JSBool collection_update ( JSContext *cx , uintN argc , jsval *vp )
       if ( objHint )
       {
          argv[2] = OBJECT_TO_JSVAL ( objHint ) ;
-         // bsonHint is freed in done:
          VERIFY ( objToBson ( cx , objHint , &bsonHint ) ) ;
       }
    }
@@ -1344,7 +1242,6 @@ static JSBool collection_upsert ( JSContext *cx , uintN argc , jsval *vp )
             "SdbCollection.upsert(): 1st argument must be valid update rule") ;
 
    objRule = JSVAL_TO_OBJECT ( argv[0] ) ;
-   // bsonRule is freed in done:
    VERIFY ( objToBson ( cx , objRule , &bsonRule ) ) ;
 
    if ( argc >= 2 && SDB_JSVAL_IS_OBJECT ( argv[1] ) )
@@ -1353,7 +1250,6 @@ static JSBool collection_upsert ( JSContext *cx , uintN argc , jsval *vp )
       if ( objCond )
       {
          argv[1] = OBJECT_TO_JSVAL ( objCond ) ;
-         // bsonCond is freed in done:
          VERIFY ( objToBson( cx , objCond , &bsonCond ) ) ;
       }
    }
@@ -1364,7 +1260,6 @@ static JSBool collection_upsert ( JSContext *cx , uintN argc , jsval *vp )
       if ( objHint )
       {
          argv[2] = OBJECT_TO_JSVAL ( objHint ) ;
-         // bsonHint is freed in done:
          VERIFY ( objToBson ( cx , objHint , &bsonHint ) ) ;
       }
    }
@@ -1407,14 +1302,12 @@ static JSBool collection_remove ( JSContext *cx , uintN argc , jsval *vp )
 
    if ( objCond )
    {
-      // bsonCond is freed in done:
       ret = objToBson ( cx , objCond , &bsonCond ) ;
       VERIFY ( ret ) ;
    }
 
    if ( objHint )
    {
-      // bsonHint is freed in done:
       ret = objToBson ( cx , objHint , &bsonHint ) ;
       VERIFY ( ret ) ;
    }
@@ -1891,13 +1784,11 @@ static JSBool collection_count ( JSContext *cx , uintN argc , jsval *vp )
 
    if ( objCond )
    {
-      // bsonCond is freed in done:
       ret = objToBson ( cx , objCond , &bsonCond ) ;
       VERIFY ( ret ) ;
    }
    if ( objHint )
    {
-      // bsonHint is freed in done:
       ret = objToBson ( cx , objHint , &bsonHint ) ;
       VERIFY ( ret ) ;
    }
@@ -1957,11 +1848,9 @@ static JSBool collection_split ( JSContext *cx , uintN argc , jsval *vp )
    else if ( SDB_JSVAL_IS_OBJECT( argv[2] ) )
    {
       objCond = SDB_JSVAL_TO_OBJECT( argv[2] ) ;
-      // bsonCond is freed in done:
       ret = objToBson ( cx , objCond , &bsonCond ) ;
       VERIFY ( ret ) ;
 
-      /// if contains end condition
       if ( 4 == argc )
       {
          objEndCond = SDB_JSVAL_TO_OBJECT( argv[3] ) ;
@@ -1978,11 +1867,9 @@ static JSBool collection_split ( JSContext *cx , uintN argc , jsval *vp )
                                &strSource , &strTarget ) ;
    REPORT ( ret , "SdbCollection.split(): wrong arguments" ) ;
 
-   // source is freed in done
    source = (CHAR *) JS_EncodeString ( cx , strSource ) ;
    VERIFY ( source ) ;
 
-   // target is freed in done
    target = (CHAR *) JS_EncodeString ( cx, strTarget ) ;
    VERIFY ( target ) ;
 
@@ -2054,11 +1941,9 @@ static JSBool collection_split_async ( JSContext *cx , uintN argc , jsval *vp )
    else if ( SDB_JSVAL_IS_OBJECT( argv[2] ) )
    {
       objCond = SDB_JSVAL_TO_OBJECT( argv[2] ) ;
-      // bsonCond is freed in done:
       ret = objToBson ( cx , objCond , &bsonCond ) ;
       VERIFY ( ret ) ;
 
-      /// if contains end condition
       if ( 4 == argc )
       {
          objEndCond = SDB_JSVAL_TO_OBJECT( argv[3] ) ;
@@ -2075,11 +1960,9 @@ static JSBool collection_split_async ( JSContext *cx , uintN argc , jsval *vp )
                                &strSource , &strTarget ) ;
    REPORT ( ret , "SdbCollection.splitAsync(): wrong arguments" ) ;
 
-   // source is freed in done
    source = (CHAR *) JS_EncodeString ( cx , strSource ) ;
    VERIFY ( source ) ;
 
-   // target is freed in done
    target = (CHAR *) JS_EncodeString ( cx, strTarget ) ;
    VERIFY ( target ) ;
 
@@ -2132,7 +2015,6 @@ static JSBool collection_alter ( JSContext *cx , uintN argc , jsval *vp )
                                &objModify ) ;
    REPORT ( ret , "SdbCollection.alter(): wrong arguments" ) ;
 
-   // bsonModify is freed in done:
    ret = objToBson ( cx, objModify, &bsonModify ) ;
    VERIFY ( ret ) ;
    rc = sdbAlterCollection ( *collection, bsonModify ) ;
@@ -2176,13 +2058,11 @@ static JSBool collection_create_index ( JSContext *cx , uintN argc , jsval *vp )
    VERIFY ( strName ) ;
    argv[0] = STRING_TO_JSVAL ( strName ) ;
 
-   // name is freed in done:
    name = JS_EncodeString ( cx , strName ) ;
    VERIFY ( name ) ;
 
    objDef = JSVAL_TO_OBJECT ( argv[1] ) ;
    VERIFY ( objDef ) ;
-   // bsonDef is freed in done:
    VERIFY ( objToBson ( cx , objDef , &bsonDef ) ) ;
 
    if ( argc >= 3 )
@@ -2232,18 +2112,14 @@ static JSBool collection_get_indexes ( JSContext *cx , uintN argc , jsval *vp )
 
    if ( strName )
    {
-      // name is freed in done:
       name = (CHAR *) JS_EncodeString ( cx , strName ) ;
       VERIFY ( name ) ;
    }
 
-   // cursor is freed in error: or in the destructor of SdbCursor
    cursor = (sdbCursorHandle *) JS_malloc ( cx , sizeof ( sdbCursorHandle ) ) ;
    VERIFY ( cursor ) ;
    *cursor = SDB_INVALID_HANDLE ;
 
-   // handle contained by cursor is released in error: or in the destructor of
-   // SdbCursor
    rc = sdbGetIndexes ( *collection , name , cursor ) ;
    REPORT_RC ( SDB_OK == rc || SDB_DMS_EOC == rc  ,
                "SdbCollection._getIndexes()" , rc ) ;
@@ -2291,7 +2167,6 @@ static JSBool collection_drop_index ( JSContext *cx , uintN argc , jsval *vp )
    REPORT ( ret , "SdbCollection.dropIndex(): invalid arguments" ) ;
 
    VERIFY ( strName ) ;
-   // name is freed in done:
    name = (CHAR *) JS_EncodeString ( cx , strName ) ;
    VERIFY ( name ) ;
 
@@ -2337,7 +2212,6 @@ static JSBool collection_bulk_insert ( JSContext *cx , uintN argc , jsval *vp )
    VERIFY ( JS_GetArrayLength ( cx , objArray , &len ) ) ;
    VERIFY ( len > 0 ) ;
 
-   // bsonArray is freed in done:
    bsonArray = (bson **) JS_malloc ( cx , len * sizeof (bson *) ) ;
    VERIFY ( bsonArray ) ;
    ossMemset ( bsonArray , 0 , len * sizeof (bson *) ) ;
@@ -2394,7 +2268,6 @@ static JSBool collection_rename ( JSContext *cx , uintN argc , jsval *vp )
    REPORT ( ret , "SdbCollection._rename(): invalid arguments" ) ;
 
    VERIFY ( strName ) ;
-   // name is freed in done:
    name = (CHAR *) JS_EncodeString ( cx , strName ) ;
    VERIFY ( name ) ;
 
@@ -2501,19 +2374,15 @@ static JSBool collection_attachCollection ( JSContext *cx , uintN argc , jsval *
    bson *bsonDef                    = NULL ;
    jsval *argv                      = JS_ARGV ( cx , vp ) ;
 
-   // get the cl handle
    collection = (sdbCollectionHandle *)
                  JS_GetPrivate ( cx , JS_THIS_OBJECT ( cx , vp ) ) ;
    REPORT ( collection , "SdbCollection.attachCL(): no collection handle" ) ;
-   // check the input argument num
    REPORT ( 2 == argc ,
             "SdbCollection.attachCL(): need two arguments" ) ;
-   // get the 1st argument
    if ( JSVAL_IS_STRING( argv[0] ) )
    {
       JSStrName = JS_ValueToString ( cx , argv[0] ) ;
       VERIFY ( JSStrName ) ;
-      // name is freed in done
       subCLName = JS_EncodeString ( cx , JSStrName ) ;
       VERIFY ( subCLName ) ;
    }
@@ -2521,19 +2390,16 @@ static JSBool collection_attachCollection ( JSContext *cx , uintN argc , jsval *
    {
       REPORT ( FALSE , "SdbCollection.attachCL(): wrong arguments" ) ;
    }
-   // get the 2nd argument
    if ( JSVAL_IS_OBJECT( argv[1] ) )
    {
       objDef = JSVAL_TO_OBJECT ( argv[1] ) ;
       VERIFY ( objDef ) ;
-      // bsonDef is freed in done
       VERIFY ( objToBson( cx, objDef, &bsonDef ) ) ;
    }
    else
    {
       REPORT ( FALSE , "SdbCollection.attachCL(): wrong arguments" ) ;
    }
-   // execute
    rc = sdbAttachCollection ( *collection , subCLName, bsonDef );
    REPORT_RC ( SDB_OK == rc , "SdbCollection.attachCL()" , rc ) ;
 
@@ -2571,7 +2437,6 @@ static JSBool collection_detachCollection ( JSContext *cx , uintN argc , jsval *
    VERIFY ( strName ) ;
    argv[0] = STRING_TO_JSVAL ( strName ) ;
 
-   // name is freed in done:
    name = JS_EncodeString ( cx , strName ) ;
    VERIFY ( name ) ;
 
@@ -2600,7 +2465,6 @@ static JSFunctionSpec collection_functions[] = {
     JS_FS ( "_getIndexes" , collection_get_indexes , 1 , 0 ) ,
     JS_FS ( "dropIndex" , collection_drop_index , 1 , 0 ) ,
     JS_FS ( "_bulkInsert" , collection_bulk_insert , 1 , 0 ) ,
-    //JS_FS ( "_rename" , collection_rename , 1 , 0 ) ,
     JS_FS ( "split", collection_split, 3, 0 ),
     JS_FS ( "splitAsync", collection_split_async, 3, 0 ),
     JS_FS ( "aggregate" , collection_aggr , 1 , 0 ) ,
@@ -2616,12 +2480,8 @@ static JSFunctionSpec collection_functions[] = {
     JS_FS_END
 } ;
 
-// end SdbColleciton
 
-// SdbQuery
 
-// In the official documentation of Spider Monkey 1.8.5, the 3rd paramenter id
-// is said to be of type jsval, but it is actually jsid.
 // PD_TRACE_DECLARE_FUNCTION ( SDB_QUERY_RESV, "query_resolve" )
 static JSBool query_resolve ( JSContext *cx , JSObject *obj , jsid id ,
                               uintN flags , JSObject ** objp )
@@ -2673,9 +2533,6 @@ static JSClass query_class = {
 static JSBool query_constructor ( JSContext *cx , uintN argc , jsval *vp )
 {
    PD_TRACE_ENTRY ( SDB_QUERY_CONSTRUCTOR );
-//   JSObject *objCollection    = NULL ;
-//   JSObject *objQuery         = NULL ;
-//   JSObject *objSelect        = NULL ;
    JSObject *objSort          = NULL ;
    JSObject *objHint          = NULL ;
    int32_t skip               = 0 ;
@@ -2686,13 +2543,9 @@ static JSBool query_constructor ( JSContext *cx , uintN argc , jsval *vp )
    JSBool ret                 = JS_TRUE ;
    jsval *argv                = JS_ARGV ( cx, vp ) ;
 
-   // build a SdbQuery object
    obj = JS_NewObject ( cx , &query_class , NULL , NULL ) ;
    VERIFY ( obj ) ;
-   // set the return object
    JS_SET_RVAL ( cx , vp , OBJECT_TO_JSVAL ( obj ) ) ;
-   // set properties
-   // _collection
    if ( JSVAL_IS_OBJECT( argv[0] ) )
    {
       VERIFY ( JS_SetProperty ( cx , obj , "_collection" , &argv[0] ) ) ;
@@ -2701,7 +2554,6 @@ static JSBool query_constructor ( JSContext *cx , uintN argc , jsval *vp )
    {
       REPORT ( FALSE, "new SdbQuery(): failed to get collection handle" ) ;
    }
-   // _query
    if ( JSVAL_IS_OBJECT( argv[1] ) || JSVAL_IS_VOID( argv[1] ) ||
         JSVAL_IS_NULL( argv[1] ) )
    {
@@ -2711,7 +2563,6 @@ static JSBool query_constructor ( JSContext *cx , uintN argc , jsval *vp )
    {
       REPORT ( FALSE, "the 1st argument wrong" ) ;
    }
-   // _select
    if ( JSVAL_IS_OBJECT( argv[2] ) || JSVAL_IS_VOID( argv[2] ) ||
         JSVAL_IS_NULL( argv[2] ) )
    {
@@ -2721,22 +2572,16 @@ static JSBool query_constructor ( JSContext *cx , uintN argc , jsval *vp )
    {
       REPORT ( FALSE, "the 2nd argument wrong" ) ;
    }
-   // _sort
    val = OBJECT_TO_JSVAL ( objSort ) ;
    VERIFY ( JS_SetProperty ( cx, obj, "_sort", &val ) ) ;
-   // _hint
    val = OBJECT_TO_JSVAL ( objHint ) ;
    VERIFY ( JS_SetProperty ( cx , obj , "_hint" , &val ) ) ;
-   // _skip
    val = INT_TO_JSVAL ( skip ) ;
    VERIFY ( JS_SetProperty ( cx , obj , "_skip" , &val ) ) ;
-   // _limit
    val = INT_TO_JSVAL ( limit ) ;
    VERIFY ( JS_SetProperty ( cx , obj , "_limit" , &val ) ) ;
-   // _flags
    val = INT_TO_JSVAL ( flags ) ;
    VERIFY ( JS_SetProperty ( cx , obj , "_flags" , &val ) ) ;
-   // _cursor
    val = JSVAL_NULL ;
    VERIFY ( JS_SetProperty ( cx , obj , "_cursor" , &val ) ) ;
 
@@ -2773,7 +2618,6 @@ static JSClass rn_class = {
     JSCLASS_NO_OPTIONAL_MEMBERS   // optional members
 } ;
 
-// SdbReplicaGroup
 // PD_TRACE_DECLARE_FUNCTION ( SB_RG_DESTRUCTOR, "rg_destructor" )
 static void rg_destructor ( JSContext *cx, JSObject *obj )
 {
@@ -2806,8 +2650,6 @@ static JSBool rg_constructor ( JSContext *cx, uintN argc, jsval *vp )
    PD_TRACE_ENTRY ( SDB_RG_CONSTRUCTOR );
    JSBool ret = JS_TRUE ;
 
-   // this constructor should never be called, internally or externally
-   // it is here just for the sake of defining SdbReplicaGroup.prototype
    REPORT ( JS_FALSE, "use of new SdbReplicaGroup() is forbidden, you should use "
                       "other functions to produce a SdbReplicaGroup object" ) ;
 done :
@@ -2843,7 +2685,6 @@ static JSBool rg_get_master ( JSContext *cx, uintN argc, jsval *vp )
                                                  JS_THIS_OBJECT ( cx, vp ) ) ;
    REPORT ( rg, "RG.getMaster(): no replica group handle" ) ;
 
-   // node is freed in error: or in the destructor of SdbNode
    rn = (sdbNodeHandle *)
         JS_malloc ( cx, sizeof ( sdbNodeHandle ) ) ;
    VERIFY ( rn ) ;
@@ -2926,7 +2767,6 @@ static JSBool rg_get_slave ( JSContext *cx, uintN argc, jsval *vp )
                                                  JS_THIS_OBJECT ( cx, vp ) ) ;
    REPORT ( rg, "RG.getSlave(): no replica group handle" ) ;
 
-   // node is freed in error: or in the destructor of SdbNode
    rn = (sdbNodeHandle *)
         JS_malloc ( cx, sizeof ( sdbNodeHandle ) ) ;
    VERIFY ( rn ) ;
@@ -3074,27 +2914,22 @@ static JSBool rg_create_node ( JSContext *cx, uintN argc, jsval *vp )
 
    if ( objConfig )
    {
-      // bsonConfig is freed in done:
       ret = objToBson ( cx , objConfig , &bsonConfig ) ;
       VERIFY ( ret ) ;
    }
 
-   // host will be freed in done:
    host = (CHAR *) JS_EncodeString ( cx , strHost ) ;
    VERIFY ( host ) ;
 
-   // port will be freed in done:
    port = (CHAR *) JS_EncodeString ( cx , strPort ) ;
    VERIFY ( port ) ;
 
-   // dbpath will be freed in done:
    dbPath = (CHAR *) JS_EncodeString ( cx, strDBPath ) ;
    VERIFY ( dbPath ) ;
 
    rc = sdbCreateNode ( *rg, host, port, dbPath, bsonConfig ) ;
    REPORT_RC ( SDB_OK == rc, "RG.createNode()", rc ) ;
 
-   // create node
    rn = (sdbNodeHandle *)
         JS_malloc ( cx, sizeof ( sdbNodeHandle ) ) ;
    VERIFY ( rn ) ;
@@ -3179,16 +3014,13 @@ static JSBool rg_remove_node ( JSContext *cx, uintN argc, jsval *vp )
 
    if ( objConfig )
    {
-      // bsonConfig is freed in done:
       ret = objToBson ( cx , objConfig , &bsonConfig ) ;
       VERIFY ( ret ) ;
    }
 
-   // host will be freed in done:
    host = (CHAR *) JS_EncodeString ( cx , strHost ) ;
    VERIFY ( host ) ;
 
-   // port will be freed in done:
    port = (CHAR *) JS_EncodeString ( cx , strPort ) ;
    VERIFY ( port ) ;
 
@@ -3223,7 +3055,6 @@ JSBool get_node_and_setproperty( JSContext *cx, jsval *vp,
    const CHAR *nodeName = NULL ;
    INT32 nodeID = -1 ;
    JSObject *objRN = NULL ;
-//   jsval valRG = JSVAL_VOID ;
    jsval valHostName = JSVAL_VOID ;
    jsval valServiceName = JSVAL_VOID ;
    jsval valNodeName = JSVAL_VOID ;
@@ -3249,8 +3080,6 @@ JSBool get_node_and_setproperty( JSContext *cx, jsval *vp,
 
    VERIFY ( JS_SetPrivate ( cx , objRN , rn ) ) ;
 
-//   valRG = JS_THIS ( cx, vp ) ;
-//   VERIFY ( JS_SetProperty ( cx, objRN, "_rg", &valRG ) ) ;
    if ( NULL == valRG )
    {
       jsval valRG2 = JS_THIS ( cx, vp ) ;
@@ -3311,7 +3140,6 @@ static JSBool rg_get_node ( JSContext *cx, uintN argc, jsval *vp )
                                &strHostName, &strServiceName ) ;
    REPORT ( ret, "RG.getNode(): wrong arguments" ) ;
 
-   // if we only get one parameter, that means user passed nodename
    if ( !strServiceName )
    {
       INT32 serviceNameLen = 0 ;
@@ -3320,8 +3148,6 @@ static JSBool rg_get_node ( JSContext *cx, uintN argc, jsval *vp )
       VERIFY ( pNodeName ) ;
 
       pSplit = ossStrchr ( pNodeName, NODE_NAME_SPLIT ) ;
-      // if we cannot find split, that means we don't have ":" and it's not a
-      // valid node name
       VERIFY ( pSplit ) ;
 
       serviceNameLen = ossStrlen ( pSplit+1 ) ;
@@ -3375,7 +3201,6 @@ static JSFunctionSpec rg_functions[] = {
    JS_FS_END
 } ;
 
-// SdbCollectionSpace
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_CS_DESTRUCTOR, "cs_destructor" )
 static void cs_destructor ( JSContext *cx , JSObject *obj )
@@ -3422,8 +3247,6 @@ done :
    return in ;
 }
 
-// In the official documentation of Spider Monkey 1.8.5, the 3rd paramenter id
-// is said to be of type jsval, but it is actually jsid.
 // PD_TRACE_DECLARE_FUNCTION ( SDB_CS_RESV, "cs_resolve" )
 static JSBool cs_resolve ( JSContext *cx , JSObject *obj , jsid id ,
                            uintN flags , JSObject ** objp )
@@ -3443,7 +3266,6 @@ static JSBool cs_resolve ( JSContext *cx , JSObject *obj , jsid id ,
    if ( ! JSVAL_IS_STRING ( valID ) )
       goto done ;
 
-   // name is freed in done:
    name = (CHAR *) JS_EncodeString ( cx , JSVAL_TO_STRING ( valID ) ) ;
    VERIFY ( name ) ;
 
@@ -3482,8 +3304,6 @@ static JSBool cs_constructor ( JSContext *cx , uintN argc , jsval *vp )
 {
    JSBool ret = JS_TRUE ;
 
-   // this constructor should never be called, internally or externally
-   // it is here just for the sake of defining SdbCS.prototype
    REPORT ( JS_FALSE , "use of new SdbCS() is forbidden, you should use "
                        "other functions to produce a SdbCS object" ) ;
 
@@ -3564,7 +3384,6 @@ static JSBool cs_get_cl ( JSContext *cx , uintN argc , jsval *vp )
                                "S" , &strName ) ;
    REPORT ( ret , "SdbCS.getCL(): invalid arguments" ) ;
 
-   // name is freed in done:
    name = (CHAR *) JS_EncodeString ( cx , strName ) ;
    VERIFY ( name ) ;
 
@@ -3608,17 +3427,14 @@ static JSBool cs_create_cl ( JSContext *cx , uintN argc , jsval *vp )
                                "S/o" , &strCLName, &objOptions ) ;
    REPORT ( ret , "SdbCS.createCL(): invalid arguments" ) ;
 
-   // name is freed in done:
    clName = (CHAR *) JS_EncodeString ( cx , strCLName ) ;
    VERIFY ( clName ) ;
 
-   // get option
    if ( objOptions )
    {
       VERIFY ( objToBson ( cx, objOptions, &bsonOptions ) ) ;
    }
 
-   // collection handle is freed in done:
    rc = sdbCreateCollection1 ( *cs , clName , bsonOptions , collection ) ;
    REPORT_RC ( SDB_OK == rc , "SdbCS.createCL()" , rc ) ;
 
@@ -3672,7 +3488,6 @@ static JSBool cs_drop_cl ( JSContext *cx , uintN argc , jsval *vp )
                                "S" , &strCollectionName ) ;
    REPORT ( ret , "SdbCS.dropCL(): wrong arguments" ) ;
 
-   // collectionName is freed in done:
    collectionName = (CHAR *) JS_EncodeString( cx , strCollectionName ) ;
    VERIFY ( collectionName ) ;
 
@@ -3707,7 +3522,6 @@ static JSFunctionSpec cs_functions[] = {
    JS_FS_END
 } ;
 
-// ----------- Domain ------------
 // PD_TRACE_DECLARE_FUNCTION ( SDB_DOMAIN_DESTRUCTOR, "domain_destructor" )
 static void domain_destructor ( JSContext *cx, JSObject *obj )
 {
@@ -3736,8 +3550,6 @@ static JSClass domain_class = {
 static JSBool domain_constructor ( JSContext *cx, uintN argc, jsval *vp )
 {
    JSBool ret = JS_TRUE ;
-   // the constructor should never be called, internall yor externally
-   // it is here just for the sake of defining SdbDomain.prototype
    REPORT ( JS_FALSE, "use of new SdbDomain() is orbidden, you should use "
                       "other functions to produce a SdbDomain object" ) ;
 done :
@@ -3912,7 +3724,6 @@ static JSFunctionSpec domain_functions[] = {
 } ;
 
 
-// ----------- Sdb --------------
 // PD_TRACE_DECLARE_FUNCTION ( SDB_DESTRUCTOR, "sdb_destructor" )
 static void sdb_destructor ( JSContext *cx , JSObject *obj )
 {
@@ -3921,7 +3732,6 @@ static void sdb_destructor ( JSContext *cx , JSObject *obj )
    connection = (sdbConnectionHandle *) JS_GetPrivate ( cx , obj ) ;
    if ( connection )
    {
-      // first need to convert retval to double
       /*
       UINT64 addr = 0 ;
       __sdbGetReserveSpace1 ( *connection, &addr ) ;
@@ -4019,8 +3829,6 @@ done :
    return in ;
 }
 
-// In the official documentation of Spider Monkey 1.8.5, the 3rd paramenter id
-// is said to be of type jsval, but it is actually jsid.
 // PD_TRACE_DECLARE_FUNCTION ( SDB_SDB_RESV, "sdb_resolve" )
 static JSBool sdb_resolve ( JSContext *cx , JSObject *obj , jsid id ,
                             uintN flags , JSObject ** objp )
@@ -4040,7 +3848,6 @@ static JSBool sdb_resolve ( JSContext *cx , JSObject *obj , jsid id ,
    if ( ! JSVAL_IS_STRING ( valID ) )
       goto done ;
 
-   // name is freed in done:
    name = (CHAR *) JS_EncodeString ( cx , JSVAL_TO_STRING ( valID ) ) ;
    VERIFY ( name ) ;
 
@@ -4091,7 +3898,6 @@ static JSBool sdb_constructor ( JSContext *cx , uintN argc , jsval *vp )
    INT32                rc          = SDB_OK ;
    JSBool               ret         = JS_TRUE ;
    jsval                val         = JSVAL_VOID ;
-// fmp use localhost and coord's port in current version
 #if defined (SDB_FMP)
    ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
                                "/SS" , &strName , &strPwd ) ;
@@ -4103,19 +3909,16 @@ static JSBool sdb_constructor ( JSContext *cx , uintN argc , jsval *vp )
    REPORT ( ret , "new Sdb(): wrong arguments" ) ;
 
 #if !defined (SDB_FMP)
-   // if not offer host and port, use "localhost" and coord port
    if ( !strHost )
    {
       INT32 hostNameLen = 0 ;
       INT32 portNameLen = 0 ;
       CHAR portBuffer[OSS_MAX_SERVICENAME + 1] = {0};
-      // host
       hostNameLen = ossStrlen(SDB_DEF_COORD_NAME) ;
       host = ( CHAR* ) JS_malloc ( cx, hostNameLen + 1 ) ;
       VERIFY ( host ) ;
       ossStrncpy ( host, SDB_DEF_COORD_NAME, hostNameLen ) ;
       host[hostNameLen] = '\0' ;
-      // port
       portNameLen = sprintf( portBuffer, "%d", SDB_DEF_COORD_PORT ) ;
       VERIFY ( portNameLen != 0 ) ;
       port = ( CHAR* ) JS_malloc ( cx, portNameLen + 1 ) ;
@@ -4123,8 +3926,6 @@ static JSBool sdb_constructor ( JSContext *cx , uintN argc , jsval *vp )
       ossStrncpy ( port, portBuffer, portNameLen ) ;
       port[portNameLen] = '\0' ;
    }
-   // in the case, the input argument looks like "localhost:11810"
-   // we need to split host and port
    else if( ! strPort )
    {
       INT32 portNameLen = 0 ;
@@ -4154,11 +3955,8 @@ static JSBool sdb_constructor ( JSContext *cx , uintN argc , jsval *vp )
       }
       else
       {
-         // host
-         // host will be freed in done:
          host = (CHAR *) JS_EncodeString ( cx , strHost ) ;
          VERIFY ( host ) ;
-         // port
          portNameLen = sprintf( portBuffer, "%d", SDB_DEF_COORD_PORT ) ;
          VERIFY ( portNameLen != 0 ) ;
          port = ( CHAR* ) JS_malloc ( cx, portNameLen + 1 ) ;
@@ -4167,14 +3965,11 @@ static JSBool sdb_constructor ( JSContext *cx , uintN argc , jsval *vp )
          port[portNameLen] = '\0' ;
       }
    }
-   // in the case, we get host and port input by user
    else
    {
-      // host will be freed in done:
       host = (CHAR *) JS_EncodeString ( cx , strHost ) ;
       VERIFY ( host ) ;
 
-      // port will be freed in done:
       port = (CHAR *) JS_EncodeString ( cx , strPort ) ;
       VERIFY ( port ) ;
    }
@@ -4190,40 +3985,30 @@ static JSBool sdb_constructor ( JSContext *cx , uintN argc , jsval *vp )
    port = FMP_COORD_SERVICE ;
 #endif
 
-   // connection will be freed in the destructor or in error:
    connection = (sdbConnectionHandle *)
       JS_malloc ( cx , sizeof ( sdbConnectionHandle ) ) ;
    VERIFY ( connection ) ;
    *connection = SDB_INVALID_HANDLE ;
-   // in this case, both user name and password are input by use
    if ( strName && strPwd )
    {
-      // name will be freed in done:
       name = (CHAR *) JS_EncodeString ( cx , strName ) ;
       VERIFY ( name ) ;
 
-      // pwd will be freed in done:
       pwd = (CHAR *) JS_EncodeString ( cx , strPwd ) ;
       VERIFY ( pwd ) ;
 
 #if defined( SDB_FMP )
       g_disablePassEncode = FALSE ;
 #endif // SDB_FMP
-      // handle contained by connection will be released in error: or
-      // in the destructor
       rc = sdbConnect ( host , port , name , pwd , connection ) ;
       REPORT_RC ( SDB_OK == rc , "new Sdb()" , rc ) ;
    }
-   // in this case, only one of them input by user, it is wrong
    else if ( strName && ! strPwd )
    {
       REPORT ( JS_FALSE , "you should input your password to connect engine!" ) ;
    }
-   // in this case, none if them was input, we use default values
    else
    {
-      // handle contained by connection will be released in error: or
-      // in the destructor
 #if defined( SDB_FMP )
       g_disablePassEncode = TRUE ;
       rc = sdbConnect ( host , port , g_UserName, g_Password, connection ) ;
@@ -4232,31 +4017,20 @@ static JSBool sdb_constructor ( JSContext *cx , uintN argc , jsval *vp )
 #endif // SDB_FMP
       REPORT_RC ( SDB_OK == rc , "new Sdb()" , rc ) ;
    }
-   // new a js sdb object
    obj = JS_NewObject ( cx , &sdb_class, NULL, NULL ) ;
    VERIFY ( obj ) ;
    /*
-   // set the newly build js sdb object as a return value,
-   // so we can hold this object in the sdb client like this:
-   // var sdb = new Sdb("localhost", 11810)
    jsval *pv = (jsval*)JS_malloc ( cx, sizeof(jsval) ) ;
    VERIFY ( pv ) ;
    *pv = OBJECT_TO_JSVAL ( obj ) ;
    JS_SET_RVAL ( cx , vp , *pv ) ;
    JS_AddValueRoot ( cx, pv ) ;
    __sdbSetReserveSpace1 ( *connection, (UINT64)pv ) ;
-   // *pv must be set 0 here, otherwise destructor will not be called
-   // why? i donno... maybe some magic happen in spider monkey
    *pv = 0 ;
    */
-   // set the connection as one of the newly build js sdb object
-   // so this object holds a handle of sdb, and can use it communicate
-   // with datebase
    JS_SET_RVAL ( cx, vp, OBJECT_TO_JSVAL(obj) ) ;
    ret = JS_SetPrivate ( cx , obj , connection ) ;
    VERIFY ( ret ) ;
-   // we need to set host and port as properties of the newly build
-   // js object, make sure both strPort and strHost is available
    if( !strHost || !strPort )
    {
       strPort = JS_NewStringCopyN( cx, port,
@@ -4264,7 +4038,6 @@ static JSBool sdb_constructor ( JSContext *cx , uintN argc , jsval *vp )
       strHost = JS_NewStringCopyN( cx, host,
                                    ossStrlen(host) ) ;
    }
-   // set host and port as properties of the newly build js object
    val = STRING_TO_JSVAL ( strHost ) ;
    VERIFY ( JS_SetProperty ( cx , obj , "_host" , &val ) ) ;
    val = STRING_TO_JSVAL ( strPort ) ;
@@ -4286,14 +4059,11 @@ error :
    goto done ;
 }
 
-// SdbNode
 
 static JSBool rn_constructor ( JSContext *cx, uintN argc, jsval *vp )
 {
    JSBool ret = JS_TRUE ;
 
-   // this constructor should never be called, internally or externally
-   // it is here just for the sake of defining SdbNode.prototype
    REPORT ( JS_FALSE, "use of new SdbNode() is forbidden, you should use "
                       "other functions to produce a SdbNode object" ) ;
 done :
@@ -4325,7 +4095,6 @@ static JSBool rn_connect ( JSContext *cx, uintN argc, jsval *vp )
    rc = sdbGetNodeAddr ( *rn, &host, &port, NULL, NULL ) ;
    REPORT_RC ( SDB_OK == rc, "SdbNode.connect()", rc ) ;
 
-   // connection will be freed in the destructor or in error
    connection = (sdbConnectionHandle *)
       JS_malloc ( cx, sizeof ( sdbConnectionHandle ) ) ;
    VERIFY ( connection ) ;
@@ -4446,18 +4215,15 @@ static JSBool sdb_create_rg ( JSContext *cx, uintN argc, jsval *vp )
                                "S", &strRGName ) ;
    REPORT ( ret, "Sdb.createRG(): wrong arguments" ) ;
 
-   // rgName is free in done:
    rgName = (CHAR*)JS_EncodeString ( cx, strRGName ) ;
    VERIFY ( rgName ) ;
 
-   // the handle contained by rg is released in done :
    rc = sdbCreateReplicaGroup( *connection, rgName, rg ) ;
    REPORT_RC ( SDB_OK == rc, "Sdb.createRG()", rc ) ;
 
    objRG = JS_NewObject ( cx, &rg_class, 0 , 0 ) ;
    VERIFY ( objRG ) ;
 
-   // These two lines must precede JS_SET_RVAL due to using JS_THIS
    valConn = JS_THIS ( cx, vp ) ;
    VERIFY ( JS_SetProperty ( cx, objRG, "_conn", &valConn ) ) ;
 
@@ -4501,10 +4267,8 @@ static JSBool sdb_create_domain ( JSContext *cx, uintN argc, jsval *vp )
    PD_TRACE_ENTRY ( SDB_SDB_CREATE_DOMAIN ) ;
    bson_init ( &bsonDef ) ;
    bson_init ( &options ) ;
-   // make sure there's at least one argument for domain name
    REPORT ( argc >= 1,
             "Sdb.createDomain(): need at least one argument" ) ;
-   // get connection handle first
    connection = (sdbConnectionHandle *)
          JS_GetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ) ) ;
    REPORT ( connection, "Sdb.createDomain(): no connection handle" ) ;
@@ -4513,18 +4277,15 @@ static JSBool sdb_create_domain ( JSContext *cx, uintN argc, jsval *vp )
    VERIFY ( domainName ) ;
    argv[0] = STRING_TO_JSVAL ( domainName ) ;
 
-   // name is freed in done
    name = JS_EncodeString ( cx, domainName ) ;
    VERIFY ( name ) ;
 
-   // get array for group list
    if ( argc >= 2 )
    {
       domainObj = JSVAL_TO_OBJECT ( argv[1] ) ;
       VERIFY ( domainObj ) ;
       REPORT ( JS_IsArrayObject ( cx, domainObj ),
                "Sdb.createDomain(): second argument must be array of groups" ) ;
-      // iterate each element in array and push to bson object
       VERIFY ( BSON_OK ==
                bson_append_start_array ( &bsonDef, FIELD_NAME_GROUPS ) ) ;
       VERIFY ( JS_GetArrayLength ( cx, domainObj, &groupListL ) ) ;
@@ -4535,18 +4296,13 @@ static JSBool sdb_create_domain ( JSContext *cx, uintN argc, jsval *vp )
          ossMemset ( buffer, 0, sizeof(buffer) ) ;
          JSString * groupName = NULL ;
          CHAR     * strGroupName = NULL ;
-         // get the i'th element in the array
          VERIFY ( JS_GetElement ( cx, domainObj, (jsint)i, &v ) ) ;
-         // build group name
          groupName = JS_ValueToString ( cx, v ) ;
          VERIFY ( groupName ) ;
-         // memory free by end of the loop
          strGroupName = JS_EncodeString ( cx, groupName ) ;
          VERIFY ( strGroupName ) ;
-         // append to bson
          ossSnprintf ( buffer, sizeof(buffer), "%d", i ) ;
          bson_append_string ( &bsonDef, buffer, strGroupName ) ;
-         // free memory for strGroupName
          SAFE_JS_FREE ( cx, strGroupName ) ;
       }
       VERIFY ( BSON_OK == bson_append_finish_array ( &bsonDef ) ) ;
@@ -4612,7 +4368,6 @@ static JSBool sdb_drop_domain ( JSContext *cx, uintN argc, jsval *vp )
    ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
                                "S" , &domainName ) ;
    REPORT ( ret && domainName, "Sdb.dropDoamin(): wrong arguments" ) ;
-   // name is freed in done
    name = JS_EncodeString ( cx, domainName ) ;
    VERIFY ( name ) ;
    rc = sdbDropDomain ( *connection, name ) ;
@@ -4644,7 +4399,6 @@ static JSBool sdb_get_domain ( JSContext *cx, uintN argc, jsval *vp )
    ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
                                "S" , &domainName ) ;
    REPORT ( ret && domainName, "Sdb.getDoamin(): wrong arguments" ) ;
-   // name is freed in done
    name = JS_EncodeString ( cx, domainName ) ;
    VERIFY ( name ) ;
 
@@ -4696,25 +4450,19 @@ static JSBool sdb_list_domains ( JSContext *cx, uintN argc, jsval *vp )
 
    if ( objCond )
    {
-      // bsonCond is freed in done:
       VERIFY ( objToBson ( cx , objCond , &bsonCond ) ) ;
    }
 
    if ( objSel )
    {
-      // bsonSel is freed in done:
       VERIFY ( objToBson ( cx , objSel , &bsonSel ) ) ;
    }
 
    if ( objOrder )
    {
-      // bsonOrder is freed in done:
       VERIFY ( objToBson ( cx , objOrder , &bsonOrder ) ) ;
    }
 
-   // cursor and the handle it contains will be deleted in error: or in the
-   // destructor of SdbCursor
-   // cursor will also be freed when rc = SDB_DMS_EOC
    cursor = (sdbCursorHandle *) JS_malloc ( cx , sizeof ( sdbCursorHandle ) ) ;
    VERIFY ( cursor ) ;
    *cursor = SDB_INVALID_HANDLE ;
@@ -4978,7 +4726,6 @@ static JSBool sdb_eval( JSContext *cx, uintN argc, jsval *vp )
       }
       else if ( BSON_LONG == iteType )
       {
-         /// how to transfer a long value ?
          JS_SET_RVAL( cx, vp, INT_TO_JSVAL(bson_iterator_int( &it )) ) ;
       }
       else if ( BSON_OBJECT == iteType )
@@ -5030,7 +4777,6 @@ static JSBool sdb_eval( JSContext *cx, uintN argc, jsval *vp )
 
       if ( FMP_RES_TYPE_CS == valueType )
       {
-         /// will jsname be freed when cx is released ?
          JSString *jsname = NULL ;
          jsname = JS_NewStringCopyN( cx, name, ossStrlen(name) ) ;
          VERIFY( jsname ) ;
@@ -5079,8 +4825,6 @@ static JSBool sdb_eval( JSContext *cx, uintN argc, jsval *vp )
          jsname = JS_NewStringCopyN( cx, clName, ossStrlen(clName) );
          VERIFY( jsname ) ;
 
-         /// WARNING: here we don have a real cs obj.
-         /// any call of cs by cl will cause problem
          ret = get_cl_and_setproperty( cx, vp, &valCS, *cs,
                                        clName, jsname ) ;
          VERIFY( ret ) ;
@@ -5148,7 +4892,6 @@ static JSBool sdb_eval( JSContext *cx, uintN argc, jsval *vp )
 
 done:
 
-   /// to kill context
    if ( needKill  && NULL != cursor )
    {
       INT32 r = SDB_OK ;
@@ -5196,7 +4939,6 @@ static JSBool sdb_flush_configure( JSContext *cx, uintN argc, jsval *vp )
                                "o" , &objData) ;
    REPORT ( ret, "Sdb.flushConfigure(): wrong arguments" ) ;
 
-   // bsonData is freed in done:
    if ( JS_FALSE == objToBson ( cx , objData , &bsonData ) )
    {
       rc = SDB_INVALIDARG ;
@@ -5234,7 +4976,6 @@ static JSBool ssdb_remove_rg ( JSContext *cx, uintN argc, jsval *vp )
                                "S", &strRGName ) ;
    REPORT ( ret, "Sdb.removeRG(): wrong arguments" ) ;
 
-   // rgName is free in done:
    rgName = (CHAR*)JS_EncodeString ( cx, strRGName ) ;
    VERIFY ( rgName ) ;
 
@@ -5276,25 +5017,19 @@ static JSBool sdb_create_cata_rg ( JSContext *cx, uintN argc, jsval *vp )
 
    if ( objConfig )
    {
-      // bsonConfig is freed in done:
       ret = objToBson ( cx , objConfig , &bsonConfig ) ;
       VERIFY ( ret ) ;
    }
 
-   // host will be freed in done:
    host = (CHAR *) JS_EncodeString ( cx , strHost ) ;
    VERIFY ( host ) ;
 
-   // port will be freed in done:
    port = (CHAR *) JS_EncodeString ( cx , strPort ) ;
    VERIFY ( port ) ;
 
-   // dbpath will be freed in done:
    dbPath = (CHAR *) JS_EncodeString ( cx, strDBPath ) ;
    VERIFY ( dbPath ) ;
 
-   // create the replica catalog group
-   // the handle contained by rg is released in done
    rc = sdbCreateReplicaCataGroup ( *connection, host,
                               port, dbPath, bsonConfig ) ;
    REPORT_RC ( SDB_OK == rc, "Sdb.createReplicaCataGroup()", rc ) ;
@@ -5368,7 +5103,6 @@ static JSBool sdb_create_cs ( JSContext *cx , uintN argc , jsval *vp )
       }
    }
 
-   /// TODO: put the pagesize in options obj when next release.
    if ( 0 == pageSize && NULL == objOptions && argc > 1 )
    {
       ret = FALSE ;
@@ -5380,7 +5114,6 @@ static JSBool sdb_create_cs ( JSContext *cx , uintN argc , jsval *vp )
       pageSize = SDB_PAGESIZE_DEFAULT ;
    }
 
-   // csName is freed in done:
    csName = (CHAR *) JS_EncodeString ( cx , strCSName ) ;
    VERIFY ( csName ) ;
 
@@ -5400,28 +5133,19 @@ static JSBool sdb_create_cs ( JSContext *cx , uintN argc , jsval *vp )
    }
 
    bson_finish( &options ) ;
-   // the handle contained by cs is released in done:
    rc = sdbCreateCollectionSpaceV2( *connection , csName ,&options, cs );
    REPORT_RC ( SDB_OK == rc , "Sdb.createCS()" , rc ) ;
-   // get the cs handle
    rc = sdbGetCollectionSpace ( *connection , csName , cs ) ;
    REPORT_RC ( SDB_OK == rc , "Sdb.createCS()" , rc ) ;
-   // new a cs obj
    objCS = JS_NewObject ( cx , &cs_class , 0 , 0 ) ;
    VERIFY ( objCS ) ;
-   // set the newly build cs obj's properties
    valConn = JS_THIS ( cx, vp ) ;
    VERIFY ( JS_SetProperty ( cx, objCS, "_conn", &valConn ) ) ;
    valName = STRING_TO_JSVAL ( strCSName ) ;
    VERIFY ( JS_SetProperty ( cx , objCS , "_name" , &valName ) ) ;
-   // set the cs handle we get from the C driver as a private member of the
-   // cs obj
    VERIFY ( JS_SetPrivate ( cx , objCS , cs ) ) ;
-   // set the cs obj as a property of current sdb obj, so we can get this cs obj
-   // through the sdb obj
    valCS = OBJECT_TO_JSVAL ( objCS ) ;
    VERIFY ( JS_SetProperty ( cx , JS_THIS_OBJECT ( cx , vp ) , csName, &valCS ) ) ;
-   // return the newly build cs obj
    JS_SET_RVAL ( cx , vp , OBJECT_TO_JSVAL ( objCS ) ) ;
 
 done :
@@ -5557,29 +5281,21 @@ JSBool get_cs_and_setproperty( JSContext *cx, jsval *vp,
    jsval valName = JSVAL_VOID ;
    jsval valCS = JSVAL_VOID ;
 
-   // build a cs handle
    cs = (sdbCSHandle *) JS_malloc ( cx , sizeof ( sdbCSHandle ) ) ;
    VERIFY ( cs ) ;
    *cs = SDB_INVALID_HANDLE ;
-   // get the cs handle
    rc = sdbGetCollectionSpace ( *connection , csName , cs ) ;
    REPORT_RC ( SDB_OK == rc , "get_cs_and_setproperty" , rc ) ;
-   // new a cs obj
    csObj = JS_NewObject ( cx , &cs_class , 0 , 0 ) ;
    VERIFY ( csObj ) ;
-   // set the propertis of the newly build cs obj
    valConn = JS_THIS ( cx , vp ) ;
    VERIFY ( JS_SetProperty ( cx , csObj , "_conn" , &valConn ) ) ;
    valName = STRING_TO_JSVAL ( jsCSName ) ;
    VERIFY ( JS_SetProperty ( cx , csObj , "_name" , &valName ) ) ;
-   // set the cs handle we get from the c driver as a private member of the
-   // newly build cs obj in js
    VERIFY ( JS_SetPrivate ( cx , csObj , cs ) ) ;
-   // set the newly build cs obj as a property of current sdb obj
    valCS = OBJECT_TO_JSVAL ( csObj ) ;
    VERIFY ( JS_SetProperty ( cx, JS_THIS_OBJECT ( cx , vp ),
             csName, &valCS ) ) ;
-   // return the newly build cs obj
    JS_SET_RVAL ( cx , vp , OBJECT_TO_JSVAL ( csObj ) ) ;
 done:
    PD_TRACE_EXIT( GET_CS_AND_SETPROPERTY ) ;
@@ -5607,7 +5323,6 @@ static JSBool sdb_get_cs ( JSContext *cx , uintN argc , jsval *vp )
                                "S" , &strCSName ) ;
    REPORT ( ret , "Sdb.getCS(): wrong arguments" ) ;
 
-   // csName is freed in done:
    csName = (CHAR *) JS_EncodeString ( cx , strCSName ) ;
    VERIFY ( csName ) ;
 
@@ -5644,7 +5359,6 @@ static JSBool sdb_drop_cs( JSContext *cx, uintN argc, jsval *vp )
                                "S" , &strCSName ) ;
    REPORT ( ret , "Sdb.dropCS(): wrong arguments" ) ;
 
-   // csName is freed in done:
    csName = JS_EncodeString ( cx , strCSName ) ;
    VERIFY ( csName ) ;
 
@@ -5697,25 +5411,19 @@ static JSBool sdb_snapshot ( JSContext *cx , uintN argc , jsval *vp )
 
    if ( objCond )
    {
-      // bsonCond is freed in done:
       VERIFY ( objToBson ( cx , objCond , &bsonCond ) ) ;
    }
 
    if ( objSel )
    {
-      // bsonSel is freed in done:
       VERIFY ( objToBson ( cx , objSel , &bsonSel ) ) ;
    }
 
    if ( objOrder )
    {
-      // bsonOrder is freed in done:
       VERIFY ( objToBson ( cx , objOrder , &bsonOrder ) ) ;
    }
 
-   // cursor and the handle it contains will be deleted in error: or in the
-   // destructor of SdbCursor
-   // cursor will also be freed when rc = SDB_DMS_EOC
    cursor = (sdbCursorHandle *) JS_malloc ( cx , sizeof ( sdbCursorHandle ) ) ;
    VERIFY ( cursor ) ;
    *cursor = SDB_INVALID_HANDLE ;
@@ -5769,7 +5477,6 @@ static JSBool sdb_reset_snapshot ( JSContext *cx , uintN argc , jsval *vp )
 
    if ( objCond )
    {
-      // bsonCond is freed in done:
       VERIFY ( objToBson ( cx , objCond , &bsonCond ) ) ;
    }
    rc = sdbResetSnapshot ( *connection, bsonCond ) ;
@@ -5812,25 +5519,19 @@ static JSBool sdb_list ( JSContext *cx , uintN argc , jsval *vp )
 
    if ( objCond )
    {
-      // bsonCond is freed in done:
       VERIFY ( objToBson ( cx , objCond , &bsonCond ) ) ;
    }
 
    if ( objSel )
    {
-      // bsonSel is freed in done:
       VERIFY ( objToBson ( cx , objSel , &bsonSel ) ) ;
    }
 
    if ( objOrder )
    {
-      // bsonOrder is freed in done:
       VERIFY ( objToBson ( cx , objOrder , &bsonOrder ) ) ;
    }
 
-   // cursor and the handle it contains will be deleted in error: or in the
-   // destructor of SdbCursor
-   // cursor will also be freed when rc = SDB_DMS_EOC
    cursor = (sdbCursorHandle *) JS_malloc ( cx , sizeof ( sdbCursorHandle ) ) ;
    VERIFY ( cursor ) ;
    *cursor = SDB_INVALID_HANDLE ;
@@ -5948,12 +5649,10 @@ static JSBool sdb_create_user ( JSContext *cx , uintN argc , jsval *vp )
 
    if ( strUsrName )
    {
-      // usrName is freed in done:
       usrName = (CHAR *) JS_EncodeString ( cx , strUsrName ) ;
       VERIFY ( usrName ) ;
       if ( strUsrPwd )
       {
-         // usrPwd is freed in done:
          usrPwd = (CHAR *) JS_EncodeString ( cx , strUsrPwd ) ;
          VERIFY ( usrPwd ) ;
          rc = sdbCreateUsr( *connection , usrName , usrPwd ) ;
@@ -6053,7 +5752,6 @@ static JSBool sdb_exec ( JSContext *cx , uintN argc , jsval *vp )
    sql = (CHAR *) JS_EncodeString ( cx , strSql ) ;
    VERIFY ( sql ) ;
 
-   // cursor is freed in error: or when rc = SDB_DMS_EOC
    cursor = (sdbCursorHandle *) JS_malloc ( cx , sizeof ( sdbCursorHandle ) ) ;
    VERIFY ( cursor ) ;
    *cursor = SDB_INVALID_HANDLE ;
@@ -6069,7 +5767,6 @@ static JSBool sdb_exec ( JSContext *cx , uintN argc , jsval *vp )
 
    if ( SDB_DMS_EOC == rc )
    {
-      // query result is empty
       SAFE_JS_FREE ( cx , cursor ) ;
       cursor = NULL ;
    }
@@ -6366,7 +6063,6 @@ static JSBool sdb_close ( JSContext *cx, uintN argc, jsval *vp )
    SAFE_JS_FREE ( cx, p ) ;
    */
 
-   //set sdb handle to invalid handle(0)
    ret = JS_SetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ), 0 ) ;
    VERIFY ( ret ) ;
 
@@ -6401,7 +6097,6 @@ static JSBool sdb_backup_offline ( JSContext *cx, uintN argc, jsval *vp )
 
    if ( objConfig )
    {
-      // bsonConfig is freed in done:
       ret = objToBson ( cx , objConfig , &bsonConfig ) ;
       VERIFY ( ret ) ;
    }
@@ -6447,31 +6142,24 @@ static JSBool sdb_list_backup ( JSContext *cx, uintN argc, jsval *vp )
 
    if ( objOpt )
    {
-      // objOpt is freed in done:
       VERIFY ( objToBson ( cx , objOpt , &bsonOpt ) ) ;
    }
 
    if ( objCond )
    {
-      // bsonCond is freed in done:
       VERIFY ( objToBson ( cx , objCond , &bsonCond ) ) ;
    }
 
    if ( objSel )
    {
-      // bsonSel is freed in done:
       VERIFY ( objToBson ( cx , objSel , &bsonSel ) ) ;
    }
 
    if ( objOrder )
    {
-      // bsonOrder is freed in done:
       VERIFY ( objToBson ( cx , objOrder , &bsonOrder ) ) ;
    }
 
-   // cursor and the handle it contains will be deleted in error: or in the
-   // destructor of SdbCursor
-   // cursor will also be freed when rc = SDB_DMS_EOC
    cursor = (sdbCursorHandle *) JS_malloc ( cx , sizeof ( sdbCursorHandle ) ) ;
    VERIFY ( cursor ) ;
    *cursor = SDB_INVALID_HANDLE ;
@@ -6527,11 +6215,9 @@ static JSBool sdb_remove_backup ( JSContext *cx, uintN argc, jsval *vp )
 
    if ( objConfig )
    {
-      // bsonConfig is freed in done:
       ret = objToBson ( cx , objConfig , &bsonConfig ) ;
       VERIFY ( ret ) ;
    }
-   // remove backup
    rc = sdbRemoveBackup ( *connection, bsonConfig ) ;
    REPORT_RC ( SDB_OK == rc, "Sdb.removeBackup()", rc ) ;
 
@@ -6574,31 +6260,24 @@ static JSBool sdb_list_tasks ( JSContext *cx, uintN argc, jsval *vp )
 
    if ( objCond )
    {
-      // bsonCond is freed in done:
       VERIFY ( objToBson ( cx , objCond , &bsonCond ) ) ;
    }
 
    if ( objSel )
    {
-      // bsonSel is freed in done:
       VERIFY ( objToBson ( cx , objSel , &bsonSel ) ) ;
    }
 
    if ( objOrder )
    {
-      // bsonOrder is freed in done:
       VERIFY ( objToBson ( cx , objOrder , &bsonOrder ) ) ;
    }
 
    if ( objHint )
    {
-      // objHint is freed in done:
       VERIFY ( objToBson ( cx , objHint , &bsonHint ) ) ;
    }
 
-   // cursor and the handle it contains will be deleted in error: or in the
-   // destructor of SdbCursor
-   // cursor will also be freed when rc = SDB_DMS_EOC
    cursor = (sdbCursorHandle *) JS_malloc ( cx , sizeof ( sdbCursorHandle ) ) ;
    VERIFY ( cursor ) ;
    *cursor = SDB_INVALID_HANDLE ;
@@ -6663,7 +6342,6 @@ static JSBool sdb_wait_tasks ( JSContext *cx, uintN argc, jsval *vp )
          REPORT( FALSE, "Sdb.waitTasks(): wrong argument[%d]", i ) ;
       }
    }
-   // wait tasks
    rc = sdbWaitTasks ( *connection, idArray, len ) ;
    REPORT_RC ( SDB_OK == rc, "Sdb.waitTasks()", rc ) ;
 
@@ -6741,7 +6419,6 @@ static JSBool sdb_set_session_attr ( JSContext *cx, uintN argc, jsval *vp )
    REPORT ( argc >= 1 ,
             "Sdb.setSession(): need one argument" ) ;
 */
-   // bsonOpts is freed in done:
    if ( JS_FALSE == objToBson( cx, objOpts, &bsonOpts ) )
    {
       rc = SDB_INVALIDARG ;
@@ -7020,7 +6697,6 @@ void *jsobj_get_cursor_private( JSContext *cx, JSObject *obj )
 
 JSBool InitDbClasses( JSContext *cx, JSObject *obj )
 {
-/// WARNING:  modify jsobj_is_sdbobj when u add a new object.
 
    JSBool ret = JS_TRUE ;
 

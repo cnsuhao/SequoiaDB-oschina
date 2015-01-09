@@ -33,10 +33,8 @@ public class Assertions {
         }
     }
 
-    // /CLOVER:OFF
     private Assertions() {}
 
-    // /CLOVER:ON
 
     static class NullArgumentException extends IllegalArgumentException {
         private static final long serialVersionUID = 6178592463723624585L;

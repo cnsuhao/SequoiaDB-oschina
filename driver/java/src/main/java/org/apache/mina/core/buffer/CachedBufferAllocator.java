@@ -165,7 +165,6 @@ public class CachedBufferAllocator implements IoBufferAllocator {
                 pool = heapBuffers.get().get(actualCapacity);
             }
 
-            // Recycle if possible.
             buf = pool.poll();
 
             if (buf != null) {
@@ -194,7 +193,6 @@ public class CachedBufferAllocator implements IoBufferAllocator {
     }
 
     public void dispose() {
-        // Do nothing
     }
 
     private class CachedBuffer extends AbstractIoBuffer {
@@ -272,7 +270,6 @@ public class CachedBufferAllocator implements IoBufferAllocator {
                 return;
             }
 
-            // Add to the cache.
             Queue<CachedBuffer> pool;
 
             if (oldBuf.isDirect()) {
@@ -285,7 +282,6 @@ public class CachedBufferAllocator implements IoBufferAllocator {
                 return;
             }
 
-            // Restrict the size of the pool to prevent OOM.
             if ((maxPoolSize == 0) || (pool.size() < maxPoolSize)) {
                 pool.offer(new CachedBuffer(oldBuf));
             }

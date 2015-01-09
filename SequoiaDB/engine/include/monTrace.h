@@ -29,7 +29,6 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef monTRACE_H__
 #define monTRACE_H__
-// Component: mon
 #define SDB_MONGETNODENAME                                 0x4000000000209L
 #define SDB_MONGETSESSIONNAME                              0x400000000020aL
 #define SDB_MONAPPSESSIONNAME                              0x400000000020bL

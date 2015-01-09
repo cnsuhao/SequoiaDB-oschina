@@ -1,4 +1,3 @@
-// util/hex.h
 
 /*    Copyright 2009 10gen Inc.
  *
@@ -19,7 +18,6 @@
 #include <iostream>
 #include <string>
 #include "../bson/util/builder.h"
-    //can't use hex namespace because it conflicts with hex iostream function
     inline int fromHex( char c ) {
         if ( '0' <= c && c <= '9' )
             return c - '0';

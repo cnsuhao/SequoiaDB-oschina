@@ -122,7 +122,6 @@ INT32 queryTest(BSONObj *selects, BSONObj *pattern)
       for ( int i=0; i<context._numRecords- previousRecords; i++ )
       {
          BSONObj obj(p) ;
-         //printf("%d: %s\n", i, obj.toString().c_str()) ;
          p+=obj.objsize() ;
          p = (char*)ossRoundUpToMultipleX((ossValuePtr)p,4);
       }
@@ -152,7 +151,6 @@ INT32 concurrentDeleteBig(void *ptr)
       printf("Failed to load pattern\n");
       return -1 ;
    }
-   //cout << sampleObj.toString()<<endl;
    t1 = boost::posix_time::microsec_clock::local_time() ;
    rc = myUnit->deleteRecords(BIG_COLLECTION_NAME, NULL, NULL, &matcher,
                              numDeletedRecords );
@@ -221,7 +219,6 @@ INT32 concurrentInsertBig(void *ptr)
    boost::posix_time::ptime t2 ;
    int thread_id=*(int*)ptr;
    BSONObj sampleObj = BSON("name"<<"concurrentInsertBig"<<"tid"<<thread_id);
-   //cout << sampleObj.toString()<<endl;
    t1 = boost::posix_time::microsec_clock::local_time() ;
    for(unsigned int i=0; i<LOOPNUM; i++)
    {
@@ -248,7 +245,6 @@ INT32 concurrentInsertSmall(void *ptr)
    boost::posix_time::ptime t2 ;
    int thread_id=*(int*)ptr;
    BSONObj sampleObj = BSON("name"<<"concurrentInsertSmall"<<"tid"<<thread_id);
-   //cout << sampleObj.toString()<<endl;
    t1 = boost::posix_time::microsec_clock::local_time() ;
    for(unsigned int i=0; i<LOOPNUM; i++)
    {

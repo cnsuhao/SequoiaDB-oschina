@@ -81,14 +81,11 @@ namespace engine
 
    }
 
-   // The function is called by clsMgr thread, and the _notifyList is also in
-   // the same thread, so don't use lock
    void _clsSyncManager::updateNodeStatus( const MsgRouteID & id,
                                            BOOLEAN valid )
    {
       for ( UINT32 i = 0 ; i < _validSync ; ++i )
       {
-         // find
          if ( _notifyList[i].id.value == id.value )
          {
             _notifyList[i].valid = valid ;
@@ -97,15 +94,12 @@ namespace engine
       }
    }
 
-   // The function is called by the full sync(source) thread, so need to
-   // use lock
    void _clsSyncManager::notifyFullSync( const MsgRouteID & id )
    {
       _info->mtx.lock_r() ;
 
       for ( UINT32 i = 0 ; i < _validSync ; ++i )
       {
-         // find
          if ( _notifyList[i].id.value == id.value )
          {
             _notifyList[i].offset = DPS_INVALID_LSN_OFFSET ;
@@ -116,7 +110,6 @@ namespace engine
       _info->mtx.release_r() ;
    }
 
-   // The function is called by shard session thread, so need to use lock
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_GETARBITLSN, "_clsSyncManager::getSyncCtrlArbitLSN" )
    DPS_LSN_OFFSET _clsSyncManager::getSyncCtrlArbitLSN()
    {
@@ -165,8 +158,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG_UPNFYLIST ) ;
 
-      /// info's changing is handled in one thread.
-      /// no need to require lock.
       map<UINT64, _clsSharingStatus> &group = _info->info ;
       UINT32 removed = 0 ;
       UINT32 prevAlives = 0 ;
@@ -176,7 +167,6 @@ namespace engine
 
       ossScopedRWLock lock( &_info->mtx, EXCLUSIVE ) ;
 
-      /// find removed nodes
       for ( UINT32 i = 0; i < _validSync ; i++ )
       {
          if ( _notifyList[i].valid )
@@ -200,7 +190,6 @@ namespace engine
          }
       }
 
-      /// clear synclist
       if ( 0 != removed )
       {
          _clearSyncList( removed, aliveRemoved, prevAlives,
@@ -210,7 +199,6 @@ namespace engine
       UINT32 merge = valid ;
       map<UINT64, _clsSharingStatus>::const_iterator itr =
                                         group.begin() ;
-      /// add new nodes
       for ( ; itr != group.end(); itr++ )
       {
          BOOLEAN has = FALSE ;
@@ -253,7 +241,6 @@ namespace engine
       UINT32 sub = 0;
       BOOLEAN needWait = TRUE ;
 
-      /// if w = 1, return
       if ( w == CLS_REPLSE_WRITE_ONE )
       {
          goto done ;
@@ -336,7 +323,6 @@ namespace engine
       }
       else
       {
-         /// do noting
       }
       }
    done:
@@ -348,7 +334,6 @@ namespace engine
    {
    }
 
-   // The function is called by repl session(src), so need use lock
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_NOTIFY, "_clsSyncManager::notify" )
    void _clsSyncManager::notify( const DPS_LSN_OFFSET &offset )
    {
@@ -366,9 +351,6 @@ namespace engine
          {
             SDB_ASSERT( FALSE, "impossible" ) ;
          }
-         /// compare the offset of lsn.
-         /// the node which request the latest lsn
-         /// will be nofitied.
          else if ( offset == _notifyList[i].offset )
          {
             msg.header.routeID = _notifyList[i].id ;
@@ -376,7 +358,6 @@ namespace engine
          }
          else
          {
-            /// do nothing
          }
       }
 
@@ -396,8 +377,6 @@ namespace engine
       _info->mtx.lock_r() ;
       map<UINT64, _clsSharingStatus *>::iterator itr =
                       _info->alives.find( _info->primary.value ) ;
-      /// if primary is peer, choose primary.
-      /// primary is not be affected by the blacklist.
       if ( _info->alives.end() != itr &&
            CLS_SYNC_STATUS_PEER ==
            itr->second->beat.syncStatus )
@@ -409,7 +388,6 @@ namespace engine
       {
          MsgRouteID ids[CLS_SYNC_SET_NUM] ;
          UINT32 validNum = 0 ;
-         /// primary is not peer or has no primary, choose a peer node.
          itr = _info->alives.begin() ;
          for ( ; itr != _info->alives.end(); itr++ )
          {
@@ -421,7 +399,6 @@ namespace engine
          }
          if ( 0 == validNum )
          {
-            /// can not find peer, choose a rc peer but not the priamry.
             itr = _info->alives.begin() ;
             for ( ; itr != _info->alives.end(); itr++ )
             {
@@ -438,8 +415,6 @@ namespace engine
             }
             else
             {
-               /// call the primary for helping.
-               /// possibly has no primary.
                res.value = _info->primary.value ;
             }
          }
@@ -487,7 +462,6 @@ namespace engine
       }
       else
       {
-         /// possibly has no primary.
          id = _info->primary ;
       }*/
 
@@ -532,7 +506,6 @@ namespace engine
       return ;
    }
 
-   // The function is called by repl session, so need to use lock
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__COMPLETE, "_clsSyncManager::_complete" )
    void _clsSyncManager::_complete( const MsgRouteID &id,
                                     const DPS_LSN_OFFSET &offset )
@@ -543,7 +516,6 @@ namespace engine
 
       ossScopedRWLock lock( &_info->mtx, SHARED ) ;
 
-      /// update notify list
       for ( UINT32 i = 0; i < _validSync ; i++ )
       {
          if ( _notifyList[i].id.value == id.value )
@@ -567,7 +539,6 @@ namespace engine
       }
 
       {
-         /// wake up agent thread which is waiting
          CLS_WAKE_PLAN plan ;
          _createWakePlan( lsn.offset, plan ) ;
          _wake( plan ) ;
@@ -579,26 +550,16 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__WAKE, "_clsSyncManager::_wake" )
    void _clsSyncManager::_wake( CLS_WAKE_PLAN &plan )
    {
-      /// eg: we got a plan : { 0, 5, 10 }
-      /// begin from w = 2 sync list. we pop all nodes which
-      /// lsn is lower than 10. then we erase 10 from plan.
-      /// next, in the list which w = 3, we pop all nodes which
-      /// lsn is lower than 5. then erase 5 from plan.
-      /// at last, in the list which w = 4. we pop all nodes
-      /// which lsn is lower than 0. pop 0 from plan.
-      /// plan is empty. the waking is done.
 
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__WAKE ) ;
       SDB_ASSERT( plan.size() <= CLS_REPLSET_MAX_NODE_SIZE - 1,
                   "plan size should <= CLS_REPLSET_MAX_NODE_SIZE - 1" ) ;
 
       _clsSyncSession session ;
-      /// begin from w = 2.
       UINT32 sub = 0 ;
       CLS_WAKE_PLAN::reverse_iterator ritr = plan.rbegin();
       while ( ritr != plan.rend() )
       {
-         /// get max elemenet
          DPS_LSN lsn ;
          lsn.offset = *ritr ;
          _mtxs[sub].get() ;
@@ -635,9 +596,6 @@ namespace engine
       {
          if ( DPS_INVALID_LSN_OFFSET == _notifyList[i].offset )
          {
-            /// DPS_INVALID_LSN_OFFSET is 0xFFFFFFFFFFFFFFFFll.
-            /// we use 0 to instead it. there will be no actual
-            /// impact.
             plan.insert( 0 ) ;
          }
          else
@@ -661,7 +619,6 @@ namespace engine
       pmdEDUEvent ev ;
       while ( !cb->isInterrupted() )
       {
-         /// wait for responses from other nodes.
          if ( SDB_OK != cb->getEvent().wait ( OSS_ONE_SEC, &rc ) )
          {
             continue ;
@@ -672,7 +629,6 @@ namespace engine
          }
       }
 
-      /// interrupted, clear info.
       {
          _mtxs[sub].get() ;
          _clsSyncMinHeap &heap = _syncList[sub] ;
@@ -709,7 +665,6 @@ namespace engine
       UINT32 okW = preSyncNum - removed ; // except self
       UINT32 endRemovedSub = preAlives - removedAlives ;
 
-      /// loop every removed synclist
       UINT32 removedSub = preSyncNum - 1 ;
       for ( ; removedSub >= endRemovedSub ; --removedSub )
       {
@@ -723,7 +678,6 @@ namespace engine
          while ( SDB_OK == _syncList[removedSub].pop( session ) )
          {
             UINT32 complete = 0 ;
-            /// compute w's completion
             for ( UINT32 j = 0; j < preSyncNum - 1 ; ++j )
             {
                if ( session.endLsn < left[j].offset )
@@ -739,8 +693,6 @@ namespace engine
             {
                session.eduCB->getEvent().signal ( SDB_CLS_WAIT_SYNC_FAILED ) ;
             }
-            /// push the session which is not completed
-            /// into the newlist.
             else
             {
                _syncList[endRemovedSub-1].push( session ) ;

@@ -47,17 +47,11 @@
 #elif defined (_WINDOWS)
 #include "Psapi.h"
 #endif
-// Wrapper of localtime, convert a time value and correct for the local time
-// zone. The input pTime represents the seconds elapsed since the Epoch,
-// midnight (00:00:00), January 1, 1970, UTC
 void ossLocalTime ( time_t &Time, struct tm &TM )
 {
 #if defined (_LINUX )
    localtime_r( &Time, &TM ) ;
 #elif defined (_WINDOWS)
-   // The Time represents the seconds elapsed since midnight (00:00:00),
-   // January 1, 1970, UTC. This value is usually obtained from the time
-   // function.
    localtime_s( &TM, &Time ) ;
 #endif
 }
@@ -77,29 +71,19 @@ BOOLEAN ossIsPowerOf2( UINT32 num, UINT32 * pSquare )
    return bPowered ;
 }
 
-//  Wrapper of gmtime, converts a time value to a broken-down time structure.
-//  The Time is represented as seconds elapsed since the Epoch.
 void ossGmtime ( time_t &Time, struct tm &TM )
 {
 #if defined (_LINUX )
    gmtime_r( &Time, &TM ) ;
 #elif defined (_WINDOWS)
-   // Time is represented as seconds elapsed since midnight (00:00:00),
-   // January 1, 1970, UTC.
-   // The TM of the returned structure hold the evaluated value of the
-   // timer argument in UTC rather than in local time.
    gmtime_s( &TM, &Time ) ;
 #endif
 }
 
-//
-// convert ossTimestamp to string
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSTS2STR, "ossTimestampToString" )
 void ossTimestampToString( ossTimestamp &Tm, CHAR * pStr )
 {
    PD_TRACE_ENTRY ( SDB_OSSTS2STR );
-   // The following format is used for timestamp:
-   //   yyyy-mm-dd-hh.mm.ss.uuuuuu
    CHAR szFormat[] = "%04d-%02d-%02d-%02d.%02d.%02d.%06d" ;
    CHAR szTimestmpStr[ OSS_TIMESTAMP_STRING_LEN + 1 ] = { 0 } ;
    struct tm tmpTm ;
@@ -133,8 +117,6 @@ void ossGetCurrentTime( ossTimestamp &TM )
 #if defined (_LINUX)
    struct timeval tv ;
 
-   // obtain the current time, expressed as seconds and microseconds since
-   // the Epoch
    if ( -1 == gettimeofday( &tv, NULL ) )
    {
        TM.time    = 0 ;
@@ -151,21 +133,16 @@ void ossGetCurrentTime( ossTimestamp &TM )
 
    GetSystemTimeAsFileTime( &fileTime ) ;
 
-   //convert FILETIME into ULARGER_INTEGER
    uLargeIntegerTime.LowPart  = fileTime.dwLowDateTime ;
    uLargeIntegerTime.HighPart = fileTime.dwHighDateTime ;
 
-   // FILETIME contains a 64-bit value representing the number of
-   // 100-nanosecond intervals since January 1, 1601 (UTC).
    uLargeIntegerTime.QuadPart -= ( DELTA_EPOCH_IN_MICROSECS * 10 ) ;
 
-   // 1 FILETIME = 100 ns
    TM.time    = ( uLargeIntegerTime.QuadPart / OSS_TEN_MILLION ) ;
    TM.microtm = ( uLargeIntegerTime.QuadPart % OSS_TEN_MILLION ) / 10 ;
 #endif
 }
 
-// Get CPU usage for current process
 #define OSS_PROC_FIELD_TO_SKIP_FOR_UTIME 13
 #define OSS_PROC_PATH_LEN_MAX 255
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSGETCPUUSG, "ossGetCPUUsage" )
@@ -190,7 +167,6 @@ SINT32 ossGetCPUUsage
       sTemp.LowPart  = kernelTime.dwLowDateTime ;
       sTemp.HighPart = kernelTime.dwHighDateTime ;
 
-      // 1 FILETIME = 100 ns
       usrTime.seconds  = (UINT32)( uTemp.QuadPart / OSS_TEN_MILLION ) ;
       usrTime.microsec = (UINT32)((uTemp.QuadPart % OSS_TEN_MILLION ) / 10) ;
       sysTime.seconds  = (UINT32)( sTemp.QuadPart / OSS_TEN_MILLION ) ;
@@ -221,8 +197,6 @@ SINT32 ossGetCPUUsage
    static int clkTck = 0 ;
    static int numMicrosecPerClkTck  = 0 ;
 
-   // On Linux, utime and stime use "jiffies" as unit of measurement.
-   // Normally there are 100 jiffies per seconds.
    if ( 0 == clkTck )
    {
       clkTck = sysconf( _SC_CLK_TCK ) ;
@@ -231,23 +205,15 @@ SINT32 ossGetCPUUsage
          clkTck = OSS_CLK_TCK ;
       }
 
-      // in time.h, CLOCKS_PER_SEC is required to be 1 million on all
-      // XSI-conformant systems
       numMicrosecPerClkTck = OSS_ONE_MILLION / clkTck ;
    }
 
-   // read /proc/pid//stat can get both user and system times
-   // however it is relatively expensive, it calls fopen, fgets, fscanf.
-   // Thus, this function should not be called in a signal handler,
-   // since these functions are not aync-signal-safe.
    ossSnprintf( pathName, sizeof(pathName), "/proc/%d/stat",
                 getpid() ) ;
 
    fp = fopen( pathName, "r" ) ;
    if ( fp )
    {
-      // skip first 13 fields, since the utime and stime are the 14th and
-      // 15th fields in /proc/pid/task/tid/stat
       while (  ( cntr < OSS_PROC_FIELD_TO_SKIP_FOR_UTIME ) &&
                ( EOF != ( tmpChr = fgetc(fp) ) ) )
       {
@@ -313,7 +279,6 @@ SINT32 ossGetCPUUsage
       sTemp.LowPart  = kernelTime.dwLowDateTime ;
       sTemp.HighPart = kernelTime.dwHighDateTime ;
 
-      // 1 FILETIME = 100 ns
       usrTime.seconds  = (UINT32)( uTemp.QuadPart / OSS_TEN_MILLION ) ;
       usrTime.microsec = (UINT32)((uTemp.QuadPart % OSS_TEN_MILLION ) / 10) ;
       sysTime.seconds  = (UINT32)( sTemp.QuadPart / OSS_TEN_MILLION ) ;
@@ -344,8 +309,6 @@ SINT32 ossGetCPUUsage
    static int clkTck = 0 ;
    static int numMicrosecPerClkTck  = 0 ;
 
-   // On Linux, utime and stime use "jiffies" as unit of measurement.
-   // Normally there are 100 jiffies per seconds.
    if ( 0 == clkTck )
    {
       clkTck = sysconf( _SC_CLK_TCK ) ;
@@ -354,15 +317,9 @@ SINT32 ossGetCPUUsage
          clkTck = OSS_CLK_TCK ;
       }
 
-      // in time.h, CLOCKS_PER_SEC is required to be 1 million on all
-      // XSI-conformant systems
       numMicrosecPerClkTck = OSS_ONE_MILLION / clkTck ;
    }
 
-   // read /proc/pid/task/tid/stat can get both user and system times
-   // however it is relatively expensive, it calls fopen, fgets, fscanf.
-   // Thus, this function should not be called in a signal handler,
-   // since these functions are not aync-signal-safe.
    ossSnprintf( pathName, sizeof(pathName), "/proc/%d/task/%lu/stat",
                 getpid(),
                (unsigned long)tid ) ;
@@ -370,8 +327,6 @@ SINT32 ossGetCPUUsage
    fp = fopen( pathName, "r" ) ;
    if ( fp )
    {
-      // skip first 13 fields, since the utime and stime are the 14th and
-      // 15th fields in /proc/pid/task/tid/stat
       while (  ( cntr < OSS_PROC_FIELD_TO_SKIP_FOR_UTIME ) &&
                ( EOF != ( tmpChr = fgetc(fp) ) ) )
       {
@@ -878,7 +833,6 @@ INT32 ossGetMemoryInfo ( INT32 &loadPercent,
       rc = SDB_SYS ;
       goto error ;
    }
-   // loop until hitting end of the file or 4 variables are read
    while ( fgets ( lineBuffer, OSS_PROC_PATH_LEN_MAX, fp ) &&
            ( totalPhys == -1 ||
              availPhys == -1 ||
@@ -890,7 +844,6 @@ INT32 ossGetMemoryInfo ( INT32 &loadPercent,
                         OSS_GET_MEM_INFO_MEMTOTAL,
                         ossStrlen ( OSS_GET_MEM_INFO_MEMTOTAL ) ) == 0 )
       {
-         // +1 to skip ":"
          sscanf ( &lineBuffer[ossStrlen ( OSS_GET_MEM_INFO_MEMTOTAL )+1],
                   "%d", &inputNum ) ;
          totalPhys = OSS_GET_MEM_INFO_AMPLIFIER * inputNum ;
@@ -1032,7 +985,6 @@ typedef NTSTATUS (__stdcall *NTQUERYSYSTEMINFORMATION)
 #define OSS_GET_CPU_INFO_FILE      "/proc/stat"
 #define OSS_GET_CPU_INFO_PATTERN   "%lld%lld%lld%lld%lld%lld%lld"
 #endif
-// output is based on milliseconds
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSGETCPUINFO, "ossGetCPUInfo" )
 INT32 ossGetCPUInfo ( SINT64 &user, SINT64 &sys,
                       SINT64 &idle, SINT64 &other )
@@ -1049,11 +1001,9 @@ INT32 ossGetCPUInfo ( SINT64 &user, SINT64 &sys,
       rc = SDB_SYS ;
       goto error ;
    }
-   // GetSystemTimes returns 100-nanosecond-based time
    other = 0 ;
    idle /= 10000 ;
    sys /= 10000 ;
-   // sys time also includes idle time
    sys -= idle ;
    user /= 10000 ;
 #elif defined (_LINUX)
@@ -1070,8 +1020,6 @@ INT32 ossGetCPUInfo ( SINT64 &user, SINT64 &sys,
    FILE *fp = NULL ;
    static int clkTck = 0 ;
    static int numMicrosecPerClkTck = 0 ;
-   // On Linux, utime and stime use "jiffies" as unit of measurement.
-   // Normally there are 100 jiffies per second
    if ( 0 == clkTck )
    {
       clkTck = sysconf ( _SC_CLK_TCK ) ;
@@ -1079,15 +1027,12 @@ INT32 ossGetCPUInfo ( SINT64 &user, SINT64 &sys,
       {
          clkTck = OSS_CLK_TCK ;
       }
-      // in time.h, CLOCKS_PER_SEC is required to be 1 million on all
-      // XSI-conformant systems
       numMicrosecPerClkTck = OSS_ONE_MILLION / clkTck ;
    }
    ossSnprintf ( pathName, sizeof(pathName), OSS_GET_CPU_INFO_FILE ) ;
    fp = fopen ( pathName, "r" ) ;
    if ( fp )
    {
-      // read first line
       if ( !fgets ( buffer, OSS_PROC_PATH_LEN_MAX, fp ) )
       {
          ossErr = ossGetLastError () ;
@@ -1095,7 +1040,6 @@ INT32 ossGetCPUInfo ( SINT64 &user, SINT64 &sys,
          rc = SDB_SYS ;
          goto error ;
       }
-      // 4 means skip "cpu"
       sscanf ( &buffer[4], OSS_GET_CPU_INFO_PATTERN,
                &userTime, &nicedTime, &systemTime,
                &idleTime, &waitTime, &irqTime, &softirqTime ) ;
@@ -1131,7 +1075,6 @@ INT32 ossGetProcMemInfo( ossProcMemInfo &memInfo,
                          OSSPID pid )
 {
    INT32 rc = SDB_OK ;
-   // PD_TRACE_ENTRY ( SDB_OSSGETPROCMEMINFO );
 #if defined (_WINDOWS)
    HANDLE handle = GetCurrentProcess() ;
    PROCESS_MEMORY_COUNTERS pmc ;
@@ -1159,7 +1102,6 @@ INT32 ossGetProcMemInfo( ossProcMemInfo &memInfo,
                "the OS is not supported!" ) ;
 #endif
 done:
-   // PD_TRACE_EXITRC (SDB_OSSGETPROCMEMINFO, rc );
    return rc;
 error:
    goto done;
@@ -1260,7 +1202,6 @@ INT32 ossIPInfo::_init()
       goto error ;
    }
 
-   // get actual ifc_len
    rc = ioctl( sock, SIOCGIFCONF, &ifc ) ;
    if ( 0 != rc )
    {
@@ -1273,7 +1214,6 @@ INT32 ossIPInfo::_init()
       goto done ;
    }
 
-   // alloc mem for ifreq
    buf = (struct ifreq*)SDB_OSS_MALLOC( ifc.ifc_len ) ;
    if ( NULL == buf )
    {
@@ -1281,7 +1221,6 @@ INT32 ossIPInfo::_init()
       goto error ;
    }
 
-   // get ip info with buf
    ifc.ifc_req = buf ;
    rc = ioctl( sock, SIOCGIFCONF, &ifc ) ;
    if ( 0 != rc )
@@ -1290,7 +1229,6 @@ INT32 ossIPInfo::_init()
       goto error ;
    }
 
-   // alloc mem for ip info
    _ipNum = ifc.ifc_len / sizeof( struct ifreq ) ;
    _ips = (ossIP*)SDB_OSS_MALLOC( _ipNum * sizeof(ossIP) ) ;
    if ( NULL == _ips )
@@ -1300,7 +1238,6 @@ INT32 ossIPInfo::_init()
    }
    ossMemset( _ips, 0, _ipNum * sizeof(ossIP) ) ;
 
-   // copy ip info
    ifr = buf ;
    for ( INT32 i = 0; i < _ipNum; i++ )
    {
@@ -1341,7 +1278,6 @@ INT32 ossIPInfo::_init()
       goto error ;
    }
 
-   // first call GetAdapterInfo to get actual bufLen size
    retVal = GetAdaptersInfo( adapterInfo, &bufLen ) ;
    if ( ERROR_BUFFER_OVERFLOW == retVal )
    {
@@ -1363,7 +1299,6 @@ INT32 ossIPInfo::_init()
       goto error ;
    }
 
-   // alloc mem for ip info
    _ipNum = bufLen / sizeof( IP_ADAPTER_INFO ) ;
    _ips = (ossIP*)SDB_OSS_MALLOC( _ipNum * sizeof(ossIP) ) ;
    if ( NULL == _ips )
@@ -1373,7 +1308,6 @@ INT32 ossIPInfo::_init()
    }
    ossMemset( _ips, 0, _ipNum * sizeof(ossIP) ) ;
 
-   // copy ip info
    PIP_ADAPTER_INFO adapter = adapterInfo ;
    for ( INT32 i = 0; adapter != NULL; i++ )
    {

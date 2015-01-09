@@ -47,7 +47,6 @@ INT32 JSObj2BsonRaw( JSContext *cx, JSObject *obj, CHAR **raw ) ;
 
 INT32 JSVal2String( JSContext *cx, const jsval &val, std::string &str ) ;
 
-// caller should free the return pointer using SAFE_JS_FREE
 CHAR *convertJsvalToString ( JSContext *cx , jsval val ) ;
 
 BOOLEAN JSObjIsQuery( JSContext *cx, JSObject *obj ) ;

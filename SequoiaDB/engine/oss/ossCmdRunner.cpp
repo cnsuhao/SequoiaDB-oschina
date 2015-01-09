@@ -137,6 +137,10 @@ namespace engine
       ossResultCode res ;
       INT32 flags = OSS_EXEC_SSAVE ; // OSS_EXEC_SSAVE | OSS_EXEC_NODETACHED
 
+#if defined( _LINUX )
+      std::vector<std::string> vecArgs ;
+#endif // _LINUX
+
       if ( isBackground )
       {
          flags = 0 ;
@@ -160,7 +164,6 @@ namespace engine
       }
       else
       {
-         std::vector<std::string> vecArgs ;
          vecArgs = boost::program_options::split_unix( cmd ) ;
          for ( UINT32 i = 0 ; i < vecArgs.size() ; ++i )
          {

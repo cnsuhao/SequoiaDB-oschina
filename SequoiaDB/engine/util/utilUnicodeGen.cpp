@@ -7394,8 +7394,6 @@ INT32 genChar ( CHAR *pBuffer, UINT32 &len )
    INT32 s = 0 ;
    if ( !len )
       goto done ;
-   // each utf-8 is max 4 bytes, so if we have less than 4 bytes, no need
-   // to continue
   if ( len <= 4 )
    {
       pBuffer[0] = 0 ;

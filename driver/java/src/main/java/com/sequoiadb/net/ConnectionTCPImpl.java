@@ -46,12 +46,10 @@ public class ConnectionTCPImpl implements IConnection {
 	private int REAL_BUFFER_LENGTH ;
 	private long lastUseTime;
 
-	//@Override
 	public void setEndianConvert(boolean endianConvert) {
 		this.endianConvert = endianConvert;
 	}
 
-	//@Override
 	public boolean isEndianConvert() {
 		return endianConvert;
 	}
@@ -95,8 +93,6 @@ public class ConnectionTCPImpl implements IConnection {
 				lastError = new BaseException("SDB_NETWORK", ioe);
 				close();
 			}
-			// when we come here, it means network error, let's try until
-			// maxAutoConnectRetryTime run out 
 			long executedTime = System.currentTimeMillis() - start;
 			if (executedTime >= maxAutoConnectRetryTime)
 				throw lastError;
@@ -132,7 +128,6 @@ public class ConnectionTCPImpl implements IConnection {
 		logger.getInstance().save();
 	}
 
-	//@Override
 	public boolean isClosed() {
 		if (clientSocket == null)
 			return true;
@@ -145,7 +140,6 @@ public class ConnectionTCPImpl implements IConnection {
 	 * @see com.sequoiadb.net.IConnection#changeConfigOptions(com.sequoiadb.net.
 	 * ConfigOptions)
 	 */
-	//@Override
 	public void changeConfigOptions(ConfigOptions opts) throws BaseException {
 		logger.getInstance().debug(0, "enter changeConfigOptions\n");
 		this.options = opts;
@@ -160,12 +154,10 @@ public class ConnectionTCPImpl implements IConnection {
 	 * 
 	 * @see com.sequoiadb.net.IConnection#receiveMessage()
 	 */
-	//@Override
 	public ByteBuffer receiveMessage(boolean endianConvert) throws BaseException {
 		lastUseTime = System.currentTimeMillis();
 		logger.getInstance().debug(0, "enter receiveMessage\n");
 		try {
-			// before use, check the buffer
 			if (REAL_BUFFER_LENGTH < DEF_BUFFER_LENGTH) {
 				receive_buffer = new byte[DEF_BUFFER_LENGTH];
 				REAL_BUFFER_LENGTH = DEF_BUFFER_LENGTH;
@@ -205,8 +197,6 @@ public class ConnectionTCPImpl implements IConnection {
 				rtn += retSize;
 			}
 			
-			// if the byte count we read is not equal with the massege length
-			// throw error
 			if (rtn != msgSize) {
 				close();
 				throw new BaseException("SDB_NETWORK");
@@ -221,7 +211,6 @@ public class ConnectionTCPImpl implements IConnection {
 				throw new BaseException("SDB_INVALIDARG");
 			}
 */			
-			// wrap the receive byte into a byteBuffer and then return it back
  			ByteBuffer byteBuffer = ByteBuffer.wrap(receive_buffer, 0 , msgSize );
 			if (endianConvert) {
 				byteBuffer.order(ByteOrder.LITTLE_ENDIAN);
@@ -234,14 +223,12 @@ public class ConnectionTCPImpl implements IConnection {
 		} catch (IOException e) {
 			throw new BaseException("SDB_NETWORK");
 		} catch(NullPointerException e) {
-			// we can remove this case of exception now, the bug has been fix
 			logger.getInstance().error("objidentity:" + Integer.toString(hashCode()) +"\n");
 			logger.getInstance().error("thread id:" + Long.toString(Thread.currentThread().getId()) +"\n");
 			throw new BaseException("SDB_NETWORK");
 		}
 	}
 
-	//@Override
 	public byte[] receiveSysInfoMsg(int msgSize) throws BaseException {
 		logger.getInstance().debug(0, "enter receiveSysInfoMsg\n");
 		byte[] buf = new byte[msgSize];
@@ -282,7 +269,6 @@ public class ConnectionTCPImpl implements IConnection {
 	 * 
 	 * @see com.sequoiadb.net.IConnection#initialize()
 	 */
-	//@Override
 	public void initialize() throws BaseException {
 		connect();
 	}
@@ -292,7 +278,6 @@ public class ConnectionTCPImpl implements IConnection {
 	 * 
 	 * @see com.sequoiadb.net.IConnection#sendMessage(byte[], int)
 	 */
-	//@Override
 	public void sendMessage(byte[] msg) throws BaseException {
 		logger.getInstance().debug(0, "enter sendMessage\n");
 		try {
@@ -305,7 +290,6 @@ public class ConnectionTCPImpl implements IConnection {
 		logger.getInstance().debug(0, "leave sendMessage\n");
 	}
 	
-	//@Override
 	public void sendMessage(byte[] msg, int length) throws BaseException {
 	    logger.getInstance().debug(0, "enter sendMessage2\n");
         try {

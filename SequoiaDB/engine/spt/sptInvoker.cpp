@@ -125,8 +125,6 @@ namespace engine
                                           0 , 0 ) ;
          if ( NULL == jsObj )
          {
-            /// WARNING: it will cause mem leak, because we can not delete
-            /// rpro.getObj().
             PD_LOG( PDERROR, "faile to new js object" ) ;
             rc = SDB_OOM ;
             goto error ;

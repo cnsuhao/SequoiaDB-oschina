@@ -75,12 +75,10 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATALOGCB_INIT ) ;
 
-      // 1. init param
       _routeID.columns.serviceID = MSG_ROUTE_CAT_SERVICE ;
       _strHostName = pmdGetKRCB()->getHostName() ;
       _strCatServiceName = pmdGetOptionCB()->catService() ;
 
-      // register event handle
       IControlBlock *pClsCB = pmdGetKRCB()->getCBByType( SDB_CB_CLS ) ;
       IEventHolder *pHolder = NULL ;
       if ( pClsCB && pClsCB->queryInterface( SDB_IF_EVT_HOLDER ) )
@@ -89,7 +87,6 @@ namespace engine
          pHolder->regEventHandler( this ) ;
       }
 
-      // 2. create objs
       _pNetWork = SDB_OSS_NEW _netRouteAgent( &_catMainCtrl ) ;
       if ( !_pNetWork )
       {
@@ -98,7 +95,6 @@ namespace engine
          goto error ;
       }
 
-      // 3. member objs init
       rc = _catMainCtrl.init() ;
       PD_RC_CHECK( rc, PDERROR, "Init main controller failed, rc: %d", rc ) ;
 
@@ -108,7 +104,6 @@ namespace engine
       rc = _catNodeMgr.init() ;
       PD_RC_CHECK( rc, PDERROR, "Init cat node manager failed, rc: %d", rc ) ;
 
-      // 4. create listen
       PD_TRACE1 ( SDB_CATALOGCB_INIT,
                   PD_PACK_ULONG ( _routeID.value ) ) ;
       _pNetWork->setLocalID( _routeID );
@@ -144,7 +139,6 @@ namespace engine
       pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
       EDUID eduID = PMD_INVALID_EDUID ;
 
-      // 1. start catMain, catlogManager, catNodeManager edus
       _catMainCtrl.getAttachEvent()->reset() ;
       rc = pEDUMgr->startEDU ( EDU_TYPE_CATMAINCONTROLLER,
                                (_pmdObjBase*)getMainController(),
@@ -178,7 +172,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to wait cat node manager edu "
                    "attach, rc: %d", rc ) ;
 
-      // 2. start net edu
       pEDUMgr->startEDU ( EDU_TYPE_CATNETWORK, (netRouteAgent*)netWork(),
                           &eduID ) ;
       pEDUMgr->regSystemEDU ( EDU_TYPE_CATNETWORK, eduID ) ;
@@ -193,13 +186,11 @@ namespace engine
 
    INT32 sdbCatalogueCB::deactive ()
    {
-      // 1. stop listen
       if ( _pNetWork )
       {
          _pNetWork->closeListen() ;
       }
 
-      // 2. stop io
       if ( _pNetWork )
       {
          _pNetWork->stop() ;
@@ -210,7 +201,6 @@ namespace engine
 
    INT32 sdbCatalogueCB::fini ()
    {
-      // unregister event handle
       IControlBlock *pClsCB = pmdGetKRCB()->getCBByType( SDB_CB_CLS ) ;
       IEventHolder *pHolder = NULL ;
       if ( pClsCB && pClsCB->queryInterface( SDB_IF_EVT_HOLDER ) )
@@ -434,7 +424,6 @@ namespace engine
       return EVENT_MASK_ON_REGISTERED | EVENT_MASK_ON_PRIMARYCHG ;
    }
 
-   // The caller must make sure id has the correct serviceID
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_UPDATEROUTEID, "sdbCatalogueCB::updateRouteID" )
    void sdbCatalogueCB::onRegistered ( const MsgRouteID &nodeID )
    {

@@ -37,7 +37,6 @@ public final class JsonNull extends JsonElement {
    */
   @Deprecated
   public JsonNull() {
-    // Do nothing
   }
 
   @Override public JsonNull deepCopy() {

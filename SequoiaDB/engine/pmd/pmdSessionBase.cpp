@@ -53,7 +53,6 @@ namespace engine
 
       _socket.disableNagle() ;
 
-      // make session name
       if ( SOCKET_INVALIDSOCKET != fd )
       {
          CHAR tmpName [ 128 ] = {0} ;
@@ -73,7 +72,6 @@ namespace engine
 
    void _pmdSession::clear ()
    {
-      // release buff
       if ( _pBuff )
       {
          releaseBuff( _pBuff, _buffLen ) ;

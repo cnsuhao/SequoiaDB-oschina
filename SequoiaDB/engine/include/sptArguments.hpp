@@ -56,7 +56,6 @@ namespace engine
       virtual ~_sptArguments(){}
 
    public:
-      /// start with zero.
       virtual INT32 getNative( UINT32 pos, void *value,
                                SPT_NATIVE_TYPE type ) const = 0 ;
       virtual INT32 getString( UINT32 pos, std::string &value ) const = 0 ;

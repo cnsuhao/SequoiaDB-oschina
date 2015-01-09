@@ -110,6 +110,15 @@ namespace engine
                              map<string, INT32> &groups ) ;
    INT32 catGetDomainGroups( const BSONObj &domain,
                              vector< INT32 > &groupIDs ) ;
+   INT32 catAddGroup2Domain( const CHAR *domainName, const CHAR *groupName,
+                             INT32 groupID, pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                             _dpsLogWrapper *dpsCB, INT16 w ) ;
+   /*
+      Note: domainName == NULL, while del group from all domain
+   */
+   INT32 catDelGroupFromDomain( const CHAR *domainName, const CHAR *groupName,
+                                INT32 groupID, pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                                _dpsLogWrapper *dpsCB, INT16 w ) ;
 
    /* Collection[CAT_COLLECTION_SPACE_COLLECTION] functions: */
    INT32 catAddCL2CS( const CHAR *csName, const CHAR *clName,

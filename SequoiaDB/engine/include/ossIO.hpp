@@ -46,27 +46,20 @@
  * File access modes
  */
 
-// open/create mode
 #define OSS_DEFAULT        0x00000000     // default open option
 
-// create file when not exist, otherwise return error
 #define OSS_CREATEONLY     0x00000001
 
-// empty file when exist, otherwise create one
 #define OSS_REPLACE        0x00000002
 
-// create file when not exist, then open the file
 #define OSS_CREATE         (OSS_CREATEONLY | OSS_REPLACE)
 
-// read/write access mode
 #define OSS_READONLY       0x00000004     // read only mode
 #define OSS_WRITEONLY      0x00000008     // write only mode
 #define OSS_READWRITE      (OSS_READONLY | OSS_WRITEONLY)
 
-// exclusive/share mode
 #define OSS_EXCLUSIVE      0x00000000     // exclusive access, by default
 #define OSS_SHAREREAD      0x00000010     // shared read
-// shared write, must be shared read too
 #define OSS_SHAREWRITE     OSS_SHAREREAD|0x00000020
 #define OSS_WRITETHROUGH   0x00000040     // write through mode
 #define OSS_DIRECTIO       0x00000080     // direct io
@@ -75,48 +68,36 @@
  * File access permissions
  */
 #if defined (_WINDOWS)
-  // user
 #define OSS_RU      0x00000400
 #define OSS_WU      0x00000200
 #define OSS_XU      0x00000100
 #define OSS_RWXU     (OSS_RU | OSS_WU | OSS_XU)
- // group
 #define OSS_RG      0x00000040
 #define OSS_WG      0x00000020
 #define OSS_XG      0x00000010
 #define OSS_RWXG     (OSS_RG | OSS_WG | OSS_XG)
- // other
 #define OSS_RO      0x00000004
 #define OSS_WO      0x00000002
 #define OSS_XO      0x00000001
 #define OSS_RWXO     (OSS_RO | OSS_WO | OSS_XO)
- // sticky bit
 #define OSS_STICKY     0
- // default
 #define OSS_DEFAULTFILE   (OSS_RWXU | OSS_RG | OSS_XG) // rwxr-x---
 #define OSS_DEFAULTDIR    (OSS_RWXU | OSS_RG | OSS_XG) // rwxr-x---
 #else
- // user
 #define OSS_RU      S_IRUSR
 #define OSS_WU      S_IWUSR
 #define OSS_XU      S_IXUSR
 #define OSS_RWXU    S_IRWXU
- // group
 #define OSS_RG      S_IRGRP
 #define OSS_WG      S_IWGRP
 #define OSS_XG      S_IXGRP
 #define OSS_RWXG    S_IRWXG
- // other
 #define OSS_RO      S_IROTH
 #define OSS_WO      S_IWOTH
 #define OSS_XO      S_IXOTH
 #define OSS_RWXO    S_IRWXO
-// sticky bit
 #define OSS_STICKY  S_ISVTX
-// default
-// rw-r-----
 #define OSS_DEFAULTFILE   (OSS_RU | OSS_WU | OSS_RG)
-// rwxr-x---
 #define OSS_DEFAULTDIR    (OSS_RWXU | OSS_RG | OSS_XG)
 #endif
 

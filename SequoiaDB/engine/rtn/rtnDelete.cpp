@@ -118,7 +118,6 @@ namespace engine
          goto error ;
       }
 
-      // get mb context
       rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
                    "rc: %d", pCollectionName, rc ) ;
@@ -126,7 +125,6 @@ namespace engine
       apm = su->getAPM() ;
       SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
-      // plan is released when exiting the function
       rc = apm->getPlan ( deletor,
                           emptyObj, // orderBy
                           hint, // hint
@@ -158,7 +156,6 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get dms scanner, rc: %d", rc ) ;
 
-      // delete
       {
          dmsRecordID recordID ;
          ossValuePtr recordDataPtr = 0 ;
@@ -250,7 +247,6 @@ namespace engine
       BSONObj hint ;
       BSONObj dummy ;
 
-      // make sure the database is not doing any offline operations
       rc = dmsCB->writable( cb ) ;
       PD_RC_CHECK ( rc, PDERROR, "Database is not writable, rc = %d", rc ) ;
       writable = TRUE;
@@ -260,14 +256,12 @@ namespace engine
       PD_RC_CHECK ( rc, PDERROR, "Failed to resolve collection name %s, rc: %d",
                     pCollectionName, rc ) ;
 
-      // get mb context
       rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
                    "rc: %d", pCollectionName, rc ) ;
 
       try
       {
-         // build hint
          hint = BSON( "" << pIndexName ) ;
       }
       catch ( std::exception &e )
@@ -291,14 +285,12 @@ namespace engine
                  pIndexName ) ;
 
       SDB_ASSERT( plan->getPredList(), "predList can't be NULL" ) ;
-      // set traversal direction
       plan->getPredList()->setDirection ( dir ) ;
 
       rc = rtnGetIXScanner( pCollectionShortName, plan, su, mbContext, cb,
                             &pScanner, DMS_ACCESS_TYPE_DELETE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get dms ixscanner, rc: %d", rc ) ;
 
-      // relocate key
       {
          rtnIXScanner *scanner = ((dmsIXScanner*)pScanner)->getScanner() ;
          dmsRecordID rid ;
@@ -316,7 +308,6 @@ namespace engine
                        "location: %s, rc: %d", key.toString().c_str(), rc ) ;
       }
 
-      // delete
       {
          dmsRecordID recordID ;
          ossValuePtr recordDataPtr = 0 ;

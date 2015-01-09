@@ -251,10 +251,8 @@ namespace engine
          _resultBufferSize = RTN_DFT_BUFFERSIZE ;
       }
 
-      // make sure we get enough memory in result buffer
       while ( requiredSize > _resultBufferSize )
       {
-         // make sure we haven't hit max
          if ( _resultBufferSize >= RTN_RESULTBUFFER_SIZE_MAX )
          {
             PD_LOG ( PDERROR, "Result buffer is greater than %d bytes",
@@ -262,7 +260,6 @@ namespace engine
             rc = SDB_OOM ;
             goto error ;
          }
-         // double buffer size until hitting RTN_RESULTBUFFER_SIZE_MAX
          _resultBufferSize = _resultBufferSize << 1 ;
          if (_resultBufferSize > RTN_RESULTBUFFER_SIZE_MAX )
          {
@@ -277,12 +274,10 @@ namespace engine
       }
       else
       {
-         // reallocate memory
          _pResultBuffer = (CHAR*)SDB_OSS_REALLOC(
                                  RTN_BUFF_TO_REAL_PTR( _pResultBuffer ),
                                  RTN_BUFF_TO_PTR_SIZE( _resultBufferSize ) ) ;
       }
-      // if reallocation fail, we exit
       if ( !_pResultBuffer )
       {
          PD_LOG ( PDERROR, "Unable to allocate buffer for %d bytes",
@@ -475,7 +470,6 @@ namespace engine
       }
 
    done:
-      // inc idle
       pmdGetKRCB()->getBPSCB()->_idlePrefAgentNum.inc() ;
       if ( locked )
       {
@@ -503,7 +497,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN locked = FALSE ;
 
-      // release buff obj
       buffObj.release() ;
 
       if ( !isOpened() )
@@ -518,7 +511,6 @@ namespace engine
          goto error ;
       }
 
-      // need to get data lock
       while ( TRUE )
       {
          rc = _dataLock.lock_r( OSS_ONE_SEC ) ;
@@ -538,7 +530,6 @@ namespace engine
       {
          ++_prefetchID ;
       }
-      // check prefetch has error
       if ( _prefetchRet && SDB_DMS_EOC != _prefetchRet )
       {
          rc = _prefetchRet ;
@@ -546,7 +537,6 @@ namespace engine
          goto error ;
       }
 
-      // need to get more datas
       if ( isEmpty() && !eof() )
       {
          rc = _prepareData( cb ) ;
@@ -557,7 +547,6 @@ namespace engine
          }
       }
 
-      // if not empty, get current data
       if ( !isEmpty() )
       {
          _bufferCurrentOffset = ossAlign4( (UINT32)_bufferCurrentOffset ) ;
@@ -565,12 +554,10 @@ namespace engine
          buffObj._pBuff = &_pResultBuffer[ _bufferCurrentOffset ] ;
          buffObj._startFrom = _totalRecords - _bufferNumRecords ;
 
-         // return cur all
          if ( maxNumToReturn < 0 )
          {
             buffObj._buffSize = _bufferEndOffset - _bufferCurrentOffset ;
             buffObj._recordNum = _bufferNumRecords ;
-            // clean info
             _bufferCurrentOffset = _bufferEndOffset ;
             _bufferNumRecords = 0 ;
          }
@@ -611,7 +598,6 @@ namespace engine
          locked = FALSE ;
          rc = SDB_OK ;
 
-         // if get all data
          if ( isEmpty() && !eof() )
          {
             _bufferCurrentOffset = 0 ;
@@ -665,17 +651,14 @@ namespace engine
          SDB_OSS_DEL _scanner ;
          _scanner = NULL ;
       }
-      // first release plan
       if ( _plan && -1 != contextID() )
       {
          _plan->release() ;
       }
-      // second release mb context
       if ( _mbContext && _su )
       {
          _su->data()->releaseMBContext( _mbContext ) ;
       }
-      // last unlock su
       if ( _dmsCB && _su && -1 != contextID() )
       {
          _dmsCB->suUnlock ( _su->CSID() ) ;
@@ -714,7 +697,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       rtnPredicateList *predList = NULL ;
 
-      // for index scan, we maintain context by runtime instead of by DMS
       ixmIndexCB indexCB ( plan->getIndexCBExtent(), su->index(), NULL ) ;
       if ( !indexCB.isInitialized() )
       {
@@ -730,16 +712,13 @@ namespace engine
          rc = SDB_IXM_NOTEXIST ;
          goto error ;
       }
-      // get the predicate list
       predList = plan->getPredList() ;
       SDB_ASSERT ( predList, "predList can't be NULL" ) ;
 
-      // create scanner
       if ( _scanner )
       {
          SDB_OSS_DEL _scanner ;
       }
-      // _scanner should be deleted in context destructor
       _scanner = SDB_OSS_NEW rtnIXScanner ( &indexCB, predList,
                                             su, cb ) ;
       if ( !_scanner )
@@ -750,7 +729,6 @@ namespace engine
       }
       _scanner->setMonCtxCB ( &_monCtxCB ) ;
 
-      // index block scan
       if ( blockObj )
       {
          SDB_ASSERT( direction == 1 || direction == -1,
@@ -856,7 +834,6 @@ namespace engine
          goto error ;
       }
 
-      // once context is opened, let's construct matcher and selector
       if ( !selector.isEmpty() )
       {
          try
@@ -940,7 +917,6 @@ namespace engine
       }
       _scanner = scanner ;
 
-      // once context is opened, let's construct matcher and selector
       if ( !selector.isEmpty() )
       {
          try
@@ -1032,7 +1008,6 @@ namespace engine
 
       while ( isEmpty() )
       {
-         // prefetch
          if ( eduID() != cb->getID() && !isOpened() )
          {
             rc = SDB_DMS_CONTEXT_IS_CLOSE ;
@@ -1072,9 +1047,7 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
-            // increase counter
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
-            // decrease numToReturn
             if ( _numToReturn > 0 )
             {
                --_numToReturn ;
@@ -1178,10 +1151,8 @@ namespace engine
       dmsRecordID recordID ;
       ossValuePtr recordDataPtr = 0 ;
 
-      // loop until we read something in the buffer
       while ( isEmpty() )
       {
-         // prefetch
          if ( eduID() != cb->getID() && !isOpened() )
          {
             rc = SDB_DMS_CONTEXT_IS_CLOSE ;
@@ -1222,16 +1193,10 @@ namespace engine
                PD_RC_CHECK( rc, PDERROR, "Append obj[%s] failed, rc: %d",
                             selObj.toString().c_str(), rc ) ;
 
-               // make sure we still have room to read another
-               // record_max_sz (i.e. 16MB). if we have less than 16MB
-               // to 256MB, we can't safely assume the next record we
-               // read will not overflow the buffer, so let's just break
-               // before reading the next record
                if ( buffEndOffset() + DMS_RECORD_MAX_SZ >
                     RTN_RESULTBUFFER_SIZE_MAX )
                {
                   secScanner.stop () ;
-                  // let's break if there's no room for another max record
                   break ;
                }
             }
@@ -1241,7 +1206,6 @@ namespace engine
                rc = SDB_SYS ;
                goto error ;
             }
-            // increase counter
             DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
          }
 
@@ -1417,22 +1381,18 @@ namespace engine
             goto error ;
          }
          indexObj = ele.embeddedObject() ;
-         // StartKey
          rc = rtnGetObjElement( indexObj, FIELD_NAME_STARTKEY, startKey ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s] from obj[%s], "
                       "rc: %d", FIELD_NAME_STARTKEY,
                       indexObj.toString().c_str(), rc ) ;
-         // EndKey
          rc = rtnGetObjElement( indexObj, FIELD_NAME_ENDKEY, endKey ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s] from obj[%s], "
                       "rc: %d", FIELD_NAME_ENDKEY,
                       indexObj.toString().c_str(), rc ) ;
-         // StartRID
          rc = _parseRID( indexObj.getField( FIELD_NAME_STARTRID ), startRID ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to parse %s, rc: %d",
                       FIELD_NAME_STARTRID, rc ) ;
 
-         // EndRID
          rc = _parseRID( indexObj.getField( FIELD_NAME_ENDRID ), endRID ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to parse %s, rc: %d",
                       FIELD_NAME_ENDRID, rc ) ;
@@ -1606,7 +1566,6 @@ namespace engine
       rc = _su->data()->getMBContext( &mbContext, _plan->getName(), -1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
 
-      // create a new context
       dataContext = SDB_OSS_NEW rtnContextData( -1, eduID() ) ;
       if ( !dataContext )
       {
@@ -1624,7 +1583,6 @@ namespace engine
       mbContext = NULL ;
 
       dataContext->enablePrefetch ( cb, &_prefWather ) ;
-      // sample timetamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          dataContext->getMonCB()->recordStartTimestamp() ;
@@ -1790,7 +1748,6 @@ namespace engine
             pContext = _vecContext[0] ;
          }
 
-         // get data
          if ( pContext )
          {
             rtnContextBuf buffObj ;
@@ -1803,7 +1760,6 @@ namespace engine
                maxReturnNum = -1 ;
             }
 
-            // get data
             rc = pContext->getMore( maxReturnNum, buffObj, cb ) ;
             if ( rc )
             {
@@ -1827,7 +1783,6 @@ namespace engine
             {
                buffObj.truncate( _numToReturn ) ;
             }
-            // append data
             rc = appendObjs( buffObj.data(), buffObj.size(),
                              buffObj.recordNum() ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to add objs, rc: %d", rc ) ;
@@ -1886,7 +1841,6 @@ namespace engine
 
    _rtnContextTemp::~_rtnContextTemp ()
    {
-      // release temp collection
       if ( _dmsCB && _mbContext )
       {
          _dmsCB->getTempCB()->release( _mbContext ) ;
@@ -1981,17 +1935,10 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Append obj[%s] failed, rc: %d",
                       obj.toString().c_str(), rc ) ;
 
-         // increase counter
          DMS_MON_OP_COUNT_INC( pMonAppCB, MON_SELECT, 1 ) ;
 
-         // make sure we still have room to read another
-         // record_max_sz (i.e. 16MB). if we have less than 16MB
-         // to 256MB, we can't safely assume the next record we
-         // read will not overflow the buffer, so let's just break
-         // before reading the next record
          if ( buffEndOffset() + DMS_RECORD_MAX_SZ > RTN_RESULTBUFFER_SIZE_MAX )
          {
-            // let's break if there's no room for another max record
             break ;
          }
       }
@@ -2121,13 +2068,11 @@ namespace engine
 
       try
       {
-         // let's see if it's what we want
          if ( _matcher && _matcher->isInitialized() )
          {
             rc = _matcher->matches ( result, isMatch ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to match record, rc: %d", rc ) ;
          }
-         // if it matches
          if ( isMatch )
          {
             if ( _numToSkip > 0 )
@@ -2136,7 +2081,6 @@ namespace engine
                goto done ;
             }
 
-            // if we don't want all fields, let's select the interested fields
             if ( _selector.isInitialized() )
             {
                rc = _selector.select ( result, tempObj ) ;
@@ -2215,7 +2159,6 @@ namespace engine
       {
          tid = cb->getTID() ;
 
-         // get all pre-read reply
          if ( _prepareNodeMap.size() > 0 )
          {
             _getPrepareNodesData( cb, TRUE ) ;
@@ -2223,7 +2166,6 @@ namespace engine
          _prepareNodeMap.clear() ;
       }
 
-      // push all subContext to prepare map
       SUB_CONTEXT_MAP::iterator itSub = _subContextMap.begin() ;
       while ( _subContextMap.end() != itSub )
       {
@@ -2245,7 +2187,6 @@ namespace engine
       }
       _emptyContextMap.clear() ;
 
-      // kill sub context
       if ( cb && !cb->isInterrupted() )
       {
          MsgOpKillContexts killMsg ;
@@ -2283,7 +2224,6 @@ namespace engine
          }
       }
 
-      // release all context
       it = _prepareContextMap.begin() ;
       while ( it != _prepareContextMap.end() )
       {
@@ -2457,7 +2397,6 @@ namespace engine
                }
                else
                {
-                  // release data
                   SDB_OSS_FREE( pData ) ;
                }
             }
@@ -2526,7 +2465,6 @@ namespace engine
       }
 
    done:
-      // pre-read
       if ( SDB_OK == rc && _numToReturn != 0 && _preRead )
       {
          _send2EmptyNodes( cb ) ;
@@ -2577,9 +2515,6 @@ namespace engine
          goto error ;
       }
 
-      // after appendData success, the data-pointer is manage by subContext.
-      // if the data-pointer will be delete by others, the clearData should be
-      // called first.
       pSubContext->appendData( pReply ) ;
 
       if ( !requireOrder() )
@@ -2669,7 +2604,6 @@ namespace engine
          goto error ;
       }
 
-      // query with return data
       if ( pReply->numReturned > 0 )
       {
          EMPTY_CONTEXT_MAP::iterator it ;
@@ -2754,7 +2688,6 @@ namespace engine
          pSubContext = iter->second ;
          recordNum = pSubContext->getRecordNum() ;
 
-         // skip the records
          if ( _numToSkip > 0 )
          {
             if ( _numToSkip >= recordNum )
@@ -2838,15 +2771,9 @@ namespace engine
                   --_numToReturn ;
                }
 
-               // make sure we still have room to read another
-               // record_max_sz (i.e. 16MB). if we have less than 16MB
-               // to 256MB, we can't safely assume the next record we
-               // read will not overflow the buffer, so let's just break
-               // before reading the next record
                if ( buffEndOffset() + DMS_RECORD_MAX_SZ >
                     RTN_RESULTBUFFER_SIZE_MAX )
                {
-                  // let's break if there's no room for another max record
                   break ;
                }
             }
@@ -2891,7 +2818,6 @@ namespace engine
 
       while ( isEmpty() )
       {
-         // must sub context all have data
          if ( _emptyContextMap.size() + _prepareContextMap.size() > 0 )
          {
             rc = SDB_RTN_COORD_CACHE_EMPTY ;
@@ -2974,15 +2900,9 @@ namespace engine
                                       pSubContext ) ) ;
             }
 
-            // make sure we still have room to read another
-            // record_max_sz (i.e. 16MB). if we have less than 16MB
-            // to 256MB, we can't safely assume the next record we
-            // read will not overflow the buffer, so let's just break
-            // before reading the next record
             if ( buffEndOffset() + DMS_RECORD_MAX_SZ >
                  RTN_RESULTBUFFER_SIZE_MAX )
             {
-               // let's break if there's no room for another max record
                break ;
             }
          }
@@ -3609,7 +3529,6 @@ namespace engine
       pmdKRCB *pKrcb = pmdGetKRCB();
       SDB_RTNCB *pRtncb = pKrcb->getRTNCB();
 
-      // release buff obj
       buffObj.release() ;
 
       if ( !isOpened() )
@@ -3624,7 +3543,6 @@ namespace engine
          goto error ;
       }
 
-      // OrderBy: get data one by one and caused copy
       if ( !isEmpty() || ( requireOrder() && !_includeShardingOrder ) )
       {
          rc = this->_rtnContextBase::getMore( maxNumToReturn, buffObj,
@@ -3632,8 +3550,6 @@ namespace engine
          goto done;
       }
 
-      // buffer is empty and not need order,
-      // directly get data from sub-context
       while( !hasData )
       {
          if ( cb->isInterrupted() )
@@ -3642,7 +3558,6 @@ namespace engine
             goto error ;
          }
 
-         // skip the records
          while ( _numToSkip > 0 )
          {
             SubCLBufList::iterator iterSubCTXSkip = _subCLBufList.begin();
@@ -3899,6 +3814,7 @@ namespace engine
    }
 
    INT32 _rtnContextSort::open( const BSONObj &orderby,
+                                const BSONObj &selector,
                                 rtnContext *context,
                                 pmdEDUCB *cb,
                                 SINT64 numToSkip,
@@ -3923,10 +3839,18 @@ namespace engine
       _skip = numToSkip ;
       _limit = numToReturn ;
 
+      if ( !selector.isEmpty() )
+      {
+         rc = _selector.loadPattern( selector ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to load selector pattern:%d", rc ) ;
+            goto error ;
+         }
+      }
+
       if ( RTN_CONTEXT_DATA == context->getType() )
       {
-         /// WARNING: do not use this plan to do anything
-         ///  except keeping plan for explain. -- yunwu.
          _planForExplain = ( ( _rtnContextData * )context )->getPlan() ;
       }
 
@@ -3966,7 +3890,6 @@ namespace engine
          else if ( 0 < _skip )
          {
             --_skip ;
-            /// wo do not want to break this loop when get nothing.
             --i ;
             continue ;
          }
@@ -3977,7 +3900,24 @@ namespace engine
          }
          else
          {
-            rc = append( obj ) ;
+            const BSONObj *record = NULL ;
+            BSONObj selected ;
+            if ( _selector.isInitialized() )
+            {
+               rc = _selector.select( obj, selected ) ;
+               if ( SDB_OK != rc )
+               {
+                  PD_LOG( PDERROR, "failed to select fields from obj:%d", rc ) ;
+                  goto error ;
+               }
+               record = &selected ;
+            }
+            else
+            {
+               record = &obj ;
+            }
+   
+            rc = append( *record ) ;
             PD_RC_CHECK( rc, PDERROR, "Append obj[%s] failed, rc: %d",
                       obj.toString().c_str(), rc ) ;
 
@@ -4024,7 +3964,6 @@ namespace engine
 
    _rtnContextQgmSort::~_rtnContextQgmSort()
    {
-     /// qgmPlan should be released by plan tree.
       _qp = NULL ;
    }
 
@@ -4161,7 +4100,6 @@ namespace engine
 
       if ( NULL != _pDpsCB )
       {
-         // reserved log-size
          UINT32 logRecSize = 0;
          rc = dpsCSDel2Record( pCollectionName, record ) ;
          PD_RC_CHECK( rc, PDERROR,
@@ -4332,7 +4270,6 @@ namespace engine
       _collectionName = pCollectionName ;
       _clShortName    = pCollectionShortName ;
 
-      // lock collection
       if ( _pDpsCB && _pTransCB->isTransOn() )
       {
          rc = _su->data()->getMBContext( &_mbContext, pCollectionShortName,
@@ -4413,7 +4350,6 @@ namespace engine
       PD_CHECK( pmdIsPrimary(), SDB_CLS_NOT_PRIMARY, error, PDERROR,
                 "Failed to drop cs before phase2(%d)", rc );
 
-      // drop collection
       rc = _su->data()->dropCollection ( _clShortName.c_str(), cb, _pDpsCB,
                                          TRUE, _mbContext ) ;
       if ( rc )
@@ -4446,7 +4382,6 @@ namespace engine
       {
          _su->data()->releaseMBContext( _mbContext ) ;
       }
-      // unlock su
       if ( _pDmsCB && _su )
       {
          _pDmsCB->suUnlock ( _su->CSID() ) ;
@@ -4862,7 +4797,6 @@ namespace engine
       ss << hostName << ":" << pmdGetOptionCB()->getServiceAddr() ;
       _builder.append( FIELD_NAME_NODE_NAME, ss.str() ) ;
 
-      /// get some info before explain
       rc = _getMonInfo( cb, _beginMon ) ;
       if ( SDB_OK != rc )
       {
@@ -4941,8 +4875,6 @@ namespace engine
       rtnContextBuf ctxBuf ;
       BSONObj record ;
 
-      /// here we do not use $count coz it does not surpport
-      /// 'limit' and 'skip'.
       while ( _needRun )
       {
          rc = rtnGetMore( _queryContextID, -1, ctxBuf, cb, sdbGetRTNCB() ) ;

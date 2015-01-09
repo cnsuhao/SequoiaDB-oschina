@@ -54,34 +54,24 @@ import com.sequoiadb.exception.BaseException;
  */
 public class SDBMessageHelper {
 
-	// msg.h - struct _MsgSysInfoRequest
 	private final static int MESSAGE_SYSINFOREQUEST_LENGTH = 12;
 
-	// msg.h - struct _MsgHeader
 	private final static int MESSAGE_HEADER_LENGTH = 28;
 
-	// msg.h - struct _MsgOpQuery
 	private final static int MESSAGE_OPQUERY_LENGTH = 61;
 
-	// msg.h - struct _MsgOpInsert
 	public final static int MESSAGE_OPINSERT_LENGTH = 45;
 
-	// msg.h - struct _MsgOpDelete
 	private final static int MESSAGE_OPDELETE_LENGTH = 45;
 
-	// msg.h - struct _MsgOpUpdate
 	private final static int MESSAGE_OPUPDATE_LENGTH = 45;
 
-	// msg.h - struct _MsgOpGetMore
 	private final static int MESSAGE_OPGETMORE_LENGTH = 40;
 
-	// msg.h - struct _MsgOpKillContexts
 	private final static int MESSAGE_OPKILLCONTEXT_LENGTH = 36;
 	
-	// msg.h - struct _MsgOpLob
 	public final static int MESSAGE_OPLOB_LENGTH = 52;
 	
-	// msg.h - struct _MsgLobTuple
     public final static int MESSAGE_LOBTUPLE_LENGTH = 16;
 	
 	private final static Byte BTYE_FILL = 0;
@@ -104,7 +94,6 @@ public class SDBMessageHelper {
 			int flags = sdbMessage.getFlags();
 			long requestID = sdbMessage.getRequestID();
 			int opCode = sdbMessage.getOperationCode().getOperationCode();
-			// int responseTo = sdbMessage.getResponseTo();
 			long skipRowsCount = sdbMessage.getSkipRowsCount();
 			long returnRowsCount = sdbMessage.getReturnRowsCount();
 			byte[] collByteArray = collectionName.getBytes("UTF-8");
@@ -131,7 +120,6 @@ public class SDBMessageHelper {
 					+ Helper.roundToMultipleXLength(hint.length, 4);
 	
 			List<byte[]> fieldList = new ArrayList<byte[]>();
-			// Header
 			fieldList.add(assembleHeader(messageLength, requestID, nodeID,
 					opCode, endianConvert));
 	
@@ -150,10 +138,8 @@ public class SDBMessageHelper {
 			buf.putLong(skipRowsCount);
 			buf.putLong(returnRowsCount);
 	
-			// Flags, collection name length, skip rows, return rows
 			fieldList.add(buf.array());
 	
-			// Collection name plus '\0'
 			byte[] newCollectionName = new byte[collectionNameLength + 1];
 			for (int i = 0; i < collectionNameLength; i++) {
 				newCollectionName[i] = collByteArray[i];
@@ -161,30 +147,23 @@ public class SDBMessageHelper {
 	
 			fieldList.add(Helper.roundToMultipleX(newCollectionName, 4));
 	
-			// query object
 			fieldList.add(Helper.roundToMultipleX(query, 4));
 	
-			// Selector Object
 			fieldList.add(Helper.roundToMultipleX(fieldSelector, 4));
 	
-			// OrderBy Object
 			fieldList.add(Helper.roundToMultipleX(orderBy, 4));
 	
-			// hint Object
 			fieldList.add(Helper.roundToMultipleX(hint, 4));
 	
-			// Concatenate everything
 			byte[] msgInByteArray = Helper.concatByteArray(fieldList);
 	
 			return msgInByteArray;
 		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new BaseException("SDB_INVALIDARG", e);
 		}
 	}
 
-	// type: 0(verify), 1(create), 2(delete)
 	public static byte[] buildAuthMsg(String userName, String password,
 			long reqID, byte type, boolean endianConvert) {
 		String md5 = null;
@@ -200,7 +179,6 @@ public class SDBMessageHelper {
 		int messageLength = MESSAGE_HEADER_LENGTH
 				+ Helper.roundToMultipleXLength(info.length, 4);
 		List<byte[]> fieldList = new ArrayList<byte[]>();
-		// Header
 		int opCode = 0;
 		switch (type) {
 		case 0:
@@ -218,7 +196,6 @@ public class SDBMessageHelper {
 		fieldList.add(assembleHeader(messageLength, reqID,
 				SequoiadbConstants.ZERO_NODEID, opCode, endianConvert));
 		fieldList.add(Helper.roundToMultipleX(info, 4));
-		// Concatenate everything
 		byte[] msgInByteArray = Helper.concatByteArray(fieldList);
 
 		return msgInByteArray;
@@ -281,7 +258,6 @@ public class SDBMessageHelper {
 	
 			return messageLength;
 		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new BaseException("SDB_INVALIDARG", e);
 		}
@@ -333,7 +309,6 @@ public class SDBMessageHelper {
 	
 			return messageLength;
 		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new BaseException("SDB_INVALIDARG", e);
 		}
@@ -351,7 +326,6 @@ public class SDBMessageHelper {
 			byte[] nodeID = sdbMessage.getNodeID();
 			int opCode = sdbMessage.getOperationCode().getOperationCode();
 	
-			// int responseTo = sdbMessage.getResponseTo();
 			byte[] collByteArray = collectionName.getBytes("UTF-8");
 			int collectionNameLength = collByteArray.length;
 	
@@ -369,7 +343,6 @@ public class SDBMessageHelper {
 					+ Helper.roundToMultipleXLength(hint.length, 4);
 	
 			List<byte[]> fieldList = new ArrayList<byte[]>();
-			// Header
 			fieldList.add(assembleHeader(messageLength, requestID, nodeID,
 					opCode, endianConvert));
 	
@@ -386,10 +359,8 @@ public class SDBMessageHelper {
 			buf.putInt(flags);
 			buf.putInt(collectionNameLength);
 	
-			// Flags, collection name length
 			fieldList.add(buf.array());
 	
-			// Collection name plus '\0'
 			byte[] newCollectionName = new byte[collectionNameLength + 1];
 	
 			for (int i = 0; i < collectionNameLength; i++) {
@@ -398,18 +369,14 @@ public class SDBMessageHelper {
 	
 			fieldList.add(Helper.roundToMultipleX(newCollectionName, 4));
 	
-			// Matcher object
 			fieldList.add(Helper.roundToMultipleX(matcher, 4));
 	
-			// Hint object
 			fieldList.add(Helper.roundToMultipleX(hint, 4));
 	
-			// Concatenate everything
 			byte[] msgInByteArray = Helper.concatByteArray(fieldList);
 	
 			return msgInByteArray;
 		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new BaseException("SDB_INVALIDARG", e);
 		}
@@ -427,7 +394,6 @@ public class SDBMessageHelper {
 			byte[] nodeID = sdbMessage.getNodeID();
 			int opCode = sdbMessage.getOperationCode().getOperationCode();
 	
-			// int responseTo = sdbMessage.getResponseTo();
 			byte[] collByteArray = collectionName.getBytes("UTF-8");
 			int collectionNameLength = collByteArray.length;
 	
@@ -448,7 +414,6 @@ public class SDBMessageHelper {
 					+ Helper.roundToMultipleXLength(hint.length, 4);
 	
 			List<byte[]> fieldList = new ArrayList<byte[]>();
-			// Header
 			fieldList.add(assembleHeader(messageLength, requestID, nodeID,
 			        opCode, endianConvert));
 	
@@ -465,10 +430,8 @@ public class SDBMessageHelper {
 			buf.putInt(flags);
 			buf.putInt(collectionNameLength);
 	
-			// Flags, collection name length
 			fieldList.add(buf.array());
 	
-			// Collection name plus '\0'
 			byte[] newCollectionName = new byte[collectionNameLength + 1];
 			for (int i = 0; i < collectionNameLength; i++) {
 				newCollectionName[i] = collByteArray[i];
@@ -476,21 +439,16 @@ public class SDBMessageHelper {
 	
 			fieldList.add(Helper.roundToMultipleX(newCollectionName, 4));
 	
-			// Matcher object
 			fieldList.add(Helper.roundToMultipleX(matcher, 4));
 	
-			// Modifier object
 			fieldList.add(Helper.roundToMultipleX(modifier, 4));
 	
-			// Hint object
 			fieldList.add(Helper.roundToMultipleX(hint, 4));
 	
-			// Concatenate everything
 			byte[] msgInByteArray = Helper.concatByteArray(fieldList);
 	
 			return msgInByteArray;
 		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			throw new BaseException("SDB_INVALIDARG", e);
 		}
@@ -584,7 +542,6 @@ public class SDBMessageHelper {
 				}
 				messageLength += length;
 			}
-	        // set the real messageLength
 			bulk_buffer.position(startPos);
 			bulk_buffer.putInt(messageLength);
 	
@@ -623,32 +580,24 @@ public class SDBMessageHelper {
 			throw new BaseException("SDB_INVALIDSIZE", MessageLength);
 		}
 
-		// Request message length
 		sdbMessage.setRequestLength(MessageLength);
 
-		// Action code
 		sdbMessage.setOperationCode(Operation.getByValue(byteBuffer.getInt()));
 
-		// nodeID
 		byte[] nodeID = new byte[12];
 		byteBuffer.get(nodeID, 0, 12);
 		sdbMessage.setNodeID(nodeID);
 
-		// Request id
 		sdbMessage.setRequestID(byteBuffer.getLong());
 
-		// context id
 		List<Long> contextIDList = new ArrayList<Long>();
 		contextIDList.add(byteBuffer.getLong());
 		sdbMessage.setContextIDList(contextIDList);
 
-		// flags
 		sdbMessage.setFlags(byteBuffer.getInt());
 
-		// Start from
 		sdbMessage.setStartFrom(byteBuffer.getInt());
 
-		// Return record rows
 		int numReturned = byteBuffer.getInt();
 		sdbMessage.setNumReturned(numReturned);
 
@@ -665,30 +614,20 @@ public class SDBMessageHelper {
 	public static void addLobMsgHeader( ByteBuffer buff, int totalLen, 
 	        int opCode, byte[] nodeID, long requestID ) {
         
-        //MsgHeader.messageLength
         buff.putInt( totalLen );
-        //MsgHeader.opCode
         buff.putInt( opCode );
-        //MsgHeader.TID + MsgHeader.routeID
         buff.put( nodeID );
-        //MsgHeader.requestID
         buff.putLong(requestID);
     }
 	
 	public static void addLobOpMsg( ByteBuffer buff, int version, short w, 
             short padding, int flags, long contextID, int bsonLen ) {
         
-        //_MsgOpLob.version
         buff.putInt( version );
-        //_MsgOpLob.w
         buff.putShort( w );
-        //_MsgOpLob.padding
         buff.putShort( padding );
-        //_MsgOpLob.flags
         buff.putInt( flags );
-        //_MsgOpLob.contextID
         buff.putLong( contextID );
-        //_MsgOpLob.bsonLen
         buff.putInt( bsonLen );
     }
 	
@@ -698,12 +637,10 @@ public class SDBMessageHelper {
         int totalLen = MESSAGE_OPLOB_LENGTH 
                         + Helper.roundToMultipleXLength( bRevemoObj.length, 4 );
         
-        // convert the openLob's buff
         if ( !endianConvert ) {
             bsonEndianConvert( bRevemoObj, 0, bRevemoObj.length, true );
         }
         
-        // add _MsgOpLob into buff with convert(db.endianConvert)
         ByteBuffer buff = ByteBuffer.allocate( 
                                 SDBMessageHelper.MESSAGE_OPLOB_LENGTH );
         if ( endianConvert ) {
@@ -712,12 +649,10 @@ public class SDBMessageHelper {
             buff.order( ByteOrder.BIG_ENDIAN );
         }
         
-        //*******************MsgHeader*******************
         addLobMsgHeader( buff, totalLen, 
                 Operation.MSG_BS_LOB_REMOVE_REQ.getOperationCode(), 
                 SequoiadbConstants.ZERO_NODEID, reqID );
         
-        //*******************_MsgOpLob**********************
         addLobOpMsg( buff, SequoiadbConstants.DEFAULT_VERSION, 
                    SequoiadbConstants.DEFAULT_W, (short)0, 
                    SequoiadbConstants.DEFAULT_FLAGS, 
@@ -741,32 +676,24 @@ public class SDBMessageHelper {
             throw new BaseException("SDB_INVALIDSIZE", MessageLength);
         }
 
-        // Request message length
         sdbMessage.setRequestLength(MessageLength);
 
-        // Action code
         sdbMessage.setOperationCode(Operation.getByValue(byteBuffer.getInt()));
 
-        // nodeID
         byte[] nodeID = new byte[12];
         byteBuffer.get(nodeID, 0, 12);
         sdbMessage.setNodeID(nodeID);
 
-        // Request id
         sdbMessage.setRequestID(byteBuffer.getLong());
 
-        // context id
         List<Long> contextIDList = new ArrayList<Long>();
         contextIDList.add(byteBuffer.getLong());
         sdbMessage.setContextIDList(contextIDList);
 
-        // flags
         sdbMessage.setFlags(byteBuffer.getInt());
 
-        // Start from
         sdbMessage.setStartFrom(byteBuffer.getInt());
 
-        // Return record rows
         int numReturned = byteBuffer.getInt();
         sdbMessage.setNumReturned(numReturned);
 
@@ -792,39 +719,30 @@ public class SDBMessageHelper {
             throw new BaseException("SDB_INVALIDSIZE", MessageLength);
         }
 
-        // Request message length
         sdbMessage.setRequestLength(MessageLength);
 
-        // Action code
         sdbMessage.setOperationCode(Operation.getByValue(byteBuffer.getInt()));
 
-        // nodeID
         byte[] nodeID = new byte[12];
         byteBuffer.get(nodeID, 0, 12);
         sdbMessage.setNodeID(nodeID);
 
-        // Request id
         sdbMessage.setRequestID(byteBuffer.getLong());
 
-        // context id
         List<Long> contextIDList = new ArrayList<Long>();
         contextIDList.add(byteBuffer.getLong());
         sdbMessage.setContextIDList(contextIDList);
 
-        // flags
         sdbMessage.setFlags(byteBuffer.getInt());
 
-        // Start from
         sdbMessage.setStartFrom(byteBuffer.getInt());
 
-        // Return record rows
         int numReturned = byteBuffer.getInt();
         sdbMessage.setNumReturned(numReturned);
 
         sdbMessage.setObjectList(null);
         
         if ( sdbMessage.getFlags() == 0 ) {
-            // _MsgLobTuple
             sdbMessage.setLobLen(byteBuffer.getInt());
             sdbMessage.setLobSequence(byteBuffer.getInt());
             sdbMessage.setLobOffset(byteBuffer.getLong());
@@ -848,35 +766,26 @@ public class SDBMessageHelper {
 			throw new BaseException("SDB_INVALIDSIZE", MessageLength);
 		}
 
-		// Request message length
 		sdbMessage.setRequestLength(MessageLength);
 
-		// Action code
 		sdbMessage.setOperationCode(Operation.getByValue(byteBuffer.getInt()));
 
-		// nodeID
 		byte[] nodeID = new byte[12];
 		byteBuffer.get(nodeID, 0, 12);
 		sdbMessage.setNodeID(nodeID);
 
-		// Request id
 		sdbMessage.setRequestID(byteBuffer.getLong());
 
-		// context id
 		List<Long> contextIDList = new ArrayList<Long>();
 		contextIDList.add(byteBuffer.getLong());
 		sdbMessage.setContextIDList(contextIDList);
 
-		// flags
 		sdbMessage.setFlags(byteBuffer.getInt());
 
-		// Start from
 		sdbMessage.setStartFrom(byteBuffer.getInt());
 
-		// Not the return record rows, it is the return type of eval result
 		int returnType = byteBuffer.getInt();
 		sdbMessage.setNumReturned(returnType);
-		// Get the extract the error message
 		if ((sdbMessage.getFlags() != 0)) {
 			List<BSONObject> objList = extractBSONObject(byteBuffer);
 			sdbMessage.setObjectList(objList);
@@ -893,32 +802,24 @@ public class SDBMessageHelper {
 		SDBMessage sdbMessage = new SDBMessage();
 
 		int MessageLength = byteBuffer.getInt();
-		// Request message length
 		sdbMessage.setRequestLength(MessageLength);
 
-		// Action code
 		sdbMessage.setOperationCode(Operation.getByValue(byteBuffer.getInt()));
 
-		// nodeID
 		byte[] nodeID = new byte[12];
 		byteBuffer.get(nodeID, 0, 12);
 		sdbMessage.setNodeID(nodeID);
 
-		// Request id
 		sdbMessage.setRequestID(byteBuffer.getLong());
 
-		// context id
 		List<Long> contextIDList = new ArrayList<Long>();
 		contextIDList.add(byteBuffer.getLong());
 		sdbMessage.setContextIDList(contextIDList);
 
-		// flags
 		sdbMessage.setFlags(byteBuffer.getInt());
 
-		// Start from
 		sdbMessage.setStartFrom(byteBuffer.getInt());
 
-		// Return record rows
 		int numReturned = byteBuffer.getInt();
 		sdbMessage.setNumReturned(numReturned);
 
@@ -939,12 +840,10 @@ public class SDBMessageHelper {
 		int numReturned = sdbMessage.getNumReturned();
 		byte[] nodeID = sdbMessage.getNodeID();
 		int opCode = sdbMessage.getOperationCode().getOperationCode();
-		// int responseTo = sdbMessage.getResponseTo();
 
 		int messageLength = MESSAGE_OPGETMORE_LENGTH;
 
 		List<byte[]> fieldList = new ArrayList<byte[]>();
-		// Header
 		fieldList.add(assembleHeader(messageLength, requestID,
 				SequoiadbConstants.ZERO_NODEID, opCode, endianConvert));
 		ByteBuffer buf = ByteBuffer.allocate(12);
@@ -957,7 +856,6 @@ public class SDBMessageHelper {
 		buf.putInt(numReturned);
 		fieldList.add(buf.array());
 
-		// Concatenate everything
 		byte[] msgInByteArray = Helper.concatByteArray(fieldList);
 
 		return msgInByteArray;
@@ -970,7 +868,6 @@ public class SDBMessageHelper {
 				* contextIds.length;
 
 		List<byte[]> fieldList = new ArrayList<byte[]>();
-		// Header
 		fieldList.add(assembleHeader(messageLength, reqId,
 				SequoiadbConstants.ZERO_NODEID,
 				Operation.OP_KILL_CONTEXT.getOperationCode(), endianConvert));
@@ -986,7 +883,6 @@ public class SDBMessageHelper {
 			buf.putLong(temp);
 
 		fieldList.add(buf.array());
-		// Concatenate everything
 		byte[] msgInByteArray = Helper.concatByteArray(fieldList);
 		return msgInByteArray;
 	}
@@ -1079,7 +975,6 @@ public class SDBMessageHelper {
 		BSONDecoder d = new BasicBSONDecoder();
 		BSONCallback cb = new BasicBSONCallback();
 		try {
-			// TODO: need process BIGEND
 
 			int s = d.decode(new ByteArrayInputStream(byteBuffer.array(),
 					byteBuffer.position(), byteBuffer.remaining()), cb);
@@ -1195,7 +1090,6 @@ public class SDBMessageHelper {
 		List<byte[]> tmp = Helper.splitByteArray(msg,
 				MESSAGE_SYSINFOREQUEST_LENGTH);
 		byte[] header = tmp.get(0);
-		// byte[] remaining = tmp.get(1);
 
 		return extractSysInfoHeader(header);
 	}
@@ -1217,7 +1111,6 @@ public class SDBMessageHelper {
 
 
 	
-	// little endian => big endian
 	public static void bsonEndianConvert(byte[] inBytes, int offset,
 			int objSize, boolean l2r) {
 		int begin = offset;
@@ -1225,13 +1118,10 @@ public class SDBMessageHelper {
 		offset += 4;
 		byte type;
 		while (offset < inBytes.length) {
-			// get bson element type
 			type = inBytes[offset];
-			// move offset to next to skip type
 			++offset;
 			if (type == BSON.EOO)
 				break;
-			// skip element name: '...\0'
 			offset += getStrLength(inBytes, offset) + 1;
 			switch (type) {
 			case BSON.NUMBER:
@@ -1241,8 +1131,6 @@ public class SDBMessageHelper {
 			case BSON.STRING:
 			case BSON.CODE:
 			case BSON.SYMBOL: {
-				// the first 4 bytes indicate the length of the string
-				// the length of the string is the real length plus 1('\0')
 				int length = Helper.byteToInt(inBytes, offset);
 				arrayReverse(inBytes, offset, 4);
 				int newLength = Helper.byteToInt(inBytes, offset);
@@ -1279,14 +1167,11 @@ public class SDBMessageHelper {
 				offset += 8;
 				break;
 			case BSON.REGEX:
-				// string regex
 				offset += getStrLength(inBytes, offset) + 1;
-				// string option
 				offset += getStrLength(inBytes, offset) + 1;
 				break;
 			case BSON.REF: {
 				offset += 12;
-				// 4 bytes length + string + 12 bytes
 				int length = Helper.byteToInt(inBytes, offset);
 				arrayReverse(inBytes, offset, 4);
 				int newLength = Helper.byteToInt(inBytes, offset);
@@ -1295,15 +1180,12 @@ public class SDBMessageHelper {
 				break;
 			}
 			case BSON.CODE_W_SCOPE: {
-				// 4 bytes
 				arrayReverse(inBytes, offset, 4);
 				offset += 4;
-				// string
 				int length = Helper.byteToInt(inBytes, offset);
 				arrayReverse(inBytes, offset, 4);
 				int newLength = Helper.byteToInt(inBytes, offset);
 				offset += (l2r ? newLength : length) + 4;
-				// then object
 				int objLength = getBsonLength(inBytes, offset, l2r);
 				bsonEndianConvert(inBytes, offset, objLength, l2r);
 				offset += objLength;
@@ -1314,7 +1196,6 @@ public class SDBMessageHelper {
 				offset += 4;
 				break;
 			case BSON.TIMESTAMP:
-				// 2 4-bytes
 				arrayReverse(inBytes, offset, 4);
 				offset += 4;
 				arrayReverse(inBytes, offset, 4);
@@ -1364,7 +1245,6 @@ public class SDBMessageHelper {
 
     public static void checkMessage(SDBMessage req, SDBMessage res) {
         checkMsgOpCode(req.getOperationCode(), res.getOperationCode());
-        //checkMsgReqID(req.getRequestID(), res.getRequestID());
     }
     
     public static void checkMsgOpCode(Operation reqOpCode, Operation resOpCode) {

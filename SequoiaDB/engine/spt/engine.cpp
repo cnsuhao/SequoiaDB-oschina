@@ -115,7 +115,6 @@ namespace engine {
       goto done ;
    }
 
-   // Scope
 
    static JSClass global_class = {
       "Global",                     // class name
@@ -203,7 +202,6 @@ namespace engine {
       SDB_ASSERT ( _context && _global, "this scope has not been initilized" ) ;
       SDB_ASSERT ( code , "Invalid arguments" ) ;
 
-      // set error report
       sdbSetPrintError( ( printFlag & SPT_EVAL_FLAG_PRINT ) ? TRUE : FALSE ) ;
       sdbSetNeedClearErrorInfo( TRUE ) ;
 
@@ -216,7 +214,6 @@ namespace engine {
          goto error ;
       }
 
-      // clear return error
       if ( sdbIsNeedClearErrorInfo() &&
            !JS_IsExceptionPending( _context ) )
       {
@@ -228,8 +225,6 @@ namespace engine {
          goto done ;
       }
 
-      // cstr is freed in done:
-      // cstr is freed by JSFree, so we have to use strdup instead of ossStrdup
       if ( JSVAL_IS_VOID ( rval ) )
       {
 #if defined (_LINUX)
@@ -293,7 +288,6 @@ namespace engine {
       SDB_ASSERT ( _context && _global, "this scope has not been initilized" ) ;
       SDB_ASSERT ( code , "Invalid arguments" ) ;
 
-      // set error report
       sdbSetPrintError( ( printFlag & SPT_EVAL_FLAG_PRINT ) ? TRUE : FALSE ) ;
       sdbSetNeedClearErrorInfo( TRUE ) ;
 
@@ -304,7 +298,6 @@ namespace engine {
          goto error ;
       }
 
-      // clear return error
       if ( sdbIsNeedClearErrorInfo() &&
            !JS_IsExceptionPending( _context ) )
       {
@@ -326,7 +319,6 @@ namespace engine {
                ossPrintf ( "Uncaught exception: %s\n" , cstrException ) ;
             }
 
-            /// what to do when oom?
             *errMsg = ossStrdup( cstrException ) ;
             SAFE_JS_FREE ( _context , cstrException ) ;
          }

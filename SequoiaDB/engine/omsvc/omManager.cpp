@@ -96,17 +96,14 @@ namespace engine
    {
       INT32 rc           = SDB_OK ;
 
-      // create collection space and collection
       _pKrcb  = pmdGetKRCB() ;
       _pDmsCB = _pKrcb->getDMSCB() ;
       _pRtnCB = _pKrcb->getRTNCB() ;
 
       _pmdOptionsMgr *pOptMgr = _pKrcb->getOptionCB() ;
 
-      // get options
       _wwwRootPath = pmdGetOptionCB()->getWWWPath() ;
 
-      // set remote session manager to pmdController
       sdbGetPMDController()->setRSManager( &_rsManager ) ;
 
       rc = _rsManager.init( getRouteAgent() ) ;
@@ -121,7 +118,6 @@ namespace engine
       PD_RC_CHECK ( rc, PDERROR, "Failed to restore task:rc=%d", 
                     rc ) ;
 
-      //TODO: open this code
       rc = _createJobs() ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to create jobs:rc=%d", 
                     rc ) ;
@@ -278,7 +274,6 @@ namespace engine
 
       cb = pmdGetThreadEDUCB() ;
 
-      // SYSDEPLOY.SYSCLUSTER
       rc = _createCollection ( OM_CS_DEPLOY_CL_CLUSTER, cb ) ;
       if ( rc )
       {
@@ -291,7 +286,6 @@ namespace engine
          goto error ;
       }
 
-      // SYSDEPLOY.SYSHOST
       rc = _createCollection ( OM_CS_DEPLOY_CL_HOST, cb ) ;
       if ( rc )
       {
@@ -310,7 +304,6 @@ namespace engine
          goto error ;
       }
 
-      // SYSDEPLOY.SYSBUSINESS
       rc = _createCollection ( OM_CS_DEPLOY_CL_BUSINESS, cb ) ;
       if ( rc )
       {
@@ -323,14 +316,12 @@ namespace engine
          goto error ;
       }
 
-      // SYSDEPLOY.SYSCONFIGURE
       rc = _createCollection ( OM_CS_DEPLOY_CL_CONFIGURE, cb ) ;
       if ( rc )
       {
          goto error ;
       }
 
-      // SYSDEPLOY.SYSTASKINFO
       rc = _createCollection ( OM_CS_DEPLOY_CL_TASKINFO, cb ) ;
       if ( rc )
       {
@@ -405,24 +396,18 @@ namespace engine
       pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
       EDUID eduID = PMD_INVALID_EDUID ;
 
-      // set to primary
       pmdSetPrimary( TRUE ) ;
 
-      // start om manager edu
       rc = pEDUMgr->startEDU( EDU_TYPE_OMMGR, (_pmdObjBase*)this, &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start OM Manager edu, rc: %d", rc ) ;
-      // register
       pEDUMgr->regSystemEDU( EDU_TYPE_OMMGR, eduID ) ;
-      // wait attach
       rc = _attachEvent.wait( OM_WAIT_CB_ATTACH_TIMEOUT ) ;
       PD_RC_CHECK( rc, PDERROR, "Wait OM Manager edu attach failed, rc: %d",
                    rc ) ;
 
-      // start om net
       rc = pEDUMgr->startEDU( EDU_TYPE_OMNET, (netRouteAgent*)&_netAgent,
                               &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start om net, rc: %d", rc ) ;
-      // register
       pEDUMgr->regSystemEDU( EDU_TYPE_OMNET, eduID ) ;
 
    done:
@@ -434,7 +419,6 @@ namespace engine
    INT32 _omManager::deactive ()
    {
       _netAgent.closeListen() ;
-      // stop io
       _netAgent.stop() ;
 
       return SDB_OK ;
@@ -802,7 +786,6 @@ namespace engine
       SINT64 contextID          = -1 ;
       pmdEDUCB *pEduCB          = pmdGetThreadEDUCB() ;
       rtnContextBuf buffObj ;
-      // extract command
       rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQuery,
                              &pFieldSelector, &pOrderByBuffer, &pHintBuffer ) ;

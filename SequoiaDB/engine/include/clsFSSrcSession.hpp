@@ -75,9 +75,7 @@ namespace engine
 
          virtual void    onRecieve ( const NET_HANDLE netHandle,
                                      MsgHeader * msg ) ;
-         // called by net io thread
          virtual BOOLEAN timeout ( UINT32 interval ) ;
-         // called by self thread
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;
 
       public:
@@ -102,7 +100,6 @@ namespace engine
          virtual void   _onAttach () ;
          virtual void   _onDetach () ;
 
-      //message function
       protected:
          INT32 handleFSMeta( NET_HANDLE handle, MsgHeader* header ) ;
          INT32 handleFSIndex( NET_HANDLE handle, MsgHeader* header ) ;
@@ -189,7 +186,6 @@ namespace engine
       virtual INT32 notifyLSN ( UINT32 suLID, UINT32 clLID, dmsExtentID extLID,
                                 const DPS_LSN_OFFSET &offset ) ;
 
-   //message function
    protected:
       INT32 handleBegin( NET_HANDLE handle, MsgHeader* header ) ;
       INT32 handleEnd( NET_HANDLE handle, MsgHeader* header ) ;
@@ -247,7 +243,6 @@ namespace engine
          virtual void   _onAttach () ;
          virtual void   _onDetach () ;
 
-      //message function
       protected:
          INT32 handleBegin( NET_HANDLE handle, MsgHeader* header ) ;
          INT32 handleEnd( NET_HANDLE handle, MsgHeader* header ) ;

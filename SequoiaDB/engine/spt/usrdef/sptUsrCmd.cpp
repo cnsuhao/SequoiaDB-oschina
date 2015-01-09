@@ -144,7 +144,6 @@ namespace engine
       }
       rc = SDB_OK ;
 
-      // useShell, default : 1
       rc = arg.getNative( 3, (void*)&useShell, SPT_NATIVE_INT32 ) ;
       if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
       {
@@ -223,7 +222,6 @@ namespace engine
          cmd += ev ;
       }
 
-      // useShell, default : 1
       rc = arg.getNative( 2, (void*)&useShell, SPT_NATIVE_INT32 ) ;
       if ( SDB_OK != rc && SDB_OUT_OF_BOUND != rc )
       {

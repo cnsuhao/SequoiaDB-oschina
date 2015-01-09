@@ -94,7 +94,6 @@ public :
       boost::system_time const timeout=boost::get_system_time() + 
             boost::posix_time::milliseconds(millsec);
       boost::mutex::scoped_lock lock ( _mutex ) ;
-      // if timed_wait return false, that means we failed by timeout
       while ( _queue.empty () )
          if ( !_cond.timed_wait ( lock, timeout ) )
             return FALSE ;
@@ -103,6 +102,5 @@ public :
       return TRUE ;
    }
 } ;
-//typedef class ossQueue ossQueue ;
 
 #endif

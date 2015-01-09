@@ -207,7 +207,6 @@ namespace engine
          goto error ;
       }
 
-      // build a query request based on the provided information
       rc = msgBuildQueryMsg ( &pBuffer, &bufferSize, pCollectionName,
                               flag, 0, tmpSkip, tmpReturn,
                               condition.isEmpty()?NULL:&condition,
@@ -220,11 +219,8 @@ namespace engine
                   rc ) ;
          goto error ;
       }
-      // make the new buffer as MsgOpQuery type
       pQueryMsg = (MsgOpQuery*)pBuffer ;
    retry :
-      // build a new context, note in error condition this context will be
-      // released
       rc = pRtncb->contextNew ( RTN_CONTEXT_COORD, (rtnContext**)&pContext,
                                 contextID, cb ) ;
       if ( rc )
@@ -240,7 +236,6 @@ namespace engine
          goto error ;
       }
 
-      // basically we want to get the collection version information
       rc = rtnCoordGetCataInfo ( cb, realCLFullName, isNeedRefreshCata, cataInfo ) ;
       if ( rc )
       {
@@ -248,12 +243,10 @@ namespace engine
                   realCLFullName, rc ) ;
          goto error ;
       }
-      // initailize query message with correct version, request id stuff
       pQueryMsg->version = cataInfo->getVersion () ;
       pQueryMsg->header.routeID.value = 0 ;
       pQueryMsg->header.TID = cb->getTID () ;
 
-      // start run the query on the groupLst that we passed to this function
       rc = newQuery.queryToDataNodeGroup ( pBuffer, groupLst, sendGroupLstTmp,
                                            pRouteAgent, cb, pContext, TRUE ) ;
       if ( rc )
@@ -261,8 +254,6 @@ namespace engine
          if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == rc &&
               !isNeedRefreshCata )
          {
-            // some data nodes' version are too old and others are new, we
-            // should delete the old context and allocate new one
             isNeedRefreshCata = TRUE ;
             SDB_ASSERT ( contextID >= 0, "contextID must be positive" ) ;
             pRtncb->contextDelete ( contextID, cb ) ;
@@ -306,13 +297,10 @@ namespace engine
       {
          pmdEDUEvent pmdEvent;
          BOOLEAN isGotMsg = cb->waitEvent( pmdEvent, waitTime ) ;
-         // if we hit interrupt, let's just get out of here. Don't need to worry
-         // about cb queue, pmdEDUCB::clear() is going to clean it up.
          PD_CHECK( !cb->isInterrupted() && !cb->isForced(),
                    SDB_APP_INTERRUPT, error, PDERROR,
                    "Interrupt! stop receiving reply!" ) ;
 
-         // if we didn't receive anything
          if ( FALSE == isGotMsg )
          {
             if ( !isWaitAll && !replyQue.empty() )
@@ -342,7 +330,6 @@ namespace engine
 
          if ( MSG_COOR_REMOTE_DISC == pMsg->opCode )
          {
-            // check if transaction-node
             MsgRouteID routeID;
             routeID.value = pMsg->routeID.value;
             if ( cb->isTransNode( routeID ))
@@ -369,12 +356,7 @@ namespace engine
             if ( iterMap != requestIdMap.end()
                && iterMap->first <= pMsg->requestID )
             {
-               // remote node disconnected,
-               // go on receive all reply then clear all
 
-               // don't return the rc,
-               // the error will be detected while process the reply
-               // rc = rc ? rc : SDB_COORD_REMOTE_DISC;
                PD_LOG ( PDERROR,
                      "get reply failed, remote-node disconnected:"
                      "groupID=%u, nodeID=%u, serviceID=%u",
@@ -468,7 +450,6 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNCOGETREPLY, rc ) ;
       return rc;
    error:
-      //clear the incomplete reply-queue
       if ( clearReplyIfFailed )
       {
          while ( !replyQue.empty() )
@@ -564,8 +545,6 @@ namespace engine
             rc = rtnCoordGetLocalCata ( pCollectionName, cataInfo );
             if ( SDB_CAT_NO_MATCH_CATALOG == rc )
             {
-               // couldn't find the match catalogue,
-               // then get from catalogue-node
                isNeedRefreshCata = TRUE;
                continue;
             }
@@ -634,7 +613,6 @@ namespace engine
          }
          CHAR *pBuffer = NULL;
          INT32 bufferSize = 0;
-         // the buffer will be free after call sendRequestToPrimary
          rc = msgBuildQueryCatalogReqMsg ( &pBuffer, &bufferSize,
                                            0, 0, 0, 1, cb->getTID(),
                                            &boQuery, &boFieldSelector,
@@ -658,15 +636,10 @@ namespace engine
             rtnCoordClearRequest( cb, sendNodes );
             if ( FALSE == isNeedRefresh )
             {
-               // maybe the primary switch,
-               // refresh the catalogue-group info
                isNeedRefresh = TRUE;
                continue;
             }
 
-            // the catalogue-group info is refreshed,
-            // but also send failed
-            // maybe there is no primary
             PD_LOG ( PDERROR,
                      "Failed to send the request to catalogue-group(rc=%d)",
                      rc );
@@ -682,7 +655,6 @@ namespace engine
             break;
          }
 
-         // process reply
          BOOLEAN isGetExpectReply = FALSE;
          while ( !replyQue.empty() )
          {
@@ -694,8 +666,6 @@ namespace engine
                rc = rtnCoordProcessQueryCatReply( pReply, cataInfo );
                if ( SDB_CLS_NOT_PRIMARY == rc )
                {
-                  // set the old-primary-node to slave
-                  // then refresh the group-info from catalogue-node
                   cataGroupInfo->setSlave( pReply->header.routeID );
                }
                else
@@ -713,9 +683,6 @@ namespace engine
             }
          }
 
-         // catalogue-node reply no primary
-         // and the catalogue-group info have not be refreshed,
-         // maybe the catalogue-group-info is expired and refresh it
          if ( SDB_CLS_NOT_PRIMARY == rc && FALSE == isNeedRefresh )
          {
             isNeedRefresh = TRUE;
@@ -766,8 +733,6 @@ namespace engine
             rc = rtnCoordGetLocalGroupInfo ( groupID, groupInfo );
             if ( SDB_COOR_NO_NODEGROUP_INFO == rc )
             {
-               // couldn't find the match catalogue,
-               // then get from catalogue-node
                isNeedRefresh = TRUE;
                continue;
             }
@@ -798,8 +763,6 @@ namespace engine
             rc = rtnCoordGetLocalGroupInfo ( groupName, groupInfo ) ;
             if ( SDB_COOR_NO_NODEGROUP_INFO == rc )
             {
-               // couldn't find the match catalogue,
-               // then get from catalogue-node
                isNeedRefresh = TRUE ;
                continue ;
             }
@@ -867,7 +830,6 @@ namespace engine
 
       do
       {
-         // if catalogure group
          if ( CATALOG_GROUPID == groupID ||
               ( groupName && 0 == ossStrcmp( groupName, CATALOG_GROUPNAME ) ) )
          {
@@ -946,7 +908,6 @@ namespace engine
                      "get reply failed(rc=%d)", rc );
             break ;
          }
-         // process reply
          while ( !replyQue.empty() )
          {
             MsgCatGroupRes *pReply = NULL;
@@ -1025,8 +986,6 @@ namespace engine
             if ( ( SDB_OK == rc && groupInfo->getGroupSize() == 0 ) ||
                  SDB_COOR_NO_NODEGROUP_INFO == rc )
             {
-               // couldn't find the match group-info,
-               // then get from catalogue-node
                isNeedRefresh = TRUE;
                continue ;
             }
@@ -1318,7 +1277,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNCOGETGROUPSBYCATAINFO ) ;
       if ( !cataInfo->isMainCL() )
       {
-         // normal collection or sub-collection
          cataInfo->getGroupLst( groupLst );
          if ( groupLst.size() <= 0 )
          {
@@ -1326,7 +1284,6 @@ namespace engine
          }
          else
          {
-            //don't resend to the node which reply ok
             CoordGroupList::iterator iter = sendGroupLst.begin();
             while( iter != sendGroupLst.end() )
             {
@@ -1337,7 +1294,6 @@ namespace engine
       }
       else
       {
-         // main-collection
          std::vector< std::string > subCLLst;
          rc = cataInfo->getSubCLList( subCLLst );
          PD_RC_CHECK( rc, PDERROR, "Failed to get sub-collection list(rc=%d)",
@@ -1687,8 +1643,6 @@ namespace engine
          rc = pRouteAgent->syncSend( primaryRouteID, pBuffer, reqID, cb );
          if ( rc != SDB_OK )
          {
-            // maybe the old primary-node is occur error,
-            // so we should get the new primary node
             groupInfo->setSlave( primaryRouteID );
             PD_LOG ( PDWARNING, "Failed to send the request to primary(rc=%d)",
                      rc );
@@ -1724,8 +1678,6 @@ namespace engine
          rc = pRouteAgent->syncSend( primaryRouteID, pBuffer, iov, reqID, cb );
          if ( rc != SDB_OK )
          {
-            // maybe the old primary-node is occur error,
-            // so we should get the new primary node
             groupInfo->setSlave( primaryRouteID );
             PD_LOG ( PDWARNING, "Failed to send the request to primary(rc=%d)",
                      rc );
@@ -1775,9 +1727,6 @@ namespace engine
          case PREFER_REPL_MASTER:
             {
                posTmp = groupItem->getPrimaryPos();
-               // if there is no primary,
-               // then do not break and go on to
-               // get random node
                if ( CLS_RG_NODE_POS_INVALID != posTmp )
                {
                   break;
@@ -1821,7 +1770,6 @@ namespace engine
          hasRetry = isNeedRetry;
          isNeedRetry = FALSE;
          /*******************************
-         // send to last node
          ********************************/
          MsgHeader *pHeader = (MsgHeader *)pBuffer ;
          CoordSession *pSession = NULL;
@@ -1846,7 +1794,6 @@ namespace engine
          }
 
          /*******************************
-         // send to new node
          ********************************/
          clsGroupItem *groupItem = groupInfo->getGroupItem() ;
          UINT32 nodeNum = groupInfo->getGroupSize() ;
@@ -1873,14 +1820,11 @@ namespace engine
          UINT32 i = 0;
          while ( i != nodeNum )
          {
-            // all slave node have been sent
             if ( i + 1 == nodeNum
                && PREFER_REPL_ANYONE != preferReplicaType
                && PREFER_REPL_MASTER != preferReplicaType )
             {
                routeID = groupItem->primary( type );
-               // there is not primary node,
-               // so the last node is not primary
                if ( MSG_INVALID_ROUTEID == routeID.value )
                {
                   rc = groupItem->getNodeID( beginPos, routeID, type ) ;
@@ -1968,7 +1912,6 @@ namespace engine
          hasRetry = isNeedRetry;
          isNeedRetry = FALSE;
          /*******************************
-         // send to last node
          ********************************/
          MsgHeader *pHeader = (MsgHeader *)pBuffer ;
          CoordSession *pSession = cb->getCoordSession();
@@ -1992,7 +1935,6 @@ namespace engine
          }
 
          /*******************************
-         // send to new node
          ********************************/
          clsGroupItem *groupItem = groupInfo->getGroupItem() ;
          UINT32 nodeNum = groupInfo->getGroupSize() ;
@@ -2019,14 +1961,11 @@ namespace engine
          UINT32 i = 0;
          while ( i != nodeNum )
          {
-            // all slave node have been sent
             if ( i + 1 == nodeNum
                && PREFER_REPL_ANYONE != preferReplicaType
                && PREFER_REPL_MASTER != preferReplicaType )
             {
                routeID = groupItem->primary( type );
-               // there is not primary node,
-               // so the last node is not primary
                if ( MSG_INVALID_ROUTEID == routeID.value )
                {
                   rc = groupItem->getNodeID( beginPos, routeID, type ) ;
@@ -2225,7 +2164,6 @@ namespace engine
                   break;
                }
 
-               // the pCataInfoTmp will be deleted by smart-point automatically
                CoordCataInfo *pCataInfoTmp = NULL;
                pCataInfoTmp = SDB_OSS_NEW CoordCataInfo( beVersion.number(),
                                                       beName.str().c_str() );
@@ -2510,7 +2448,6 @@ namespace engine
       BSONElement ele ;
       CoordGroupInfoPtr grpPtr ;
 
-      // group id
       ele = obj.getField( CAT_GROUPID_NAME ) ;
       if ( ele.type() == NumberInt )
       {
@@ -2536,7 +2473,6 @@ namespace engine
          goto error ;
       }
 
-      // group name
       ele = obj.getField( FIELD_NAME_GROUPNAME ) ;
       if ( ele.type() == String )
       {
@@ -2792,7 +2728,6 @@ namespace engine
                                     INT32 retCode )
    {
       INT32 rc = SDB_OK;
-      //PD_TRACE_ENTRY ( SDB_RTNCOUPNODESTATBYRC ) ;
       CoordGroupInfoPtr groupInfo;
       clsGroupItem *groupItem;
       NET_NODE_STATUS status = NET_NODE_STAT_NORMAL;
@@ -2827,7 +2762,6 @@ namespace engine
       groupItem->updateNodeStat( routeID.columns.nodeID,
                                  status );
    done:
-      //PD_TRACE_EXIT ( SDB_RTNCOUPNODESTATBYRC ) ;
       return ;
    }
 
@@ -2864,11 +2798,9 @@ namespace engine
       REQUESTID_MAP successNodes ;
       ROUTE_RC_MAP failedNodes ;
 
-      // list all groups
       rc = rtnCoordGetAllGroupList( cb, groupLst, NULL, FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get all group list, rc: %d", rc ) ;
 
-      // get nodes
       rc = rtnCoordGetGroupNodes( cb, BSONObj(), NODE_SEL_ALL,
                                   groupLst, sendNodes ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get nodes, rc: %d", rc ) ;
@@ -2879,7 +2811,6 @@ namespace engine
          goto error ;
       }
 
-      // send msg, no response
       rtnCoordSendRequestToNodes( (void*)&ntyMsg, sendNodes, 
                                   pRouteAgent, cb, successNodes,
                                   failedNodes ) ;

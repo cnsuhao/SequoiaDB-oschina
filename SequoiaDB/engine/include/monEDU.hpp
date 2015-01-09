@@ -49,8 +49,6 @@ namespace engine
 #define MON_EDU_TYPE_SZ          (19)
 #define MON_EDU_NAME_SZ          (63)
 
-   // simple structure for EDU monitor
-   // this is used for list command
    class _monEDUSimple : public SDBObject
    {
    public :
@@ -74,8 +72,6 @@ namespace engine
    } ;
    typedef class _monEDUSimple monEDUSimple ;
 
-   // full structure for EDU monitor
-   // this is used for snapshot command
    class _monEDUFull : public SDBObject
    {
    public :

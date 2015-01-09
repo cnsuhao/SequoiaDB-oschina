@@ -45,8 +45,6 @@
 #include "pd.hpp"
 namespace engine
 {
-   /// can not be a virtual class.
-   /// since it will create virtual ptr table.
    class _dpsLogRecordHeader
    {
    public:
@@ -100,19 +98,12 @@ namespace engine
       }
 
    public:
-      // 0x00 - 0x07
       DPS_LSN_OFFSET _lsn;
-      // 0x08 - 0x0F
       DPS_LSN_OFFSET _preLsn;
-      // 0x10 - 0x13
       UINT32 _length;
-      // 0x14 - 0x17
       DPS_LSN_VER _version ;
-      // 0x18 - 0x19
       UINT16 _type;
-      // 0x1A - 0x1B
       UINT16 _reserved1 ;
-      // 0x1C - 0x1F
       UINT32 _reserved2 ;
    } ;
    typedef class _dpsLogRecordHeader dpsLogRecordHeader ;
@@ -132,12 +123,6 @@ namespace engine
    typedef class _dpsRecordEle dpsRecordEle ;
 #pragma pack()
 
-   /// record ::= header body
-   /// body ::= +(item)
-   /// item ::= tag len value
-   /// tag ::= UINT8
-   /// len ::= UINT32
-   /// value ::= CHAR *
    class _dpsLogRecord : public SDBObject
    {
    public:

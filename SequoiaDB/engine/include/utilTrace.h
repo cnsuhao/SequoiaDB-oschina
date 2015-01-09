@@ -29,7 +29,6 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef utilTRACE_H__
 #define utilTRACE_H__
-// Component: util
 #define SDB__LINENOISECMDBLD__RELSNODE                     0x10000000000007aL
 #define SDB__LINENOISECMDBLD__LOADCMD                      0x10000000000007bL
 #define SDB__LINENOISECMDBLD__ADDCMD                       0x10000000000007cL

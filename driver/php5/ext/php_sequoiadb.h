@@ -124,8 +124,6 @@ PHP_METHOD ( SequoiaCursor, __construct ) ;
 PHP_METHOD ( SequoiaCursor, __destruct ) ;
 PHP_METHOD ( SequoiaCursor, getNext ) ;
 PHP_METHOD ( SequoiaCursor, current ) ;
-//PHP_METHOD ( SequoiaCursor, updateCurrent ) ;
-//PHP_METHOD ( SequoiaCursor, deleteCurrent ) ;
 
 PHP_METHOD ( SequoiaDomain, alterDomain ) ;
 PHP_METHOD ( SequoiaDomain, listCSInDomain ) ;

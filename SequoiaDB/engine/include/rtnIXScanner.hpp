@@ -73,23 +73,9 @@ namespace engine
 
       ixmRecordID _curIndexRID ;
       BOOLEAN _init ;
-      // need to store a duplicate buffer for dmsRecordID for each ixscan,
-      // because each record may be refered by more than one index key (say
-      // {c1:[1,2,3,4,5]}, there will be 5 index keys pointing to the same
-      // record), so index scan may return the same record more than one time,
-      // which should be avoided. Thus we keep a set ( maybe we can further
-      // improve performance by customize data structure ) to record id that
-      // already scanned.
-      // note that a record id will not be changed during update because it will
-      // use overflowed record with existing record head
       UINT64 _dedupBufferSize ;
       set<dmsRecordID> _dupBuffer ;
 
-      // after the caller release X latch, another session may change the index
-      // structure. So everytime before releasing X latch, the caller must store
-      // the current obj, and then verify if it's still remaining the same after
-      // next check. If the object doens't match the on-disk obj, something must
-      // goes changed and we should relocate
       BSONObj _savedObj ;
       dmsRecordID _savedRID ;
 
@@ -151,20 +137,9 @@ namespace engine
          _dupBuffer.clear() ;
          _init    = FALSE ;
       }
-      // save the bson key for the current index rid, before releasing X latch
-      // on the collection
-      // we have to call resumeScan after getting X latch again just in case
-      // other sessions changed tree structure
       INT32 pauseScan( BOOLEAN isReadOnly = TRUE ) ;
-      // restoring the bson key and rid for the current index rid. This is done
-      // by comparing the current key/rid pointed by _curIndexRID still same as
-      // previous saved one. If so it means there's no change in this key, and
-      // we can move on the from the current index rid. Otherwise we have to
-      // locate the new position for the saved key+rid
       INT32 resumeScan( BOOLEAN isReadOnly = TRUE ) ;
 
-      // return SDB_IXM_EOC for end of index
-      // otherwise rid is set to dmsRecordID
       INT32 advance ( dmsRecordID &rid, BOOLEAN isReadOnly = TRUE ) ;
       INT32 relocateRID () ;
       INT32 relocateRID ( const BSONObj &keyObj, const dmsRecordID &rid ) ;

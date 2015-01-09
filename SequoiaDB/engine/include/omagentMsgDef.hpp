@@ -38,7 +38,6 @@
 #include "omDef.hpp"
 #include "omagentDef.hpp"
 
-// field
 #define OMA_FIELD_HOSTINFO                         OM_REST_FIELD_HOST_INFO
 #define OMA_FIELD_SSH_PORT                         OM_BSON_FIELD_HOST_SSHPORT
 #define OMA_FIELD_AGENT_PORT                       OM_BSON_FIELD_AGENT_PORT
@@ -124,7 +123,6 @@
 #define OMA_FIELD_TASKDETAIL                       "TaskDetail"
 
 
-// host info
 #define OMA_FIELD_HOST                             "Host"
 #define OMA_FIELD_OS                               "OS"
 #define OMA_FIELD_OM                               "OM"
@@ -140,47 +138,36 @@
 #define OMA_FIELD_SERVICE                          "Service"
 #define OMA_FIELD_SAFETY                           "Safety"
 
-// om
 #define OMA_FIELD_VERSION                          "Version"
 #define OMA_FIELD_PATH                             "Path"
 
-// memory
 #define OMA_FIELD_SIZE                             "Size"
 #define OMA_FIELD_MODEL                            "Model"
 #define OMA_FIELD_FREE                             "Free"
 #define OMA_FIELD_UNIT                             "Unit"
 
-// Disk
 #define OMA_FIELD_NAME                             "Name"
 #define OMA_FIELD_FILESYSTEM                       "Filesystem"
 #define OMA_FIELD_MOUNT                            "Mount"
 #define OMA_FIELD_ISLOCAL                          "IsLocal"
 #define OMA_FIELD_USED                             "Used"
 
-// cpu
 #define OMA_FIELD_ID                               "ID"
 #define OMA_FIELD_CORE                             "Core"
 #define OMA_FIELD_MODEL                            "Model"
 #define OMA_FIELD_FREQ                             "Freq"
 
-// net
 #define OMA_FIELD_BANDWIDTH                        "Bandwidth"
 
-// port
 #define OMA_FIELD_STATUS                           "Status"
 
-// service
 
-// safety
 #define OMA_FIELD_CONTEXT                          "Context"
 
-// business
 #define OMA_FIELD_CLUSTERNAME                      "ClusterName"
 
-// install db business result
 
 
-// config file
 #define OMA_OPTION_DATAGROUPNAME                   "datagroupname"
 #define OMA_OPTION_HELP                            PMD_OPTION_HELP
 #define OMA_OPTION_VERSION                         PMD_OPTION_VERSION

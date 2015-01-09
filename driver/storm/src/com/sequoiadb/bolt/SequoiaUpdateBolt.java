@@ -2,7 +2,6 @@ package com.sequoiadb.bolt;
 
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
-//import org.apache.log4j.Logger;
 import org.bson.BSONObject;
 import org.bson.BasicBSONObject;
 
@@ -15,7 +14,6 @@ import com.sequoiadb.core.UpdateQueryCreator;
 
 
 public class SequoiaUpdateBolt extends SequoiaBoltBase {
-	//private static Logger LOG = Logger.getLogger(SequoiaUpdateBolt.class);
 	private static final long serialVersionUID = -3179653776895938041L;
 	private UpdateQueryCreator  updateQueryCreator;
 	private LinkedBlockingQueue<Tuple> queue = new LinkedBlockingQueue<Tuple>(1024);
@@ -37,11 +35,9 @@ public class SequoiaUpdateBolt extends SequoiaBoltBase {
 		task = new SequoiaBoltTask(queue, sdb, space, collection, updateQueryCreator, mapper) {
 			@Override
 			public void execute(Tuple tuple) {
-				//Unpack the query
 				BSONObject updateQuery = this.updateQueryCreator.createQuery(tuple);
 				BSONObject mappedUpdateObject = new BasicBSONObject();
 				mappedUpdateObject = this.mapper.map(mappedUpdateObject, tuple);
-				//create the update statement
 				collection.upsert(updateQuery, mappedUpdateObject, null);
 			}
 		};
@@ -60,7 +56,6 @@ public class SequoiaUpdateBolt extends SequoiaBoltBase {
 
 	@Override
 	public void declareOutputFields(OutputFieldsDeclarer declarer) {
-		// TODO Auto-generated method stub
 		
 	}
 

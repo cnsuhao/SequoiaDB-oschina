@@ -23,7 +23,6 @@ public class AirlineMapper extends
 	public void map(Object key, BSONObject value, Context context)
 			throws IOException, InterruptedException {
 
-		// 提取身份证为KEY
 		String credentNo = (String) value.get("credent_no");
 		if (credentNo != null) {
 			context.write(new Text(credentNo), new BSONWritable(

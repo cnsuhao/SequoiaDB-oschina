@@ -26,7 +26,6 @@ public class ByteOutputBuffer extends OutputBuffer {
 
 	@Override
 	public void write(int b) {
-		//_ensure(1);
 		byteBuffer.put((byte) (0xFF & b));
 	}
 

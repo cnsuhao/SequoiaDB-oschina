@@ -29,7 +29,6 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef mthTRACE_H__
 #define mthTRACE_H__
-// Component: mth
 #define SDB__MTHMACH__MTHELEMT__MTHELEMT                   0x8000000000119L
 #define SDB__MTHMACH__PSELE                                0x800000000011aL
 #define SDB__MTHMACH__ADDOP                                0x800000000011bL

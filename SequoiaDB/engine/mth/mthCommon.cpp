@@ -42,17 +42,12 @@
 
 namespace engine
 {
-   // the function try to append newStr to ppStr.
-   // if the buffer is not large enough the function is responsible to allocate
-   // a larger one. If failed to allocate larger buffer, this function must
-   // maintain the validity of original pointer
    INT32 mthAppendString ( CHAR **ppStr, INT32 &bufLen,
                            INT32 strLen, const CHAR *newStr,
                            INT32 newStrLen, INT32 *pMergedLen )
    {
       INT32 rc = SDB_OK ;
       SDB_ASSERT ( ppStr && newStr, "str or newStr can't be NULL" ) ;
-      // if user doesn't know the string length, pass 0
       if ( !*ppStr )
       {
          strLen = 0 ;
@@ -61,15 +56,12 @@ namespace engine
       {
          strLen = ossStrlen ( *ppStr ) ;
       }
-      // if user doesn't know the new string len, pass 0
       if ( newStrLen <= 0 )
       {
          newStrLen = ossStrlen ( newStr ) ;
       }
-      // make sure the string len and new string len is less than buffer
       if ( strLen + newStrLen >= bufLen )
       {
-         // we need to allocate more memory if exceed buffer
          CHAR *pOldStr = *ppStr ;
          INT32 newSize = ossRoundUpToMultipleX ( strLen + newStrLen,
                                                  SDB_PAGE_SIZE ) ;
@@ -89,8 +81,6 @@ namespace engine
          }
          bufLen = newSize ;
       }
-      // now new buffer is allocated or we already have enough memory, let's do
-      // copy
       if ( *ppStr && newStr )
       {
          ossMemcpy ( &(*ppStr)[strLen], newStr, newStrLen ) ;
@@ -168,7 +158,6 @@ namespace engine
                *(CHAR*)pDot = 0 ;
             }
             rc = ossStrToInt( pTmp + 1, &number ) ;
-            // Restore
             if ( pDot )
             {
                *(CHAR*)pDot = '.' ;
@@ -208,7 +197,6 @@ namespace engine
                *(CHAR*)pDot = 0 ;
             }
             rc = ossStrToInt( pTmp + 1, &number ) ;
-            // Restore
             if ( pDot )
             {
                *(CHAR*)pDot = '.' ;

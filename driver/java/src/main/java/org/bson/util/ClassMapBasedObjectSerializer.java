@@ -57,7 +57,6 @@ class ClassMapBasedObjectSerializer extends AbstractObjectSerializer {
 	 * @param buf
 	 *            StringBuilder containing the JSON representation of the object
 	 */
-	//@Override
 	public void serialize(Object obj, StringBuilder buf) {
 
 		obj = BSON.applyEncodingHooks(obj);

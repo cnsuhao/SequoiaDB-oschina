@@ -67,7 +67,6 @@ namespace engine
    {
       _local = NULL ;
       _table.clear() ;
-      /// warning: node in _table will not be released here!
    }
 
    PD_TRACE_DECLARE_FUNCTION( SDB__QGMEXTENDPLAN_EXTEND, "_qgmExtendPlan::extend" )

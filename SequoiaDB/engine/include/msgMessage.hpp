@@ -169,8 +169,6 @@ INT32 msgExtractReply ( CHAR *pBuffer, SINT32 *flag, SINT64 *contextID,
                         SINT32 *startFrom, SINT32 *numReturned,
                         vector<BSONObj> &objList ) ;
 
-// Reply need sessionID ( nodeID + reqID ) to reply to sender, so we need to
-// pass both
 void msgBuildReplyMsgHeader ( MsgOpReply &replyHeader, SINT32 packetLength,
                               INT32 opCode, SINT32 flag, SINT64 contextID, 
                               SINT32 startFrom, SINT32 numReturned, 
@@ -179,8 +177,6 @@ void msgBuildReplyMsgHeader ( MsgOpReply &replyHeader, SINT32 packetLength,
 INT32 msgBuildDisconnectMsg ( CHAR **ppBuffer, INT32 *bufferSize,
                               UINT64 reqID ) ;
 
-// Disconnect need sessionID ( nodeID + reqID ) to send to data nodes, so we
-// need to pass both
 void msgBuildDisconnectMsg ( MsgOpDisconnect &disconnectHeader,
                              MsgRouteID &nodeID, UINT64 reqID );
 
@@ -203,7 +199,6 @@ INT32 msgBuildQuerySpaceReqMsg ( CHAR **ppBuffer, INT32 *pBufferSize,
 
 INT32 msgExtractSql( CHAR *pBuffer, CHAR **sql ) ;
 
-// cluster manager
 INT32 msgBuildCMRequest ( CHAR **ppBuffer, INT32 *pBufferSize, SINT32 remoCode,
                           const BSONObj *arg1 = NULL,
                           const BSONObj *arg2 = NULL,

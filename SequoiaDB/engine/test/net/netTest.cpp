@@ -251,7 +251,6 @@ TEST(netTest, agent_1)
       ASSERT_TRUE(handler2._msg.b == msg.body.b);
    }
 
-//   ASSERT_TRUE( SDB_NET_CANNOT_CONNECT == sender.syncSend(MY_ID_2, &msg, sizeof(msg))) ;
    sender.close(MY_ID_1) ;
    ossSleepsecs(1);
    agent.stop();
@@ -268,10 +267,8 @@ TEST(netTest, myTest)
    boost::thread t(run, &acceptor);
 
    ossSleepsecs(1);
-//   _netFrame connector(NULL);
    MY_ID_1.columns.groupID = 1;
    MY_ID_1.columns.nodeID = 1;
-//   ASSERT_TRUE(SDB_OK == connector.syncConnect(HOST, SERVICE, MY_ID_1));
    _ossSocket sock( HOST, 12345) ;
    sock.initSocket() ;
    ASSERT_TRUE( SDB_OK == sock.connect() ) ;
@@ -286,7 +283,6 @@ TEST(netTest, myTest)
       ossTimestamp start;
       ossGetCurrentTime(start);
       rc = sock.send((const CHAR *)&msg, sizeof(msg), sentLen, -1) ;
-//      rc = connector.syncSend(MY_ID_1, &msg) ;
       ossTimestamp end ;
       ossGetCurrentTime( end ) ;
       total += end.time * 1000000 + end.microtm - start.time*1000000 - start.microtm ;

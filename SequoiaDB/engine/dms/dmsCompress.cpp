@@ -54,7 +54,6 @@ namespace engine
       SDB_ASSERT ( pInputData && ppData && pDataSize,
                    "Data pointer and size pointer can't be NULL" ) ;
 
-      // estimate the max possible size for compressed data
       size_t maxCompressedLen = snappy::MaxCompressedLength ( inputSize ) ;
 
       pBuff = cb->getCompressBuff( maxCompressedLen ) ;
@@ -66,11 +65,9 @@ namespace engine
          goto error ;
       }
 
-      // let's rock :)
       snappy::RawCompress ( pInputData, (size_t)inputSize,
                             pBuff, &maxCompressedLen ) ;
 
-      // assign the output buffer pointer
       if ( ppData )
       {
          *ppData = pBuff ;
@@ -93,13 +90,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       CHAR *pTmpBuff = NULL ;
 
-      // if we want to append OID, then
       if ( oidLen && pOIDPtr )
       {
          INT32 tmpBuffLen = 0 ;
          const CHAR *pObjData = NULL ;
 
-         // get the requested size by adding object size and oid size
          INT32 requestedSize = obj.objsize() + oidLen + DMS_RECORD_METADATA_SZ ;
          rc = cb->allocBuff( requestedSize, &pTmpBuff, tmpBuffLen ) ;
          if ( rc )
@@ -144,7 +139,6 @@ namespace engine
                    "Data pointer and size pointer can't be NULL" ) ;
 
       size_t maxUncompressedLen = 0 ;
-      // estimate the max possible size for uncompressed data + sanity check
       result = snappy::GetUncompressedLength ( pInputData, (size_t)inputSize,
                                                &maxUncompressedLen ) ;
       if ( !result )
@@ -163,7 +157,6 @@ namespace engine
          goto error ;
       }
 
-      // let's rock :)
       result = snappy::RawUncompress ( pInputData, (size_t)inputSize,
                                        pBuff ) ;
       if ( !result )
@@ -173,7 +166,6 @@ namespace engine
          goto error ;
       }
 
-      // assign return value
       if ( ppData )
       {
          *ppData = pBuff ;

@@ -44,8 +44,6 @@
 #include "ixmTrace.hpp"
 namespace engine
 {
-   // each field has a 1 byte prefix, including
-   // [NOT USED] [HASMORE] [x] [y] [canontype_4bits]
    enum _ixmCanonicalTypes
    {
       cminkey         = 1   , // minkey
@@ -67,16 +65,10 @@ namespace engine
       cHASMORE        = 0x40 , // if this bit is set, then we have more elements
       cNOTUSED        = 0x80
    } ;
-   // note that we convert long long/ double and int to cdouble with cX/cY
-   // prefix, this is useful when we attempt to compare multiple types of values
-   // (ex, double to long long)
-   // little additional overhead is needed when converting from long long /int
-   // to double, but this makes comparison faster
 
    const UINT32 BinDataLenMask  = 0xF0 ; // lengths are power of 2 of this val
    const UINT32 BinDataTypeMask = 0x0F; // 0-7 are type
    const INT32  BinDataLenMax   = 32 ; // max 2^32
-   // map 32 bits to 16 bits (0xFF to 0xF), use -1 in some slot
    const INT32 BinDataLengthToCode[] =
    {
       0x00, 0x10, 0x20, 0x30, 0x40, 0x50, 0x60, 0x70,
@@ -93,7 +85,6 @@ namespace engine
       return BinDataCodeToLength[codeByte >> 4];
    }
 
-   // convert from BSON to index key
    _ixmKeyOwned::_ixmKeyOwned ( const BSONObj & obj )
    {
       BSONObj::iterator i(obj) ;
@@ -101,42 +92,32 @@ namespace engine
       while ( TRUE )
       {
          BSONElement e = i.next() ;
-         // if there's still more elements, let's set HASMORE bit
          if ( i.more() )
             bits |= cHASMORE ;
          switch ( e.type() )
          {
-         // one byte for minkey
          case MinKey:
             _b.appendUChar ( cminkey|bits ) ;
             break ;
-         // one byte for null
          case jstNULL:
              _b.appendUChar(cnull|bits);
              break;
-         // one byte for undefined
          case Undefined:
              _b.appendUChar(cundefined|bits);
              break;
-         // one byte for maxkey
          case MaxKey:
              _b.appendUChar(cmaxkey|bits);
              break;
-         // one byte for true/false
          case Bool:
              _b.appendUChar( (e.boolean()?ctrue:cfalse) | bits );
              break;
-         // oid type byte + oid data
          case jstOID:
              _b.appendUChar(coid|bits);
              _b.appendBuf(&e.__oid(), sizeof(OID));
              break;
-         // binary data, 1 byte type + 1 byte code + x bytes data
-         // or call traditional() function if the type is not supported
          case BinData:
          {
             INT32 t = e.binDataType () ;
-            // 0-7 and 0x80 to 0x87 are supported by Key
             if ( (t&0x78) == 0 && t!=ByteArrayDeprecated )
             {
                INT32 len ;
@@ -158,22 +139,16 @@ namespace engine
                   }
                }
             }
-            // if the bin data is not supported format, we just make traditional
-            // object and return
             _traditional ( obj ) ;
             return ;
          }
-         // date type, 1 byte type + date struct
          case Date :
             _b.appendUChar ( cdate|bits ) ;
             _b.appendStruct ( e.date() ) ;
             break ;
-         // string type, 1 byte type + 1 byte size + string
-         // if the size > 255 then we store traditional
          case String :
          {
             _b.appendUChar ( cstring|bits ) ;
-            // note we don't store the terminating null to save space
             UINT32 len = (UINT32)e.valuestrsize() -1 ;
             if ( len > 255 )
             {
@@ -184,22 +159,16 @@ namespace engine
             _b.appendBuf ( e.valuestr(), len ) ;
             break ;
          }
-         // 32 bit integer type
          case NumberInt :
             _b.appendUChar ( cint|bits ) ;
-            // since int is represent by cY + cdouble, so we store as double
             _b.appendNum ( (FLOAT64)e._numberInt() ) ;
             break ;
-         // 64 bit long long type
          case NumberLong :
          {
             SINT64 n = e._numberLong() ;
-            // double integer bits
             SINT64 m = 2LL << 52 ;
             if ( n>= m || n<= -m )
             {
-               // this big number can't be converted to double without lossing
-               // digits
                _traditional ( obj ) ;
                return ;
             }
@@ -207,13 +176,11 @@ namespace engine
             _b.appendNum ( (FLOAT64)n ) ;
             break ;
          }
-         // double type
          case NumberDouble :
          {
             FLOAT64 d = e._numberDouble() ;
             if ( isNaN (d) )
             {
-               // NaN type can't be represented in compact mode
                _traditional ( obj ) ;
                return ;
             }
@@ -221,7 +188,6 @@ namespace engine
             _b.appendNum(d) ;
             break ;
          }
-         // other types using traditional
          default :
             _traditional ( obj ) ;
             return ;
@@ -236,7 +202,6 @@ namespace engine
       SDB_ASSERT ( (*_keyData & cNOTUSED)==0,
                    "data type is invalid" ) ;
    }
-   // convert from existing key to owned key
    _ixmKeyOwned::_ixmKeyOwned ( const _ixmKey &r )
    {
       _b.appendBuf ( r.data(), r.dataSize() ) ;
@@ -247,16 +212,12 @@ namespace engine
                    "Flag is not correct" ) ;
    }
 
-   // check whether all keys are undefined type
    BOOLEAN _ixmKey::isUndefined() const
    {
       if ( _keyData == 0 )
          return FALSE ;
       if ( !isCompactFormat() )
       {
-         // if it's native bson type, we have to go through each element and
-         // check whether if it's Undefined, if any element doesn't match, we
-         // return FALSE
          BSONObjIterator it ( _bson() ) ;
          while ( it.more() )
          {
@@ -266,15 +227,12 @@ namespace engine
       }
       else
       {
-         // loop through all types and check whether we got cundefined for all
-         // fields
          const UINT8 *p = _keyData ;
          while ( TRUE )
          {
             UINT8 bits = *p++ ;
             if ( cundefined != ( bits & 0x3F ) )
                return FALSE ;
-            // break when we don't have any more fields
             if ( (bits & cHASMORE) == 0 )
                break ;
          }
@@ -283,7 +241,6 @@ namespace engine
    }
 
 
-   // convert from key to bson
    BSONObj _ixmKey::toBson() const
    {
       if ( _keyData == 0 )
@@ -296,7 +253,6 @@ namespace engine
       while ( TRUE )
       {
          UINT8 bits = *p++ ;
-         // type and cX and cY
          switch ( bits & 0x3F )
          {
          case cminkey: b.appendMinKey("") ;      break ;
@@ -361,9 +317,6 @@ namespace engine
       }
       return b.obj() ;
    }
-   // convert a regular BSON object to key
-   // this is done by adding a single 0xff at first byte (using b.appendUChar)
-   // and then append obj.objdata()
    void _ixmKeyOwned::_traditional(const BSONObj &obj)
    {
       _b.reset() ;
@@ -371,24 +324,16 @@ namespace engine
       _b.appendBuf ( obj.objdata(), obj.objsize() ) ;
       _keyData = (const UINT8 *)_b.buf() ;
    }
-   // compare of two compact buffer
    static INT32 compare(const UINT8 *&l, const UINT8 *&r)
    {
-      // left type
       UINT32 lt = (*l & cCANONTYPEMASK);
-      // right type
       UINT32 rt = (*r & cCANONTYPEMASK);
       UINT32 x = lt - rt;
-      // if types are different, return the diff
       if( x )
          return x;
-      // both left and right move to next byte
       l++; r++;
-      // now left and right are the same type
       switch( lt )
       {
-      // all int/double/float types are converting to double, so this is
-      // actually not limited to double type
       case cdouble:
       {
          FLOAT64 L = (reinterpret_cast< const PackedDouble* >(l))->d;
@@ -406,11 +351,9 @@ namespace engine
          INT32 rsz = *r;
          INT32 common = OSS_MIN(lsz, rsz);
          l++; r++; // skip the size byte
-         // use memcmp as we (will) allow zeros in UTF8 strings
          INT32 res = ossMemcmp(l, r, common);
          if( res )
             return res;
-         // longer string is the greater one
          INT32 diff = lsz-rsz;
          if( diff )
             return diff;
@@ -425,14 +368,11 @@ namespace engine
          INT32 diff = L-R; // checks length and subtype simultaneously
          if( diff )
          {
-            // unfortunately nibbles are backwards to do subtype and len
-            // in one check (could bit swap...)
             INT32 rlen = binDataCodeToLength(R);
             if( llen != rlen )
                return llen - rlen;
             return diff;
          }
-         // same length, same type
          l++; r++;
          INT32 res = ossMemcmp(l, r, llen);
          if( res )
@@ -460,7 +400,6 @@ namespace engine
          break;
       }
       default:
-         // all the others are a match -- e.g. null == null
          ;
       }
       return 0;
@@ -472,7 +411,6 @@ namespace engine
       BSONObj R = r.toBson();
       return L.woCompare(R, order, /*considerfieldname*/false);
    }
-   // well ordered compare
    INT32 _ixmKey::woCompare ( const _ixmKey &right, const Ordering &o ) const
    {
       const UINT8 *l = _keyData;
@@ -482,27 +420,20 @@ namespace engine
       CHAR rval = 0 ;
       INT32 x = 0 ;
       INT32 y = 0 ;
-      // if any side are native BSON, let's use compareHybrid
       if( (*l|*r) == IsBSON )
          return _compareHybrid(right, o);
 
       while( TRUE )
       {
-         // lvar and rval need to be assigned BEFORE compare, since compare is
-         // going to change l and r value
          lval = *l;
          rval = *r;
          x = compare(l, r); // updates l and r pointers
          if ( x )
             return o.descending(mask)?-x:x ;
-         // l and r are the same, let's compare if there's more
          y = (INT32)(lval & cHASMORE) ;
          x = y - ((INT32)(rval & cHASMORE));
-         // return if one side got more and the other side doesn't
          if ( x )
             return x ;
-         // if getMore are the same for both side, let's see if lside got more,
-         // if not let's break
          if ( !y )
             break ;
          mask <<= 1;
@@ -510,7 +441,6 @@ namespace engine
 
      return 0;
    }
-   // well ordered equal
    BOOLEAN _ixmKey::woEqual ( const _ixmKey &right ) const
    {
       const UINT8 *l = _keyData;
@@ -523,16 +453,12 @@ namespace engine
       {
          CHAR lval = *l ;
          CHAR rval = *r ;
-         // they can't be equal if the number of elements are not the same
-         // or type are not the same
          if( ( lval & ( cCANONTYPEMASK|cHASMORE ) ) !=
              ( rval & ( cCANONTYPEMASK|cHASMORE )))
             return FALSE ;
          l++; r++;
-         // now the type are the same, let's see the value
          switch( lval & cCANONTYPEMASK )
          {
-         // compare first 4 bytes, then use cdate to compare next 8 bytes
          case coid:
             if( *((UINT32*) l) != *((UINT32*) r) )
                return FALSE ;
@@ -568,9 +494,6 @@ namespace engine
             l += len; r += len;
             break;
          }
-         // for undef, min/max keys, null, false/true, they don't have real
-         // value, so as long as the types are the same, they are considered
-         // as equal
          case cminkey:
          case cundefined:
          case cnull:
@@ -614,8 +537,6 @@ namespace engine
       UINT32 sz = sizes[type];
       if( sz == 0 )
       {
-         // string is variable length
-         // 1 byte type + 1 byte length + data
          if( cstring == type )
          {
             sz = ((UINT32) p[1]) + 2 ;
@@ -628,13 +549,11 @@ namespace engine
       return sz;
    }
 
-   // get the size of key
    INT32 _ixmKey::dataSize() const
    {
       const UINT8 *p = _keyData;
       if( !isCompactFormat() )
       {
-         // bson length + 1 byte type
          return _bson().objsize() + 1 ;
       }
       BOOLEAN more ;

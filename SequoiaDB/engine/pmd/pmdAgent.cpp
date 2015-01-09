@@ -66,7 +66,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_PMDLOCALAGENTENTPNT );
-      //TODO: make sure the destructor execute after 'localSession.detach() ;'
       pmdCoordProcessor coordProcessor ;
 
       SOCKET s = *(( SOCKET *) &arg ) ;

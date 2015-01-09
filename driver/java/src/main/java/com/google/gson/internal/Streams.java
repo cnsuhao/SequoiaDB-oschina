@@ -50,7 +50,6 @@ public final class Streams {
       if (isEmpty) {
         return JsonNull.INSTANCE;
       }
-      // The stream ended prematurely so it is likely a syntax error.
       throw new JsonSyntaxException(e);
     } catch (MalformedJsonException e) {
       throw new JsonSyntaxException(e);

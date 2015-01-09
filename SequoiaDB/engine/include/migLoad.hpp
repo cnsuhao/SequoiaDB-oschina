@@ -75,31 +75,18 @@ namespace engine
 
    struct _setParameters : public SDBObject
    {
-      //file
       CHAR        *pFileName ;
-      //cs
       CHAR        *pCollectionSpaceName ;
-      //cl
       CHAR        *pCollectionName ;
-      //CSV field list ( CSV only )
       CHAR        *pFieldArray ;
-      //send msg to client socket
       ossSocket   *clientSock ;
-      //listen port ;
       CHAR        *port ;
-      //buffer sum size
       UINT32       bufferSize ;
-      //how many buffer split
       UINT32       bucketNum ;
-      //workers number
       UINT32       workerNum ;
-      //first line in input file is a header ( CSV only )
       BOOLEAN      headerline ;
-      //asynchronous load
       BOOLEAN      isAsynchronous ;
-      //Del char field record
       CHAR         delCFR[4] ;
-      //input file type ( CSV or Json )
       MIG_PARSER_FILE_TYPE fileType ;
    } ;
    typedef struct _setParameters setParameters ;

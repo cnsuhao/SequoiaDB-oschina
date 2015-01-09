@@ -136,12 +136,19 @@ namespace engine
    void sdbReportError( JSContext *cx, const char *msg,
                         JSErrorReport *report )
    {
+      return sdbReportError( report->filename, report->lineno, msg,
+                             JSREPORT_IS_EXCEPTION( report->flags ) ) ;
+   }
+
+   void sdbReportError( const CHAR *filename, UINT32 lineno,
+                        const CHAR *msg, BOOLEAN isException )
+   {
       BOOLEAN add = FALSE ;
 
       if ( SDB_OK == sdbGetErrno() || !__hasSetErrNo__ )
       {
          const CHAR *p = NULL ;
-         if ( JSREPORT_IS_EXCEPTION( report->flags ) && msg &&
+         if ( isException && msg &&
               NULL != ( p = ossStrstr( msg, ":" ) ) &&
               0 != ossAtoi( p + 1 ) )
          {
@@ -155,11 +162,10 @@ namespace engine
 
       if ( ( sdbIsErrMsgEmpty() || !__hasSetErrMsg__ ) && msg )
       {
-         if ( report->filename )
+         if ( filename )
          {
             stringstream ss ;
-            ss << report->filename << ":" << report->lineno << " "
-               << msg ;
+            ss << filename << ":" << lineno << " " << msg ;
             sdbSetErrMsg( ss.str().c_str() ) ;
          }
          else
@@ -172,9 +178,8 @@ namespace engine
       if ( sdbNeedPrintError() )
       {
          ossPrintf( "%s:%d %s\n",
-                    report->filename ? report->filename : "(nofile)" ,
-                    report->lineno ,
-                    msg ) ;
+                    filename ? filename : "(nofile)" ,
+                    lineno, msg ) ;
 
          if ( !add && !sdbIsErrMsgEmpty() &&
               NULL == ossStrstr( sdbGetErrMsg(), msg ) )

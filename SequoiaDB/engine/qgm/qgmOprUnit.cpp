@@ -279,7 +279,6 @@ namespace engine
       return FALSE ;
    }
 
-   /////////////////////////////////////////////////////////////////////////////
    _qgmAggrUnit::_qgmAggrUnit( QGM_OPTI_TYPE type )
    : _qgmOprUnit( type ) 
    {

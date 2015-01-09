@@ -70,9 +70,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 tmpRc = SDB_OK ;
 
-      // if other jobs have no problems
-      // ( _omaAddHostTask::_isAddHostFail == FALSE )
-      // register current job to task, and set current to be running
       BOOLEAN flag = _pTask->registerJob( _jobName ) ;
       if ( !flag )
       {
@@ -90,9 +87,6 @@ namespace engine
          INT32 errNum = 0 ;
          BSONObj retObj ;
 
-         // get a host item to install
-         // if no host item need to install, let this backgroud
-         // thread finish
          pInfo = _pTask->getAddHostItem() ;
          if ( NULL == pInfo )
          {
@@ -100,8 +94,6 @@ namespace engine
             goto done ;
          }
 
-         // befor install the host
-         // check wether there are some threads had been failing
          if ( _pTask->getIsAddHostFail() )
          {
             rc = SDB_SYS ;
@@ -109,7 +101,6 @@ namespace engine
                      "had failed", _jobName.c_str() ) ;
             goto error ;
          }
-         // before install the host, update the progress status
          ossSnprintf( desc, OMA_BUFF_SIZE, "Adding host[%s]",
                       pInfo->_item._ip.c_str() ) ;
          ps._desc = desc ;
@@ -121,7 +112,6 @@ namespace engine
             goto error ;
          }
 
-         // add host
          _omaRunAddHost runCmd( *pInfo ) ;
          rc = runCmd.init( NULL ) ;
          if ( rc )
@@ -131,13 +121,10 @@ namespace engine
             goto error ;
          }
          rc = runCmd.doit( retObj ) ;
-         // failed in CPP, not execute js file yet
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to add host[%s], "
                     "rc = %d", pInfo->_item._ip.c_str(), rc ) ;
-            // if we can't get field "detail", it means we failed in CPP,
-            // we had not executed js file yet
             tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
             if ( tmpRc )
             {
@@ -157,7 +144,6 @@ namespace engine
             _pTask->updateProgressStatus( pInfo->_serialNum, ps, TRUE ) ;
             goto error ;
          }
-         // extract "errno"
          rc = omaGetIntElement ( retObj, OMA_FIELD_ERRNO, errNum ) ;
          if ( rc )
          {
@@ -172,23 +158,18 @@ namespace engine
             _pTask->updateProgressStatus( pInfo->_serialNum, ps, TRUE ) ;
             goto error ;
          }
-         // to see whether execute js successfully or not
          if ( SDB_OK != errNum )
          {
-            // try to get wether db packet had been install or not
             rc = omaGetBooleanElement ( retObj, OMA_FIELD_HASINSTALL,
                                         ps._hasInstall ) ;
             if ( SDB_OK != rc )
             {
-               // if we failed to get assume it to be false
-               // because js file had remove the newly install db packet
                PD_LOG ( PDWARNING, "Failed to add host[%s], but js file didn't"
                         "tell wether db packet had been installed or not, "
                         "assume it had not been installed, rc = %d",
                         pInfo->_item._ip.c_str(), tmpRc ) ;
                ps._hasInstall = FALSE ;
             }
-            // get error detail
             rc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
             if ( SDB_OK != rc )
             {
@@ -210,25 +191,19 @@ namespace engine
             PD_LOG ( PDEVENT, "Sucessed to add host[%s]",
                      pInfo->_item._ip.c_str() ) ;
             ps._desc = desc ;
-            // try to get wether db packet had been install or not
             rc = omaGetBooleanElement ( retObj, OMA_FIELD_HASINSTALL,
                                            ps._hasInstall ) ;
             if ( tmpRc )
             {
-               // the result from js file does not contain field OMA_FIELD_HASINSTALL,
-               // assume it has not been installed, don't remove it, for we don't know
-               // the db packet is installed by us or other people
                PD_LOG ( PDWARNING, "Succeed to add host[%s], but js file didn't"
                         "tell wether db packet had been installed or not, "
                         "assume it had not been installed, rc = %d",
                         pInfo->_item._ip.c_str(), tmpRc ) ;
                ps._hasInstall = FALSE ;
             }
-            // after add host, update the progress status
             _pTask->updateProgressStatus( pInfo->_serialNum, ps, TRUE ) ;
          }
       }
-      // set job status to be successful
       _pTask->updateJobStatus( _jobName, OMA_JOB_STATUS_FINISH ) ;
 
    done:
@@ -272,7 +247,6 @@ namespace engine
       INT32 rc = SDB_OK ;
       INT32 tmpRc = SDB_OK ;
 
-      // register current job to task, and set current to be running
       _pTask->registerJob( _jobName ) ;
       
       while( TRUE )
@@ -285,16 +259,12 @@ namespace engine
          INT32 errNum = 0 ;
          BSONObj retObj ;
 
-         // get a host item to uninstall
-         // if no host item need to uninstall, let this backgroud
-         // thread finish
          pInfo = _pTask->getRbHostItem() ;
          if ( NULL == pInfo )
          {
             _pTask->updateJobStatus( _jobName, OMA_JOB_STATUS_FINISH ) ;
             goto done ;
          }
-         // before remove the host, update the progress status
          ossSnprintf( desc, OMA_BUFF_SIZE, "Removing host[%s]",
                       pInfo->_item._ip.c_str() ) ;
          ps._desc = desc ;
@@ -306,7 +276,6 @@ namespace engine
             goto error ;
          }
 
-         // remove host
          _omaRunRmHost runCmd( *pInfo ) ;
          rc = runCmd.init( NULL ) ;
          if ( rc )
@@ -316,13 +285,10 @@ namespace engine
             goto error ;
          }
          rc = runCmd.doit( retObj ) ;
-         // failed in CPP, not excute js file yet
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to remove host[%s], "
                     "rc = %d", pInfo->_item._ip.c_str(), rc ) ;
-            // if we can't get field "detail", it means we failed in CPP,
-            // we had not executed js file yet
             tmpRc= omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
             if ( tmpRc )
             {
@@ -340,11 +306,9 @@ namespace engine
             ps._desc = desc ;
             ps._hasInstall = TRUE ;
 
-            // after add host, update progress status
             _pTask->updateProgressStatus( pInfo->_serialNum, ps, TRUE ) ;
             goto error ;
          }
-         // extract "errno"
          rc = omaGetIntElement ( retObj, OMA_FIELD_ERRNO, errNum ) ;
          if ( rc )
          {
@@ -359,22 +323,18 @@ namespace engine
             _pTask->updateProgressStatus( pInfo->_serialNum, ps, TRUE ) ;
             goto error ;
          }
-         // to see whether execute js successfully or not
          if ( SDB_OK != errNum )
          {
-            // try to get wether db packet had been uninstall or not
             rc = omaGetBooleanElement ( retObj, OMA_FIELD_HASUNINSTALL,
                                         hasUninstall ) ;
             if ( SDB_OK != rc )
             {
-               // if we failed to get field, assume it to be false
                PD_LOG ( PDWARNING, "Failed to add host[%s], but js file didn't"
                         "tell wether db packet had been uninstalled or not, "
                         "assume it had not been uninstalled, rc = %d",
                         pInfo->_item._ip.c_str(), rc ) ;
                hasUninstall = FALSE ;
             }
-            // get error detail
             rc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
             if ( SDB_OK != rc )
             {
@@ -397,13 +357,10 @@ namespace engine
             PD_LOG ( PDEVENT, "Sucessed to remove host[%s]",
                      pInfo->_item._ip.c_str() ) ;
             ps._desc = desc ;
-            // try to get wether db packet had been uninstall or not
             rc = omaGetBooleanElement ( retObj, OMA_FIELD_HASUNINSTALL,
                                         hasUninstall ) ;
             if ( rc )
             {
-               // the result from js file does not contain field OMA_FIELD_HASUNINSTALL,
-               // assume it has not been uninstall
                PD_LOG ( PDWARNING, "Succeed to remove host[%s], but js file didn't"
                         "tell wether db packet had been uninstalled or not, "
                         "assume it has not been uninstalled, rc = %d",
@@ -411,11 +368,9 @@ namespace engine
                hasUninstall = FALSE ;
             }
             ps._hasInstall = !hasUninstall ;
-            // after add host, update the progress status
             _pTask->updateProgressStatus( pInfo->_serialNum, ps, TRUE ) ;
          }
       }
-      // set job status to be successful
       _pTask->updateJobStatus( _jobName, OMA_JOB_STATUS_FINISH ) ;
 
    done:
@@ -459,10 +414,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       BSONElement ele ;
 
-      // parse arguments
       PD_LOG ( PDDEBUG, "Add host passes argument: %s",
                _addHostInfoObj.toString( FALSE, TRUE ).c_str() ) ;
-      // get taskID from omsvc
       ele = _addHostInfoObj.getField( OMA_FIELD_TASKID ) ;
       if ( NumberInt != ele.type() && NumberLong != ele.type() )
       {
@@ -471,7 +424,6 @@ namespace engine
          goto error ;
       }
       _taskID = ele.numberLong() ;
-      // get add host info
       rc = _initAddHostsInfo( _addHostInfoObj ) ;
       if ( rc )
       {
@@ -490,7 +442,6 @@ namespace engine
       INT32 rc                         = SDB_OK ;
       _omaTaskMgr *pTaskMgr            = getTaskMgr() ;
       
-      // remove last task with the same name
       rc = pTaskMgr->removeTask ( OMA_TASK_NAME_ADD_HOST ) ;
       if ( rc )
       {
@@ -498,7 +449,6 @@ namespace engine
                      "rc = %d", OMA_TASK_NAME_ADD_HOST, rc ) ;
          goto error ;
       }
-      // create add host task
       _pTask = SDB_OSS_NEW _omaAddHostTask( _taskID ) ;
       if ( !_pTask )
       {
@@ -507,7 +457,6 @@ namespace engine
                      "rc = %d", rc ) ;
          goto error ;
       }
-      // register add host task
       pTaskMgr->addTask( _pTask, _taskID ) ;
       rc = _pTask->init( _addHostInfoObj, _addHostInfo ) ;
       if ( rc )
@@ -549,28 +498,22 @@ namespace engine
       const CHAR *pStr           = NULL ;
       BSONElement ele ;
       
-      // get add hosts info
-      // SdbUser
       rc = omaGetStringElement( info, OMA_FIELD_SDBUSER, &pSdbUser ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d",
                 OMA_FIELD_SDBUSER, rc ) ;
-      // SdbPasswd
       rc = omaGetStringElement( info, OMA_FIELD_SDBPASSWD, &pSdbPasswd ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d",
                 OMA_FIELD_SDBPASSWD, rc ) ;
-      // SdbUserGroup
       rc = omaGetStringElement( info, OMA_FIELD_SDBUSERGROUP, &pSdbUserGroup ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d",
                 OMA_FIELD_SDBUSERGROUP, rc ) ;
-      // InstallPacket
       rc = omaGetStringElement( info, OMA_FIELD_INSTALLPACKET, &pInstallPacket ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d",
                 OMA_FIELD_INSTALLPACKET, rc ) ;
-      // get every item
       ele = info.getField( OMA_FIELD_HOSTINFO ) ;
       if ( Array != ele.type() )
       {
@@ -607,43 +550,36 @@ namespace engine
                goto error ;
             }
             item = ele.embeddedObject() ;
-            // IP
             rc = omaGetStringElement( item, OMA_FIELD_IP, &pStr ) ;
             PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                       "Get field[%s] failed, rc: %d",
                       OMA_FIELD_IP, rc ) ;
             hostItem._ip = pStr ;
-            // HostName
             rc = omaGetStringElement( item, OMA_FIELD_HOSTNAME, &pStr ) ;
             PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                       "Get field[%s] failed, rc: %d",
                       OMA_FIELD_HOSTNAME, rc ) ;
             hostItem._hostName = pStr ;
-            // User
             rc = omaGetStringElement( item, OMA_FIELD_USER, &pStr ) ;
             PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                       "Get field[%s] failed, rc: %d",
                       OMA_FIELD_USER, rc ) ;
             hostItem._user = pStr ;
-            // Passwd
             rc = omaGetStringElement( item, OMA_FIELD_PASSWD, &pStr ) ;
             PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                       "Get field[%s] failed, rc: %d",
                       OMA_FIELD_PASSWD, rc ) ;
             hostItem._passwd = pStr ;
-            // SshPort
             rc = omaGetStringElement( item, OMA_FIELD_SSHPORT, &pStr ) ;
             PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                       "Get field[%s] failed, rc: %d",
                       OMA_FIELD_SSHPORT, rc ) ;
             hostItem._sshPort = pStr ;
-            // AgentPort
             rc = omaGetStringElement( item, OMA_FIELD_AGENTPORT, &pStr ) ;
             PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                       "Get field[%s] failed, rc: %d",
                       OMA_FIELD_AGENTPORT, rc ) ;
             hostItem._agentPort = pStr ;
-            // InstallPath
             rc = omaGetStringElement( item, OMA_FIELD_INSTALLPATH, &pStr ) ;
             PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                       "Get field[%s] failed, rc: %d",
@@ -700,9 +636,7 @@ namespace engine
       vector<BSONObj> &standaloneInsInfo = _pTask->getInstallStandaloneInfo() ;
       vector<BSONObj>::iterator itr ;
 
-      // change job status
       setJobStatus( OMA_JOB_STATUS_RUNNING ) ;
-      // begin to run  
       num = standaloneInsInfo.size() ;
       if ( 0 == num )
       {
@@ -718,7 +652,6 @@ namespace engine
          InstalledNode node ;
          CHAR desc [OMA_BUFF_SIZE + 1] = { 0 } ;
          const CHAR *pErrMsg = "" ;
-         // get install standalone information
          rc = _getInstallInfo( *itr, installInfo ) ;
          if ( rc )
          {
@@ -726,12 +659,10 @@ namespace engine
                      "rc = %d", rc ) ;
             goto error ;
          }
-         // init the info of the installing node
          node._role = ROLE_STANDALONE ;
          node._dataGroupName = "" ;
          node._hostName = installInfo._hostName.c_str() ;
          node._svcName = installInfo._svcName.c_str() ;
-         // update install status for web before install standalone
          ossSnprintf( desc, OMA_BUFF_SIZE, "Installing standalone[%s:%s]",
                       installInfo._hostName.c_str(),
                       installInfo._svcName.c_str() ) ;
@@ -742,7 +673,6 @@ namespace engine
                      "standalone, rc = %d", rc ) ;
             goto error ;
          }
-         // install standalone
          _omaRunCreateStandaloneJob runCmd( _pTask->getVCoordSvcName(),
                                             installInfo ) ;
          rc = runCmd.init( NULL ) ;
@@ -782,12 +712,10 @@ namespace engine
             _updateInstallStatus( TRUE, SDB_OK, pErrMsg, desc, &node ) ;
          }
       }
-      // set job status to be successful
       setJobStatus( OMA_JOB_STATUS_FINISH ) ;
    done:
       return rc ;
    error:
-      // set job status to be failing
       setJobStatus( OMA_JOB_STATUS_FAIL ) ;
       goto done ;
    }
@@ -800,59 +728,48 @@ namespace engine
       BSONObj conf ;
       BSONObj pattern ;
 
-      // _dataGroupName
       rc = omaGetStringElement( obj, OMA_OPTION_DATAGROUPNAME,
                                 &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d",
                 OMA_OPTION_DATAGROUPNAME, rc ) ;
       info._dataGroupName = pStr ;
-      // _hostname
       rc = omaGetStringElement( obj, OMA_FIELD_HOSTNAME, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_HOSTNAME, rc ) ;
       info._hostName = pStr ;
-      // _svcName
       rc = omaGetStringElement( obj, OMA_OPTION_SVCNAME, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_OPTION_SVCNAME, rc ) ;
       info._svcName = pStr ;
-      // _dbPath
       rc = omaGetStringElement( obj, OMA_OPTION_DBPATH, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_OPTION_DBPATH, rc ) ;
       info._dbPath = pStr ;
-      // _sdbUser
       rc = omaGetStringElement( obj, OMA_FIELD_SDBUSER, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SDBUSER, rc ) ;
       info._sdbUser = pStr ;
-      // _sdbPasswd
       rc = omaGetStringElement( obj, OMA_FIELD_SDBPASSWD, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SDBPASSWD, rc ) ;
       info._sdbPasswd = pStr ;
-      // _sdbUserGroup
       rc = omaGetStringElement( obj, OMA_FIELD_SDBUSERGROUP, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SDBUSERGROUP, rc ) ;
       info._sdbUserGroup = pStr ;
-      // _user
       rc = omaGetStringElement( obj, OMA_FIELD_USER, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_USER, rc ) ;
       info._user = pStr ;
-      // _passwd
       rc = omaGetStringElement( obj, OMA_FIELD_PASSWD, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_PASSWD, rc ) ;
       info._passwd = pStr ;
-      // _sshPort
       rc = omaGetStringElement( obj, OMA_FIELD_SSHPORT, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SSHPORT, rc ) ;
       info._sshPort = pStr ;
-      // _conf
       pattern = BSON( OMA_FIELD_HOSTNAME       << 1 <<
                       OMA_OPTION_DATAGROUPNAME << 1 <<
                       OMA_OPTION_SVCNAME       << 1 <<
@@ -933,9 +850,7 @@ namespace engine
       vector<BSONObj> &catalogInstallInfo = _pTask->getInstallCatalogInfo() ;
       vector<BSONObj>::iterator itr ;
 
-      // change job status
       setJobStatus( OMA_JOB_STATUS_RUNNING ) ;
-      // begin to run  
       num = catalogInstallInfo.size() ;
       if ( 0 == num )
       {
@@ -950,7 +865,6 @@ namespace engine
          InstallInfo installInfo ;
          CHAR desc [OMA_BUFF_SIZE + 1] = { 0 } ;
          const CHAR *pErrMsg = "" ;
-         // get install catalog information
          rc = _getInstallInfo( *itr, installInfo ) ;
          if ( rc )
          {
@@ -958,7 +872,6 @@ namespace engine
                          "rc = %d", rc ) ;
             goto error ;
          }
-         // update install status for web before install catalog
          ossSnprintf( desc, OMA_BUFF_SIZE, "Installing catalog[%s:%s]",
                       installInfo._hostName.c_str(),
                       installInfo._svcName.c_str() ) ;
@@ -969,7 +882,6 @@ namespace engine
                      "node, rc = %d", rc ) ;
             goto error ;
          }
-         // install catalog
          _omaRunCreateCatalogJob runCmd( _pTask->getVCoordSvcName(),
                                           installInfo ) ;
          rc = runCmd.init( NULL ) ;
@@ -983,8 +895,6 @@ namespace engine
          if ( rc )
          {
             PD_LOG( PDERROR, "Job failed to create catalog, rc = %d", rc ) ;
-            // if we can't get field "detail", it means we failed in CPP,
-            // we had not executed js file yet
             tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
             if ( tmpRc )
             {
@@ -1019,12 +929,10 @@ namespace engine
             _updateInstallStatus( TRUE, SDB_OK, pErrMsg, desc, &node ) ;
          }
       }
-      // set job status to be successful
       setJobStatus( OMA_JOB_STATUS_FINISH ) ;
    done:
       return rc ;
    error:
-      // set job status to be failing
       setJobStatus( OMA_JOB_STATUS_FAIL ) ;
       goto done ;
    }
@@ -1037,59 +945,48 @@ namespace engine
       BSONObj conf ;
       BSONObj pattern ;
 
-      // _dataGroupName
       rc = omaGetStringElement( obj, OMA_OPTION_DATAGROUPNAME,
                                 &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d",
                 OMA_OPTION_DATAGROUPNAME, rc ) ;
       info._dataGroupName = pStr ;
-      // _hostname
       rc = omaGetStringElement( obj, OMA_FIELD_HOSTNAME, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_HOSTNAME, rc ) ;
       info._hostName = pStr ;
-      // _svcName
       rc = omaGetStringElement( obj, OMA_OPTION_SVCNAME, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_OPTION_SVCNAME, rc ) ;
       info._svcName = pStr ;
-      // _dbPath
       rc = omaGetStringElement( obj, OMA_OPTION_DBPATH, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_OPTION_DBPATH, rc ) ;
       info._dbPath = pStr ;
-      // _sdbUser
       rc = omaGetStringElement( obj, OMA_FIELD_SDBUSER, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SDBUSER, rc ) ;
       info._sdbUser = pStr ;
-      // _sdbPasswd
       rc = omaGetStringElement( obj, OMA_FIELD_SDBPASSWD, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SDBPASSWD, rc ) ;
       info._sdbPasswd = pStr ;
-      // _sdbUserGroup
       rc = omaGetStringElement( obj, OMA_FIELD_SDBUSERGROUP, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SDBUSERGROUP, rc ) ;
       info._sdbUserGroup = pStr ;
-      // _user
       rc = omaGetStringElement( obj, OMA_FIELD_USER, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_USER, rc ) ;
       info._user = pStr ;
-      // _passwd
       rc = omaGetStringElement( obj, OMA_FIELD_PASSWD, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_PASSWD, rc ) ;
       info._passwd = pStr ;
-      // _sshPort
       rc = omaGetStringElement( obj, OMA_FIELD_SSHPORT, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SSHPORT, rc ) ;
       info._sshPort = pStr ;
-      // _conf
       pattern = BSON( OMA_FIELD_HOSTNAME       << 1 <<
                       OMA_OPTION_DATAGROUPNAME << 1 <<
                       OMA_OPTION_SVCNAME       << 1 <<
@@ -1169,9 +1066,7 @@ namespace engine
       vector<BSONObj> &coordInstallInfo = _pTask->getInstallCoordInfo() ;
       vector<BSONObj>::iterator itr ;
 
-      // change job status
       setJobStatus( OMA_JOB_STATUS_RUNNING ) ;
-      // check 
       num = coordInstallInfo.size() ;
       if ( 0 == num )
       {
@@ -1187,14 +1082,12 @@ namespace engine
          CHAR desc [OMA_BUFF_SIZE + 1] = { 0 } ;
          const CHAR *pErrMsg = "" ;
 
-         // check install status and decide to go on or stop
          if ( _pTask->getIsInstallFail() )
          {
             rc = SDB_SYS ;
             PD_LOG ( PDWARNING, "Stop installing coord, install has failed" ) ;
             goto error ;
          }
-         // get installl coord information
          rc = _getInstallInfo( *itr, installInfo ) ;
          if ( rc )
          {
@@ -1202,7 +1095,6 @@ namespace engine
                      "rc = %d", rc ) ;
             goto error ;
          }
-         // update install status for web before install coord
          ossSnprintf( desc, OMA_BUFF_SIZE, "Installing coord[%s:%s]",
                       installInfo._hostName.c_str(),
                       installInfo._svcName.c_str() ) ;
@@ -1213,7 +1105,6 @@ namespace engine
                      "rc = %d", rc ) ;
             goto error ;
          }
-         // install coord
          _omaRunCreateCoordJob runCmd( _pTask->getVCoordSvcName(),
                                         installInfo ) ;
          rc = runCmd.init( NULL ) ;
@@ -1227,8 +1118,6 @@ namespace engine
          if ( rc )
          {
             PD_LOG( PDERROR, "Job failed to create coord, rc = %d", rc ) ;
-            // if we can't get field "detail", it means we failed in CPP,
-            // we had not executed js file yet
             tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
             if ( tmpRc )
             {
@@ -1263,12 +1152,10 @@ namespace engine
             _updateInstallStatus( TRUE, SDB_OK, pErrMsg, desc, &node ) ;
          }
       }
-      // set job to be finish
       setJobStatus( OMA_JOB_STATUS_FINISH ) ;
    done:
       return rc ;
    error:
-      // set job status to be failing
       setJobStatus( OMA_JOB_STATUS_FAIL ) ;
       goto done ;
    }
@@ -1281,52 +1168,42 @@ namespace engine
       BSONObj conf ;
       BSONObj pattern ;
 
-      // _hostname
       rc = omaGetStringElement( obj, OMA_FIELD_HOSTNAME, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_HOSTNAME, rc ) ;
       info._hostName = pStr ;
-      // _svcName
       rc = omaGetStringElement( obj, OMA_OPTION_SVCNAME, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_OPTION_SVCNAME, rc ) ;
       info._svcName = pStr ;
-      // _dbPath
       rc = omaGetStringElement( obj, OMA_OPTION_DBPATH, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_OPTION_DBPATH, rc ) ;
       info._dbPath = pStr ;
-      // _sdbUser
       rc = omaGetStringElement( obj, OMA_FIELD_SDBUSER, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SDBUSER, rc ) ;
       info._sdbUser = pStr ;
-      // _sdbPasswd
       rc = omaGetStringElement( obj, OMA_FIELD_SDBPASSWD, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SDBPASSWD, rc ) ;
       info._sdbPasswd = pStr ;
-      // _sdbUserGroup
       rc = omaGetStringElement( obj, OMA_FIELD_SDBUSERGROUP, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SDBUSERGROUP, rc ) ;
       info._sdbUserGroup = pStr ;
-      // _user
       rc = omaGetStringElement( obj, OMA_FIELD_USER, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_USER, rc ) ;
       info._user = pStr ;
-      // _passwd
       rc = omaGetStringElement( obj, OMA_FIELD_PASSWD, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_PASSWD, rc ) ;
       info._passwd = pStr ;
-      // _sshPort
       rc = omaGetStringElement( obj, OMA_FIELD_SSHPORT, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SSHPORT, rc ) ;
       info._sshPort = pStr ;
-      // _conf
       pattern = BSON( OMA_FIELD_HOSTNAME       << 1 <<
                       OMA_OPTION_DATAGROUPNAME << 1 <<
                       OMA_OPTION_SVCNAME       << 1 <<
@@ -1406,9 +1283,7 @@ namespace engine
       vector<BSONObj>::iterator itr ;
       vector<BSONObj> dataNodeInstallInfo ;
 
-      // change job status
       setJobStatus( OMA_JOB_STATUS_RUNNING ) ;
-      // get install data group information 
       rc = _pTask->getInstallDataGroupInfo( _groupname,
                                             dataNodeInstallInfo ) ;
       if ( rc )
@@ -1417,7 +1292,6 @@ namespace engine
                       "in group %s, rc = %d", _groupname.c_str(), rc ) ;
          goto error ;
       }
-      // check the install info
       num = dataNodeInstallInfo.size() ;
       if ( 0 == num )
       {
@@ -1434,7 +1308,6 @@ namespace engine
          CHAR desc [OMA_BUFF_SIZE + 1] = { 0 } ;
          const CHAR *pErrMsg = "" ;
 
-         // check install's status and decide to do or stop
          if ( _pTask->getIsInstallFail() )
          {
             rc = SDB_SYS ;
@@ -1442,7 +1315,6 @@ namespace engine
                      "install had failed", _groupname.c_str() ) ;
             goto error ;
          }
-         // get installl data node information
          rc = _getInstallInfo( *itr, installInfo ) ;
          if ( rc )
          {
@@ -1450,7 +1322,6 @@ namespace engine
                          "rc = %d", rc ) ;
             goto error ;
          }
-         // update install status for web before install data node
          ossSnprintf( desc, OMA_BUFF_SIZE, "Installing data node[%s:%s]",
                       installInfo._hostName.c_str(),
                       installInfo._svcName.c_str() ) ;
@@ -1461,7 +1332,6 @@ namespace engine
                      "install data node, rc = %d", rc ) ;
             goto error ;
          }
-         // install data node
          _omaRunCreateDataNodeJob runCmd( _pTask->getVCoordSvcName(),
                                            installInfo ) ;
          rc = runCmd.init( NULL ) ;
@@ -1475,8 +1345,6 @@ namespace engine
          if ( rc )
          {
             PD_LOG( PDERROR, "Job failed to create data node, rc = %d", rc ) ;
-            // if we can't get field "detail", it means we failed in CPP,
-            // we had not executed js file yet
             tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
             if ( tmpRc )
             {
@@ -1511,12 +1379,10 @@ namespace engine
             _updateInstallStatus( TRUE, SDB_OK, pErrMsg, desc, &node ) ;
          }
       }
-      // set job status to be successful
       setJobStatus( OMA_JOB_STATUS_FINISH ) ;
    done:
       return rc ;
    error:
-      // set job status to be failing
       setJobStatus( OMA_JOB_STATUS_FAIL ) ;
       goto done ;
    }
@@ -1529,58 +1395,47 @@ namespace engine
       BSONObj conf ;
       BSONObj pattern ;
 
-      // _dataGroupName
       rc = omaGetStringElement( obj, OMA_OPTION_DATAGROUPNAME, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d",
                 OMA_OPTION_DATAGROUPNAME, rc ) ;
       installInfo._dataGroupName = pStr ;
-      // _hostname
       rc = omaGetStringElement( obj, OMA_FIELD_HOSTNAME, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_HOSTNAME, rc ) ;
       installInfo._hostName = pStr ;
-      // _svcName
       rc = omaGetStringElement( obj, OMA_OPTION_SVCNAME, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_OPTION_SVCNAME, rc ) ;
       installInfo._svcName = pStr ;
-      // _dbPath
       rc = omaGetStringElement( obj, OMA_OPTION_DBPATH, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_OPTION_DBPATH, rc ) ;
       installInfo._dbPath = pStr ;
-      // _sdbUser
       rc = omaGetStringElement( obj, OMA_FIELD_SDBUSER, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SDBUSER, rc ) ;
       installInfo._sdbUser = pStr ;
-      // _sdbPasswd
       rc = omaGetStringElement( obj, OMA_FIELD_SDBPASSWD, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SDBPASSWD, rc ) ;
       installInfo._sdbPasswd = pStr ;
-      // _sdbUserGroup
       rc = omaGetStringElement( obj, OMA_FIELD_SDBUSERGROUP, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SDBUSERGROUP, rc ) ;
       installInfo._sdbUserGroup = pStr ;
-      // _user
       rc = omaGetStringElement( obj, OMA_FIELD_USER, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_USER, rc ) ;
       installInfo._user = pStr ;
-      // _passwd
       rc = omaGetStringElement( obj, OMA_FIELD_PASSWD, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_PASSWD, rc ) ;
       installInfo._passwd = pStr ;
-      // _sshPort
       rc = omaGetStringElement( obj, OMA_FIELD_SSHPORT, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR,
                 "Get field[%s] failed, rc: %d", OMA_FIELD_SSHPORT, rc ) ;
       installInfo._sshPort = pStr ;
-      // _conf
       pattern = BSON( OMA_FIELD_HOSTNAME       << 1 <<
                       OMA_OPTION_DATAGROUPNAME << 1 <<
                       OMA_OPTION_SVCNAME       << 1 <<
@@ -1664,10 +1519,8 @@ namespace engine
       string deplayMod ;
       const CHAR *pStr = NULL ;
 
-      // parse arguments
       PD_LOG ( PDDEBUG, "Add db business passes argument: %s",
                _installInfoObj.toString( FALSE, TRUE ).c_str() ) ;
-      // get taskID from omsvc
       ele = _installInfoObj.getField( OMA_FIELD_TASKID ) ;
       if ( NumberInt != ele.type() && NumberLong != ele.type() )
       {
@@ -1676,7 +1529,6 @@ namespace engine
          goto error ;
       }
       _taskID = ele.numberLong() ;
-      // get deployMod info from omsvc
       ele = _installInfoObj.getField( OMA_FIELD_DEPLOYMOD ) ;
       if ( String != ele.type() )
       {
@@ -1699,7 +1551,6 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // get common fields
       rc = omaGetStringElement ( _installInfoObj, OMA_FIELD_SDBUSER, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR, "Get field[%s] failed, "
                 "rc: %d", OMA_FIELD_SDBUSER, rc ) ;
@@ -1713,7 +1564,6 @@ namespace engine
                 "rc: %d", OMA_FIELD_SDBUSERGROUP, rc ) ;
       builder.append( OMA_FIELD_SDBUSERGROUP, pStr ) ;
       commonFileds = builder.obj() ;
-      // parse bson and get arguments info for js file
       ele = _installInfoObj.getField ( OMA_FIELD_CONFIG ) ;
       if ( Array != ele.type() )
       {
@@ -1742,7 +1592,6 @@ namespace engine
             bob.appendElements( temp ) ;
             bob.appendElements( commonFileds ) ;
             info = bob.obj() ;
-            // category
             rc = omaGetStringElement ( temp, OMA_OPTION_ROLE, &value ) ;
             if ( rc )
             {
@@ -1791,7 +1640,6 @@ namespace engine
       _omaTaskMgr *pTaskMgr            = getTaskMgr() ;
       BSONObj otherInfo ;
       
-      // remove last task with the same name
       rc = pTaskMgr->removeTask ( OMA_TASK_NAME_INSTALL_DB_BUSINESS ) ;
       if ( rc )
       {
@@ -1799,7 +1647,6 @@ namespace engine
                      "rc = %d", OMA_TASK_NAME_INSTALL_DB_BUSINESS, rc ) ;
          goto error ;
       }
-      // create install db business task
       _pTask = SDB_OSS_NEW _omaInsDBBusTask( _taskID ) ;
       if ( !_pTask )
       {
@@ -1808,7 +1655,6 @@ namespace engine
                      "rc = %d", rc ) ;
          goto error ;
       }
-      // register install db business task
       pTaskMgr->addTask( _pTask, _taskID ) ;
       rc = _pTask->init( _isStandalone, _standalone, _coord,
                          _catalog, _data, otherInfo ) ;
@@ -1881,10 +1727,8 @@ namespace engine
       string deplayMod ;
       const CHAR *pStr = NULL ;
 
-      // parse arguments
       PD_LOG ( PDDEBUG, "Remove db business passes argument: %s",
                _uninstallInfoObj.toString( FALSE, TRUE ).c_str() ) ;
-      // get taskID from omsvc
       ele = _uninstallInfoObj.getField( OMA_FIELD_TASKID ) ;
       if ( NumberInt != ele.type() && NumberLong != ele.type() )
       {
@@ -1893,7 +1737,6 @@ namespace engine
          goto error ;
       }
       _taskID = ele.numberLong() ;
-      // get deployMod info from omsvc
       ele = _uninstallInfoObj.getField( OMA_FIELD_DEPLOYMOD ) ;
       if ( String != ele.type() )
       {
@@ -1916,7 +1759,6 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      // get common fields
       rc = omaGetStringElement ( _uninstallInfoObj, OMA_FIELD_AUTHUSER, &pStr ) ;
       PD_CHECK( SDB_OK == rc, rc, error, PDERROR, "Get field[%s] failed, "
                 "rc: %d", OMA_FIELD_AUTHUSER, rc ) ;
@@ -1926,7 +1768,6 @@ namespace engine
                 "rc: %d", OMA_FIELD_AUTHPASSWD, rc ) ;
       builder.append( OMA_FIELD_AUTHPASSWD, pStr ) ;
       commonFileds = builder.obj() ;
-      // parse bson and get arguments info for js file
       ele = _uninstallInfoObj.getField ( OMA_FIELD_CONFIG ) ;
       if ( Array != ele.type() )
       {
@@ -1952,7 +1793,6 @@ namespace engine
                goto error ;
             }
             temp = ele.embeddedObject() ;
-            // category
             rc = omaGetStringElement ( temp, OMA_OPTION_ROLE, &value ) ;
             if ( rc )
             {
@@ -2034,7 +1874,6 @@ namespace engine
       INT32 rc                         = SDB_OK ;
       _omaTaskMgr *pTaskMgr            = getTaskMgr() ;
       
-      // remove last task with the same name
       rc = pTaskMgr->removeTask ( OMA_TASK_NAME_REMOVE_DB_BUSINESS ) ;
       if ( rc )
       {
@@ -2042,7 +1881,6 @@ namespace engine
                      "rc = %d", OMA_TASK_NAME_REMOVE_DB_BUSINESS, rc ) ;
          goto error ;
       }
-      // create remove db business task
       _pTask = SDB_OSS_NEW _omaRmDBBusTask( _taskID ) ;
       if ( !_pTask )
       {
@@ -2051,7 +1889,6 @@ namespace engine
                      "rc = %d", rc ) ;
          goto error ;
       }
-      // register remove db business task
       pTaskMgr->addTask( _pTask, _taskID ) ;
       rc = _pTask->init( _isStandalone, _standalone, _coord,
                          _catalog, _data, _cataAddrInfo ) ;
@@ -2124,9 +1961,7 @@ namespace engine
       RollbackInfo info ;
       BSONObj retObj ;
 
-      // set task stage
       _pTask->setTaskStage( OMA_OPT_ROLLBACK ) ;
-      // get rollback info
       rc = _getRollbackInfo ( info ) ;
       if ( rc )
       {
@@ -2135,7 +1970,6 @@ namespace engine
       }
       if ( _isStandalone )
       {
-         // rollback standalone
          rc = _rollbackStandalone( _vCoordSvcName,
                                    info._standaloneRollbackInfo ) ;
          if ( rc )
@@ -2146,7 +1980,6 @@ namespace engine
       }
       else
       {
-         // rollback data nodes
          rc = _rollbackDataNode ( _vCoordSvcName,
                                   info._dataGroupRollbackInfo ) ;
          if ( rc )
@@ -2154,7 +1987,6 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to rollback data nodes, rc = %d", rc ) ;
             goto error ;
          }
-         // rollback coord nodes
          rc = _rollbackCoord ( _vCoordSvcName,
                                info._coordRollbackInfo ) ;
          if ( rc )
@@ -2162,7 +1994,6 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to rollback coord nodes, rc = %d", rc ) ;
             goto error ;
          }
-         // rollback catalog nodes
          rc = _rollbackCatalog ( _vCoordSvcName,
                                  info._catalogRollbackInfo ) ;
          if ( rc )
@@ -2171,16 +2002,11 @@ namespace engine
             goto error ;
          }
       }
-      // set rollback finish
       _pTask->setIsRollbackFinish( TRUE ) ;
  
    done:
-      // for standalone, when doing rollback, if finish rollback, it means add  
-      // business task finish, if rollback failed, it means add 
-      // business task failed
       if ( _isStandalone )
       {
-         // set task finish or fail
          if ( _pTask->getIsRollbackFinish() )
          {
             _pTask->setIsTaskFinish( TRUE ) ;
@@ -2200,11 +2026,6 @@ namespace engine
             goto error ;
          }
       }
-      // for cluster, when doing rollback, if succeed, we need to
-      // remove virtual coord, and we judge whether task is succeeful or not,
-      // but if fail, we don't remove virtual coord, and leave it for
-      // cleaning the environment manually, but we need to mark task to be
-      // failing
       else
       {
          if ( _pTask->getIsRollbackFinish() )
@@ -2218,9 +2039,7 @@ namespace engine
       }
       return rc ;
    error:
-      // set rollback failing
       _pTask->setIsRollbackFail( TRUE ) ;
-      // set the error reason
       pErrMsg = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
       if ( NULL == pErrMsg )
       {
@@ -2293,7 +2112,6 @@ namespace engine
          PD_LOG_MSG ( PDERROR, "Invalid standalone's rollback info" ) ;
          goto error ;
       }
-      // rollback standalone
       rc = rollbackStandalone.init( NULL ) ;
       if ( rc )
       {
@@ -2304,8 +2122,6 @@ namespace engine
       rc = rollbackStandalone.doit( retObj ) ;
       if ( rc )
       {
-         // if we can't get field "detail", it means we failed in CPP,
-         // we had not executed js file yet
          tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
          if ( tmpRc )
          {
@@ -2347,7 +2163,6 @@ namespace engine
          PD_LOG_MSG ( PDERROR, "Invalid coord's rollback info" ) ;
          goto error ;
       }
-      // rollback coord
       rc = rollbackCoord.init( NULL ) ;
       if ( rc )
       {
@@ -2358,8 +2173,6 @@ namespace engine
       rc = rollbackCoord.doit( retObj ) ;
       if ( rc )
       {
-         // if we can't get field "detail", it means we failed in CPP,
-         // we had not executed js file yet
          tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
          if ( tmpRc )
          {
@@ -2401,7 +2214,6 @@ namespace engine
          PD_LOG_MSG ( PDERROR, "Invalid catalog's rollback info" ) ;
          goto error ;
       }
-      // rollback catalog
       rc = rollbackCatalog.init( NULL ) ;
       if ( rc )
       {
@@ -2412,8 +2224,6 @@ namespace engine
       rc = rollbackCatalog.doit( retObj ) ;
       if ( rc )
       {
-         // if we can't get field "detail", it means we failed in CPP,
-         // we had not executed js file yet
          tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
          if ( tmpRc )
          {
@@ -2449,7 +2259,6 @@ namespace engine
       _omaRunRollbackDataNodeJob rollbackDataNode ( vCoordSvcName, info ) ;
       map< string, vector<InstalledNode> >::iterator it = info.begin() ;
 
-      // rollback data group
       rc = rollbackDataNode.init( NULL ) ;
       if ( rc )
       {
@@ -2460,8 +2269,6 @@ namespace engine
       rc = rollbackDataNode.doit( retObj ) ;
       if ( rc )
       {
-         // if we can't get field "detail", it means we failed in CPP,
-         // we had not executed js file yet
          tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pErrMsg ) ;
          if ( tmpRc )
          {
@@ -2526,8 +2333,6 @@ namespace engine
       rc = removeVCoord.removeVirtualCoord ( removeRet ) ;
       if ( rc )
       {
-         // if we can't get field "detail", it means we failed in CPP,
-         // we had not executed js file yet
          tmpRc = omaGetStringElement( removeRet, OMA_FIELD_DETAIL, &pErrMsg ) ;
          if ( rc )
          {
@@ -2555,7 +2360,6 @@ namespace engine
       goto done ;
    }
 
-   // start job
 
    INT32 startAddHostJob( string jobName, _omaAddHostTask *pTask, EDUID *pEDUID )
    {
@@ -2907,8 +2711,6 @@ namespace engine
       goto done ;
    }
 
-   // TODO: let remove virtual coord to be a function
-   // instead of to be an asyn job
    INT32 startRemoveVirtualCoordJob ( const CHAR *vCoordSvcName,
                                       _omaInsDBBusTask *pTask,
                                       EDUID *pEDUID )

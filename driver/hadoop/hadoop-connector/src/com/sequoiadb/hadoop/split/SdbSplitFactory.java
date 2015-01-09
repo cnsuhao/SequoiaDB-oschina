@@ -80,7 +80,6 @@ public class SdbSplitFactory {
 				sdb = new Sequoiadb(sdbConnAddrs[i].getHost(),
 						sdbConnAddrs[i].getPort(), user, passwd);
 				
-				//check preferedInstance's type
 				if (preferedInstance.equalsIgnoreCase("slave")){
 					preferedInstance = "S";
 				}else if(preferedInstance.equalsIgnoreCase("master")){
@@ -130,15 +129,12 @@ public class SdbSplitFactory {
     	BSONObject queryBson = null;
     	BSONObject selectorBson = null;
     	BSONObject orderbyBson = null;	
-    	//婵″倹鐏夐弽鐓庣础閺堝妫舵０妯诲閸戝搫绱撶敮闈╃礉
     	if ( queryStr != null){  
     		try {
     			queryBson = (BSONObject) JSON.parse( queryStr );
 			} catch (Exception e) {
 				queryBson = null;
 				log.warn("query string is error");
-//				throw new IllegalArgumentException(
-//						"sequoiadb.query.json is wrong");
 			}
     	}
     	if ( selectorStr != null){ 
@@ -148,8 +144,6 @@ public class SdbSplitFactory {
 			} catch (Exception e) {
 				selectorBson = null;
 				log.warn("selector string is error");
-//				throw new IllegalArgumentException(
-//						"sequoiadb.selector.json is wrong");
 			}
     	}
     	log.debug("explain");
@@ -196,7 +190,6 @@ public class SdbSplitFactory {
 			int port = Integer.parseInt((String) obj.get("ServiceName"));
 			String scanType = (String) obj.get("ScanType");
 
-			// TODO
 			if ("ixscan".equals(scanType)) {
 				String indexName = (String) obj.get("IndexName");
 				int indexLID = (Integer) obj.get("IndexLID");

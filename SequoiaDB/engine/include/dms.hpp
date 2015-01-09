@@ -43,9 +43,6 @@
 namespace engine
 {
 #define DMS_COLLECTION_SPACE_NAME_SZ      127
-// page length can be 4/8/16/32/64K
-// Note that windows memory allocation granulartiy is 64K, so we need to make
-// sure each segment must be multiple of 64K
 
 #define DMS_PAGE_SIZE4K        4096    // 4K
 #define DMS_PAGE_SIZE8K        8192    // 8K
@@ -53,7 +50,6 @@ namespace engine
 #define DMS_PAGE_SIZE32K       32768   // 32K
 #define DMS_PAGE_SIZE64K       65536   // 64K
 
-/// for lob
 #define DMS_PAGE_SIZE256B      256
 
 #define DMS_PAGE_SIZE128K      131072  // 128K
@@ -66,19 +62,9 @@ namespace engine
 #define DMS_DEFAULT_LOB_PAGE_SZ  DMS_PAGE_SIZE256K
 #define DMS_DO_NOT_CREATE_LOB    0
 
-// the maximum number of pages * size for the storage unit
-// this number does NOT count metadata
-// max SU size:
-// 4K: 512GB
-// 8K: 1TB
-// 16K: 2TB
-// 32K: 4TB
-// 64K: 8TB
-// Note this number is 2^28
 #define DMS_MAX_PG             (128*1024*1024)
 #define DMS_MAX_SZ(x)          (((UINT64)DMS_MAX_PG)*(x))
 
-// fixed segment size 128MB
 #define DMS_SEGMENT_SZ         (128*1024*1024)
 #define DMS_SEGMENT_PG(x)      (DMS_SEGMENT_SZ/(x))
 
@@ -180,9 +166,6 @@ namespace engine
       {
          return compare(rhs)<0 ;
       }
-      // <0 if current object sit before argment rid
-      // =0 means extent/offset are the same
-      // >0 means current obj sit after argment rid
       INT32 compare ( const _dmsRecordID &rhs ) const
       {
          if (_extent != rhs._extent)
@@ -207,7 +190,6 @@ namespace engine
    } ;
    typedef class _dmsRecordID dmsRecordID ;
 
-   // helper function, check DMS/IXM object name validity
    BOOLEAN  dmsIsSysCSName ( const CHAR *collectionSpaceName ) ;
    INT32    dmsCheckCSName ( const CHAR *collectionSpaceName,
                              BOOLEAN sys = FALSE ) ;

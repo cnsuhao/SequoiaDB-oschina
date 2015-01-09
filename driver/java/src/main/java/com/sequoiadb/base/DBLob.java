@@ -127,9 +127,7 @@ class DBLobConcrete implements DBLob {
     public final static int SDB_LOB_CREATEONLY = 0x00000001;
     public final static int SDB_LOB_READ       = 0x00000004;
     
-    // the max lob data size to send for one message
     private final static int SDB_LOB_MAX_DATA_LENGTH  = 1024 * 1024;
-//    private final static int SDB_LOB_MAX_DATA_LENGTH = 1024 * 1024;
     
     private final static long SDB_LOB_DEFAULT_OFFSET  = -1;
     private final static int SDB_LOB_DEFAULT_SEQ      = 0;
@@ -449,7 +447,6 @@ class DBLobConcrete implements DBLob {
         }
         int flag = resMessage.getFlags();
         
-        // meet the end of the lob
         if ( SequoiadbConstants.SDB_EOF == flag ) {
             return -1;
         }
@@ -471,7 +468,6 @@ class DBLobConcrete implements DBLob {
         int totalLen = SDBMessageHelper.MESSAGE_OPLOB_LENGTH 
                 + SDBMessageHelper.MESSAGE_LOBTUPLE_LENGTH;
         
-        // add _MsgOpLob into buff with convert(db.endianConvert)
         ByteBuffer buff = ByteBuffer.allocate( 
                                 SDBMessageHelper.MESSAGE_OPLOB_LENGTH
                                 + SDBMessageHelper.MESSAGE_LOBTUPLE_LENGTH );
@@ -481,17 +477,14 @@ class DBLobConcrete implements DBLob {
             buff.order( ByteOrder.BIG_ENDIAN );
         }
         
-        //*******************MsgHeader*******************
         SDBMessageHelper.addLobMsgHeader( buff, totalLen, 
                 Operation.MSG_BS_LOB_READ_REQ.getOperationCode(), 
                 SequoiadbConstants.ZERO_NODEID, 0 );
         
-        //*******************_MsgOpLob**********************
         SDBMessageHelper.addLobOpMsg( buff, SequoiadbConstants.DEFAULT_VERSION, 
                    SequoiadbConstants.DEFAULT_W, (short)0, 
                    SequoiadbConstants.DEFAULT_FLAGS, _contextID, 0 );
         
-        //*******************_MsgLobTuple*******************
         addMsgTuple( buff, length, SDB_LOB_DEFAULT_SEQ,
                 _readOffset );
         
@@ -521,7 +514,6 @@ class DBLobConcrete implements DBLob {
                 + SDBMessageHelper.MESSAGE_LOBTUPLE_LENGTH 
                 + Helper.roundToMultipleXLength( input.length, 4 );
         
-        // add _MsgOpLob into buff with convert(db.endianConvert)
         ByteBuffer buff = ByteBuffer.allocate( 
                                 SDBMessageHelper.MESSAGE_OPLOB_LENGTH
                                 + SDBMessageHelper.MESSAGE_LOBTUPLE_LENGTH );
@@ -531,17 +523,14 @@ class DBLobConcrete implements DBLob {
             buff.order( ByteOrder.BIG_ENDIAN );
         }
         
-        //*******************MsgHeader*******************
         SDBMessageHelper.addLobMsgHeader( buff, totalLen, 
                 Operation.MSG_BS_LOB_WRITE_REQ.getOperationCode(), 
                 SequoiadbConstants.ZERO_NODEID, 0 );
         
-        //*******************_MsgOpLob**********************
         SDBMessageHelper.addLobOpMsg( buff, SequoiadbConstants.DEFAULT_VERSION, 
                    SequoiadbConstants.DEFAULT_W, (short)0, 
                    SequoiadbConstants.DEFAULT_FLAGS, _contextID, 0 );
         
-        //*******************_MsgLobTuple*******************
         addMsgTuple( buff, input.length, SDB_LOB_DEFAULT_SEQ,
                 SDB_LOB_DEFAULT_OFFSET );
         
@@ -563,7 +552,6 @@ class DBLobConcrete implements DBLob {
     private byte[] generateCloseLobRequest() {
         int totalLen = SDBMessageHelper.MESSAGE_OPLOB_LENGTH;
         
-        // add _MsgOpLob into buff with convert(db.endianConvert)
         ByteBuffer buff = ByteBuffer.allocate( 
                                 SDBMessageHelper.MESSAGE_OPLOB_LENGTH );
         if ( _endianConvert ) {
@@ -572,12 +560,10 @@ class DBLobConcrete implements DBLob {
             buff.order( ByteOrder.BIG_ENDIAN );
         }
         
-        //*******************MsgHeader*******************
         SDBMessageHelper.addLobMsgHeader( buff, totalLen, 
                 Operation.MSG_BS_LOB_CLOSE_REQ.getOperationCode(), 
                 SequoiadbConstants.ZERO_NODEID, 0 );
         
-        //*******************_MsgOpLob**********************
         SDBMessageHelper.addLobOpMsg( buff, SequoiadbConstants.DEFAULT_VERSION, 
                    SequoiadbConstants.DEFAULT_W, (short)0, 
                    SequoiadbConstants.DEFAULT_FLAGS, _contextID, 0 );
@@ -591,13 +577,11 @@ class DBLobConcrete implements DBLob {
         int totalLen = SDBMessageHelper.MESSAGE_OPLOB_LENGTH 
                         + Helper.roundToMultipleXLength( bOpenLob.length, 4 );
         
-        // convert the openLob's buff
         if ( !_endianConvert ) {
             SDBMessageHelper.bsonEndianConvert( bOpenLob, 0, bOpenLob.length, 
                     true );
         }
         
-        // add _MsgOpLob into buff with convert(db.endianConvert)
         ByteBuffer buff = ByteBuffer.allocate( 
                                 SDBMessageHelper.MESSAGE_OPLOB_LENGTH );
         if ( _endianConvert ) {
@@ -606,12 +590,10 @@ class DBLobConcrete implements DBLob {
             buff.order( ByteOrder.BIG_ENDIAN );
         }
         
-        //*******************MsgHeader*******************
         SDBMessageHelper.addLobMsgHeader( buff, totalLen, 
                 Operation.MSG_BS_LOB_OPEN_REQ.getOperationCode(), 
                 SequoiadbConstants.ZERO_NODEID, 0 );
         
-        //*******************_MsgOpLob**********************
         SDBMessageHelper.addLobOpMsg( buff, SequoiadbConstants.DEFAULT_VERSION, 
                    SequoiadbConstants.DEFAULT_W, (short)0, 
                    SequoiadbConstants.DEFAULT_FLAGS, 
@@ -625,14 +607,5 @@ class DBLobConcrete implements DBLob {
     }
     
     private void displayResponse( SDBMessage resMessage ) {
-//        int flag = resMessage.getFlags();
-//        System.out.println( "flags=" + flag );
-//        List<BSONObject> objList = resMessage.getObjectList();
-//        if ( objList != null ) {
-//            for ( int i = 0; i < objList.size(); i++ ) {
-//                BSONObject obj = objList.get( i );
-//                System.out.println( "obj " + i + ":" + obj.toString() );
-//            }
-//        }
     }
 }

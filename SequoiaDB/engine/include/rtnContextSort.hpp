@@ -56,6 +56,7 @@ namespace engine
       virtual _optAccessPlan *getPlan() { return _planForExplain ; }
 
       INT32 open( const BSONObj &orderBy,
+                  const BSONObj &selector,
                   rtnContext *context,
                   _pmdEDUCB *cb,
                   SINT64 numToSkip = 0,
@@ -68,8 +69,7 @@ namespace engine
       _rtnSorting _sorting ;
       SINT64 _skip ;
       SINT64 _limit ;
-      /// WARNING: do not use this plan to do anything
-      ///  except keeping plan for explaining. -- yunwu.
+      _mthSelector _selector ;
       _optAccessPlan *_planForExplain ;
    } ;
    typedef class _rtnContextSort rtnContextSort ;

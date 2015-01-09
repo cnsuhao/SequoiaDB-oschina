@@ -38,7 +38,6 @@ import java.nio.charset.CharsetEncoder;
 import java.util.EnumSet;
 import java.util.Set;
 
-//import org.apache.mina.core.session.IoSession;
 
 /**
  * A byte buffer used by MINA applications.
@@ -268,7 +267,6 @@ public abstract class IoBuffer implements Comparable<IoBuffer> {
      * Creates a new instance. This is an empty constructor.
      */
     protected IoBuffer() {
-        // Do nothing
     }
 
     /**
@@ -1036,9 +1034,6 @@ public abstract class IoBuffer implements Comparable<IoBuffer> {
      */
     public abstract String getHexDump(int lengthLimit);
 
-    // //////////////////////////////
-    // String getters and putters //
-    // //////////////////////////////
 
     /**
      * Reads a <code>NUL</code>-terminated string from this buffer using the
@@ -1216,9 +1211,6 @@ public abstract class IoBuffer implements Comparable<IoBuffer> {
      */
     public abstract boolean prefixedDataAvailable(int prefixLength, int maxDataLength);
 
-    // ///////////////////
-    // IndexOf methods //
-    // ///////////////////
 
     /**
      * Returns the first occurence position of the specified byte from the
@@ -1228,9 +1220,6 @@ public abstract class IoBuffer implements Comparable<IoBuffer> {
      */
     public abstract int indexOf(byte b);
 
-    // ////////////////////////
-    // Skip or fill methods //
-    // ////////////////////////
 
     /**
      * Forwards the position of this buffer as the specified <code>size</code>
@@ -1262,9 +1251,6 @@ public abstract class IoBuffer implements Comparable<IoBuffer> {
      */
     public abstract IoBuffer fillAndReset(int size);
 
-    // ////////////////////////
-    // Enum methods //
-    // ////////////////////////
 
     /**
      * Reads a byte from the buffer and returns the correlating enum constant
@@ -1392,9 +1378,6 @@ public abstract class IoBuffer implements Comparable<IoBuffer> {
      */
     public abstract IoBuffer putEnumInt(int index, Enum<?> e);
 
-    // ////////////////////////
-    // EnumSet methods //
-    // ////////////////////////
 
     /**
      * Reads a byte sized bit vector and converts it to an {@link EnumSet}.

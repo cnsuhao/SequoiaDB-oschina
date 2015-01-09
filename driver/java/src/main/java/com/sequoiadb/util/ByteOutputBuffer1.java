@@ -3,7 +3,6 @@ package com.sequoiadb.util;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteOrder;
-//import java.nio.ByteBuffer;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.bson.io.OutputBuffer;
@@ -28,7 +27,6 @@ public class ByteOutputBuffer1 extends OutputBuffer {
 
 	@Override
 	public void write(int b) {
-		//_ensure(1);
 		ioBuffer.put((byte) (0xFF & b));
 	}
 

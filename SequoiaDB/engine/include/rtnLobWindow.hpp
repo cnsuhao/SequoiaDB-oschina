@@ -48,7 +48,6 @@ namespace engine
    public:
       INT32 init( INT32 pageSize ) ;
 
-      /// for write
       INT32 prepare2Write( SINT64 offset, UINT32 len, const CHAR *data ) ;
 
       BOOLEAN getNextWriteSequences( RTN_LOB_TUPLES &tuples ) ;
@@ -58,7 +57,6 @@ namespace engine
       BOOLEAN getCachedData( _rtnLobTuple &tuple ) ;
 
       
-      /// for read
       INT32 prepare2Read( SINT64 lobLen,
                           SINT64 offset,
                           UINT32 len,
@@ -74,7 +72,6 @@ namespace engine
       CHAR *_pool ;
       INT32 _cachedSz ;
 
-      /// reuse rtnLobPiece to keep write data.
       _rtnLobTuple _writeData ;
       BOOLEAN _analysisCache ;
    } ;

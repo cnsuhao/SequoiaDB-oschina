@@ -1,4 +1,3 @@
-// Binary.java
 
 /**
  *  See the NOTICE.txt file distributed with this work for

@@ -1,4 +1,3 @@
-// BasicBSONObject.java
 
 /**
  *      Copyright (C) 2008 10gen Inc.
@@ -18,7 +17,6 @@
 
 package org.bson;
 
-// BSON
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
@@ -54,7 +52,6 @@ import org.bson.types.ObjectId;
 import org.bson.types.Symbol;
 import org.bson.util.JSON;
 
-// Java
 
 /**
  * A simple implementation of <code>DBObject</code>. A <code>DBObject</code> can
@@ -114,7 +111,6 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	 * 
 	 * @return the DBObject
 	 */
-	//@Override
 	public Map toMap() {
 		return new LinkedHashMap<String, Object>(this);
 	}
@@ -126,7 +122,6 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	 *            the field name to remove
 	 * @return the object removed
 	 */
-	//@Override
 	public Object removeField(String key) {
 		return remove(key);
 	}
@@ -138,7 +133,6 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	 *            field name
 	 * @return if the field exists
 	 */
-	//@Override
 	public boolean containsField(String field) {
 		return super.containsKey(field);
 	}
@@ -146,7 +140,6 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	/**
 	 * @deprecated
 	 */
-	//@Override
 	@Deprecated
 	public boolean containsKey(String key) {
 		return containsField(key);
@@ -159,7 +152,6 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	 *            field name
 	 * @return the value
 	 */
-	//@Override
 	public Object get(String key) {
 		return super.get(key);
 	}
@@ -376,12 +368,10 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	 *            the field value
 	 * @return the <code>val</code> parameter
 	 */
-	//@Override
 	public Object put(String key, Object val) {
 		return super.put(key, val);
 	}
 
-	//@Override
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public void putAll(Map m) {
 		for (Map.Entry entry : (Set<Map.Entry>) m.entrySet()) {
@@ -389,7 +379,6 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 		}
 	}
 
-	//@Override
 	public void putAll(BSONObject o) {
 		for (String k : o.keySet()) {
 			put(k, o.get(k));
@@ -416,12 +405,10 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	 * 
 	 * @return JSON serialization
 	 */
-	//@Override
 	public String toString() {
 		return JSON.serialize(this);
 	}
 
-	//@Override
 	public boolean equals(Object o) {
 		if (!(o instanceof BSONObject))
 			return false;
@@ -462,18 +449,10 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	public boolean BasicTypeWrite(Object object, Object field, Method method)
 			throws IllegalArgumentException, IllegalAccessException,
 			InvocationTargetException {
-		// Get type of write method's first parameter.
 		Class<?> paramType = method.getParameterTypes()[0];
 		boolean result = true;
                 boolean numberCompare = false ;
 		if (paramType.isPrimitive()) {
-//			if (!(field instanceof Number) && !(field instanceof Character)) {
-//				throw new IllegalArgumentException(
-//						"The method: "
-//								+ method.getName()
-//								+ " Expected parameter type:Number does not match with the actual type:"
-//								+ field.getClass().getName());
-//			}
 
 			if (paramType.getName().equals("int")) {
 				method.invoke(object, ((Number) field).intValue());
@@ -498,7 +477,6 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 			return result;
 		}
 
-                // make sure paramType and field are both number
                 if ( ( paramType.getName().equals("java.lang.Integer") ||
                        paramType.getName().equals("java.lang.Long") ||
                        paramType.getName().equals("java.lang.Float") ||
@@ -510,7 +488,6 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
                 {
                    numberCompare = true ;
                 }
-                // for number compare, we always cast to Number then cast back
 		if (!numberCompare && !paramType.isInstance(field)) {
 			throw new IllegalArgumentException("The method: "
 					+ method.getName() + " Expected parameter type:"
@@ -540,17 +517,12 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 			method.invoke(object, (Boolean) field);
 		} else if (Pattern.class.isAssignableFrom(paramType)) {
 			method.invoke(object, (Pattern) field);
-			// } else if (Map.class.isAssignableFrom(paramType)) {
-			// method.invoke(object, (Map) field);
-			// } else if (paramType.isAssignableFrom(Iterable.class)) {
-			// method.invoke(object, (Iterable) field);
 		} else if (byte[].class.isAssignableFrom(paramType)) {
 			method.invoke(object, (byte[]) field);
 		} else if (Binary.class.isAssignableFrom(paramType)) {
 			method.invoke(object, (Binary) field);
 		} else if (UUID.class.isAssignableFrom(paramType)) {
 			method.invoke(object, (UUID) field);
-			// } else if (paramType.getClass().isArray()) { // TODO
 		} else if (Symbol.class.isAssignableFrom(paramType)) {
 			method.invoke(object, (Symbol) field);
 		} else if (BSONTimestamp.class.isAssignableFrom(paramType)) {
@@ -576,13 +548,11 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	 * @return the instance of the class
 	 * @throws Exception
 	 */
-	//@Override
 	public <T> T as(Class<T> type) throws Exception {
 		return as(type, null);
 	}
 
 	@SuppressWarnings({"unchecked"}) 
-	//@Override
 	public <T> T as(Class<T> type, Type eleType) throws Exception {
 		boolean hasConsturctor = false;
 		T result = null;
@@ -624,13 +594,11 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 					
 					field = this.get(p.getName());	
 					
-					//如果属性是map<string,?>
 
 					
 					if (field == null) {
 						continue;
 					}else if(p.getPropertyType().equals(java.util.Map.class)){  //TODO
-							//取得map的泛型对象
 							Field mapField=type.getDeclaredField(p.getName());
 							Type generictype=mapField.getGenericType();
 							Type valueType=null;
@@ -638,7 +606,6 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 								Type[] types=((ParameterizedType)generictype).getActualTypeArguments();
 								valueType=types[1];
 							}
-							//bson对象转为Map对象
 							Map map=((BSONObject) field).toMap();							
 							Map realMap=new HashMap();
 							Set<Map.Entry<?,?>> set=map.entrySet();
@@ -654,11 +621,9 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 							}
 							writeMethod.invoke(result,realMap);
 					}else if (field instanceof BasicBSONObject) { // bson <=>
-																	// Object
 						writeMethod.invoke(result,
 								((BSONObject) field).as(p.getPropertyType()));
 					} else if (field instanceof BasicBSONList) { // bsonlist <=>
-																	// Collection
 
 						Field f = type.getDeclaredField(p.getName());
 						if (f == null)

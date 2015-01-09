@@ -49,7 +49,6 @@ using namespace bson ;
 
 namespace engine
 {
-   //class omTaskManager ;
 
    struct omTaskInfo
    {
@@ -124,7 +123,6 @@ namespace engine
          virtual ~omInstallTask() ;
 
       public:
-         // create a new task, insert into table OM_CS_DEPLOY_CL_TASKINFO
          INT32             init( const string &agentHost, 
                                  const string &agentService,
                                  const BSONObj &conf, UINT64 taskID ) ;
@@ -178,7 +176,6 @@ namespace engine
          void              _updateHostOMVersion( const string &hostName ) ;
 
       protected:
-         //TODO: to protect the progress ;
          ossSpinSLatch     _lock ;
       /*
          _omTaskInfo.taskInfo:

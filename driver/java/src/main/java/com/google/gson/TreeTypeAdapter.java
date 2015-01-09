@@ -91,7 +91,6 @@ final class TreeTypeAdapter<T> extends TypeAdapter<T> {
    */
   public static TypeAdapterFactory newFactoryWithMatchRawType(
       TypeToken<?> exactType, Object typeAdapter) {
-    // only bother matching raw types if exact type is a raw type
     boolean matchRawType = exactType.getType() == exactType.getRawType();
     return new SingleTypeFactory(typeAdapter, exactType, matchRawType, null);
   }

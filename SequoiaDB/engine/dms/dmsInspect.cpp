@@ -236,7 +236,6 @@ namespace engine
          else if ( i >= (UINT32)pageNum &&
                    DMS_SME_ALLOCATED == pSME->getBitMask(i) )
          {
-            // error
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: allocated page (%d) over page number "
                                  "(%d) "OSS_NEWLINE,
@@ -333,13 +332,11 @@ namespace engine
          goto exit ;
       }
 
-      // if we want to find a specific collection
       if ( pCollectionName )
       {
          if ( ossStrncmp ( mb->_collectionName, pCollectionName,
                            DMS_COLLECTION_NAME_SZ ) != 0 )
          {
-            // if it doesn't match our expectation
             goto exit ;
          }
       }
@@ -481,7 +478,6 @@ namespace engine
                   ++localErr ;
                }
             }
-            // index list
             for ( UINT16 i = 0 ; i < DMS_COLLECTION_MAX_INDEX ; i++ )
             {
                if ( DMS_INVALID_EXTENT != mb->_indexExtent[i] &&
@@ -559,14 +555,12 @@ namespace engine
          INT32 recordCount = 0 ;
          len += inspectExtentHeader ( inBuf, inSize, outBuf + len,
                                       outSize - len, collectionID, localErr ) ;
-         // make sure the extent is valid and in use
          if ( DMS_EXTENT_FLAG_FREED == extent->_flag )
          {
             len += ossSnprintf ( outBuf + len, outSize - len,
                                  "Error: Extent is not in use"OSS_NEWLINE ) ;
             ++localErr ;
          }
-         // start inspect all records
          dmsOffset nextRecord = extent->_firstRecordOffset ;
          while ( DMS_INVALID_OFFSET != nextRecord && len < outSize )
          {
@@ -677,7 +671,6 @@ namespace engine
       }
       else
       {
-         // for normal and ovfto types, let's inspect data
          try
          {
             ossValuePtr recordPtr = 0 ;
@@ -1139,7 +1132,6 @@ namespace engine
          goto exit ;
       }
 
-      // get all child extents
       for ( INT32 i = 0; i < extentHead->_totalKeyNodeNum; ++i )
       {
          UINT32 keyOffset = sizeof(ixmExtentHead) +
@@ -1175,7 +1167,6 @@ namespace engine
          ++localErr ;
          goto exit ;
       }
-      // inspect all index keys
       for ( INT32 i = 0 ; i < extentHead->_totalKeyNodeNum ; ++i )
       {
          UINT32 keyOffset = sizeof(ixmExtentHead) +

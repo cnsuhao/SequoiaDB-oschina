@@ -39,8 +39,6 @@ namespace engine
 {
    #define AUTH_SPACE                     "SYSAUTH"
    #define AUTH_USR_COLLECTION            AUTH_SPACE".SYSUSRS"
-   /// AUTH_USR_COLLECTION SCHEMA
-   /// {User:"", Passwd:""}
 
    #define AUTH_USR_INDEX_NAME            "usrindex"
 

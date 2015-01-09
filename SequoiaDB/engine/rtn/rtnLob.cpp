@@ -234,7 +234,6 @@ namespace engine
       rtnContext *context = rtnCB->contextFind ( contextID ) ;
       if ( NULL == context )
       {
-         /// context has been closed.
          goto done ;
       }
 
@@ -319,7 +318,6 @@ namespace engine
       }
       else
       {
-         /// do nothing.
       }
 
       rc = stream.truncate( 0, cb ) ;
@@ -529,7 +527,6 @@ namespace engine
                                   cb, meta ) ;
       if ( SDB_FNE == rc )
       {
-         /// do nothing.
          rc = SDB_OK ;
       }
       else if ( SDB_OK != rc )

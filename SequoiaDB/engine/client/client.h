@@ -1173,7 +1173,6 @@ SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
       INT32 i = 0 ;
       const INT32 num = 10 ;
       bson* obj[num] ;
-      // create bson poiter array
       for ( i = 0; i < num; i++ )
       {
          obj[i] = bson_create();
@@ -1184,11 +1183,9 @@ SDB_EXPORT INT32 sdbInsert1 ( sdbCollectionHandle cHandle,
          if ( rc != 0 )
             printf ( "something wrong.\n" ) ;
       }
-      // bulk insert
       rc = sdbBulkInsert ( cl, 0, obj, num ) ;
       if ( rc )
          printf ( "something wrong, rc = %d.\n", rc ) ;
-      // free memory
       for ( i = 0; i < num; i++ )
       {
          bson_dispose ( obj[i] ) ;
@@ -1274,6 +1271,7 @@ SDB_EXPORT INT32 sdbDelete ( sdbCollectionHandle cHandle,
                                                 when add this flag, return data in query response, it will be more high-performance
         
     \param [out] handle The cursor handle of current query
+    \note sort will be ignored when sort key is not exist in result set
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
@@ -1305,6 +1303,7 @@ SDB_EXPORT INT32 sdbQuery1 ( sdbCollectionHandle cHandle,
     \param [in] numToSkip Skip the first numToSkip documents, never skip if this parameter is 0
     \param [in] numToReturn Only return numToReturn documents, return all if this parameter is -1
     \param [out] handle The cursor handle of current query
+    \note sort will be ignored when sort key is not exist in result set
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
@@ -1525,7 +1524,6 @@ SDB_EXPORT void sdbReleaseDomain ( sdbDomainHandle cHandle ) ;
       INT32 i = 0 ;
       const INT32 num = 10 ;
       bson* obj[num] ;
-      // create bson poiter array
       for ( i = 0; i < num; i++ )
       {
          obj[i] = bson_create();
@@ -1536,11 +1534,9 @@ SDB_EXPORT void sdbReleaseDomain ( sdbDomainHandle cHandle ) ;
          if ( rc != 0 )
             printf ( "something wrong.\n" ) ;
       }
-      // TODO:
       rc = sdbAggregate ( cl, obj, num, &cursor ) ;
       if ( rc )
          printf ( "something wrong, rc = %d.\n", rc ) ;
-      // free memory
       for ( i = 0; i < num; i++ )
       {
          bson_dispose ( obj[i] ) ;

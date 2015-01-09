@@ -1,5 +1,4 @@
 /******************************************************************************/
-// text.cpp
 
 /*    Copyright 2009 10gen Inc.
  *
@@ -58,7 +57,6 @@
                 if (c > 0xF4) return false; // codepoint too large (< 0x10FFFF)
                 if (c == 0xC0 || c == 0xC1) return false; // codepoints <= 0x7F shouldn't be 2 bytes
 
-                // still valid
                 left = ones-1;
             }
         }
@@ -93,7 +91,6 @@
                 {
                   return false; // codepoints <= 0x7F shouldn't be 2 bytes
                 }
-                // still valid
                 left = ones-1;
             }
         }
@@ -110,12 +107,10 @@
         if (wide.size() == 0)
             return "";
 
-        // Calculate necessary buffer size
         int len = ::WideCharToMultiByte(
                       CP_UTF8, 0, wide.c_str(), static_cast<int>(wide.size()),
                       NULL, 0, NULL, NULL);
 
-        // Perform actual conversion
         if (len > 0) {
             vector<char> buffer(len);
             len = ::WideCharToMultiByte(

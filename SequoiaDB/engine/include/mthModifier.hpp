@@ -239,12 +239,6 @@ namespace engine
       INT32 _appendBitModifier2 ( const CHAR *pRoot, const CHAR *pShort,
                                   Builder &bb, INT32 in,
                                   ModifierElement &me ) ;
-      // if the original object has the element we asked to modify, then e is
-      // the
-      // original element, b is the builder, me is the info that we want to
-      // modify
-      // basically we need to take the original data from e, and use modifier
-      // element me to make some change, and add into builder b
       template<class Builder>
       INT32 _applyChange ( CHAR **ppRoot,
                            INT32 &rootBufLen,
@@ -253,19 +247,10 @@ namespace engine
                            Builder &b,
                            SINT32 *modifierIndex ) ;
 
-      // when requested update want to change something that not exist in
-      // original
-      // object, we need to append the original object in those cases
       template<class Builder>
       INT32 _appendNew ( const CHAR *pRoot, const CHAR *pShort,
                          Builder& b, SINT32 *modifierIndex ) ;
 
-      // Builder could be BSONObjBuilder or BSONArrayBuilder
-      // _appendNewFromMods appends the current builder with the new field
-      // root represent the current fieldName, me is the current modifier element
-      // b is the builder, onedownseen represent the all subobjects have been
-      // processed in the current object, and modifierIndex is the pointer for
-      // current modifier
       template<class Builder>
       INT32 _appendNewFromMods ( CHAR **ppRoot,
                                  INT32 &rootBufLen,
@@ -274,10 +259,6 @@ namespace engine
                                  Builder &b,
                                  SINT32 *modifierIndex,
                                  BOOLEAN hasCreateNewRoot ) ;
-      // Builder could be BSONObjBuilder or BSONArrayBuilder
-      // This function is recursively called to build new object
-      // The prerequisit is that _modifierElement is sorted, which supposed to
-      // happen at end of loadPattern
       template<class Builder>
       INT32 _buildNewObj ( CHAR **ppRoot,
                            INT32 &rootBufLen,

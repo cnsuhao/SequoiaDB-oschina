@@ -1,4 +1,3 @@
-// BSON.java
 
 /**
  *      Copyright (C) 2008 10gen Inc.
@@ -42,7 +41,6 @@ public class BSON {
 
     static final Logger LOGGER = Logger.getLogger( "org.bson.BSON" );
 
-    // ---- basics ----
 
     public static final byte EOO = 0;
     public static final byte NUMBER = 1;
@@ -67,7 +65,6 @@ public class BSON {
     public static final byte MINKEY = -1;
     public static final byte MAXKEY = 127;
 
-    // --- binary types
     /*
        these are binary types
        so the format would look like
@@ -79,7 +76,6 @@ public class BSON {
     public static final byte B_BINARY = 2;
     public static final byte B_UUID = 3;
 
-    // ---- regular expression handling ----
 
     /** Converts a string of regular expression flags from the database in Java regular
      * expression flags.
@@ -179,7 +175,6 @@ public class BSON {
 
     private static final int GLOBAL_FLAG = 256;
 
-    // --- (en|de)coding hooks -----
 
     public static boolean hasDecodeHooks() { return _decodeHooks; }
 
@@ -309,7 +304,6 @@ public class BSON {
 
     static protected Charset _utf8 = Charset.forName( "UTF-8" );
 
-    // ----- static encode/decode -----
 
     public static byte[] encode( BSONObject o ){
         BSONEncoder e = _staticEncoder.get();
@@ -338,7 +332,6 @@ public class BSON {
         }
     };
 
-    // --- coercing ---
 
     public static int toInt( Object o ){
         if ( o == null )
@@ -369,24 +362,16 @@ public class BSON {
 			return true;
 		else if (obj instanceof ObjectId)
 			return true;
-		// else if (obj instanceof BSONObject)
-		// return true;
 		else if (obj instanceof Boolean)
 			return true;
 		else if (obj instanceof Pattern)
 			return true;
-		// else if (obj instanceof Map)
-		// return true;
-		// else if (obj instanceof Iterable)
-		// return true;
 		else if (obj instanceof byte[])
 			return true;
 		else if (obj instanceof Binary)
 			return true;
 		else if (obj instanceof UUID)
 			return true;
-		// else if (obj.getClass().isArray())
-		// return true;
 		else if (obj instanceof Symbol)
 			return true;
 		else if (obj instanceof BSONTimestamp)

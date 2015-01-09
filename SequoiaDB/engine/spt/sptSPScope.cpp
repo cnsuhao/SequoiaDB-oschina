@@ -276,7 +276,6 @@ namespace engine
       JSFunctionSpec *fSpecs = NULL ;
       JSFunctionSpec *sfSpecs = NULL ;
  
-      /// +1 for FS_END
       fSpecs = new JSFunctionSpec[memberFuncs.size() + 1] ;
       if ( NULL == fSpecs )
       {
@@ -353,7 +352,6 @@ namespace engine
       jsval exception = JSVAL_VOID ;
       CHAR *print = NULL ;
 
-      // set error report
       sdbSetPrintError( ( flag & SPT_EVAL_FLAG_PRINT ) ? TRUE : FALSE ) ;
       sdbSetNeedClearErrorInfo( TRUE ) ;
 
@@ -385,7 +383,6 @@ namespace engine
          }
       }
 
-      // clear return error
       if ( sdbIsNeedClearErrorInfo() &&
            !JS_IsExceptionPending( _context ) )
       {
@@ -409,7 +406,10 @@ namespace engine
 
          if ( NULL != strException )
          {
-            ossPrintf ( "Uncaught exception: %s\n" , strException ) ;
+            std::stringstream ss ;
+            ss << "uncaught exception:" ;
+            ss << strException ;
+            sdbReportError( NULL, 0, ss.str().c_str(), TRUE ) ;
             detail = BSON( "exception" << strException ) ;
             SAFE_JS_FREE( _context, strException ) ;
          }

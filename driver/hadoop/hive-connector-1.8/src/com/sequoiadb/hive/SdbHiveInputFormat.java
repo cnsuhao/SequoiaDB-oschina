@@ -35,7 +35,6 @@ public class SdbHiveInputFormat extends
 			Reporter Reporter) throws IOException {
 		
 		Configuration conf = new Configuration( jobConf );
-//		List<Integer> readColIDs = ColumnProjectionUtils.getReadColumnIDs(jobConf);
 		List<Integer> readColIDs = ColumnProjectionUtils.getReadColumnIDs( conf );
 		
 		String columnString = jobConf.get(ConfigurationUtil.COLUMN_MAPPING);
@@ -114,7 +113,6 @@ public class SdbHiveInputFormat extends
 			colName = ConfigurationUtil.getClName(jobConf);
 		}
 
-        //RecordReader<LongWritable, BytesWritable> sdbr = new SdbReader(spaceName,colName, inputSplit,	columns, readColIDs, filterExpr);
 		
 		return new SdbReader(spaceName,colName, inputSplit,	columns, readColIDs, filterExpr);
 		
@@ -156,20 +154,15 @@ public class SdbHiveInputFormat extends
 			findHiveVersion = true;
 			returnNum = 0;
 		} catch (SecurityException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (NoSuchMethodException e) {
-			// TODO Auto-generated catch block
-//			e.printStackTrace();
 			try {
 				Method method = Utilities.class.getDeclaredMethod("deserializeExpression", parameterTypes_cdh5_0_0beta2Hive);
 				findHiveVersion = true;
 				returnNum = 1;
 			} catch (SecurityException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			} catch (NoSuchMethodException e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 			

@@ -79,13 +79,10 @@ namespace engine
                        const msgOptions &options,
                        const bson::BSONObj &obj ) ;
 
-      /// dispatcher will not own the data. do not release data
-      /// until everything is done.
       _rtnCoordLobDispatcher &add( UINT32 groupID ,
                                    const void *data,
                                    UINT32 len ) ;
 
-      /// the msg which does not have bodies will be send.
       _rtnCoordLobDispatcher &add( UINT32 groupID ) ;
 
       _rtnCoordLobDispatcher &add( MsgRouteID id ,

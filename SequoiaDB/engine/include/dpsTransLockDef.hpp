@@ -53,9 +53,6 @@ namespace engine
 
    enum DPS_TRANSLOCK_TYPE
    {
-      // note: don't modify the enum lightly,
-      // check the fun( dpsTransLock::upgradeCheck
-      // and dpsLockBucket::isLockCompatible ) before modify
       DPS_TRANSLOCK_IS = 0,
       DPS_TRANSLOCK_IX,
       DPS_TRANSLOCK_S,

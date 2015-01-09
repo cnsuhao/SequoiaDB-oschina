@@ -66,7 +66,6 @@ namespace engine
 
       rtnContext *context = NULL ;
 
-      // retrieve the context pointer
       context = rtnCB->contextFind ( contextID ) ;
       if ( !context )
       {
@@ -74,7 +73,6 @@ namespace engine
          rc = SDB_RTN_CONTEXT_NOTEXIST ;
          goto error ;
       }
-      // make sure the context belongs to the current session
       if ( !cb->contextFind ( contextID ) )
       {
          PD_LOG ( PDERROR, "Context %lld does not owned by current session",
@@ -160,6 +158,7 @@ namespace engine
 
    INT32 rtnSort ( rtnContext **ppContext,
                    const BSONObj &orderBy,
+                   const BSONObj &selector,
                    _pmdEDUCB *cb,
                    SINT64 numToSkip,
                    SINT64 numToReturn,
@@ -179,6 +178,7 @@ namespace engine
       }
 
       rc = ((_rtnContextSort *)(*ppContext))->open( orderBy,
+                                                    selector,
                                                     dataSrc,
                                                     cb,
                                                     numToSkip,
@@ -201,6 +201,55 @@ namespace engine
          contextID = -1 ;
       }
       goto done ;
+   }
+
+   struct fieldCompare
+   {
+      BOOLEAN operator()( const CHAR *a, const CHAR *b ) const
+      {
+         return ossStrcmp( a, b ) < 0 ;
+      }
+   } ;
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNBUILDNEWSELECTOR, "_buildNewSelector" )
+   void buildNewSelector( const BSONObj &original,
+                          const BSONObj &orderBy,
+                          BSONObj &newSelector )
+   {
+      PD_TRACE_ENTRY( SDB__RTNBUILDNEWSELECTOR ) ;
+
+      if ( !original.isEmpty() &&
+           !orderBy.isEmpty() )
+      {
+         BOOLEAN pushed = FALSE ;
+         std::set<const CHAR *, fieldCompare> addList ;
+         BSONObjBuilder builder ;
+         BSONObjIterator itr( orderBy ) ;
+         while ( itr.more() )
+         {
+            BSONElement ele = itr.next() ;
+            const CHAR *fieldName = ele.fieldName() ;
+            if ( !original.hasElement( fieldName ) &&
+                 0 == addList.count( fieldName ) )
+            {
+               if ( !pushed )
+               {
+                  builder.appendElements( original ) ;
+                  pushed = TRUE ;    
+               }
+
+               builder.appendNull( fieldName ) ;
+               addList.insert( fieldName ) ;
+            }
+         }
+
+         if ( pushed )
+         {
+            newSelector = builder.obj() ;
+         }
+      }
+      PD_TRACE_EXIT( SDB__RTNBUILDNEWSELECTOR ) ;
+      return  ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNQUERY, "rtnQuery" )
@@ -238,11 +287,14 @@ namespace engine
 
       BSONObj hintTmp = hint ;
       BSONObj blockObj ;
+      BSONObj newSelector ;
       BSONObj *pBlockObj = NULL ;
       const CHAR *indexName = NULL ;
       const CHAR *scanType  = NULL ;
       INT32 indexLID = DMS_INVALID_EXTENT ;
       INT32 direction = 0 ;
+
+      buildNewSelector( selector, orderBy, newSelector ) ;
 
       if ( FLG_QUERY_EXPLAIN & flags )
       {
@@ -267,7 +319,6 @@ namespace engine
          }
       }
 
-      // This prevents other sessions drop the collectionspace during accessing
       rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to resolve collection name %s",
@@ -276,7 +327,6 @@ namespace engine
       rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
 
-      // create a new context
       rc = rtnCB->contextNew ( ( flags & FLG_QUERY_PARALLED ) ?
                                RTN_CONTEXT_PARADATA : RTN_CONTEXT_DATA,
                                (rtnContext**)&dataContext,
@@ -308,7 +358,6 @@ namespace engine
       apm = su->getAPM() ;
       SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 
-      // plan is released in context destructor
       rc = apm->getPlan ( matcher,
                           orderBy, // orderBy
                           hintTmp, // hint
@@ -320,7 +369,6 @@ namespace engine
                   "rc: %d", pCollectionName, contextID, rc ) ;
          goto error ;
       }
-      // used force hint, but hint failed
       else if ( ( flags & FLG_QUERY_FORCE_HINT ) && !hintTmp.isEmpty() &&
                 plan->isHintFailed() )
       {
@@ -330,7 +378,6 @@ namespace engine
          goto error ;
       }
 
-      // check
       if ( pBlockObj )
       {
          if ( !indexName && TBSCAN != plan->getScanType() )
@@ -356,8 +403,8 @@ namespace engine
          dataContext->getSelector().setStringOutput( TRUE ) ;
       }
 
-      // open context
-      rc = dataContext->open( su, mbContext, plan, cb, selector,
+      rc = dataContext->open( su, mbContext, plan, cb,
+                              newSelector.isEmpty() ? selector :newSelector,
                               plan->sortRequired() ? -1 : numToReturn,
                               plan->sortRequired() ? 0 : numToSkip,
                               pBlockObj, direction ) ;
@@ -367,19 +414,17 @@ namespace engine
       plan = NULL ;
       mbContext = NULL ;
 
-      // sample timetamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          dataContext->getMonCB()->recordStartTimestamp() ;
       }
 
-      // if it require sort, then first we need to get a temp table and create
-      // index, and then we need to loop through each records and insert them
-      // into the temp table. Then we need to perform index scan against the
-      // temp table index
       if ( dataContext->getPlan()->sortRequired() )
       {
-         rc = rtnSort ( (rtnContext**)&dataContext, orderBy, cb, numToSkip,
+         rc = rtnSort ( (rtnContext**)&dataContext,
+                        orderBy,
+                        newSelector.isEmpty() ? BSONObj() : selector,
+                        cb, numToSkip,
                         numToReturn, rtnCB, contextID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to sort, rc: %d", rc ) ;
       }
@@ -417,9 +462,6 @@ namespace engine
       goto done ;
    }
 
-   // given a collection name, a key ( without field name ), an index name, and
-   // a direction, this function will create a context and build an index
-   // scanner
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNTRAVERSALQUERY, "rtnTraversalQuery" )
    INT32 rtnTraversalQuery ( const CHAR *pCollectionName,
                              const BSONObj &key,
@@ -453,8 +495,6 @@ namespace engine
       BSONObj hint ;
       BSONObj dummy ;
 
-      // collection in dmsCB lock is released when context is freed
-      // This prevents other sessions drop the collectionspace during accessing
       rc = rtnResolveCollectionNameAndLock ( pCollectionName, dmsCB, &su,
                                              &pCollectionShortName, suID ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to resolve collection name %s",
@@ -463,7 +503,6 @@ namespace engine
       rc = su->data()->getMBContext( &mbContext, pCollectionShortName, -1 ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get dms mb context, rc: %d", rc ) ;
 
-      // create a new context
       rc = rtnCB->contextNew ( RTN_CONTEXT_DATA, (rtnContext**)&context,
                                contextID, cb ) ;
       PD_RC_CHECK ( rc, PDERROR, "Failed to create new context, %d", rc ) ;
@@ -471,7 +510,6 @@ namespace engine
 
       try
       {
-         // build hint
          hint = BSON( "" << pIndexName ) ;
       }
       catch ( std::exception &e )
@@ -494,11 +532,9 @@ namespace engine
                  "Unable to generate access plan by index %s",
                  pIndexName ) ;
 
-      // lock
       rc = mbContext->mbLock( SHARED ) ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;
 
-      // start building scanner
       {
          dmsRecordID rid ;
          if ( -1 == dir )
@@ -509,7 +545,6 @@ namespace engine
          {
             rid.resetMin () ;
          }
-         // get the index control block we want
          ixmIndexCB indexCB ( plan->getIndexCBExtent(), su->index(), NULL ) ;
          PD_CHECK ( indexCB.isInitialized(), SDB_SYS, error, PDERROR,
                     "unable to get proper index control block" ) ;
@@ -521,18 +556,14 @@ namespace engine
             rc = SDB_IXM_NOTEXIST ;
             goto error ;
          }
-         // get the predicate list
          predList = plan->getPredList() ;
          SDB_ASSERT ( predList, "predList can't be NULL" ) ;
-         // set the traversal direction
          predList->setDirection ( dir ) ;
 
-         // scanner should be deleted in context destructor
          scanner = SDB_OSS_NEW rtnIXScanner ( &indexCB, predList, su, cb ) ;
          PD_CHECK ( scanner, SDB_OOM, error, PDERROR,
                     "Unable to allocate memory for scanner" ) ;
 
-         // reloate RID to the key that we want
          rc = scanner->relocateRID ( key, rid ) ;
          PD_CHECK ( SDB_OK == rc, rc, error, PDERROR,
                     "Failed to relocate key to the specified location: %s, "
@@ -540,7 +571,6 @@ namespace engine
       }
       mbContext->mbUnlock() ;
 
-      // open context
       rc = context->openTraversal( su, mbContext, plan, scanner, cb,
                                    dummy, -1, 0 ) ;
       PD_RC_CHECK( rc, PDERROR, "Open context traversal faield, rc: %d", rc ) ;
@@ -551,7 +581,6 @@ namespace engine
       scanner = NULL ;
       su = NULL ;
 
-      // sample timestamp
       if ( cb->getMonConfigCB()->timestampON )
       {
          context->getMonCB()->recordStartTimestamp() ;
@@ -626,7 +655,6 @@ namespace engine
          realHint = ele.embeddedObject() ;
       }
 
-      /// clear explain flag.
       rtnQueryOptions options( matcher, selector,
                                orderBy, realHint,
                                pCollectionName,

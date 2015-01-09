@@ -29,7 +29,6 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef authTRACE_H__
 #define authTRACE_H__
-// Component: auth
 #define SDB_AUTHCB_AUTHENTICATE                            0x100000342L
 #define SDB_AUTHCB_CREATEUSR                               0x100000343L
 #define SDB_AUTHCB_REMOVEUSR                               0x100000344L

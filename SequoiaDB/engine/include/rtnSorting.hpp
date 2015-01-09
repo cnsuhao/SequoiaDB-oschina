@@ -66,7 +66,6 @@ namespace engine
                   SINT64 limit,
                   _pmdEDUCB *cb );
 
-      /// do not ensure that the next is get owned.
       INT32 fetch( BSONObj &next, _pmdEDUCB *cb ) ;
 
    private:
