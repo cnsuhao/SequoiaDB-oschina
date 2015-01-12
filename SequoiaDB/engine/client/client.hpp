@@ -717,7 +717,6 @@ namespace sdbclient
                                                 when add this flag, return data in query response, it will be more high-performance
         
     \param [out] cursor The cursor of current query
-    \note sort will be ignored when sort key is not exist in result set
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */

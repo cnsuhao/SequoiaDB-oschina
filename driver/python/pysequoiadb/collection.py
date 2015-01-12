@@ -489,8 +489,6 @@ class collection(object):
       Exceptions:
          pysequoiadb.error.SDBTypeError
          pysequoiadb.error.SDBBaseError
-      Note:
-         sort will be ignored when sort key is not exist in result set
       """
 
       bson_condition = None

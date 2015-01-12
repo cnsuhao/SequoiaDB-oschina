@@ -1271,7 +1271,6 @@ SDB_EXPORT INT32 sdbDelete ( sdbCollectionHandle cHandle,
                                                 when add this flag, return data in query response, it will be more high-performance
         
     \param [out] handle The cursor handle of current query
-    \note sort will be ignored when sort key is not exist in result set
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */
@@ -1303,7 +1302,6 @@ SDB_EXPORT INT32 sdbQuery1 ( sdbCollectionHandle cHandle,
     \param [in] numToSkip Skip the first numToSkip documents, never skip if this parameter is 0
     \param [in] numToReturn Only return numToReturn documents, return all if this parameter is -1
     \param [out] handle The cursor handle of current query
-    \note sort will be ignored when sort key is not exist in result set
     \retval SDB_OK Operation Success
     \retval Others Operation Fail
 */

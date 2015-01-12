@@ -976,6 +976,7 @@ namespace engine
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
       dmsStorageUnit *su   = NULL ;
       BOOLEAN writable     = FALSE ;
+      BOOLEAN hasAquired   = FALSE ;
 
       UINT32 length = ossStrlen ( pCollectionSpace ) ;
       if ( length <= 0 || length > DMS_SU_NAME_SZ )
@@ -1007,6 +1008,9 @@ namespace engine
          goto error ;
       }
 
+      dmsCB->aquireCSMutex( pCollectionSpace ) ;
+      hasAquired = TRUE ;
+
       if ( SDB_ROLE_STANDALONE == pmdGetKRCB()->getDBRole() )
       {
          rc = rtnLoadCollectionSpace ( pCollectionSpace,
@@ -1033,7 +1037,7 @@ namespace engine
 
       rc = su->open ( pmdGetOptionCB()->getDbPath(),
                       pmdGetOptionCB()->getIndexPath(),
-                      pmdGetOptionCB()->getLobPath(),                
+                      pmdGetOptionCB()->getLobPath(),
                       TRUE, delWhenExist ) ;
       if ( rc )
       {
@@ -1059,13 +1063,17 @@ namespace engine
       }
 
    done :
-      if ( writable )
-      {
-         dmsCB->writeDown() ;
-      }
       if ( DMS_INVALID_CS != suID )
       {
          dmsCB->suUnlock ( suID ) ;
+      }
+      if ( hasAquired )
+      {
+         dmsCB->releaseCSMutex( pCollectionSpace ) ;
+      }
+      if ( writable )
+      {
+         dmsCB->writeDown() ;
       }
       PD_TRACE_EXITRC ( SDB_RTNCREATECSCOMMAND, rc ) ;
       return rc ;
@@ -1176,13 +1184,13 @@ namespace engine
          }
       }
    done :
-      if ( writable )
-      {
-         dmsCB->writeDown() ;
-      }
       if ( DMS_INVALID_CS != suID )
       {
          dmsCB->suUnlock ( suID ) ;
+      }
+      if ( writable )
+      {
+         dmsCB->writeDown() ;
       }
       PD_TRACE_EXITRC ( SDB_RTNCREATECLCOMMAND, rc ) ;
       return rc ;
@@ -1241,13 +1249,13 @@ namespace engine
       apm->invalidatePlans ( pCollectionShortName ) ;
 
    done :
-      if ( writable )
-      {
-         dmsCB->writeDown() ;
-      }
       if ( DMS_INVALID_CS != suID )
       {
          dmsCB->suUnlock ( suID ) ;
+      }
+      if ( writable )
+      {
+         dmsCB->writeDown() ;
       }
       PD_TRACE_EXITRC ( SDB_RTNCREATEINDEXCOMMAND, rc ) ;
       return rc ;
@@ -1320,13 +1328,13 @@ namespace engine
       apm->invalidatePlans ( pCollectionShortName ) ;
 
    done :
-      if ( writable )
-      {
-         dmsCB->writeDown() ;
-      }
       if ( DMS_INVALID_CS != suID )
       {
          dmsCB->suUnlock ( suID ) ;
+      }
+      if ( writable )
+      {
+         dmsCB->writeDown() ;
       }
       PD_TRACE_EXITRC ( SDB_RTNDROPINDEXCOMMAND, rc ) ;
       return rc ;
@@ -1358,6 +1366,7 @@ namespace engine
                                     BOOLEAN   sysCall )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNDROPCSP1 ) ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
       SINT64 contextID = -1 ;
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" ) ;
@@ -1404,6 +1413,7 @@ namespace engine
       }
 
    done :
+      PD_TRACE_EXITRC ( SDB_RTNDROPCSP1, rc ) ;
       return rc ;
    error :
       goto done ;
@@ -1417,6 +1427,7 @@ namespace engine
                                           BOOLEAN   sysCall )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNDROPCSP1CANCEL ) ;
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" );
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" );
       UINT32 length = ossStrlen ( pCollectionSpace ) ;
@@ -1432,6 +1443,7 @@ namespace engine
                   "failed to cancel remove cs(name:%s, rc=%d)",
                   pCollectionSpace, rc );
    done:
+      PD_TRACE_EXITRC ( SDB_RTNDROPCSP1CANCEL, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1445,6 +1457,7 @@ namespace engine
                                     BOOLEAN   sysCall )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNDROPCSP2 ) ;
       SDB_ASSERT ( pCollectionSpace, "collection space can't be NULL" );
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" );
       UINT32 length = ossStrlen ( pCollectionSpace ) ;
@@ -1455,11 +1468,14 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+      dmsCB->aquireCSMutex( pCollectionSpace ) ;
       rc = dmsCB->dropCollectionSpaceP2( pCollectionSpace, cb, dpsCB );
+      dmsCB->releaseCSMutex( pCollectionSpace ) ;
       PD_RC_CHECK( rc, PDERROR,
                   "failed to drop cs(name:%s, rc=%d)",
                   pCollectionSpace, rc );
    done:
+      PD_TRACE_EXITRC ( SDB_RTNDROPCSP2, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1505,13 +1521,13 @@ namespace engine
       apm->invalidatePlans ( pCollectionShortName ) ;
 
    done :
-      if ( writable )
-      {
-         dmsCB->writeDown() ;
-      }
       if ( DMS_INVALID_CS != suID )
       {
          dmsCB->suUnlock ( suID ) ;
+      }
+      if ( writable )
+      {
+         dmsCB->writeDown() ;
       }
       PD_TRACE_EXITRC ( SDB_RTNDROPCLCOMMAND, rc ) ;
       return rc ;
@@ -1554,13 +1570,13 @@ namespace engine
       }
 
    done :
-      if ( writable )
-      {
-         dmsCB->writeDown() ;
-      }
       if ( DMS_INVALID_CS != suID )
       {
          dmsCB->suUnlock ( suID ) ;
+      }
+      if ( writable )
+      {
+         dmsCB->writeDown() ;
       }
       PD_TRACE_EXITRC ( SDB_RTNTRUNCCLCOMMAND, rc ) ;
       return rc ;

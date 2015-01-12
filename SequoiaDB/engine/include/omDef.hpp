@@ -325,11 +325,11 @@ namespace engine
    #define  OM_BSON_FIELD_NET_TXDROPS        "TXDrops"
 
 
-   #define  OM_QUERY_BUSINESS_TYPE_REQ       "list business type"
+   #define  OM_LIST_BUSINESS_TYPE_REQ        "list business type"
 
    #define  OM_BUSINESS_CONFIG_SUBDIR        "config"
    #define  OM_BUSINESS_FILE_NAME            "business"
-   #define  OM_BUSINESS_FILE_TYPE            ".xml"
+   #define  OM_CONFIG_FILE_TYPE              ".xml"
 
    #define  OM_XMLATTR_KEY                   "<xmlattr>"
    #define  OM_XMLATTR_TYPE                  "<xmlattr>.type"
@@ -339,7 +339,7 @@ namespace engine
    #define  OM_BSON_BUSINESS_TYPE            OM_BUSINESS_FIELD_TYPE
    #define  OM_BSON_BUSINESS_NAME            OM_BUSINESS_FIELD_NAME
 
-   #define  OM_QUERY_BUSINESS_TEMPLATE_REQ   "query business template"
+   #define  OM_GET_BUSINESS_TEMPLATE_REQ     "get business template"
 
    #define  OM_TEMPLATE_FILE_NAME            "_template"
 

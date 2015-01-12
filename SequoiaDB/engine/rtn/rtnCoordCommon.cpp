@@ -53,6 +53,10 @@ using namespace bson;
 
 namespace engine
 {
+   extern void buildNewSelector( const BSONObj &,
+                                 const BSONObj &,
+                                 BSONObj & ) ; 
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCATAQUERY, "rtnCoordCataQuery" )
    INT32 rtnCoordCataQuery ( const CHAR *pCollectionName,
                              const BSONObj &selector,
@@ -97,7 +101,7 @@ namespace engine
       rc = pRtncb->contextNew( RTN_CONTEXT_COORD, (rtnContext**)&pContext,
                                contextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "failed to allocate context(rc=%d)", rc );
-      rc = pContext->open( BSONObj(), -1, 0 ) ;
+      rc = pContext->open( BSONObj(), BSONObj(), -1, 0 ) ;
       PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
 
    retry:
@@ -197,6 +201,7 @@ namespace engine
       BOOLEAN onlyOneNode = groupLst.size() == 1 ? TRUE : FALSE ;
       INT64 tmpSkip = onlyOneNode ? numToSkip : 0 ;
       INT64 tmpReturn = onlyOneNode ? numToReturn : numToReturn + numToSkip ;
+      BSONObj newSelector ;
 
       const CHAR *realCLFullName = realCLName ? realCLName : pCollectionName ;
 
@@ -207,10 +212,14 @@ namespace engine
          goto error ;
       }
 
+      buildNewSelector( selector, orderBy, newSelector ) ;
+
       rc = msgBuildQueryMsg ( &pBuffer, &bufferSize, pCollectionName,
                               flag, 0, tmpSkip, tmpReturn,
                               condition.isEmpty()?NULL:&condition,
-                              selector.isEmpty()?NULL:&selector,
+                              newSelector.isEmpty() ?
+                              ( selector.isEmpty()?NULL:&selector ) :
+                              &newSelector,
                               orderBy.isEmpty()?NULL:&orderBy,
                               hint.isEmpty()?NULL:&hint ) ;
       if ( rc )
@@ -229,7 +238,9 @@ namespace engine
                   rc ) ;
          goto error ;
       }
-      rc = pContext->open( orderBy, numToReturn, onlyOneNode ? 0 : numToSkip ) ;
+      rc = pContext->open( orderBy,
+                           newSelector.isEmpty()? BSONObj() : selector,
+                           numToReturn, onlyOneNode ? 0 : numToSkip ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Open context failed, rc: %d", rc ) ;

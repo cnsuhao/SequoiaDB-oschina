@@ -516,7 +516,7 @@ namespace engine
          return r ;
       return l ;
    }
-   PD_TRACE_DECLARE_FUNCTION ( SDB_PREDOVERLAP, "predicatesOverlap" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_PREDOVERLAP, "predicatesOverlap" )
    BOOLEAN predicatesOverlap ( const rtnStartStopKey &l,
                                const rtnStartStopKey &r,
                                rtnStartStopKey &result )
@@ -715,7 +715,8 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNPRED_RTNPRED ) ;
       _isInitialized = FALSE ;
       INT32 op = e.getGtLtOp() ;
-      if ( !isNot && !e.eoo() && e.type() != RegEx && op == BSONObj::opIN )
+      if ( ( !isNot && !e.eoo() && e.type() != RegEx && op == BSONObj::opIN )
+           || ( e.type() == Array && op == BSONObj::Equality ) )
       {
          set<BSONElement, element_lt> vals ;
          vector<rtnPredicate> regexes ;
@@ -756,12 +757,6 @@ namespace engine
          {
             *this |= *i ;
          }
-         _isInitialized = TRUE ;
-         return ;
-      }
-      if ( e.type() == Array && op == BSONObj::Equality )
-      {
-         _startStopKeys.push_back ( rtnStartStopKey ( e ) ) ;
          _isInitialized = TRUE ;
          return ;
       }

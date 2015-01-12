@@ -58,15 +58,16 @@ namespace engine
                                  BOOLEAN sendToPrimary = FALSE,
                                  std::set<INT32> *ignoreRCList = NULL );
       virtual INT32 executeQuery( CHAR *pSrc ,
-                                 bson::BSONObj &boQuery ,
-                                 bson::BSONObj &boOrderBy ,
+                                 const bson::BSONObj &boQuery ,
+                                 const bson::BSONObj &boSelector,
+                                 const bson::BSONObj &boOrderBy ,
                                  const CHAR * pCollectionName ,
                                  netMultiRouteAgent *pRouteAgent ,
                                  pmdEDUCB *cb ,
                                  rtnContextCoord *&pContext );
    private:
       INT32 getNodeGroups( const CoordCataInfoPtr &cataInfo,
-                           bson::BSONObj &queryObj,
+                           const bson::BSONObj &queryObj,
                            const CoordGroupList &sendGroupLst,
                            CoordGroupList &groupLst );
       INT32 queryOnMainCL( CoordGroupSubCLMap &groupSubCLMap,
@@ -75,6 +76,10 @@ namespace engine
                            netMultiRouteAgent *pRouteAgent,
                            CoordGroupList &sendGroupList,
                            rtnContextCoord *pContext );
+
+      INT32 _buildNewMsg( const CHAR *msg,
+                          const bson::BSONObj &newSelector,
+                          CHAR *&newMsg ) ;
    };
 
 }

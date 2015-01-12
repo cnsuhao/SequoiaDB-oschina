@@ -663,7 +663,6 @@ public class DBCollection {
 	 *            the selective rule, return the whole document if null
 	 * @param orderBy
 	 *            the ordered rule, never sort if null
-	 *            orderBy will be ignored when sort key is not exist in result set
 	 * @param hint
 	 *            the hint, automatically match the optimal hint if null
 	 * @return a DBCursor instance of the result or null if no any matched document
@@ -684,7 +683,6 @@ public class DBCollection {
 	 *            the selective rule, return the whole document if null
 	 * @param orderBy
 	 *            the ordered rule, never sort if null
-	 *            orderBy will be ignored when sort key is not exist in result set
 	 * @param hint
 	 *            the hint, automatically match the optimal hint if null
 	 * @param flag 
@@ -712,7 +710,6 @@ public class DBCollection {
 	 *            the selective rule, return the whole document if null
 	 * @param orderBy
 	 *            the ordered rule, never sort if null
-	 *            orderBy will be ignored when sort key is not exist in result set
 	 * @param hint
 	 *            the hint, automatically match the optimal hint if null
 	 * @param skipRows
@@ -736,7 +733,6 @@ public class DBCollection {
 	 *            the selective rule, return the whole document if null
 	 * @param orderBy
 	 *            the ordered rule, never sort if null
-	 *            orderBy will be ignored when sort key is not exist in result set
 	 * @param hint
 	 *            the hint, automatically match the optimal hint if null
 	 * @param flag 
@@ -776,7 +772,6 @@ public class DBCollection {
 	 *            the selective rule, return the whole document if null
 	 * @param orderBy
 	 *            the ordered rule, never sort if null
-	 *            orderBy will be ignored when sort key is not exist in result set
 	 * @param hint
 	 *            the hint, automatically match the optimal hint if null
 	 * @param skipRows
@@ -814,7 +809,6 @@ public class DBCollection {
 	 *            the selective rule, return the whole document if null
 	 * @param orderBy
 	 *            the ordered rule, never sort if null
-	 *            orderBy will be ignored when sort key is not exist in result set
 	 * @param hint
 	 *            the hint, automatically match the optimal hint if null
 	 * @param skipRows
@@ -841,7 +835,6 @@ public class DBCollection {
 	 *            the selective rule, return the whole document if null
 	 * @param orderBy
 	 *            the ordered rule, never sort if null
-	 *            orderBy will be ignored when sort key is not exist in result set
 	 * @param hint
 	 *            the hint, automatically match the optimal hint if null
 	 * @param skipRows
@@ -903,7 +896,6 @@ public class DBCollection {
 	 *            the selective rule, return the whole document if null
 	 * @param orderBy
 	 *            the ordered rule, never sort if null
-	 *            orderBy will be ignored when sort key is not exist in result set
 	 * @param hint
 	 *            the hint, automatically match the optimal hint if null
 	 * @param flag the flag is used to choose the way to query, the optional options are as below:  

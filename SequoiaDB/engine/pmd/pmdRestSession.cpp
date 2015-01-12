@@ -706,16 +706,16 @@ namespace engine
          {
             commandIf = SDB_OSS_NEW omQueryHostCommand( pAdptor, this ) ;
          }
-         else if ( ossStrcasecmp( pSubCommand, OM_QUERY_BUSINESS_TYPE_REQ ) 
+         else if ( ossStrcasecmp( pSubCommand, OM_LIST_BUSINESS_TYPE_REQ ) 
                                                                           == 0 )
          {
-            commandIf = SDB_OSS_NEW omQueryBusinessTypeCommand( pAdptor, this, 
+            commandIf = SDB_OSS_NEW omListBusinessTypeCommand( pAdptor, this, 
                                        _wwwRootPath.c_str(), pFilePath ) ;
          }
          else if ( ossStrcasecmp( pSubCommand, 
-                                  OM_QUERY_BUSINESS_TEMPLATE_REQ ) == 0 )
+                                  OM_GET_BUSINESS_TEMPLATE_REQ ) == 0 )
          {
-            commandIf = SDB_OSS_NEW omQueryBusinessTemplateCommand( pAdptor, 
+            commandIf = SDB_OSS_NEW omGetBusinessTemplateCommand( pAdptor, 
                                        this, _wwwRootPath.c_str(), pFilePath ) ;
          }
          else if ( ossStrcasecmp( pSubCommand, OM_CONFIG_BUSINESS_REQ ) == 0 )
@@ -1432,10 +1432,10 @@ namespace engine
       SINT32 flag           = 0 ;
       const CHAR *pCollection = NULL ;
       const CHAR *pUpdator    = NULL ;
-      const CHAR *pSelector   = NULL ;
+      const CHAR *pMatcher    = NULL ;
       const CHAR *pHint       = NULL ;
       BSONObj updator ;
-      BSONObj selector ;
+      BSONObj matcher ;
       BSONObj hint ;
 
       pAdaptor->getQuery( _restSession, FIELD_NAME_NAME, &pCollection ) ;
@@ -1453,14 +1453,14 @@ namespace engine
          flag = ossAtoi( pFlag ) ;
       }
 
-      pAdaptor->getQuery( _restSession, REST_KEY_NAME_SELECTOR, &pSelector ) ;
-      if ( NULL != pSelector )
+      pAdaptor->getQuery( _restSession, REST_KEY_NAME_MATCHER, &pMatcher ) ;
+      if ( NULL != pMatcher )
       {
-         rc = fromjson( pSelector, selector ) ;
+         rc = fromjson( pMatcher, matcher ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG_MSG( PDERROR, "field's format error:field=%s,value=%s", 
-                        REST_KEY_NAME_SELECTOR, pSelector ) ;
+                        REST_KEY_NAME_SELECTOR, pMatcher ) ;
             goto error ;
          }
       }
@@ -1495,7 +1495,7 @@ namespace engine
       }
 
       rc = msgBuildUpdateMsg( &pBuff, &buffSize, pCollection, flag, 0, 
-                              &selector, &updator, &hint ) ;
+                              &matcher, &updator, &hint ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "build updateMsg failed:rc=%d", rc ) ;

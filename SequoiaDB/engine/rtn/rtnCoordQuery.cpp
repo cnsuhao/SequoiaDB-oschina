@@ -55,6 +55,9 @@ using namespace bson;
 
 namespace engine
 {
+   extern void buildNewSelector( const BSONObj &,
+                                 const BSONObj &,
+                                 BSONObj & ) ;
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOQUERY_QUERYTODNGROUP, "rtnCoordQuery::queryToDataNodeGroup" )
    INT32 rtnCoordQuery::queryToDataNodeGroup( CHAR *pBuffer,
                                               CoordGroupList &groupLst,
@@ -200,7 +203,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOQUERY_GETNODEGROUPS, "rtnCoordQuery::getNodeGroups" )
    INT32 rtnCoordQuery::getNodeGroups( const CoordCataInfoPtr &cataInfo,
-                                       BSONObj &queryObj,
+                                       const BSONObj &queryObj,
                                        const CoordGroupList &sendGroupLst,
                                        CoordGroupList &groupLst )
    {
@@ -239,6 +242,7 @@ namespace engine
       rtnContextCoord *pContext        = NULL ;
       BSONObj boQuery;
       BSONObj boOrderBy;
+      BSONObj boSelector ;
       CoordGroupList                   sendGroupList ;
 
       MsgHeader*pHeader                = (MsgHeader *)pReceiveBuffer;
@@ -261,7 +265,7 @@ namespace engine
       CHAR *pOrderBy = NULL;
       CHAR *pHint = NULL;
       BSONObj *err = NULL ;
-      MsgOpQuery *pSrc = (MsgOpQuery *)pReceiveBuffer;
+      MsgOpQuery *pSrc = (MsgOpQuery *)pReceiveBuffer ;
 
       rc = msgExtractQuery( pReceiveBuffer, &flag, &pCollectionName,
                             &numToSkip, &numToReturn, &pQuery,
@@ -291,6 +295,7 @@ namespace engine
       {
          boQuery = BSONObj( pQuery );
          boOrderBy = BSONObj( pOrderBy );
+         boSelector = BSONObj( pFieldSelector ) ;
       }
       catch ( std::exception &e )
       {
@@ -299,8 +304,10 @@ namespace engine
                      e.what() );
       }
 
-      rc = executeQuery( (CHAR *)pSrc, boQuery, boOrderBy, pCollectionName,
-                        pRouteAgent, cb, pContext ) ;
+      rc = executeQuery( (CHAR *)pSrc, boQuery,
+                          boSelector,
+                          boOrderBy, pCollectionName,
+                          pRouteAgent, cb, pContext ) ;
       PD_RC_CHECK( rc, PDERROR, "query failed(rc=%d)", rc );
 
       replyHeader.contextID = pContext->contextID() ;
@@ -488,15 +495,16 @@ namespace engine
       goto done;
    }
 
-   INT32 rtnCoordQuery::executeQuery( CHAR *pSrc ,
-                                      BSONObj &boQuery ,
-                                      BSONObj &boOrderBy ,
+   INT32 rtnCoordQuery::executeQuery( CHAR *pSrcMsg ,
+                                      const BSONObj &boQuery ,
+                                      const BSONObj &boSelector,
+                                      const BSONObj &boOrderBy ,
                                       const CHAR * pCollectionName ,
                                       netMultiRouteAgent *pRouteAgent ,
                                       pmdEDUCB *cb ,
                                       rtnContextCoord *&pContext )
    {
-      SDB_ASSERT( pSrc, "pSrc can't be null!" ) ;
+      SDB_ASSERT( pSrcMsg, "pSrcMsg can't be null!" ) ;
       SDB_ASSERT( pCollectionName, "pCollectionName can't be null!" ) ;
       INT32 rc = SDB_OK ;
       SINT64 contextID = -1 ;
@@ -504,20 +512,39 @@ namespace engine
       BOOLEAN hasRetry = FALSE ;
       CoordCataInfoPtr cataInfo ;
       CoordGroupList sendGroupList ;
-      MsgOpQuery *pQuery = (MsgOpQuery *)pSrc ;
+      MsgOpQuery *pQuery = (MsgOpQuery *)pSrcMsg ;
       SDB_RTNCB *pRtncb = pmdGetKRCB()->getRTNCB() ;
+      BSONObj boNewSelector ;
+      CHAR *newMsg = NULL ;
+      CHAR *msg = pSrcMsg ;
+      
       rc = pRtncb->contextNew( RTN_CONTEXT_COORD,
                                (rtnContext **)&pContext,
                                contextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to allocate context(rc=%d)", rc ) ;
 
+      buildNewSelector( boSelector, boOrderBy, boNewSelector ) ;
+      if ( !boNewSelector.isEmpty() )
+      {
+         rc = _buildNewMsg( pSrcMsg, boNewSelector, newMsg ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to build new msg:%d", rc ) ;
+            goto error ;
+         }
+         pQuery = (MsgOpQuery *)newMsg ;
+         msg = newMsg ;
+      }
+
       if ( FLG_QUERY_EXPLAIN & pQuery->flags )
       {
-         rc = pContext->open( BSONObj(), -1, 0 ) ;
+         rc = pContext->open( BSONObj(), BSONObj(), -1, 0 ) ;
       }
       else
       {
-         rc = pContext->open( boOrderBy, pQuery->numToReturn,
+         rc = pContext->open( boOrderBy,
+                              boNewSelector.isEmpty() ? BSONObj() : boSelector,
+                              pQuery->numToReturn,
                               pQuery->numToSkip ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Open context failed(rc=%d)", rc ) ;
@@ -563,7 +590,7 @@ namespace engine
          PD_CHECK( SDB_OK == rc, rc, retry_check, PDWARNING,
                    "Failed to get match sharding(rc=%d)",
                    rc ) ;
-         rc = queryToDataNodeGroup( pSrc, groupList, sendGroupList,
+         rc = queryToDataNodeGroup( msg, groupList, sendGroupList,
                                     pRouteAgent, cb, pContext ) ;
          PD_CHECK( SDB_OK == rc, rc, retry_check, PDWARNING,
                    "Query on data node failed(rc=%d)",
@@ -582,6 +609,7 @@ namespace engine
          goto error ;
       }
    done:
+      SAFE_OSS_FREE( newMsg ) ;
       return rc ;
    error:
       if ( SDB_CAT_NO_MATCH_CATALOG == rc )
@@ -595,6 +623,64 @@ namespace engine
          contextID = -1 ;
          pContext = NULL ;
       }
+      goto done ;
+   }
+
+   INT32 rtnCoordQuery::_buildNewMsg( const CHAR *msg,
+                                      const bson::BSONObj &newSelector,
+                                      CHAR *&newMsg )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 flag = 0;
+      CHAR *pCollectionName = NULL;
+      SINT64 numToSkip = 0;
+      SINT64 numToReturn = 0;
+      CHAR *pQuery = NULL;
+      CHAR *pFieldSelector = NULL;
+      CHAR *pOrderBy = NULL;
+      CHAR *pHint = NULL;
+      BSONObj query ;
+      BSONObj selector ;
+      BSONObj orderBy ;
+      BSONObj hint ;
+      INT32 bufSize = 0 ;
+      MsgOpQuery *pSrc = (MsgOpQuery *)msg;
+
+      rc = msgExtractQuery( ( CHAR * )msg, &flag, &pCollectionName,
+                            &numToSkip, &numToReturn, &pQuery,
+                            &pFieldSelector, &pOrderBy, &pHint );
+      PD_RC_CHECK( rc, PDERROR,
+                  "failed to parse query request(rc=%d)", rc );
+
+      try
+      {
+         query = BSONObj( pQuery ) ;
+         selector = BSONObj( pFieldSelector ) ;
+         orderBy = BSONObj( pOrderBy ) ;
+         hint = BSONObj( pHint ) ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "unexpected error happened:%s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      rc = msgBuildQueryMsg( &newMsg, &bufSize,
+                             pCollectionName,
+                             flag, pSrc->header.requestID,
+                             numToSkip, numToReturn,
+                             &query, &selector,
+                             &orderBy, &hint ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to build new msg:%d", rc ) ;
+         goto error ;
+      } 
+   done:
+      return rc ;
+   error:
+      SAFE_OSS_FREE( newMsg ) ;
       goto done ;
    }
 
