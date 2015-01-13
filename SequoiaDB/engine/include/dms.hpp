@@ -40,6 +40,8 @@
 #include "core.hpp"
 #include "oss.hpp"
 
+#include <string>
+
 namespace engine
 {
 #define DMS_COLLECTION_SPACE_NAME_SZ      127
@@ -202,6 +204,8 @@ namespace engine
    BOOLEAN  dmsIsSysIndexName ( const CHAR *indexName ) ;
    INT32    dmsCheckIndexName ( const CHAR *indexName,
                                 BOOLEAN sys = FALSE ) ;
+
+   std::string dmsGetCSNameFromFullName( const std::string &fullName ) ;
 
 }
 

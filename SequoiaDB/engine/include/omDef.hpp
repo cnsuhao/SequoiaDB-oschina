@@ -448,11 +448,6 @@ namespace engine
 
 
 
-
-   #define AGENT_QUERY_TASK_REQ              "query task"
-
-
-
    #define  OM_DEFAULT_LOCAL_HOST            "localhost"
    #define  OM_AGENT_DEFAULT_PORT            SDBCM_DFT_PORT
 

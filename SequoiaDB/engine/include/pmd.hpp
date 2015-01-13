@@ -281,6 +281,11 @@ namespace engine
          ossMemset( _groupName, 0, sizeof(_groupName) ) ;
          ossStrncpy ( _groupName, groupName, sizeof(_groupName)-1 );
       }
+      void setHostName ( const CHAR* hostName )
+      {
+         ossMemset( _hostName, 0, sizeof(_hostName) ) ;
+         ossStrncpy ( _hostName, hostName, sizeof(_hostName) - 1 );
+      }
 
       ossTick getCurTime() ;
       void syncCurTime() ;

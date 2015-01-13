@@ -58,7 +58,7 @@ namespace engine
       return FALSE ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_DMSCHKCSNM, "dmsCheckCSName" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSCHKCSNM, "dmsCheckCSName" )
    INT32 dmsCheckCSName ( const CHAR *collectionSpaceName,
                           BOOLEAN sys )
    {
@@ -134,7 +134,7 @@ namespace engine
       return FALSE ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_DMSCHKFULLCLNM, "dmsCheckFullCLName" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSCHKFULLCLNM, "dmsCheckFullCLName" )
    INT32 dmsCheckFullCLName ( const CHAR *fullCollectionName,
                               BOOLEAN sys )
    {
@@ -172,7 +172,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_DMSCHKCLNM, "dmsCheckCLName" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSCHKCLNM, "dmsCheckCLName" )
    INT32 dmsCheckCLName ( const CHAR *collectionName,
                           BOOLEAN sys )
    {
@@ -226,7 +226,7 @@ namespace engine
       return FALSE ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_DMSCHKINXNM, "dmsCheckIndexName" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSCHKINXNM, "dmsCheckIndexName" )
    INT32 dmsCheckIndexName ( const CHAR *indexName,
                              BOOLEAN sys )
    {
@@ -264,6 +264,11 @@ namespace engine
       return rc ;
    error :
       goto done ;
+   }
+
+   std::string dmsGetCSNameFromFullName( const std::string &fullName )
+   {
+      return fullName.substr( 0, fullName.find( '.' ) ) ;
    }
 
 }

@@ -2732,7 +2732,7 @@ namespace engine
 
          if ( ( _numToReturn < 0 || recordNum <= _numToReturn ) &&
               ( buffEndOffset() + pSubContext->getRemainLen() <=
-                RTN_RESULTBUFFER_SIZE_MAX ) )
+                RTN_RESULTBUFFER_SIZE_MAX ) && !_selector.isInitialized() )
          {
             rc = appendObjs( pSubContext->front(),
                              (INT32)pSubContext->getRemainLen(), recordNum ) ;
@@ -2762,7 +2762,24 @@ namespace engine
                try
                {
                   BSONObj boRecord( pData ) ;
-                  rc = append( boRecord ) ;
+                  BSONObj boSelected ;
+                  BSONObj *boRealRecord = NULL ;
+                  if ( !_selector.isInitialized() )
+                  {
+                     boRealRecord = &boRecord ;
+                  }
+                  else
+                  {
+                     rc = _selector.select( boRecord, boSelected ) ;
+                     if ( SDB_OK != rc )
+                     {
+                        PD_LOG( PDERROR, "failed to select fields:%d", rc ) ;
+                        goto error ;
+                     }
+                     boRealRecord = &boSelected ;
+                  }
+
+                  rc = append( *boRealRecord ) ;
                   PD_RC_CHECK( rc, PDERROR, "Append obj[%s] failed, rc: %d",
                                boRecord.toString().c_str(), rc ) ;
                }
@@ -4272,6 +4289,7 @@ namespace engine
       _pTransCB      = pmdGetKRCB()->getTransCB();
       _gotDmsCBWrite = FALSE ;
       _hasLock       = FALSE ;
+      _hasDropped    = FALSE ;
       _mbContext     = NULL ;
       _su            = NULL ;
    }
@@ -4389,6 +4407,7 @@ namespace engine
          goto error ;
       }
       _su->getAPM()->invalidatePlans ( _clShortName.c_str() ) ;
+      _hasDropped = TRUE ;
 
       _clean( cb ) ;
       _isOpened = FALSE ;
@@ -4414,8 +4433,14 @@ namespace engine
       }
       if ( _pDmsCB && _su )
       {
+         string csname = _su->CSName() ;
          _pDmsCB->suUnlock ( _su->CSID() ) ;
          _su = NULL ;
+
+         if ( _hasDropped )
+         {
+            _pDmsCB->dropEmptyCollectionSpace( csname.c_str(), cb, _pDpsCB ) ;
+         }
       }
       if ( _gotDmsCBWrite )
       {
@@ -4781,7 +4806,7 @@ namespace engine
       INT64 queryContextID = -1 ;
       rtnContextBuf ctxBuf ;
       _optAccessPlan *plan = NULL ;
-      CHAR hostName[OSS_MAX_HOSTNAME + 1] = { 0 } ;
+      const CHAR* hostName = NULL ;
       stringstream ss ;
       _rtnContextBase *contextOfQuery = NULL ;
 
@@ -4818,12 +4843,7 @@ namespace engine
       _builder.append( FIELD_NAME_INDEXNAME,
                        plan->getIndexName() ) ; 
       _builder.appendBool( FIELD_NAME_USE_EXT_SORT, plan->sortRequired() ) ;
-      rc = ossGetHostName( hostName, OSS_MAX_HOSTNAME ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to get hostname:%d", rc ) ;
-         goto error ;
-      }
+      hostName = pmdGetKRCB()->getHostName() ;
       ss << hostName << ":" << pmdGetOptionCB()->getServiceAddr() ;
       _builder.append( FIELD_NAME_NODE_NAME, ss.str() ) ;
 

@@ -388,7 +388,7 @@ namespace engine
          {
             _mutex.release () ;
             rc = SDB_DMS_CS_NOT_EMPTY ;
-            goto error ;            
+            goto error ;
          }
 
          csLID = pCSCB->_su->LogicalCSID() ;

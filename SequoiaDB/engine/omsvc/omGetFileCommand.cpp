@@ -247,9 +247,8 @@ namespace engine
                      _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
       {
-         _errorDetail = string( "failed to query table:" ) 
-                        + OM_CS_DEPLOY_CL_CLUSTER ;
-         PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+         PD_LOG_MSG( PDERROR, "failed to query table:%s,rc=%d", 
+                     OM_CS_DEPLOY_CL_CLUSTER, rc ) ;
          goto error ;
       }
 
@@ -262,14 +261,14 @@ namespace engine
             {
                _errorDetail = string( "cluster is not exist:cluster=" ) 
                               + clusterName ;
-               PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+               PD_LOG_MSG( PDERROR, "cluster is not exist:cluster=%s,rc=%d", 
+                           clusterName.c_str(), rc ) ;
                goto error ;
             }
 
             contextID = -1 ;
-            _errorDetail = string( "failed to get record from table:" )
-                           + OM_CS_DEPLOY_CL_CLUSTER ;
-            PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+            PD_LOG_MSG( PDERROR, "failed to get recrod from table:%s,rc=%d", 
+                        OM_CS_DEPLOY_CL_CLUSTER, rc ) ;
             goto error ;
          }
 
@@ -547,12 +546,12 @@ namespace engine
    {
    }
 
-   INT32 omCreateClusterCommand::_getRestParameter( string &clusterName, 
-                                                    string &desc,
-                                                    string &sdbUsr, 
-                                                    string &sdbPasswd,
-                                                    string &sdbUsrGroup,
-                                                    string &installPath )
+   INT32 omCreateClusterCommand::_getParaOfCreateCluster( string &clusterName, 
+                                                          string &desc,
+                                                          string &sdbUsr, 
+                                                          string &sdbPasswd,
+                                                          string &sdbUsrGroup,
+                                                          string &installPath )
    {
       const CHAR *pClusterInfo = NULL ;
       BSONObj clusterInfo ;
@@ -618,8 +617,8 @@ namespace engine
       BSONObj bsonCluster ;
       INT32 rc                 = SDB_OK ;
 
-      rc = _getRestParameter( clusterName, desc, sdbUser, sdbPasswd, 
-                            sdbUserGroup, sdbinstallPath ) ;
+      rc = _getParaOfCreateCluster( clusterName, desc, sdbUser, sdbPasswd, 
+                                    sdbUserGroup, sdbinstallPath ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "get cluster info failed:rc=%d", rc ) ;
@@ -638,14 +637,16 @@ namespace engine
       {
          if ( SDB_IXM_DUP_KEY == rc )
          {
-            _errorDetail = clusterName + " is already exist" ;
-            PD_LOG( PDERROR, "%s:rc=%d", _errorDetail.c_str(), rc ) ;
+            PD_LOG_MSG( PDERROR, "%s is already exist:rc=%d", 
+                        clusterName.c_str(), rc ) ;
+            _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR) ;
             _sendErrorRes2Web( rc, _errorDetail ) ;
          }
          else
          {
-            _errorDetail = string("failed to insert cluster:") + clusterName ;
-            PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+            PD_LOG_MSG( PDERROR, "failed to insert cluster:name=%s,rc=%d", 
+                        clusterName.c_str(), rc ) ;
+            _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR) ;
             _sendErrorRes2Web( rc, _errorDetail ) ;
          }
 
@@ -1017,9 +1018,9 @@ namespace engine
                               &pHostInfo ) ;
       if ( NULL == pHostInfo )
       {
-         _errorDetail = string( OM_REST_FIELD_HOST_INFO ) + " is null" ;
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
+         PD_LOG_MSG( PDERROR, "rest field is null:field=%s", 
+                     OM_REST_FIELD_HOST_INFO ) ;
          goto error ;
       }
 
@@ -1028,14 +1029,12 @@ namespace engine
       {
          PD_LOG_MSG( PDERROR, "change rest field to BSONObj failed:src=%s,"
                      "rc=%d", pHostInfo, rc ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          goto error ;
       }
 
       rc = _checkRestHostInfo( bsonHostInfo ) ;
       if ( rc )
       {
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          PD_LOG( PDERROR, "check rest hostinfo failed:rc=%d", rc ) ;
          goto error ;
       }
@@ -1052,22 +1051,20 @@ namespace engine
            || 0 == ossStrlen( pGlobalSshPort ) || 0 == clusterName.length()
            || 0 == ossStrlen( pGlobalAgentPort ) )
       {
-         _errorDetail = string( OM_BSON_FIELD_HOST_USER ) + " is null"
-                        + " or " + OM_BSON_FIELD_HOST_PASSWD + " is null"
-                        + " or " + OM_BSON_FIELD_HOST_SSHPORT + " is null"
-                        + " or " + OM_BSON_FIELD_CLUSTER_NAME + " is null" ;
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
+         PD_LOG_MSG( PDERROR, "rest field have not been set:field="
+                     "%s or %s or %s or %s or %s", OM_BSON_FIELD_HOST_USER,
+                     OM_BSON_FIELD_HOST_PASSWD, OM_BSON_FIELD_HOST_SSHPORT,
+                     OM_BSON_FIELD_CLUSTER_NAME ) ;
          goto error ;
       }
 
       element = bsonHostInfo.getField( OM_BSON_FIELD_HOST_INFO ) ;
       if ( element.isNull() || Array != element.type() )
       {
-         _errorDetail = string( OM_BSON_FIELD_HOST_INFO ) 
-                        + " is not array type" ;
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "%s:type=%d", _errorDetail.c_str(), element.type() ) ;
+         PD_LOG_MSG( PDERROR, "%s is not array type:type=%d", 
+                     OM_BSON_FIELD_HOST_INFO, element.type() ) ;
          goto error ;
       }
 
@@ -1085,7 +1082,6 @@ namespace engine
                PD_LOG_MSG( PDERROR, "host info is invalid, element of %s "
                            "is not Object type:type=%d", 
                            OM_BSON_FIELD_HOST_INFO, ele.type() ) ;
-               _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
                goto error ;
             }
             BSONObj oneHost = ele.embeddedObject() ;
@@ -1123,7 +1119,8 @@ namespace engine
                               + OM_BSON_FIELD_HOST_IP + " or " 
                               + OM_BSON_FIELD_HOST_NAME ;
                rc = SDB_INVALIDARG ;
-               PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
+               PD_LOG_MSG( PDERROR, "rest field miss:field=%s or %s", 
+                           OM_BSON_FIELD_HOST_IP, OM_BSON_FIELD_HOST_NAME ) ;
                goto error ;
             }
 
@@ -1198,10 +1195,10 @@ namespace engine
       hostElement = response.getField( OM_BSON_FIELD_HOST_INFO ) ;
       if ( hostElement.isNull() || Array != hostElement.type() )
       {
-         _errorDetail = string( "agent's response is unrecognized:" ) 
-                        + OM_BSON_FIELD_HOST_INFO + " is not array type" ;
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
+         PD_LOG_MSG( PDERROR, "agent's response is unrecognized, %s is not "
+                     "array type:type=%d", OM_BSON_FIELD_HOST_INFO, 
+                     hostElement.type()) ;
          goto error ;
       }
       {
@@ -1217,7 +1214,6 @@ namespace engine
                PD_LOG_MSG( PDERROR, "rest info is invalid, element of %s "
                            "is not Object type:type=%d", 
                            OM_BSON_FIELD_HOST_INFO, ele.type() ) ;
-               _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
                goto error ;
             }
 
@@ -1253,6 +1249,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "get host list failed:rc=%d", rc ) ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
@@ -1283,11 +1280,12 @@ namespace engine
                                                       NULL ) ;
       if ( NULL == remoteSession )
       {
-         rc = SDB_OOM ;
-         _errorDetail = string( "create remote session failed" ) ;
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
          SDB_OSS_FREE( pContent ) ;
-         _sendErrorRes2Web( SDB_OOM, _errorDetail ) ;
+         
+         rc = SDB_OOM ;
+         PD_LOG_MSG( PDERROR, "create remove session failed:rc=%d", rc ) ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+         _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
 
@@ -1295,10 +1293,11 @@ namespace engine
       rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
       if ( SDB_OK != rc )
       {
-         _errorDetail = string( "send message to agent failed" ) ;
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
          SDB_OSS_FREE( pContent ) ;
          remoteSession->clearSubSession() ;
+
+         PD_LOG_MSG( PDERROR, "send message to agent failed:rc=%d", rc ) ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
@@ -1306,8 +1305,8 @@ namespace engine
       rc = _receiveFromAgent( remoteSession, flag, bsonResponse ) ;
       if ( SDB_OK != rc )
       {
-         _errorDetail = string( "receive from agent failed" ) ;
-         PD_LOG( PDERROR, "%s:rc=%d", _errorDetail.c_str(), rc ) ;
+         PD_LOG_MSG( PDERROR, "receive from agent failed:rc=%d", rc ) ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
@@ -1326,6 +1325,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "_parseResonpse failed:rc=%d", rc ) ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
@@ -2218,10 +2218,9 @@ namespace engine
                              &pHostInfo ) ;
       if ( NULL == pHostInfo )
       {
-         _errorDetail = "rest field:" + 
-                        string( OM_REST_FIELD_HOST_INFO ) + " is null" ;
-         rc           = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "rest field miss:field=%s", 
+                     OM_REST_FIELD_HOST_INFO ) ;
          goto error ;
       }
 
@@ -2230,7 +2229,6 @@ namespace engine
       {
          PD_LOG_MSG( PDERROR, "change rest field to BSONObj failed:src=%s,"
                      "rc=%d", pHostInfo, rc ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          goto error ;
       }
 
@@ -2246,20 +2244,18 @@ namespace engine
            || 0 == ossStrlen( pGlobalSshPort ) || 0 == clusterName.length()
            || 0 == ossStrlen( pGlobalAgentPort ) )
       {
-         _errorDetail = string( OM_BSON_FIELD_HOST_USER ) + " is null"
-                        + " or " + OM_BSON_FIELD_HOST_PASSWD + " is null"
-                        + " or " + OM_BSON_FIELD_HOST_SSHPORT + " is null"
-                        + " or " + OM_BSON_FIELD_AGENT_PORT + " is null"
-                        + " or " + OM_BSON_FIELD_CLUSTER_NAME + " is null" ;
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "%s:info=%s", _errorDetail.c_str(), pHostInfo ) ;
+         PD_LOG_MSG( PDERROR, "rest field miss:field=[%s or %s or %s or %s "
+                     "or %s]", OM_BSON_FIELD_HOST_USER, 
+                     OM_BSON_FIELD_HOST_PASSWD, OM_BSON_FIELD_HOST_SSHPORT,
+                     OM_BSON_FIELD_AGENT_PORT, OM_BSON_FIELD_CLUSTER_NAME ) ;
          goto error ;
       }
 
       rc = _getClusterInstallPath( clusterName, installPath ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "%s:rc=%d", _errorDetail.c_str(), rc ) ;
+         PD_LOG( PDERROR, "get cluster's install path failed:rc=%d", rc ) ;
          goto error ;
       }
 
@@ -2276,7 +2272,6 @@ namespace engine
                rc = SDB_INVALIDARG ;
                PD_LOG_MSG( PDERROR, "element of %s is not Object type"
                            ":type=%d", OM_BSON_FIELD_HOST_INFO, ele.type() ) ;
-               _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
                goto error ;
             }
             BSONObj oneHost = ele.embeddedObject() ;
@@ -2408,9 +2403,8 @@ namespace engine
                      _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
       {
-         _errorDetail = string( "failed to query table:" ) 
-                        + OM_CS_DEPLOY_CL_CLUSTER ;
-         PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+         PD_LOG_MSG( PDERROR, "failed to query table:table=%s,rc=%d", 
+                     OM_CS_DEPLOY_CL_CLUSTER, rc ) ;
          goto error ;
       }
 
@@ -2421,16 +2415,13 @@ namespace engine
          {
             if ( SDB_DMS_EOC == rc )
             {
-               _errorDetail = string( "cluster is not exist:cluster=" ) 
-                              + clusterName ;
-               PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+               PD_LOG_MSG( PDERROR, "cluster is not exist:cluster=%s,rc=%d", 
+                           clusterName.c_str(), rc ) ;
                goto error ;
             }
 
-            contextID = -1 ;
-            _errorDetail = string( "failed to get record from table:" )
-                           + OM_CS_DEPLOY_CL_CLUSTER ;
-            PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+            PD_LOG_MSG( PDERROR, "failed to get record from table:%s,rc=%d", 
+                        OM_CS_DEPLOY_CL_CLUSTER, rc ) ;
             goto error ;
          }
 
@@ -2460,8 +2451,7 @@ namespace engine
       rc = ossEnumFiles( tmpPath, mapFiles ) ;
       if ( SDB_OK != rc )
       {
-         _errorDetail = string( "path is invalid:path=" ) + tmpPath ;
-         PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+         PD_LOG_MSG( PDERROR, "path is invalid:path=%s,rc=%d", tmpPath, rc ) ;
          goto error ;
       }
 
@@ -2470,7 +2460,6 @@ namespace engine
          rc = SDB_FNE ;
          PD_LOG_MSG( PDERROR, "path is invalid:path=%s,fileCount=%d", tmpPath, 
                      mapFiles.size() ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          goto error ;
       }
 
@@ -2692,8 +2681,8 @@ namespace engine
                              0, 0, 0, -1, &bsonRequest, NULL, NULL, NULL ) ;
       if ( SDB_OK != rc )
       {
-         _errorDetail = string( "build msg failed:cmd=" ) + OM_ADD_HOST_REQ ;
-         PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+         PD_LOG_MSG( PDERROR, "build msg failed:cmd=%s,rc=%d", OM_ADD_HOST_REQ,
+                     rc ) ;
          goto error ;
       }
 
@@ -2704,8 +2693,7 @@ namespace engine
       if ( NULL == remoteSession )
       {
          rc = SDB_OOM ;
-         _errorDetail = "create remote session failed" ;
-         PD_LOG( PDERROR, "%s:rc=%d", _errorDetail.c_str(), rc ) ;
+         PD_LOG_MSG( PDERROR, "create remote session failed:rc=%d", rc ) ;
          SDB_OSS_FREE( pContent ) ;
          goto error ;
       }
@@ -2714,8 +2702,7 @@ namespace engine
       rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
       if ( SDB_OK != rc )
       {
-         _errorDetail = "send message to agent failed" ;
-         PD_LOG( PDERROR, "%s:rc=%d", _errorDetail.c_str(), rc ) ;
+         PD_LOG_MSG( PDERROR, "send message to agent failed:rc=%d", rc ) ;
          SDB_OSS_FREE( pContent ) ;
          remoteSession->clearSubSession() ;
          goto error ;
@@ -2724,17 +2711,16 @@ namespace engine
       rc = _receiveFromAgent( remoteSession, flag, result ) ;
       if ( SDB_OK != rc )
       {
-         _errorDetail = "receive from agent failed" ;
-         PD_LOG( PDERROR, "%s:rc=%d", _errorDetail.c_str(), rc ) ;
+         PD_LOG_MSG( PDERROR, "receive from agent failed:rc=%d", rc ) ;
          goto error ;
       }
 
       if ( SDB_OK != flag )
       {
          rc = flag ;
-         _errorDetail = result.getStringField( OM_REST_RES_DETAIL ) ;
-         PD_LOG( PDERROR, "agent process failed:detail=%s,rc=%d", 
-                 _errorDetail.c_str(), rc ) ;
+         string tmpError = result.getStringField( OM_REST_RES_DETAIL ) ;
+         PD_LOG_MSG( PDERROR, "agent process failed:detail=(%s),rc=%d", 
+                     tmpError.c_str(), rc ) ;
          goto error ;
       }
 
@@ -2742,8 +2728,8 @@ namespace engine
       if ( element.eoo() || NumberInt != element.type() )
       {
          rc = SDB_UNEXPECTED_RESULT ;
-         _errorDetail = "agent's response is unrecognized" ;
-         PD_LOG( PDERROR, "%s:type=%d", _errorDetail.c_str(), element.type() ) ;
+         PD_LOG_MSG( PDERROR, "agent's response is unrecognized:type=%d", 
+                     element.type() ) ;
          goto error ;
       }
       transationID = result.getIntField( OM_REST_RES_RETCODE ) ;
@@ -2817,9 +2803,8 @@ namespace engine
          {
             if ( rc )
             {
-               _errorDetail = string("failed to store host's info into table:") 
-                              + OM_CS_DEPLOY_CL_HOST ;
-               PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+               PD_LOG_MSG( PDERROR, "failed to store host's info into table:"
+                           "%s,rc=%d", OM_CS_DEPLOY_CL_HOST, rc ) ;
                goto error ;
             }
          }
@@ -2907,8 +2892,7 @@ namespace engine
          if ( _isHostNameExist( host ) )
          {
             rc = SDB_INVALIDARG ;
-            _errorDetail = string("host is exist:host=") + host ;
-            PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+            PD_LOG_MSG( PDERROR, "host is exist:host=%s", host.c_str() ) ;
             goto error ;
          }
 
@@ -2933,6 +2917,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "fail to get host list:rc=%d", rc ) ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
@@ -2941,6 +2926,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "fail to _checkHostExistence:rc=%d", rc ) ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
@@ -2949,6 +2935,7 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "fail to add host:rc=%d", rc ) ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
@@ -2958,6 +2945,7 @@ namespace engine
       {
          PD_LOG( PDERROR, "fail to store host:rc=%d", rc ) ;
          _transactionRollBack( transactionID ) ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
@@ -3418,7 +3406,6 @@ namespace engine
       INT32 rc                  = SDB_OK ;
       const CHAR* pBusinessType = NULL ;
       string templateFile       = "" ;
-      BSONObjBuilder opBuilder ;
       list<BSONObj> deployModList ;
       list<BSONObj>::iterator iter ;
 

@@ -110,7 +110,10 @@ namespace engine
       UINT32 curPos = 0;
       PD_TRACE_ENTRY ( SDB_MONGETSESSIONNAME ) ;
       *(pSessName + size - 1) = 0;
-      ossGetHostName ( pSessName, size - 1 ) ;
+
+      const CHAR* hostName = pmdGetKRCB()->getHostName();
+      ossStrncpy(pSessName, hostName, size - 1);
+
       curPos = ossStrlen( pSessName );
       PD_CHECK( curPos < size - 1, SDB_INVALIDARG, error, PDERROR,
                "out off buffer!" );

@@ -797,8 +797,9 @@ namespace engine
       if ( !orderBy.isEmpty() )
       {
          rc = rtnSort( (rtnContext**)&context,
+                       orderBy,
                        newSelector.isEmpty() ? BSONObj() : selector,
-                       orderBy, cb, numToSkip,
+                       cb, numToSkip,
                        numToReturn, rtnCB, contextID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to sort, rc: %d", rc ) ;
       }
@@ -1355,7 +1356,6 @@ namespace engine
                                                TRUE ) ;
       PD_TRACE_EXITRC ( SDB_RTNDROPCSCOMMAND, rc ) ;
       return rc ;
-
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNDROPCSP1, "rtnDropCollectionSpaceP1" )

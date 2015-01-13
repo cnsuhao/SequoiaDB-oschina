@@ -613,9 +613,8 @@ namespace engine
    {
       omRestCommandBase *commandIf = NULL ;
       restAdaptor *pAdptor         = NULL ;
-      CHAR hostName[ OSS_MAX_HOSTNAME + 1 ] ;
+      const CHAR* hostName = pmdGetKRCB()->getHostName();
       pAdptor = sdbGetPMDController()->getRestAdptor() ;
-      ossGetHostName( hostName, OSS_MAX_HOSTNAME ) ;
       string localAgentHost = hostName ;
       string localAgentPort = sdbGetOMManager()->getLocalAgentPort() ;
 

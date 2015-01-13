@@ -42,7 +42,7 @@
 
 namespace engine
 {
-   #define PMD_REST_SESSION_TIMEOUT             ( 10 * 60 * 1000 )
+   #define PMD_REST_SESSION_TIMEOUT             ( 3 * 60 * 60 * 1000 )
    #define PMD_FIX_BUFF_CATCH_NUMBER            ( 100 )
 
    #define PMD_REST_MAX_BODY_SIZE               ( 64 * 1024 * 1024 )

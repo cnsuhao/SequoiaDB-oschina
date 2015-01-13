@@ -460,7 +460,6 @@ namespace engine
       {
          PD_LOG_MSG( PDERROR, "field is not String type:field=%s,type=%d", 
                      OM_BSON_FIELD_HOST_IP, ele.type() ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          goto error ;
       }
 
@@ -469,7 +468,6 @@ namespace engine
       {
          PD_LOG_MSG( PDERROR, "field is not String type:field=%s,type=%d", 
                      OM_BSON_FIELD_HOST_NAME, ele.type() ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          goto error ;
       }
 
@@ -478,7 +476,6 @@ namespace engine
       {
          PD_LOG_MSG( PDERROR, "field is not Object type:field=%s,type=%d", 
                      OM_BSON_FIELD_OS, ele.type() ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          goto error ;
       }
 
@@ -487,7 +484,6 @@ namespace engine
       {
          PD_LOG_MSG( PDERROR, "field is not Object type:field=%s,type=%d", 
                      OM_BSON_FIELD_OM, ele.type() ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          goto error ;
       }
 
@@ -496,7 +492,6 @@ namespace engine
       {
          PD_LOG_MSG( PDERROR, "field is not Array type:field=%s,type=%d", 
                      OM_BSON_FIELD_CPU, ele.type() ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          goto error ;
       }
 
@@ -505,7 +500,6 @@ namespace engine
       {
          PD_LOG_MSG( PDERROR, "field is not Object type:field=%s,type=%d", 
                      OM_BSON_FIELD_MEMORY, ele.type() ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          goto error ;
       }
 
@@ -514,7 +508,6 @@ namespace engine
       {
          PD_LOG_MSG( PDERROR, "field is not Array type:field=%s,type=%d", 
                      OM_BSON_FIELD_NET, ele.type() ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          goto error ;
       }
 
@@ -523,7 +516,6 @@ namespace engine
       {
          PD_LOG_MSG( PDERROR, "field is not Array type:field=%s,type=%d", 
                      OM_BSON_FIELD_PORT, ele.type() ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          goto error ;
       }
 
@@ -532,7 +524,6 @@ namespace engine
       {
          PD_LOG_MSG( PDERROR, "field is not Object type:field=%s,type=%d", 
                      OM_BSON_FIELD_SAFETY, ele.type() ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          goto error ;
       }
 
@@ -541,7 +532,6 @@ namespace engine
       {
          PD_LOG_MSG( PDERROR, "field is not Array type:field=%s,type=%d", 
                      OM_BSON_FIELD_DISK, ele.type() ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          goto error ;
       }
 

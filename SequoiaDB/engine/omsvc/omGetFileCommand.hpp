@@ -169,10 +169,12 @@ namespace engine
       protected:
 
       private:
-         INT32           _getRestParameter( string &clusterName, string &desc,
-                                            string &sdbUsr, string &sdbPasswd,
-                                            string &sdbUsrGroup,
-                                            string &installPath ) ;
+         INT32           _getParaOfCreateCluster( string &clusterName, 
+                                                  string &desc,
+                                                  string &sdbUsr, 
+                                                  string &sdbPasswd,
+                                                  string &sdbUsrGroup,
+                                                  string &installPath ) ;
    };
 
    class omQueryClusterCommand : public omCreateClusterCommand 

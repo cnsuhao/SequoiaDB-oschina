@@ -1366,6 +1366,17 @@ namespace engine
          PD_LOG ( PDEVENT, "Register succeed, groupID:%u, nodeID:%u",
                   _selfNodeID.columns.groupID,
                   _selfNodeID.columns.nodeID ) ;
+
+         BSONElement hostEle = object.getField ( CAT_HOST_FIELD_NAME ) ;
+         if ( hostEle.type() == String )
+         {
+            /*
+             * The node can be created by hostname or ip,
+             * so the actual 'HostName' maybe current host's name or ip address.
+             * Here we ensure the KRCB's HostName is consistent with catalog.
+             */
+            pmdGetKRCB()->setHostName( hostEle.String().c_str() ) ;
+         }
       }
 
       nodeID.value = _selfNodeID.value ;
