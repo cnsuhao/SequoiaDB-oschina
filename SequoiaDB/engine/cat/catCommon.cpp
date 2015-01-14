@@ -1144,6 +1144,84 @@ namespace engine
       goto done ;
    }
 
+   INT32 catGetCSGroupsFromCLs( const CHAR *csName, pmdEDUCB *cb,
+                                vector< INT32 > &groups )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj matcher ;
+      BSONObj dummyObj ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      INT64 contextID = -1 ;
+      std::set< INT32 > groupSet ;
+      std::set< INT32 >::iterator itSet ;
+      BSONObjBuilder builder ;
+      std::stringstream ss ;
+
+      ss << "^" << csName << "\\." ;
+      builder.appendRegex( CAT_COLLECTION_NAME, ss.str() ) ;
+      matcher = builder.obj() ;
+
+      rc = rtnQuery( CAT_COLLECTION_INFO_COLLECTION, dummyObj, matcher,
+                     dummyObj, dummyObj, 0, cb, 0, -1, dmsCB, rtnCB,
+                     contextID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Query collection[%s] failed, matcher: %s, "
+                   "rc: %d", CAT_COLLECTION_INFO_COLLECTION,
+                   matcher.toString().c_str(), rc ) ;
+
+      while ( TRUE )
+      {
+         BSONObj obj ;
+         rtnContextBuf contextBuf ;
+         rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Get more failed, rc: %d", rc ) ;
+
+         try
+         {
+            obj = BSONObj( contextBuf.data() ) ;
+            BSONElement eleCataInfo = obj.getField( CAT_CATALOGINFO_NAME ) ;
+            BSONObjIterator itr( eleCataInfo.embeddedObject() ) ;
+            while( itr.more() )
+            {
+               BSONElement e = itr.next() ;
+               BSONObj cataItemObj = e.embeddedObject() ;
+               BSONElement eleGrpID = cataItemObj.getField( CAT_GROUPID_NAME ) ;
+               groupSet.insert( eleGrpID.numberInt() ) ;
+            }
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Get group id from obj[%s] occur exception: %s",
+                    obj.toString().c_str(), e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
+      for ( UINT32 i = 0 ; i < groups.size() ; ++i )
+      {
+         groupSet.insert( groups[ i ] ) ;
+      }
+      groups.clear() ;
+
+      itSet = groupSet.begin() ;
+      while ( itSet != groupSet.end() )
+      {
+         groups.push_back( *itSet ) ;
+         ++itSet ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATADDTASK, "catAddTask" )
    INT32 catAddTask( BSONObj & taskObj, pmdEDUCB * cb, INT16 w )
    {
@@ -1379,6 +1457,76 @@ namespace engine
                    "rc: %d, del cond: %s", rc , match.toString().c_str() ) ;
    done:
       PD_TRACE_EXITRC ( SDB_CATREMOVETASK1, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 catGetCSGroupsFromTasks( const CHAR *csName, pmdEDUCB *cb,
+                                  vector< INT32 > &groups )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj matcher ;
+      BSONObj dummyObj ;
+      SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      INT64 contextID = -1 ;
+      std::set< INT32 > groupSet ;
+      std::set< INT32 >::iterator itSet ;
+      BSONObjBuilder builder ;
+      std::stringstream ss ;
+
+      ss << "^" << csName << "\\." ;
+      builder.appendRegex( CAT_COLLECTION_NAME, ss.str() ) ;
+      matcher = builder.obj() ;
+
+      rc = rtnQuery( CAT_TASK_INFO_COLLECTION, dummyObj, matcher, dummyObj,
+                     dummyObj, 0, cb, 0, -1, dmsCB, rtnCB, contextID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Query collection[%s] failed, matcher: %s, "
+                   "rc: %d", CAT_TASK_INFO_COLLECTION,
+                   matcher.toString().c_str(), rc ) ;
+
+      while ( TRUE )
+      {
+         BSONObj obj ;
+         rtnContextBuf contextBuf ;
+         rc = rtnGetMore( contextID, 1, contextBuf, cb, rtnCB ) ;
+         if ( SDB_DMS_EOC == rc )
+         {
+            rc = SDB_OK ;
+            break ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Get more failed, rc: %d", rc ) ;
+
+         try
+         {
+            obj = BSONObj( contextBuf.data() ) ;
+            BSONElement ele = obj.getField( CAT_TARGETID_NAME ) ;
+            groupSet.insert( ele.numberInt() ) ;
+         }
+         catch( std::exception &e )
+         {
+            PD_LOG( PDERROR, "Get group id from obj[%s] occur exception: %s",
+                    obj.toString().c_str(), e.what() ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+
+      for ( UINT32 i = 0 ; i < groups.size() ; ++i )
+      {
+         groupSet.insert( groups[ i ] ) ;
+      }
+      groups.clear() ;
+
+      itSet = groupSet.begin() ;
+      while ( itSet != groupSet.end() )
+      {
+         groups.push_back( *itSet ) ;
+         ++itSet ;
+      }
+
+   done:
       return rc ;
    error:
       goto done ;

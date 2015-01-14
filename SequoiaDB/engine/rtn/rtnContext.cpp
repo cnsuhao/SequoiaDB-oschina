@@ -56,7 +56,9 @@
 using namespace bson;
 namespace engine
 {
-
+   extern void needResetSelector( const BSONObj &,
+                                  const BSONObj &,
+                                  BOOLEAN & ) ;
    /*
       Functions
    */
@@ -3860,7 +3862,6 @@ namespace engine
    }
 
    INT32 _rtnContextSort::open( const BSONObj &orderby,
-                                const BSONObj &selector,
                                 rtnContext *context,
                                 pmdEDUCB *cb,
                                 SINT64 numToSkip,
@@ -3871,9 +3872,15 @@ namespace engine
       SDB_ASSERT( NULL != context, "impossible" ) ;
       INT32 rc = SDB_OK ;
       UINT64 sortBufSz = pmdGetOptionCB()->getSortBufSize() ;
+      SINT64 limit = numToReturn ;
+
+      if ( 0 < limit && 0 < numToSkip )
+      {
+         limit += numToSkip ;
+      }
 
       rc = _sorting.init( sortBufSz, orderby, context,
-                          contextID(), numToReturn, cb ) ;
+                          contextID(), limit, cb ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to init sort:%d", rc ) ;
@@ -3885,14 +3892,11 @@ namespace engine
       _skip = numToSkip ;
       _limit = numToReturn ;
 
-      if ( !selector.isEmpty() )
+      rc = _rebuildSrcContext( orderby, context ) ;
+      if ( SDB_OK != rc )
       {
-         rc = _selector.loadPattern( selector ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to load selector pattern:%d", rc ) ;
-            goto error ;
-         }
+         PD_LOG( PDERROR, "failed to rebuild src context:%d", rc ) ;
+         goto error ;
       }
 
       if ( RTN_CONTEXT_DATA == context->getType() )
@@ -3900,6 +3904,36 @@ namespace engine
          _planForExplain = ( ( _rtnContextData * )context )->getPlan() ;
       }
 
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnContextSort::_rebuildSrcContext( const BSONObj &orderBy,
+                                              rtnContext *srcContext )
+   {
+      INT32 rc = SDB_OK ;
+      const BSONObj &selector = srcContext->getSelector().getPattern() ;
+      if ( selector.isEmpty() )
+      {
+         goto done ;
+      }
+      else
+      {
+         BOOLEAN needRebuild = FALSE ;
+         needResetSelector( selector, orderBy, needRebuild ) ;
+         if ( needRebuild )
+         {
+            rc = srcContext->getSelector().move( _selector ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to rebuild selector:%d", rc ) ;
+               goto error ;      
+            }
+         }
+      }
+      
    done:
       return rc ;
    error:

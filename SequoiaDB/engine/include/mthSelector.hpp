@@ -122,6 +122,10 @@ namespace engine
 
       INT32 select ( const BSONObj &source, BSONObj &target ) ;
 
+      INT32 move( _mthSelector &other ) ;
+
+      void clear() ;
+
       OSS_INLINE void setStringOutput ( BOOLEAN strOut )
       {
          _stringOutput = strOut ;
@@ -131,6 +135,10 @@ namespace engine
          return _stringOutput ;
       }
       OSS_INLINE BOOLEAN isInitialized () { return _initialized ; }
+      OSS_INLINE const BSONObj &getPattern() const
+      {
+         return _selectorPattern ;
+      }
 
    } ;
    typedef _mthSelector mthSelector ;

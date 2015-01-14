@@ -153,6 +153,9 @@ namespace engine
    INT32 catUpdateCatalog( const CHAR *clFullName, const BSONObj &cataInfo,
                            pmdEDUCB *cb, INT16 w ) ;
 
+   INT32 catGetCSGroupsFromCLs( const CHAR *csName, pmdEDUCB *cb,
+                                vector< INT32 > &groups ) ;
+
    /* Collection[CAT_TASK_INFO_COLLECTION] functions: */
    INT32 catAddTask( BSONObj & taskObj, pmdEDUCB *cb, INT16 w ) ;
    INT32 catGetTask( UINT64 taskID, BSONObj &obj, pmdEDUCB *cb ) ;
@@ -162,6 +165,8 @@ namespace engine
    INT64 catGetMaxTaskID( pmdEDUCB *cb ) ;
    INT32 catRemoveTask( UINT64 taskID, pmdEDUCB *cb, INT16 w ) ;
    INT32 catRemoveTask( BSONObj &match, pmdEDUCB *cb, INT16 w ) ;
+   INT32 catGetCSGroupsFromTasks( const CHAR *csName, pmdEDUCB *cb,
+                                  vector< INT32 > &groups ) ;
 
    /* Collection[CAT_HISTORY_COLLECTION] functions */
    INT32 catGetBucketVersion( const CHAR *pCLName, pmdEDUCB *cb ) ;

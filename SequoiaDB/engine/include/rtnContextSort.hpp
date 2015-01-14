@@ -56,7 +56,6 @@ namespace engine
       virtual _optAccessPlan *getPlan() { return _planForExplain ; }
 
       INT32 open( const BSONObj &orderBy,
-                  const BSONObj &selector,
                   rtnContext *context,
                   _pmdEDUCB *cb,
                   SINT64 numToSkip = 0,
@@ -64,6 +63,10 @@ namespace engine
 
    protected:
       virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
+
+   private:
+      INT32 _rebuildSrcContext( const BSONObj &orderBy,
+                                rtnContext *srcContext ) ;
 
    private:
       _rtnSorting _sorting ;

@@ -476,5 +476,42 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSEL_MOVE, "_mthSelector::move" )
+   INT32 _mthSelector::move( _mthSelector &other )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHSEL_MOVE ) ;
+      if ( !_initialized )
+      {
+         PD_LOG( PDERROR, "selector has not been initalized yet" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = other.loadPattern( _selectorPattern ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to load selector pattern:%d", rc ) ;
+         goto error ;
+      }
+
+      clear() ;
+   done:
+      PD_TRACE_EXITRC( SDB__MTHSEL_MOVE, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSEL_CLEAR, "_mthSelector::clear" )
+   void _mthSelector::clear()
+   {
+      PD_TRACE_ENTRY( SDB__MTHSEL_CLEAR ) ;
+      _initialized = FALSE ;
+      _stringOutput = FALSE ;
+      _selectorElements.clear() ;
+      _selectorPattern = BSONObj() ;
+      PD_TRACE_EXIT( SDB__MTHSEL_CLEAR ) ;
+   }
 }
 

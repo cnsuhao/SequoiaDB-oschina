@@ -53,10 +53,6 @@ using namespace bson;
 
 namespace engine
 {
-   extern void buildNewSelector( const BSONObj &,
-                                 const BSONObj &,
-                                 BSONObj & ) ; 
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCATAQUERY, "rtnCoordCataQuery" )
    INT32 rtnCoordCataQuery ( const CHAR *pCollectionName,
                              const BSONObj &selector,
@@ -201,7 +197,6 @@ namespace engine
       BOOLEAN onlyOneNode = groupLst.size() == 1 ? TRUE : FALSE ;
       INT64 tmpSkip = onlyOneNode ? numToSkip : 0 ;
       INT64 tmpReturn = onlyOneNode ? numToReturn : numToReturn + numToSkip ;
-      BSONObj newSelector ;
 
       const CHAR *realCLFullName = realCLName ? realCLName : pCollectionName ;
 
@@ -212,14 +207,10 @@ namespace engine
          goto error ;
       }
 
-      buildNewSelector( selector, orderBy, newSelector ) ;
-
       rc = msgBuildQueryMsg ( &pBuffer, &bufferSize, pCollectionName,
                               flag, 0, tmpSkip, tmpReturn,
                               condition.isEmpty()?NULL:&condition,
-                              newSelector.isEmpty() ?
-                              ( selector.isEmpty()?NULL:&selector ) :
-                              &newSelector,
+                              selector.isEmpty()?NULL:&selector,
                               orderBy.isEmpty()?NULL:&orderBy,
                               hint.isEmpty()?NULL:&hint ) ;
       if ( rc )
@@ -239,7 +230,7 @@ namespace engine
          goto error ;
       }
       rc = pContext->open( orderBy,
-                           newSelector.isEmpty()? BSONObj() : selector,
+                           selector,
                            numToReturn, onlyOneNode ? 0 : numToSkip ) ;
       if ( rc )
       {

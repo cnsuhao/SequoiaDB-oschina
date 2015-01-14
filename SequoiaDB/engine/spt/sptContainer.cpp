@@ -40,6 +40,7 @@
 #include "sptUsrFile.hpp"
 #include "sptUsrSystem.hpp"
 #include "sptUsrOma.hpp"
+#include "sptUsrHash.hpp"
 
 namespace engine
 {
@@ -200,16 +201,19 @@ namespace engine
                     "Failed to load class _sptUsrSsh, rc = %d", rc ) ;
          rc = pScope->loadUsrDefObj<_sptUsrCmd>() ;
          PD_CHECK ( SDB_OK == rc, SDB_SYS, error, PDERROR,
-                    "Failed to load class _sptUsrSsh, rc = %d", rc ) ;
+                    "Failed to load class _sptUsrCmd, rc = %d", rc ) ;
          rc = pScope->loadUsrDefObj<_sptUsrFile>() ;
          PD_CHECK ( SDB_OK == rc, SDB_SYS, error, PDERROR,
-                    "Failed to load class _sptUsrSsh, rc = %d", rc ) ;
+                    "Failed to load class _sptUsrFile, rc = %d", rc ) ;
          rc = pScope->loadUsrDefObj<_sptUsrSystem>() ;
          PD_CHECK ( SDB_OK == rc, SDB_SYS, error, PDERROR,
-                    "Failed to load class _sptUsrSsh, rc = %d", rc ) ;
+                    "Failed to load class _sptUsrSystem, rc = %d", rc ) ;
          rc = pScope->loadUsrDefObj<_sptUsrOma>() ;
          PD_CHECK ( SDB_OK == rc, SDB_SYS, error, PDERROR,
                     "Failed to load class _sptUsrOma, rc = %d", rc ) ;
+         rc = pScope->loadUsrDefObj<_sptUsrHash>() ;
+         PD_CHECK ( SDB_OK == rc, SDB_SYS, error, PDERROR,
+                    "Failed to load class _sptUsrHash, rc = %d", rc ) ;
       }
 
       if ( _loadMask & SPT_OBJ_MASK_INNER_JS )

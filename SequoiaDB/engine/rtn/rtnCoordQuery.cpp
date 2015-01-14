@@ -55,9 +55,9 @@ using namespace bson;
 
 namespace engine
 {
-   extern void buildNewSelector( const BSONObj &,
-                                 const BSONObj &,
-                                 BSONObj & ) ;
+   extern void needResetSelector( const BSONObj &,
+                                  const BSONObj &,
+                                  BOOLEAN & ) ;
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOQUERY_QUERYTODNGROUP, "rtnCoordQuery::queryToDataNodeGroup" )
    INT32 rtnCoordQuery::queryToDataNodeGroup( CHAR *pBuffer,
                                               CoordGroupList &groupLst,
@@ -514,19 +514,19 @@ namespace engine
       CoordGroupList sendGroupList ;
       MsgOpQuery *pQuery = (MsgOpQuery *)pSrcMsg ;
       SDB_RTNCB *pRtncb = pmdGetKRCB()->getRTNCB() ;
-      BSONObj boNewSelector ;
       CHAR *newMsg = NULL ;
       CHAR *msg = pSrcMsg ;
+      BOOLEAN needReset = FALSE ;
       
       rc = pRtncb->contextNew( RTN_CONTEXT_COORD,
                                (rtnContext **)&pContext,
                                contextID, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to allocate context(rc=%d)", rc ) ;
 
-      buildNewSelector( boSelector, boOrderBy, boNewSelector ) ;
-      if ( !boNewSelector.isEmpty() )
+      needResetSelector( boSelector, boOrderBy, needReset ) ;
+      if ( needReset )
       {
-         rc = _buildNewMsg( pSrcMsg, boNewSelector, newMsg ) ;
+         rc = _buildNewMsg( pSrcMsg, BSONObj(), newMsg ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to build new msg:%d", rc ) ;
@@ -543,7 +543,7 @@ namespace engine
       else
       {
          rc = pContext->open( boOrderBy,
-                              boNewSelector.isEmpty() ? BSONObj() : boSelector,
+                              needReset ? boSelector : BSONObj(),
                               pQuery->numToReturn,
                               pQuery->numToSkip ) ;
       }

@@ -158,47 +158,63 @@ namespace engine
 
    INT32 rtnSort ( rtnContext **ppContext,
                    const BSONObj &orderBy,
-                   const BSONObj &selector,
                    _pmdEDUCB *cb,
                    SINT64 numToSkip,
                    SINT64 numToReturn,
-                   SDB_RTNCB *rtnCB,
                    SINT64 &contextID )
    {
       INT32 rc = SDB_OK ;
-      rtnContext *dataSrc = *ppContext ;
-      *ppContext = NULL ;
+      SDB_RTNCB *rtnCB = sdbGetRTNCB() ; 
+      rtnContext *context = NULL ;
+      rtnContext *bkContext = NULL ;
       SINT64 old = contextID ;
-      contextID = -1 ;
-      rc = rtnCB->contextNew ( RTN_CONTEXT_SORT, ppContext, contextID, cb ) ;
+      SINT64 sortContextID = -1 ;
+
+      if ( NULL == ppContext ||
+           NULL == *ppContext )
+      {
+         PD_LOG( PDERROR, "invalid src context" ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      bkContext = *ppContext ;
+
+      rc = rtnCB->contextNew ( RTN_CONTEXT_SORT,
+                               &context,
+                               sortContextID,
+                               cb ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to crt context:%d", rc ) ;
          goto error ;
       }
 
-      rc = ((_rtnContextSort *)(*ppContext))->open( orderBy,
-                                                    selector,
-                                                    dataSrc,
-                                                    cb,
-                                                    numToSkip,
-                                                    numToReturn ) ;
+      rc = ((_rtnContextSort *)context)->open( orderBy,
+                                               *ppContext,
+                                               cb,
+                                               numToSkip,
+                                               numToReturn ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to open sort context:%d", rc ) ;
          goto error ;
       }
+
+      contextID = sortContextID ;
+      *ppContext = context ;
    done:
       return rc ;
    error:
-      if ( -1 != old )
-      {
-         rtnCB->contextDelete ( old, cb ) ;
-      }
-      if ( -1 != contextID )
+      if ( -1 != sortContextID )
       {
          rtnCB->contextDelete ( contextID, cb ) ;
          contextID = -1 ;
+      }
+      contextID = old ;
+      if ( NULL != ppContext )
+      {
+         *ppContext = bkContext ;
       }
       goto done ;
    }
@@ -211,45 +227,41 @@ namespace engine
       }
    } ;
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNBUILDNEWSELECTOR, "_buildNewSelector" )
-   void buildNewSelector( const BSONObj &original,
-                          const BSONObj &orderBy,
-                          BSONObj &newSelector )
+   void needResetSelector( const BSONObj &original,
+                           const BSONObj &orderBy,
+                           BOOLEAN &needReset )
    {
-      PD_TRACE_ENTRY( SDB__RTNBUILDNEWSELECTOR ) ;
-
+      needReset = FALSE ;
       if ( !original.isEmpty() &&
            !orderBy.isEmpty() )
       {
-         BOOLEAN pushed = FALSE ;
-         std::set<const CHAR *, fieldCompare> addList ;
-         BSONObjBuilder builder ;
          BSONObjIterator itr( orderBy ) ;
          while ( itr.more() )
          {
             BSONElement ele = itr.next() ;
             const CHAR *fieldName = ele.fieldName() ;
-            if ( !original.hasElement( fieldName ) &&
-                 0 == addList.count( fieldName ) )
+            if ( !original.hasElement( fieldName ) )
             {
-               if ( !pushed )
+               CHAR *c = ( CHAR * )ossStrchr( fieldName, '.' ) ;
+               if ( NULL == c )
                {
-                  builder.appendElements( original ) ;
-                  pushed = TRUE ;    
+                  needReset = TRUE ;
+                  break ;
                }
 
-               builder.appendNull( fieldName ) ;
-               addList.insert( fieldName ) ;
+               *c = '\0' ;
+               BOOLEAN has = original.hasElement( fieldName ) ;
+               *c = '.' ;
+               if ( !has )
+               {
+                  needReset = TRUE ;
+                  break ;
+               }
             }
          }
-
-         if ( pushed )
-         {
-            newSelector = builder.obj() ;
-         }
       }
-      PD_TRACE_EXIT( SDB__RTNBUILDNEWSELECTOR ) ;
-      return  ;
+
+      return ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNQUERY, "rtnQuery" )
@@ -287,14 +299,11 @@ namespace engine
 
       BSONObj hintTmp = hint ;
       BSONObj blockObj ;
-      BSONObj newSelector ;
       BSONObj *pBlockObj = NULL ;
       const CHAR *indexName = NULL ;
       const CHAR *scanType  = NULL ;
       INT32 indexLID = DMS_INVALID_EXTENT ;
       INT32 direction = 0 ;
-
-      buildNewSelector( selector, orderBy, newSelector ) ;
 
       if ( FLG_QUERY_EXPLAIN & flags )
       {
@@ -398,17 +407,31 @@ namespace engine
          }
       }
 
-      if ( flags & FLG_QUERY_STRINGOUT )
+      if ( !plan->sortRequired() )
       {
-         dataContext->getSelector().setStringOutput( TRUE ) ;
+         rc = dataContext->open( su, mbContext, plan, cb,
+                                 selector,
+                                 numToReturn,
+                                 numToSkip,
+                                 pBlockObj, direction ) ;
+         PD_RC_CHECK( rc, PDERROR, "Open data context failed, rc: %d", rc ) ;
       }
+      else
+      {
+         rc = dataContext->open( su, mbContext, plan, cb,
+                                 selector,
+                                 -1,
+                                 0,
+                                 pBlockObj, direction ) ;
+         PD_RC_CHECK( rc, PDERROR, "Open data context failed, rc: %d", rc ) ;
 
-      rc = dataContext->open( su, mbContext, plan, cb,
-                              newSelector.isEmpty() ? selector :newSelector,
-                              plan->sortRequired() ? -1 : numToReturn,
-                              plan->sortRequired() ? 0 : numToSkip,
-                              pBlockObj, direction ) ;
-      PD_RC_CHECK( rc, PDERROR, "Open data context failed, rc: %d", rc ) ;
+         rc = rtnSort ( (rtnContext**)&dataContext,
+                        orderBy,
+                        cb, numToSkip,
+                        numToReturn,
+                        contextID ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to sort, rc: %d", rc ) ;
+      }
 
       suID = DMS_INVALID_CS ;
       plan = NULL ;
@@ -419,16 +442,11 @@ namespace engine
          dataContext->getMonCB()->recordStartTimestamp() ;
       }
 
-      if ( dataContext->getPlan()->sortRequired() )
+      if ( flags & FLG_QUERY_STRINGOUT )
       {
-         rc = rtnSort ( (rtnContext**)&dataContext,
-                        orderBy,
-                        newSelector.isEmpty() ? BSONObj() : selector,
-                        cb, numToSkip,
-                        numToReturn, rtnCB, contextID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to sort, rc: %d", rc ) ;
+         dataContext->getSelector().setStringOutput( TRUE ) ;
       }
-
+      
       if ( ppContext )
       {
          *ppContext = dataContext ;

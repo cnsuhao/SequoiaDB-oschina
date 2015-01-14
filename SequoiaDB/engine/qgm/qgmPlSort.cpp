@@ -136,8 +136,8 @@ namespace engine
          goto error ;
       }
 
-      rc = rtnSort( &context, _orderBy, BSONObj(),
-                    eduCB, 0, -1, _rtnCB, _contextID ) ;
+      rc = rtnSort( &context, _orderBy, 
+                    eduCB, 0, -1, _contextID ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to exec sort:%d", rc ) ;
