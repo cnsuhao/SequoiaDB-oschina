@@ -1608,7 +1608,6 @@ namespace engine
          }
          else
          {
-            PD_LOG( PDWARNING, "%s is not valid in result:%s, we use default value(256KB)" ) ;
             csItem->lobPageSize = DMS_DEFAULT_LOB_PAGE_SZ ;
          }
       }
