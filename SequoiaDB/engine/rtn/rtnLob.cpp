@@ -434,6 +434,7 @@ namespace engine
          PD_LOG ( PDERROR, "database is not writable, rc = %d", rc ) ;
          goto error ;
       }
+      lockDms = TRUE ;
 
       if ( acquireLock )
       {

@@ -174,7 +174,7 @@ namespace engine
       rc = utilReadConfigureFile( _cfgFileName, desc, vm ) ;
       if ( rc )
       {
-         if ( SDB_IO == rc )
+         if ( SDB_FNE == rc )
          {
             PD_LOG( PDWARNING, "Config[%s] not exist, use default config",
                     _cfgFileName ) ;

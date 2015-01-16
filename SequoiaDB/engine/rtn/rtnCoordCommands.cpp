@@ -142,7 +142,7 @@ namespace engine
    RTN_COORD_CMD_ADD( COORD_CMD_LIST_LOBS, rtnCoordCMDListLobs )
    RTN_COORD_CMD_END
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCOM_PROCCATREPLY, "rtnCoordCommand::processCatReply" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCOM_PROCCATREPLY, "rtnCoordCommand::processCatReply" )
    INT32 rtnCoordCommand::processCatReply( MsgOpReply *pReply,
                                            CoordGroupList &groupLst )
    {
@@ -373,7 +373,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCOM_QUERYONCATAANDPUSHTOVEC, "rtnCoordCommand::queryOnCataAndPushToContext" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCOM_QUERYONCATAANDPUSHTOVEC, "rtnCoordCommand::queryOnCataAndPushToContext" )
    INT32 rtnCoordCommand::queryOnCataAndPushToVec( const rtnQueryOptions &options,
                                                    pmdEDUCB *cb,
                                                    std::vector<BSONObj> &objs )
@@ -433,7 +433,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCOM_QUERYONCATAANDPUSHTOCONTEXT, "rtnCoordCommand::queryOnCataAndPushToContext" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCOM_QUERYONCATAANDPUSHTOCONTEXT, "rtnCoordCommand::queryOnCataAndPushToContext" )
    INT32 rtnCoordCommand::queryOnCatalog( const rtnQueryOptions &options,
                                           pmdEDUCB *cb,
                                           SINT64 &contextID )
@@ -569,7 +569,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCOM__GETREPLYOBJSFROMQUEUE, "rtnCoordCommand::_getReplyObjsFromQueue" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCOM__GETREPLYOBJSFROMQUEUE, "rtnCoordCommand::_getReplyObjsFromQueue" )
    INT32 rtnCoordCommand::_getReplyObjsFromQueue( REPLY_QUE &replyQueue,
                                                   pmdEDUCB *cb,
                                                   rtnContextCoord *context )
@@ -650,7 +650,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCOM_EXEONCATAGR, "rtnCoordCommand::executeOnCataGroup" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCOM_EXEONCATAGR, "rtnCoordCommand::executeOnCataGroup" )
    INT32 rtnCoordCommand::executeOnCataGroup ( CHAR *pBuffer,
                                                netMultiRouteAgent *pRouteAgent,
                                                pmdEDUCB *cb,
@@ -825,7 +825,7 @@ namespace engine
    }
 #endif
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCODEFCOM_EXE, "rtnCoordDefaultCommand::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCODEFCOM_EXE, "rtnCoordDefaultCommand::execute" )
    INT32 rtnCoordDefaultCommand::execute( CHAR *pReceiveBuffer, SINT32 packSize,
                                  CHAR **ppResultBuffer, pmdEDUCB *cb,
                                  MsgOpReply &replyHeader,
@@ -1294,7 +1294,7 @@ namespace engine
       return rc ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDCRCS_EXE, "rtnCoordCMDCreateCollectionSpace::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDCRCS_EXE, "rtnCoordCMDCreateCollectionSpace::execute" )
    INT32 rtnCoordCMDCreateCollectionSpace::execute( CHAR *pReceiveBuffer,
                                                     SINT32 packSize,
                                                     CHAR **ppResultBuffer,
@@ -1340,7 +1340,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDALCL_EXE, "rtnCoordCMDAlterCollection::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDALCL_EXE, "rtnCoordCMDAlterCollection::execute" )
    INT32 rtnCoordCMDAlterCollection::execute( CHAR *pReceiveBuffer, SINT32 packSize,
                                     CHAR **ppResultBuffer, pmdEDUCB *cb,
                                     MsgOpReply &replyHeader, BSONObj **ppErrorObj )
@@ -2384,7 +2384,7 @@ namespace engine
       goto done;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSDBINTR_BUILDREQMSG, "rtnCoordCMDSnapshotDBIntr::BuildRequestMsg" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSDBINTR_BUILDREQMSG, "rtnCoordCMDSnapshotDBIntr::BuildRequestMsg" )
    INT32 rtnCoordCMDSnapshotDBIntr::BuildRequestMsg  ( CHAR **ppBuffer,
                                                        INT32 *bufferSize,
                                                        SINT32 flag,
@@ -2404,7 +2404,7 @@ namespace engine
       return rc ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSSYSINTR_BUILDREQMSG, "rtnCoordCMDSnapshotSysIntr::BuildRequestMsg" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSSYSINTR_BUILDREQMSG, "rtnCoordCMDSnapshotSysIntr::BuildRequestMsg" )
    INT32 rtnCoordCMDSnapshotSysIntr::BuildRequestMsg  ( CHAR **ppBuffer,
                                                         INT32 *bufferSize,
                                                         SINT32 flag,
@@ -2424,7 +2424,7 @@ namespace engine
       return rc ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSCLINTR_BUILDREQMSG, "rtnCoordCMDSnapshotClIntr::BuildRequestMsg" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSCLINTR_BUILDREQMSG, "rtnCoordCMDSnapshotClIntr::BuildRequestMsg" )
    INT32 rtnCoordCMDSnapshotClIntr::BuildRequestMsg  ( CHAR **ppBuffer,
                                                        INT32 *bufferSize,
                                                        SINT32 flag,
@@ -2444,7 +2444,7 @@ namespace engine
       return rc ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSCSINTR_BUILDREQMSG, "rtnCoordCMDSnapshotCsIntr::BuildRequestMsg" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSCSINTR_BUILDREQMSG, "rtnCoordCMDSnapshotCsIntr::BuildRequestMsg" )
    INT32 rtnCoordCMDSnapshotCsIntr::BuildRequestMsg  ( CHAR **ppBuffer,
                                                        INT32 *bufferSize,
                                                        SINT32 flag,
@@ -2464,7 +2464,7 @@ namespace engine
       return rc ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSCTXINTR_BUILDREQMSG, "rtnCoordCMDSnapshotCtxIntr::BuildRequestMsg" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSCTXINTR_BUILDREQMSG, "rtnCoordCMDSnapshotCtxIntr::BuildRequestMsg" )
    INT32 rtnCoordCMDSnapshotCtxIntr::BuildRequestMsg  ( CHAR **ppBuffer,
                                                         INT32 *bufferSize,
                                                         SINT32 flag,
@@ -2484,7 +2484,7 @@ namespace engine
       return rc ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSCTXCURINTR_BUILDREQMSG, "rtnCoordCMDSnapshotCtxCurIntr::BuildRequestMsg" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSCTXCURINTR_BUILDREQMSG, "rtnCoordCMDSnapshotCtxCurIntr::BuildRequestMsg" )
    INT32 rtnCoordCMDSnapshotCtxCurIntr::BuildRequestMsg  ( CHAR **ppBuffer,
                                                            INT32 *bufferSize,
                                                            SINT32 flag,
@@ -2504,7 +2504,7 @@ namespace engine
       return rc ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSSESSIONINTR_BUILDREQMSG, "rtnCoordCMDSnapshotSessionIntr::BuildRequestMsg" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSSESSIONINTR_BUILDREQMSG, "rtnCoordCMDSnapshotSessionIntr::BuildRequestMsg" )
    INT32 rtnCoordCMDSnapshotSessionIntr::BuildRequestMsg  ( CHAR **ppBuffer,
                                                             INT32 *bufferSize,
                                                             SINT32 flag,
@@ -2524,7 +2524,7 @@ namespace engine
       return rc ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSSESSIONCURINTR_BUILDREQMSG, "rtnCoordCMDSnapshotSessionCurIntr::BuildRequestMsg" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSSESSIONCURINTR_BUILDREQMSG, "rtnCoordCMDSnapshotSessionCurIntr::BuildRequestMsg" )
    INT32 rtnCoordCMDSnapshotSessionCurIntr::BuildRequestMsg  ( CHAR **ppBuffer,
                                                                INT32 *bufferSize,
                                                                SINT32 flag,
@@ -2544,7 +2544,7 @@ namespace engine
       return rc ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSRESET_BUILDREQMSG, "rtnCoordCMDSnapshotReset::BuildRequestMsg" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSRESET_BUILDREQMSG, "rtnCoordCMDSnapshotReset::BuildRequestMsg" )
    INT32 rtnCoordCMDSnapshotReset::BuildRequestMsg  ( CHAR **ppBuffer,
                                                       INT32 *bufferSize,
                                                       SINT32 flag,
@@ -2580,7 +2580,7 @@ namespace engine
       return rc ;
    }
    
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSSYS_BUILDREQMSG, "rtnCoordCMDSnapshotSystemTmp::BuildRequestMsg" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSSYS_BUILDREQMSG, "rtnCoordCMDSnapshotSystemTmp::BuildRequestMsg" )
    INT32 rtnCoordCMDSnapshotSystemTmp::BuildRequestMsg  ( CHAR **ppBuffer,
                                                           INT32 *bufferSize,
                                                           SINT32 flag,
@@ -2600,7 +2600,7 @@ namespace engine
       return rc ;
    }
    
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSSE_BUILDREQMSG, "rtnCoordCMDSnapshotSessions::BuildRequestMsg" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSSE_BUILDREQMSG, "rtnCoordCMDSnapshotSessions::BuildRequestMsg" )
    INT32 rtnCoordCMDSnapshotSessionsTmp::BuildRequestMsg  ( CHAR **ppBuffer,
                                                             INT32 *bufferSize,
                                                             SINT32 flag,
@@ -2620,7 +2620,7 @@ namespace engine
       return rc ;
    }
    
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSCONT_BUILDREQMSG, "rtnCoordCMDSnapshotContexts::BuildRequestMsg" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSCONT_BUILDREQMSG, "rtnCoordCMDSnapshotContexts::BuildRequestMsg" )
    INT32 rtnCoordCMDSnapshotContextsTmp::BuildRequestMsg  ( CHAR **ppBuffer,
                                                             INT32 *bufferSize,
                                                             SINT32 flag,
@@ -2639,7 +2639,7 @@ namespace engine
       PD_TRACE_EXITRC ( SDB_RTNCOCMDSSCONT_BUILDREQMSG, rc ) ;
       return rc ;
    }
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSCLS_EXE, "rtnCoordCMDSnapshotCollections::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSCLS_EXE, "rtnCoordCMDSnapshotCollections::execute" )
    INT32 rtnCoordCMDSnapshotCollectionsTmp::execute( CHAR *pReceiveBuffer,
                                                      SINT32 packSize,
                                                      CHAR **ppResultBuffer,
@@ -2655,7 +2655,7 @@ namespace engine
       return rc ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSCSS_EXE, "rtnCoordCMDSnapshotCollectionSpaces::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSSCSS_EXE, "rtnCoordCMDSnapshotCollectionSpaces::execute" )
    INT32 rtnCoordCMDSnapshotCollectionSpacesTmp::execute( CHAR *pReceiveBuffer,
                                                           SINT32 packSize,
                                                           CHAR **ppResultBuffer,
@@ -2683,9 +2683,11 @@ namespace engine
                                                          BSONObj *hint )
    {
       INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNCOCMDSSRESETTMP_BUILDREQMSG ) ;
       rc = msgBuildQueryMsg( ppBuffer, bufferSize, COORD_CMD_SNAPSHOTRESET,
                              flag, 0, numToSkip, numToReturn, query, fieldSelector,
                              orderBy, hint );
+      PD_TRACE_EXITRC ( SDB_RTNCOCMDSSRESETTMP_BUILDREQMSG, rc ) ;
       return rc ;
    }
 
@@ -2698,6 +2700,7 @@ namespace engine
                                            BSONObj **ppErrorObj )
    {
       INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY ( SDB_RTNCOCMD2PC_EXE ) ;
       SINT64 contextID = -1;
       pmdKRCB *pKrcb = pmdGetKRCB();
       _SDB_RTNCB *pRtncb = pKrcb->getRTNCB();
@@ -2735,6 +2738,7 @@ namespace engine
       }
       fillReply( (MsgHeader *)pReceiveBuffer, rc, ppErrorObj,
                   replyHeader );
+      PD_TRACE_EXITRC ( SDB_RTNCOCMD2PC_EXE, rc ) ;
       return rc;
    error:
       if ( SDB_CLS_COORD_NODE_CAT_VER_OLD == rc && !hasRetry )
@@ -2784,6 +2788,7 @@ namespace engine
                                                    BOOLEAN isNeedRefresh )
    {
       INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY ( SDB_RTNCOCMD2PC_DOP1 ) ;
       pmdKRCB *pKrcb                   = pmdGetKRCB();
       CoordCB *pCoordcb                = pKrcb->getCoordCB();
       _SDB_RTNCB *pRtncb               = pKrcb->getRTNCB();
@@ -2826,6 +2831,7 @@ namespace engine
                    "Failed to execute phase-1 on data node(rc=%d)",
                    rc );
    done:
+      PD_TRACE_EXITRC ( SDB_RTNCOCMD2PC_DOP1, rc ) ;
       return rc;
    error:
       if ( contextID >= 0 )
@@ -2843,6 +2849,7 @@ namespace engine
                                                    SINT64 &contextID )
    {
       INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY ( SDB_RTNCOCMD2PC_DOP2 ) ;
       pmdKRCB *pKrcb = pmdGetKRCB();
       _SDB_RTNCB *pRtncb = pKrcb->getRTNCB();
       rtnContextBuf buffObj;
@@ -2856,6 +2863,7 @@ namespace engine
                    "Failed to execute phase-2 on data node(rc=%d)",
                    rc );
    done:
+      PD_TRACE_EXITRC ( SDB_RTNCOCMD2PC_DOP2, rc ) ;
       return rc;
    error:
       if ( -1 != contextID )
@@ -2876,6 +2884,7 @@ namespace engine
                                              std::string &strCLName )
    {
       INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY ( SDB_RTNCODROPCL_GETCLNAME ) ;
       INT32 flag                       = 0;
       CHAR *pCommandName               = NULL;
       SINT64 numToSkip                 = 0;
@@ -2908,6 +2917,7 @@ namespace engine
          goto error;
       }
    done:
+      PD_TRACE_EXITRC ( SDB_RTNCODROPCL_GETCLNAME, rc ) ;
       return rc;
    error:
       goto done;
@@ -2921,6 +2931,7 @@ namespace engine
                                                 BOOLEAN isNeedRefresh )
    {
       INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY ( SDB_RTNCODROPCL_GETGPLST ) ;
       std::string strCLName;
       CoordCataInfoPtr cataInfo;
       BOOLEAN hasRetry = FALSE;
@@ -2951,6 +2962,7 @@ namespace engine
                   rc );
       pDropReq->version = cataInfo->getVersion();
    done:
+      PD_TRACE_EXITRC ( SDB_RTNCODROPCL_GETGPLST, rc ) ;
       return rc;
    error:
       goto done;
@@ -2961,6 +2973,7 @@ namespace engine
                                              pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY ( SDB_RTNCODROPCL_CMPL ) ;
       pmdKRCB *pKrcb = pmdGetKRCB();
       CoordCB *pCoordcb = pKrcb->getCoordCB();
       std::string strCLName;
@@ -2980,6 +2993,7 @@ namespace engine
          pCoordcb->delCataInfo( strMainCLName );
       }
    done:
+      PD_TRACE_EXITRC ( SDB_RTNCODROPCL_CMPL, rc ) ;
       return SDB_OK;
    error:
       goto done;
@@ -2990,6 +3004,7 @@ namespace engine
                                                    pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY ( SDB_RTNCODROPCL_DOONCATA ) ;
       SINT32 opCode;
       UINT32 TID;
       MsgOpQuery *pDropReq             = (MsgOpQuery *)pReceiveBuffer ;
@@ -3012,6 +3027,7 @@ namespace engine
    done:
       pDropReq->header.opCode = opCode;
       pDropReq->header.TID = TID;
+      PD_TRACE_EXITRC ( SDB_RTNCODROPCL_DOONCATA, rc ) ;
       return rc;
    error:
       goto done;
@@ -3030,6 +3046,7 @@ namespace engine
                                                        BOOLEAN isNeedRefresh )
    {
       INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY ( SDB_RTNCODROPCS_GETGPLST ) ;
 
       INT32 flag                       = 0;
       CHAR *pCommandName               = NULL;
@@ -3087,6 +3104,7 @@ namespace engine
       }
    done:
       SAFE_OSS_FREE( pBuffer );
+      PD_TRACE_EXITRC ( SDB_RTNCODROPCS_GETGPLST, rc ) ;
       return rc;
    error:
       goto done;
@@ -3097,6 +3115,7 @@ namespace engine
                                                         pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY ( SDB_RTNCODROPCS_DOONCATA ) ;
       SINT32 opCode;
       UINT32 TID;
       MsgOpQuery *pDropReq             = (MsgOpQuery *)pReceiveBuffer ;
@@ -3118,12 +3137,13 @@ namespace engine
    done:
       pDropReq->header.opCode = opCode ;
       pDropReq->header.TID = TID ;
+      PD_TRACE_EXITRC ( SDB_RTNCODROPCS_DOONCATA, rc ) ;
       return rc;
    error:
       goto done;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDQUBASE_QUTOCANOGR, "rtnCoordCMDQueryBase::queryToCataNodeGroup" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDQUBASE_QUTOCANOGR, "rtnCoordCMDQueryBase::queryToCataNodeGroup" )
    INT32 rtnCoordCMDQueryBase::queryToCataNodeGroup( CHAR *pBuffer,
                                                netMultiRouteAgent *pRouteAgent,
                                                pmdEDUCB *cb,
@@ -3214,7 +3234,7 @@ namespace engine
       return rc;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDQUBASE_EXE, "rtnCoordCMDQueryBase::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDQUBASE_EXE, "rtnCoordCMDQueryBase::execute" )
    INT32 rtnCoordCMDQueryBase::execute( CHAR *pReceiveBuffer,
                                         SINT32 packSize,
                                         CHAR **ppResultBuffer,
@@ -3298,7 +3318,7 @@ namespace engine
       return rc;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDLISTCS_BQREQ, "rtnCoordCMDListCollectionSpace::buildQueryRequest" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDLISTCS_BQREQ, "rtnCoordCMDListCollectionSpace::buildQueryRequest" )
    INT32 rtnCoordCMDListCollectionSpace::buildQueryRequest( CHAR *pIntput,
                                                             pmdEDUCB *cb,
                                                             CHAR **ppOutput )
@@ -3365,7 +3385,7 @@ namespace engine
       return rc;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDLISTCL_BQREQ, "rtnCoordCMDListCollection::buildQueryRequest" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDLISTCL_BQREQ, "rtnCoordCMDListCollection::buildQueryRequest" )
    INT32 rtnCoordCMDListCollection::buildQueryRequest( CHAR *pIntput,
                                                        pmdEDUCB *cb,
                                                        CHAR **ppOutput )
@@ -3432,7 +3452,7 @@ namespace engine
       return rc;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDTESTCS_EXE, "rtnCoordCMDTestCollectionSpace::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDTESTCS_EXE, "rtnCoordCMDTestCollectionSpace::execute" )
    INT32 rtnCoordCMDTestCollectionSpace::execute( CHAR *pReceiveBuffer,
                                                   SINT32 packSize,
                                                   CHAR **ppResultBuffer,
@@ -3492,7 +3512,7 @@ namespace engine
       return rc;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDTESTCL_EXE, "rtnCoordCMDTestCollection::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDTESTCL_EXE, "rtnCoordCMDTestCollection::execute" )
    INT32 rtnCoordCMDTestCollection::execute( CHAR *pReceiveBuffer,
                                              SINT32 packSize,
                                              CHAR **ppResultBuffer,
@@ -3550,7 +3570,7 @@ namespace engine
       return rc;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDCTGR, "rtnCoordCMDCreateGroup::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDCTGR, "rtnCoordCMDCreateGroup::execute" )
    INT32 rtnCoordCMDCreateGroup::execute( CHAR *pReceiveBuffer,
                                                 SINT32 packSize,
                                                 CHAR **ppResultBuffer,
@@ -3594,7 +3614,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDRMR, "rtnCoordCMDRemoveGroup::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDRMR, "rtnCoordCMDRemoveGroup::execute" )
    INT32 rtnCoordCMDRemoveGroup::execute( CHAR *pReceiveBuffer,
                                           SINT32 packSize,
                                           CHAR **ppResultBuffer,
@@ -4280,7 +4300,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDUPN_EXE, "rtnCoordCMDUpdateNode::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDUPN_EXE, "rtnCoordCMDUpdateNode::execute" )
    INT32 rtnCoordCMDUpdateNode::execute( CHAR *pReceiveBuffer,
                                          SINT32 packSize,
                                          CHAR **ppResultBuffer,
@@ -5183,7 +5203,7 @@ namespace engine
       return rc;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDOPONNODE_EXE, "rtnCoordCMDOperateOnNode::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDOPONNODE_EXE, "rtnCoordCMDOperateOnNode::execute" )
    INT32 rtnCoordCMDOperateOnNode::execute( CHAR *pReceiveBuffer,
                                             SINT32 packSize,
                                             CHAR **ppResultBuffer,
@@ -5285,7 +5305,7 @@ namespace engine
       return SDBSTOP;
    }
 
-   PD_TRACE_DECLARE_FUNCTION (SDB_RTNCOCMDOPONGR_EXE, "rtnCoordCMDOperateOnGroup::execute" )
+   // PD_TRACE_DECLARE_FUNCTION (SDB_RTNCOCMDOPONGR_EXE, "rtnCoordCMDOperateOnGroup::execute" )
    INT32 rtnCoordCMDOperateOnGroup::execute( CHAR *pReceiveBuffer,
                                              SINT32 packSize,
                                              CHAR **ppResultBuffer,
@@ -5416,7 +5436,7 @@ namespace engine
       return rc;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTN_COCOMDOPONGR_OPONGR, "rtnCoordCMDOperateOnGroup::opOnGroup" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTN_COCOMDOPONGR_OPONGR, "rtnCoordCMDOperateOnGroup::opOnGroup" )
    INT32 rtnCoordCMDOperateOnGroup::opOnGroup( bson::BSONObj &boGroupInfo )
    {
       INT32 rc = SDB_OK;
@@ -5569,7 +5589,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSP_EXE, "rtnCoordCMDSplit::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSP_EXE, "rtnCoordCMDSplit::execute" )
    INT32 rtnCoordCMDSplit::execute( CHAR *pReceiveBuffer,
                                     SINT32 packSize,
                                     CHAR **ppResultBuffer,
@@ -5914,7 +5934,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSP_GETBOUNDRONDATA, "rtnCoordCMDSplit::_getBoundRecordOnData" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSP_GETBOUNDRONDATA, "rtnCoordCMDSplit::_getBoundRecordOnData" )
    INT32 rtnCoordCMDSplit::_getBoundRecordOnData( const CHAR *cl,
                                                   const BSONObj &condition,
                                                   const BSONObj &hint,
@@ -6009,7 +6029,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSP__GETBOUNDBYC, "rtnCoordCMDSplit::_getBoundByCondition" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSP__GETBOUNDBYC, "rtnCoordCMDSplit::_getBoundByCondition" )
    INT32 rtnCoordCMDSplit::_getBoundByCondition( const CHAR *cl,
                                                  const BSONObj &begin,
                                                  const BSONObj &end,
@@ -6055,7 +6075,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSP__GETBOUNDBYP, "rtnCoordCMDSplit::_getBoundByPercent" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSP__GETBOUNDBYP, "rtnCoordCMDSplit::_getBoundByPercent" )
    INT32 rtnCoordCMDSplit::_getBoundByPercent( const CHAR *cl,
                                                FLOAT64 percent,
                                                CoordCataInfoPtr &cataInfo,
@@ -6364,7 +6384,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSTB_EXE, "rtnCoordCMDStatisticsBase::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDSTB_EXE, "rtnCoordCMDStatisticsBase::execute" )
    INT32 rtnCoordCMDStatisticsBase::execute( CHAR *pReceiveBuffer,
                                              SINT32 packSize,
                                              CHAR **ppResultBuffer,
@@ -6462,7 +6482,7 @@ namespace engine
       goto done;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDGETIXS_GENRT, "rtnCoordCMDGetIndexes::generateResult" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDGETIXS_GENRT, "rtnCoordCMDGetIndexes::generateResult" )
    INT32 rtnCoordCMDGetIndexes::generateResult( rtnContext *pContext,
                                  netMultiRouteAgent *pRouteAgent,
                                  pmdEDUCB *cb )
@@ -6575,7 +6595,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDGETCT_GENRT, "rtnCoordCMDGetCount::generateResult" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDGETCT_GENRT, "rtnCoordCMDGetCount::generateResult" )
    INT32 rtnCoordCMDGetCount::generateResult( rtnContext *pContext,
                                  netMultiRouteAgent *pRouteAgent,
                                  pmdEDUCB *cb )
@@ -7752,7 +7772,7 @@ namespace engine
       return COORD_CMD_SNAPSHOTSESSCURINTR;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOORDCMDSSCATA_BUILDREQ, "rtnCoordCMDSnapshotCata::buildQueryRequest" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOORDCMDSSCATA_BUILDREQ, "rtnCoordCMDSnapshotCata::buildQueryRequest" )
    INT32 rtnCoordCMDSnapshotCata::buildQueryRequest( CHAR *pIntput,
                                                      pmdEDUCB *cb,
                                                      CHAR **ppOutput )
@@ -7818,7 +7838,7 @@ namespace engine
       return rc;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOORDCMDCRTPROCEDURE_EXE, "rtnCoordCMDCrtProcedure::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOORDCMDCRTPROCEDURE_EXE, "rtnCoordCMDCrtProcedure::execute" )
    INT32 rtnCoordCMDCrtProcedure::execute( CHAR *pReceiveBuffer,
                                             SINT32 packSize,
                                             CHAR **ppResultBuffer,
@@ -7882,7 +7902,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDEVAL_EXE, "rtnCoordCMDEval::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDEVAL_EXE, "rtnCoordCMDEval::execute" )
    INT32 rtnCoordCMDEval::execute( CHAR *pReceiveBuffer,
                                    SINT32 packSize,
                                    CHAR **ppResultBuffer,
@@ -8021,7 +8041,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOORDCMDRMPROCEDURE_EXE, "rtnCoordCMDRmProcedure::execute" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOORDCMDRMPROCEDURE_EXE, "rtnCoordCMDRmProcedure::execute" )
    INT32 rtnCoordCMDRmProcedure::execute( CHAR *pReceiveBuffer,
                                            SINT32 packSize,
                                            CHAR **ppResultBuffer,
@@ -8084,7 +8104,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION( SDB_RTNCOCMDLISTPROCEDURES_BUILD, "rtnCoordCMDListProcedures::buildQueryRequest" )
+   // PD_TRACE_DECLARE_FUNCTION( SDB_RTNCOCMDLISTPROCEDURES_BUILD, "rtnCoordCMDListProcedures::buildQueryRequest" )
    INT32 rtnCoordCMDListProcedures::buildQueryRequest( CHAR *pIntput,
                                                        pmdEDUCB *cb,
                                                        CHAR **ppOutput )

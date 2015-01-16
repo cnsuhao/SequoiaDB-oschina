@@ -1622,7 +1622,7 @@ namespace engine
       rc = utilReadConfigureFile( pConfigFile, desc, vm ) ;
       if ( rc )
       {
-         if ( SDB_IO != rc || !allowFileNotExist )
+         if ( SDB_FNE != rc || !allowFileNotExist )
          {
             PD_LOG( PDERROR, "Failed to read config from file[%s], rc: %d",
                     pConfigFile, rc ) ;
@@ -1744,7 +1744,7 @@ namespace engine
                       << " failed, rc: " << rc << std::endl ;
             goto error ;
          }
-         else if ( SDB_IO != rc )
+         else if ( SDB_FNE != rc )
          {
             std::cerr << "Read default config file: " << _krcbConfFile
                       << " failed, rc: " << rc << std::endl ;

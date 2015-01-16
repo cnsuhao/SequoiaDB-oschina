@@ -565,10 +565,17 @@ namespace engine
       }
 
       rc = utilReadConfigureFile( confFile.c_str(), desc, vm ) ;
-      if ( SDB_IO == rc )
+      if ( SDB_FNE == rc )
       {
          stringstream ss ;
          ss << "conf file[" << confFile << "] is not exist" ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+      else if ( SDB_PERM == rc )
+      {
+         stringstream ss ;
+         ss << "conf file[" << confFile << "] permission error" ;
          detail = BSON( SPT_ERR << ss.str() ) ;
          goto error ;
       }

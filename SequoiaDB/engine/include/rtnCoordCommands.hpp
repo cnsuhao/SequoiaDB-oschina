@@ -124,9 +124,9 @@ namespace engine
       rtnCoordCommand(){};
       virtual ~rtnCoordCommand(){};
       virtual INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                           CHAR **ppResultBuffer, pmdEDUCB *cb,
-                           MsgOpReply &replyHeader,
-                           BSONObj **ppErrorObj ) = 0;
+                             CHAR **ppResultBuffer, pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             BSONObj **ppErrorObj ) = 0;
       virtual INT32 queryOnCatalog ( CHAR *pReceiveBuffer, SINT32 packSize,
                                      CHAR **ppResultBuffer, pmdEDUCB *cb,
                                      MsgOpReply &replyHeader,

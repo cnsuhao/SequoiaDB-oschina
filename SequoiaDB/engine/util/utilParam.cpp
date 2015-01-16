@@ -68,7 +68,11 @@ namespace engine
       {
          std::cerr << "Failed to open config file: "
                    <<( std::string ) file << std::endl ;
-         rc = SDB_IO ;
+         rc = ossAccess( file ) ;
+         if ( SDB_OK == rc )
+         {
+            rc = SDB_PERM ;
+         }
          goto error ;
       }
       catch ( po::unknown_option &e )
