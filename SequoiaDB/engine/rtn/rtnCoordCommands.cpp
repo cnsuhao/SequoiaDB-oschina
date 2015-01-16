@@ -1319,114 +1319,26 @@ namespace engine
       replyHeader.numReturned          = 0;
       replyHeader.startFrom            = 0;
 
-
       MsgOpQuery *pCreateReq           = (MsgOpQuery *)pReceiveBuffer;
       pCreateReq->header.routeID.value = 0;
       pCreateReq->header.TID           = cb->getTID();
       pCreateReq->header.opCode        = MSG_CAT_CREATE_COLLECTION_SPACE_REQ;
-      CoordGroupList groupLst ;
-      CoordGroupList sendGroupLst ;
 
       rc = executeOnCataGroup ( (CHAR*)pCreateReq, pRouteAgent,
-                                cb, NULL, &groupLst ) ;
+                                cb, NULL, NULL ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "create collectionspace failed, rc = %d", rc ) ;
          goto error ;
       }
 
-      if ( getPDLevel() >= PDDEBUG )
-      {
-         std::string strSpaceName;
-         INT32 flag                       = 0;
-         CHAR *pCommandName               = NULL;
-         SINT64 numToSkip                 = 0;
-         SINT64 numToReturn               = 0;
-         CHAR *pQuery                     = NULL;
-         CHAR *pFieldSelector             = NULL;
-         CHAR *pOrderBy                   = NULL;
-         CHAR *pHint                      = NULL;
-
-         rc = msgExtractQuery( pReceiveBuffer, &flag, &pCommandName,
-                               &numToSkip, &numToReturn, &pQuery, &pFieldSelector,
-                               &pOrderBy, &pHint );
-         if ( rc != SDB_OK )
-         {
-            PD_LOG ( PDERROR,
-                     "failed to parse create collection-space request(rc=%d)",
-                     rc );
-            goto error ;
-         }
-         try
-         {
-            BSONObj boQuery = BSONObj( pQuery );
-            BSONElement beCollectionSpaceName
-                        = boQuery.getField( CAT_COLLECTION_SPACE_NAME );
-            if ( beCollectionSpaceName.eoo() ||
-                 beCollectionSpaceName.type() != String )
-            {
-               rc = SDB_INVALIDARG;
-               PD_LOG ( PDERROR,
-                        "failed to create collection-space, "
-                        "failed to get collectionSpace name" );
-               goto error ;
-            }
-            strSpaceName = beCollectionSpaceName.str();
-         }
-         catch ( std::exception &e )
-         {
-            rc = SDB_INVALIDARG;
-            PD_LOG ( PDERROR,
-                     "failed to create collection-space, "
-                     "received unexpected error:%s",
-                     e.what() );
-            goto error ;
-         }
-         PD_LOG ( PDDEBUG,
-                  "create collection-space(name:%s)",
-                  strSpaceName.c_str() );
-         CoordGroupList::iterator iterLst = groupLst.begin();
-         while( iterLst != groupLst.end() )
-         {
-            PD_LOG ( PDDEBUG,
-                     "create collection-space(name:%s) on node:%u",
-                     strSpaceName.c_str(), iterLst->first );
-            ++iterLst;
-         }
-      }
-
-      pCreateReq->header.opCode = MSG_BS_QUERY_REQ;
-      rc = executeOnDataGroup( (MsgHeader *)pCreateReq, groupLst,
-                               sendGroupLst, pRouteAgent, cb,
-                               TRUE ) ;
-      if ( rc != SDB_OK )
-      {
-         PD_LOG ( PDWARNING,
-                  "create collection-space failed on data node(rc = %d)",
-                  rc );
-         rc = SDB_OK;
-         goto error ;
-      }
    done :
-      replyHeader.flags = rc;
+      replyHeader.flags = rc ;
       PD_TRACE_EXITRC ( SDB_RTNCOCMDCRCS_EXE, rc ) ;
       return rc;
-   /*error_rollback :
-      pCreateReq->header.opCode = MSG_CAT_DROP_SPACE_REQ ;
-      rcTmp = executeOnCataGroup( (CHAR *)pCreateReq, requestID, pRouteAgent,
-                                  cb ) ;
-      if ( rcTmp != SDB_OK )
-      {
-         PD_LOG ( PDERROR,
-                  "failed to rollback creating collection-space, "
-                  "drop on catalogue-node failed(rc=%d)", rcTmp ) ;
-         goto error ;
-      }*/
    error :
       goto done ;
    }
-
-   
 
    PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDALCL_EXE, "rtnCoordCMDAlterCollection::execute" )
    INT32 rtnCoordCMDAlterCollection::execute( CHAR *pReceiveBuffer, SINT32 packSize,

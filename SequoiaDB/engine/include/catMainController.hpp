@@ -45,6 +45,8 @@
 #include "pmdEDU.hpp"
 #include "pmd.hpp"
 #include "ossEvent.hpp"
+#include "catCatalogManager.hpp"
+#include "catNodeManager.hpp"
 #include <map>
 
 namespace engine
@@ -129,16 +131,12 @@ namespace engine
       void _delContextByID( INT64 contextID, BOOLEAN rtnDel ) ;
 
    private :
-      EDUID             _nodeManagerEDUID;
-      EDUID             _catalogManagerEDUID;
       pmdEDUMgr         *_pEduMgr;
       sdbCatalogueCB    *_pCatCB;
       _SDB_DMSCB        *_pDmsCB;
       pmdEDUCB          *_pEDUCB;
       _SDB_RTNCB        *_pRtnCB;
       _authCB           *_pAuthCB;
-      pmdEDUCB          *_pNodeMgrCB;
-      pmdEDUCB          *_pCataMgrCB;
       CONTEXT_LIST      _contextLst;
 
       ossEvent          _attachEvent ;

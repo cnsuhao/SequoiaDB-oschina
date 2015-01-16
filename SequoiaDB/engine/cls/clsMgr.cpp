@@ -1240,6 +1240,9 @@ namespace engine
             ip++ ;
          }
 
+         ipArray.append( OSS_LOOPBACK_IP ) ;
+         ipArray.append( OSS_LOCALHOST ) ;
+
          bsonBuilder.appendArray ( CAT_IP_FIELD_NAME, ipArray.arr() ) ;
       }
 

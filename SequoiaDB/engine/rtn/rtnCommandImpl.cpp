@@ -88,16 +88,16 @@ namespace engine
                        SDB_DMSCB *dmsCB,
                        _pmdEDUCB *cb,
                        SDB_RTNCB *rtnCB,
-                       rtnContext *context,
+                       INT64 *count,
                        INT32 flags )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNGETCOUNT ) ;
       SINT64 totalCount = 0 ;
       BSONObj obj ;
-      BSONObjBuilder ob ;
       SDB_ASSERT ( pCollection, "collection can't be NULL" ) ;
       SDB_ASSERT ( dmsCB, "dms control block can't be NULL" ) ;
+      SDB_ASSERT ( count, "count can't be NULL" ) ;
       dmsStorageUnit *su = NULL ;
       dmsStorageUnitID suID = DMS_INVALID_CS ;
       const CHAR *pCollectionShortName = NULL ;
@@ -167,6 +167,43 @@ namespace engine
          }
       }
 
+      *count = totalCount ;
+
+   done :
+      if ( DMS_INVALID_CS != suID )
+      {
+         dmsCB->suUnlock ( suID ) ;
+      }
+      PD_TRACE_EXITRC ( SDB_RTNGETCOUNT, rc ) ;
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   INT32 rtnGetCount ( const CHAR *pCollection,
+                       const BSONObj &matcher,
+                       const BSONObj &hint,
+                       SDB_DMSCB *dmsCB,
+                       _pmdEDUCB *cb,
+                       SDB_RTNCB *rtnCB,
+                       rtnContext *context,
+                       INT32 flags )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_RTNGETCOUNT ) ;
+      SINT64 totalCount = 0 ;
+      BSONObj obj ;
+      BSONObjBuilder ob ;
+
+      rc = rtnGetCount ( pCollection, matcher, hint, dmsCB, cb, rtnCB,
+                         &totalCount, flags ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to get count for collection %s, rc: %d",
+                  pCollection, rc ) ;
+         goto error ;
+      }
+
       ob.append ( FIELD_NAME_TOTAL, totalCount ) ;
       obj = ob.obj () ;
       rc = context->append ( obj ) ;
@@ -178,10 +215,6 @@ namespace engine
       }
 
    done :
-      if ( DMS_INVALID_CS != suID )
-      {
-         dmsCB->suUnlock ( suID ) ;
-      }
       PD_TRACE_EXITRC ( SDB_RTNGETCOUNT, rc ) ;
       return rc ;
    error :

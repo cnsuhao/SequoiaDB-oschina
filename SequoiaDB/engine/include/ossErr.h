@@ -322,4 +322,6 @@ const CHAR* getErrDesp ( INT32 errCode );
 #define SDB_LOB_NOT_OPEN                -272  /**< Lob does not open */
 #define SDB_LOB_HAS_OPEN                -273  /**< Lob has been open */
 #define SDBCM_NODE_IS_IN_RESTORING      -274  /**< Node is in restoring */
+#define SDB_DMS_CS_NOT_EMPTY            -275  /**< There are some collections in the collection space */
+#define SDB_CAT_LOCALHOST_CONFLICT      -276  /**< 'localhost' and '127.0.0.1' cannot be used mixed with other hostname and IP address */
 #endif /* OSSERR_HPP_ */

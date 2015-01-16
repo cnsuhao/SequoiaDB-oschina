@@ -37,7 +37,6 @@
 #ifndef CATCATALOGUEMANAGER_HPP_
 #define CATCATALOGUEMANAGER_HPP_
 
-#include "pmdObjBase.hpp"
 #include "pmd.hpp"
 #include "catSplit.hpp"
 
@@ -49,6 +48,12 @@ namespace engine
    class _dpsLogWrapper ;
    class sdbCatalogueCB ;
    class _SDB_DMSCB ;
+
+   enum CAT_ASSIGNGROUP_TYPE
+   {
+      ASSIGN_FOLLOW     = 1,
+      ASSIGN_RANDOM     = 2
+   } ;
 
    #define CAT_MASK_CLNAME          0x00000001
    #define CAT_MASK_SHDKEY          0x00000002
@@ -77,6 +82,7 @@ namespace engine
       BOOLEAN     _autoRebalance ;
       const CHAR * _gpSpecified ;
       INT32       _version ;
+      INT32       _assignType ;
       
       std::vector<std::string>   _subCLList;
 
@@ -95,6 +101,7 @@ namespace engine
          _autoRebalance       = FALSE ;
          _gpSpecified         = NULL ;
          _version             = 0 ;
+         _assignType          = ASSIGN_RANDOM ;
       }
    };
    typedef _catCollectionInfo catCollectionInfo ;
@@ -132,29 +139,19 @@ namespace engine
    /*
       catCatalogueManager define
    */
-   class catCatalogueManager : public _pmdObjBase
+   class catCatalogueManager : public SDBObject
    {
-   DECLARE_OBJ_MSG_MAP()
-
    public:
       catCatalogueManager() ;
       INT32 init() ;
 
-      virtual void   attachCB( _pmdEDUCB *cb ) ;
-      virtual void   detachCB( _pmdEDUCB *cb ) ;
+      void  attachCB( _pmdEDUCB *cb ) ;
+      void  detachCB( _pmdEDUCB *cb ) ;
 
-      ossEvent*      getChangeEvent() { return &_changeEvent ; }
+      INT32 processMsg( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
 
-   protected:
-      virtual INT32 _defaultMsgFunc ( NET_HANDLE handle,
-                                      MsgHeader* msg ) ;
-
-      INT32 _processMsg( const NET_HANDLE &handle,
-                         MsgHeader *pMsg ) ;
-
-   protected:
-      INT32 _onActiveEvent( pmdEDUEvent *event ) ;
-      INT32 _onDeactiveEvent( pmdEDUEvent *event ) ;
+      INT32 active() ;
+      INT32 deactive() ;
 
    protected:
       INT32 processCommandMsg( const NET_HANDLE &handle, MsgHeader *pMsg,
@@ -279,8 +276,6 @@ namespace engine
       _dpsLogWrapper       *_pDpsCB;
       pmdEDUCB             *_pEduCB;
       clsTaskMgr           _taskMgr ;
-
-      ossEvent             _changeEvent ;
 
    } ;
 }

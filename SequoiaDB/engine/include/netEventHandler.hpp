@@ -135,6 +135,8 @@ namespace engine
          UINT16 localPort() const ;
          UINT16 remotePort() const ;
 
+         BOOLEAN isLocalConnection() const ;
+
       private:
          void _readCallback(const boost::system::error_code &
                             error ) ;

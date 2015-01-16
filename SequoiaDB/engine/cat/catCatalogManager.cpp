@@ -52,10 +52,6 @@ using namespace bson;
 
 namespace engine
 {
-   BEGIN_OBJ_MSG_MAP( catCatalogueManager, _pmdObjBase )
-      ON_EVENT( PMD_EDU_EVENT_ACTIVE, _onActiveEvent )
-      ON_EVENT( PMD_EDU_EVENT_DEACTIVE, _onDeactiveEvent )
-   END_OBJ_MSG_MAP()
 
    /*
       catCatalogueManager implement
@@ -66,19 +62,16 @@ namespace engine
       _pDpsCB     = NULL ;
       _pCatCB     = NULL ;
       _pDmsCB     = NULL ;
-      _changeEvent.signal() ;
    }
 
-   INT32 catCatalogueManager::_onActiveEvent( pmdEDUEvent *event )
+   INT32 catCatalogueManager::active()
    {
       _taskMgr.setTaskID( catGetMaxTaskID( _pEduCB ) ) ;
-      _changeEvent.signal() ;
       return SDB_OK ;
    }
 
-   INT32 catCatalogueManager::_onDeactiveEvent( pmdEDUEvent *event )
+   INT32 catCatalogueManager::deactive()
    {
-      _changeEvent.signal() ;
       return SDB_OK ;
    }
 
@@ -94,20 +87,11 @@ namespace engine
    void catCatalogueManager::attachCB( pmdEDUCB * cb )
    {
       _pEduCB = cb ;
-      _pCatCB->getMainController()->attachCB( cb ) ;
    }
 
    void catCatalogueManager::detachCB( pmdEDUCB * cb )
    {
-      _pCatCB->getMainController()->detachCB( cb ) ;
       _pEduCB = NULL ;
-      _changeEvent.signal() ;
-   }
-
-   INT32 catCatalogueManager::_defaultMsgFunc( NET_HANDLE handle,
-                                               MsgHeader * msg )
-   {
-      return _processMsg( handle, msg ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR_DROPCS, "catCatalogueManager::processCmdDropCollectionSpace" )
@@ -262,6 +246,9 @@ namespace engine
       const CHAR *csName = NULL ;
       BSONObj boSpace ;
       BOOLEAN isExist = FALSE ;
+      vector< INT32 > groups ;
+      BSONObjBuilder builder ;
+      BSONObj retObj ;
 
       try
       {
@@ -287,16 +274,34 @@ namespace engine
       if ( !isExist )
       {
          rc = SDB_DMS_CS_NOTEXIST ;
-         goto done ;
+         goto error ;
       }
 
+      rc = catGetCSGroupsFromCLs( csName, _pEduCB, groups ) ;
+      PD_RC_CHECK( rc, PDERROR, "Get collection space[%s] all groups failed, "
+                   "rc: %d", csName, rc ) ;
+
+      builder.appendElements( boSpace ) ;
+      {
+         string groupName ;
+         BSONArrayBuilder sub( builder.subarrayStart( CAT_GROUP_NAME ) ) ;
+         for ( UINT32 i = 0 ; i < groups.size() ; ++i )
+         {
+            catGroupID2Name( groups[ i ], groupName, _pEduCB ) ;
+            sub.append( BSON( CAT_GROUPID_NAME << groups[ i ] <<
+                              CAT_GROUPNAME_NAME << groupName ) ) ;
+         }
+         sub.done() ;
+      }
+      retObj = builder.obj() ;
+
       returnNum = 1 ;
-      replyBodyLen = boSpace.objsize() ;
+      replyBodyLen = retObj.objsize() ;
       *ppReplyBody = ( CHAR* )SDB_OSS_MALLOC( replyBodyLen ) ;
       PD_CHECK( *ppReplyBody, SDB_OOM, error, PDERROR,
                 "Failed to alloc memry, size: %d", replyBodyLen ) ;
 
-      ossMemcpy( *ppReplyBody, boSpace.objdata(), replyBodyLen ) ;
+      ossMemcpy( *ppReplyBody, retObj.objdata(), replyBodyLen ) ;
 
    done:
       PD_TRACE_EXITRC ( SDB_CATALOGMGR_QUERYSPACEINFO, rc ) ;
@@ -699,28 +704,6 @@ namespace engine
          rc = _createCS( query, groupID ) ;
          PD_RC_CHECK( rc, PDERROR, "Create collection space failed, rc: %d",
                       rc ) ;
-
-         rc = catGetGroupObj( (UINT32)groupID, groupObj, _pEduCB ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to get group obj by id[%d], rc: %d",
-                      groupID, rc ) ;
-
-         {
-            returnNum = 1 ;
-
-            BSONObjBuilder replyBuild ;
-            BSONObjBuilder sub( replyBuild.subarrayStart( CAT_GROUP_NAME ) ) ;
-            sub.append( "0", groupObj ) ;
-            sub.done() ;
-            BSONObj replyObj = replyBuild.obj() ;
-
-            replyBodyLen = replyObj.objsize() ;
-            *ppReplyBody = (CHAR*)SDB_OSS_MALLOC( replyBodyLen ) ;
-
-            PD_CHECK( *ppReplyBody, SDB_OOM, error, PDERROR,
-                      "Failed to alloc memry, size: %d", replyBodyLen ) ;
-
-            ossMemcpy( *ppReplyBody, replyObj.objdata(), replyBodyLen ) ;
-         }
       }
       catch( std::exception &e )
       {
@@ -1039,6 +1022,7 @@ namespace engine
       clInfo._isHash             = FALSE ;
       clInfo._isSharding         = FALSE ;
       clInfo._isMainCL           = false;
+      clInfo._assignType         = ASSIGN_RANDOM ;
 
       fieldMask = 0 ;
 
@@ -1161,7 +1145,20 @@ namespace engine
             PD_CHECK( String == eleTmp.type(), SDB_INVALIDARG, error,
                       PDERROR, "Field[%s] type[%d] error",
                       CAT_GROUP_NAME, eleTmp.type() ) ;
-            clInfo._gpSpecified = eleTmp.valuestr() ;
+            if ( 0 == ossStrcasecmp( eleTmp.valuestr(),
+                                     CAT_ASSIGNGROUP_FOLLOW ) )
+            {
+               clInfo._assignType = ASSIGN_FOLLOW ;
+            }
+            else if ( 0 == ossStrcasecmp( eleTmp.valuestr(),
+                                          CAT_ASSIGNGROUP_RANDOM ) )
+            {
+               clInfo._assignType = ASSIGN_RANDOM ;
+            }
+            else
+            {
+               clInfo._gpSpecified = eleTmp.valuestr() ;
+            }
          }
          else if ( 0 == ossStrcmp( eleTmp.fieldName(),
                                    CAT_DOMAIN_AUTO_SPLIT ) )
@@ -1346,20 +1343,6 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Get domain[%s] groups failed, rc: %d",
                       domainObj.toString().c_str(), rc ) ;
       }
-/*
-      if ( groupName )
-      {
-         BOOLEAN existed = FALSE ;
-         rc = _checkGroupInDomain( groupName,
-                                   domainName ? domainName : CAT_SYS_DOMAIN_NAME,
-                                   existed, &groupID ) ;
-         PD_RC_CHECK( rc, PDERROR, "Check group in domain failed, rc: %d", rc ) ;
-         PD_CHECK( existed, SDB_CAT_GROUP_NOT_IN_DOMAIN, error, PDERROR,
-                   "Group[%s] is not in domain[%s]", groupName, domainName ) ;
-
-         strGroupName = groupName ;
-      }
-*/
 
       rc = _assignGroup( &domainGroups, groupID ) ;
       PD_RC_CHECK( rc, PDERROR, "Assign group for collection space[%s] "
@@ -1369,10 +1352,6 @@ namespace engine
       {
          BSONObjBuilder newBuilder ;
          newBuilder.appendElements( csInfo.toBson() ) ;
-         BSONObjBuilder sub( newBuilder.subarrayStart( CAT_GROUP_NAME ) ) ;
-         sub.append( "0", BSON( CAT_GROUPID_NAME << groupID <<
-                                CAT_GROUPNAME_NAME << strGroupName ) ) ;
-         sub.done() ;
          BSONObjBuilder sub1( newBuilder.subarrayStart( CAT_COLLECTION ) ) ;
          sub1.done() ;
 
@@ -1462,23 +1441,23 @@ namespace engine
                   PD_PACK_INT ( isCollectionExist ) ) ;
 
       {
-      BSONElement domainEle = boSpaceRecord.getField( CAT_DOMAIN_NAME ) ;
-      if ( String == domainEle.type() )
-      {
-         rc = catGetDomainObj( domainEle.valuestr(), domainObj, _pEduCB ) ;
-         if ( SDB_OK != rc )
+         BSONElement domainEle = boSpaceRecord.getField( CAT_DOMAIN_NAME ) ;
+         if ( String == domainEle.type() )
          {
-            PD_LOG( PDERROR, "failed to get domain obj os cs[%s], rc:%d",
-                    szSpace, rc ) ;
-            goto error ;
+            rc = catGetDomainObj( domainEle.valuestr(), domainObj, _pEduCB ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Failed to get domain obj os cs[%s], rc:%d",
+                       szSpace, rc ) ;
+               goto error ;
+            }
          }
-      }
       }
 
       rc = _combineOptions( domainObj, boSpaceRecord, fieldMask, clInfo ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to combine options, domainObj[%s],"
+         PD_LOG( PDERROR, "Failed to combine options, domainObj[%s],"
                  "create cl options[%s], rc:%d", domainObj.toString().c_str(),
                  createObj.toString().c_str(), rc ) ;
          goto error ;
@@ -1504,8 +1483,8 @@ namespace engine
                    "rc: %d", newCLRecordObj.toString().c_str(),
                    CAT_COLLECTION_INFO_COLLECTION, rc ) ;
 
-      rc = catAddCL2CS( szSpace, szCollection, &groupID, strGroupName.c_str(),
-                        _pEduCB, _pDmsCB, _pDpsCB, _majoritySize() ) ;
+      rc = catAddCL2CS( szSpace, szCollection, _pEduCB, _pDmsCB,
+                        _pDpsCB, _majoritySize() ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "Update collection to space failed, rc: %d", rc ) ;
@@ -1584,6 +1563,8 @@ namespace engine
       if ( clInfo._isMainCL )
       {
          builder.appendBool( CAT_IS_MAINCL, clInfo._isMainCL );
+         BSONObjBuilder sub( builder.subarrayStart( CAT_CATALOGINFO_NAME ) ) ;
+         sub.done() ;
       }
       else
       {
@@ -1668,9 +1649,9 @@ namespace engine
       return SDB_OK ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR_PROCESSMSG, "catCatalogueManager::_processMsg" )
-   INT32 catCatalogueManager::_processMsg( const NET_HANDLE &handle,
-                                           MsgHeader *pMsg )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGMGR_PROCESSMSG, "catCatalogueManager::processMsg" )
+   INT32 catCatalogueManager::processMsg( const NET_HANDLE &handle,
+                                          MsgHeader *pMsg )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_CATALOGMGR_PROCESSMSG ) ;
@@ -2529,12 +2510,18 @@ namespace engine
       else
       {
          vector< INT32 > vecGroupID ;
-         rc = catGetCSGroups( csObj, vecGroupID ) ;
-         if ( rc )
+
+         if ( ASSIGN_FOLLOW == clInfo._assignType )
          {
-            PD_LOG( PDERROR, "Get groups from collectionspace obj[%s] "
-                    "failed, rc: %d", csObj.toString().c_str(), rc ) ;
-            goto error ;
+            BSONElement ele = csObj.getField( CAT_COLLECTION_SPACE_NAME ) ;
+            rc = catGetCSGroupsFromCLs( ele.valuestrsafe(), _pEduCB,
+                                        vecGroupID ) ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "Get collection space[%s] all groups failed, "
+                       "rc: %d", csObj.toString().c_str(), rc ) ;
+               goto error ;
+            }
          }
 
          if ( 0 == vecGroupID.size() && !isSysDomain )

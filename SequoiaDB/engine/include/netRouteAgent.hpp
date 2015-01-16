@@ -80,8 +80,8 @@ namespace engine
          }
 
          OSS_INLINE INT32 addTimer( UINT32 millsec,
-                                _netTimeoutHandler *handler,
-                                UINT32 &timerid )
+                                    _netTimeoutHandler *handler,
+                                    UINT32 &timerid )
          {
             return _frame.addTimer( millsec, handler, timerid ) ;
          }

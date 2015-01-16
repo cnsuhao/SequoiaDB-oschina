@@ -2217,6 +2217,22 @@
             <cn>集合空间中存在有效集合</cn>
          </description>
       </code>
+	  
+	  <code>
+         <name>SDB_CAT_LOCALHOST_CONFLICT</name>
+         <description>
+            <en>'localhost' and '127.0.0.1' cannot be used mixed with other hostname and IP address</en>
+            <cn>'localhost'和'127.0.0.1'不能与其它hostname和IP地址混合使用</cn>
+         </description>
+      </code>
+
+	  <code>
+         <name>SDB_CAT_NOT_LOCALCONN</name>
+         <description>
+            <en>If use 'localhost' and '127.0.0.1' for hostname, coord and catalog must in the same host </en>
+            <cn>如果使用'localhost'和'127.0.0.1'作为节点主机名，协调节点与编目节点必须在同一主机上</cn>
+         </description>
+      </code>
 
    </codelist>
 </rclist>

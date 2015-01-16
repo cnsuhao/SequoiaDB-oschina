@@ -50,11 +50,6 @@ using namespace bson;
 namespace engine
 {
 
-   BEGIN_OBJ_MSG_MAP( catNodeManager, _pmdObjBase )
-      ON_EVENT( PMD_EDU_EVENT_ACTIVE, _onActiveEvent )
-      ON_EVENT( PMD_EDU_EVENT_DEACTIVE, _onDeactiveEvent )
-   END_OBJ_MSG_MAP()
-
    /*
       catNodeManager implement
    */
@@ -66,7 +61,6 @@ namespace engine
       _pRtnCB = NULL ;
       _pCatCB = NULL ;
       _pEduCB = NULL ;
-      _changeEvent.signal() ;
    }
 
    catNodeManager::~catNodeManager()
@@ -91,18 +85,15 @@ namespace engine
    void catNodeManager::attachCB( pmdEDUCB * cb )
    {
       _pEduCB = cb ;
-      _pCatCB->getMainController()->attachCB( cb ) ;
    }
 
    void catNodeManager::detachCB( pmdEDUCB * cb )
    {
-      _pCatCB->getMainController()->detachCB( cb ) ;
       _pEduCB = NULL ;
-      _changeEvent.signal() ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_ACTIVE, "catNodeManager::_onActiveEvent" )
-   INT32 catNodeManager::_onActiveEvent( pmdEDUEvent *event )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_ACTIVE, "catNodeManager::active" )
+   INT32 catNodeManager::active()
    {
       INT32 rc            = SDB_OK;
 
@@ -169,7 +160,6 @@ namespace engine
       _status = SDB_CAT_MODULE_ACTIVE ;
 
    done :
-      _changeEvent.signal() ;
       PD_TRACE_EXITRC ( SDB_CATNODEMGR_ACTIVE, rc ) ;
       return rc;
    error :
@@ -180,24 +170,18 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_DEACTIVE, "catNodeManager::_onDeactiveEvent" )
-   INT32 catNodeManager::_onDeactiveEvent( pmdEDUEvent *event )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_DEACTIVE, "catNodeManager::deactive" )
+   INT32 catNodeManager::deactive()
    {
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_DEACTIVE ) ;
       _status = SDB_CAT_MODULE_DEACTIVE;
-      _changeEvent.signal() ;
       PD_TRACE_EXIT ( SDB_CATNODEMGR_DEACTIVE ) ;
       return SDB_OK ;
    }
 
-   INT32 catNodeManager::_defaultMsgFunc( NET_HANDLE handle, MsgHeader * msg )
-   {
-      return _processMsg( handle, msg ) ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_PROCESSMSG, "catNodeManager::_processMsg" )
-   INT32 catNodeManager::_processMsg( const NET_HANDLE &handle,
-                                      MsgHeader *pMsg )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_PROCESSMSG, "catNodeManager::processMsg" )
+   INT32 catNodeManager::processMsg( const NET_HANDLE &handle,
+                                     MsgHeader *pMsg )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_PROCESSMSG ) ;
@@ -535,13 +519,13 @@ namespace engine
             rc = processCmdCreateGrp( pQuery ) ;
             break ;
          case MSG_CAT_CREATE_NODE_REQ :
-            rc = processCmdCreateNode( pQuery ) ;
+            rc = processCmdCreateNode( handle, pQuery ) ;
             break ;
          case MSG_CAT_UPDATE_NODE_REQ :
-            rc = processCmdUpdateNode( pQuery, pFieldSelector ) ;
+            rc = processCmdUpdateNode( handle, pQuery, pFieldSelector ) ;
             break ;
          case MSG_CAT_DEL_NODE_REQ :
-            rc = processCmdDelNode( pQuery ) ;
+            rc = processCmdDelNode( handle, pQuery ) ;
             break ;
          default :
             rc = SDB_INVALIDARG ;
@@ -613,12 +597,25 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_CREATENODE, "catNodeManager::processCreateNode" )
-   INT32 catNodeManager::processCmdCreateNode( const CHAR *pQuery )
+   INT32 catNodeManager::processCmdCreateNode( const NET_HANDLE &handle,
+                                               const CHAR *pQuery )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_CREATENODE ) ;
+      BOOLEAN isLocalConnection = FALSE ;
 
-      rc = _createNode( pQuery ) ;
+      NET_EH eh = _pCatCB->netWork()->getFrame()->getEventHandle( handle ) ;
+      if ( eh.get() )
+      {
+         isLocalConnection = eh->isLocalConnection() ;
+      }
+      else
+      {
+         rc = SDB_NETWORK_CLOSE ;
+         goto error ;
+      }
+
+      rc = _createNode( pQuery, isLocalConnection ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create node, rc: %d", rc ) ;
 
    done:
@@ -629,11 +626,24 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_UPDATENODE, "catNodeManager::processCmdUpdateNode" )
-   INT32 catNodeManager::processCmdUpdateNode( const CHAR *pQuery,
+   INT32 catNodeManager::processCmdUpdateNode( const NET_HANDLE &handle,
+                                               const CHAR *pQuery,
                                                const CHAR *pSelector )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_UPDATENODE ) ;
+      BOOLEAN isLocalConnection = FALSE ;
+
+      NET_EH eh = _pCatCB->netWork()->getFrame()->getEventHandle( handle ) ;
+      if ( eh.get() )
+      {
+         isLocalConnection = eh->isLocalConnection() ;
+      }
+      else
+      {
+         rc = SDB_NETWORK_CLOSE ;
+         goto error ;
+      }
 
       try
       {
@@ -650,7 +660,8 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to get group info by nodeid[%d], "
                       "rc: %d", nodeID, rc ) ;
 
-         rc = _updateNodeToGrp( groupInfo, seletor, (UINT16)nodeID ) ;
+         rc = _updateNodeToGrp( groupInfo, seletor, (UINT16)nodeID,
+                                isLocalConnection ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to update node to group, rc: %d",
                       rc ) ;
       }
@@ -669,15 +680,29 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATNODEMGR_DELNODE, "catNodeManager::processCmdDelNode" )
-   INT32 catNodeManager::processCmdDelNode( const CHAR *pQuery )
+   INT32 catNodeManager::processCmdDelNode( const NET_HANDLE &handle,
+                                            const CHAR *pQuery )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATNODEMGR_DELNODE ) ;
 
+      BOOLEAN isLocalConnection = FALSE ;
+
+      NET_EH eh = _pCatCB->netWork()->getFrame()->getEventHandle( handle ) ;
+      if ( eh.get() )
+      {
+         isLocalConnection = eh->isLocalConnection() ;
+      }
+      else
+      {
+         rc = SDB_NETWORK_CLOSE ;
+         goto error ;
+      }
+
       try
       {
          BSONObj query( pQuery ) ;
-         rc = _delNode( query ) ;
+         rc = _delNode( query, isLocalConnection ) ;
          PD_RC_CHECK( rc, PDERROR, "Delete node[%s] failed, rc: %d",
                       query.toString().c_str(), rc ) ;
       }
@@ -1837,61 +1862,26 @@ namespace engine
                                  UINT64 &count )
    {
       INT32 rc = SDB_OK ;
-      rtnContextDump *context = NULL ;
-      SINT64 contextID = -1 ;
-      rtnContextBuf buffObj ;
-      rc = _pRtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
-                                 contextID, _pEduCB ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to allocate a new context:%d",rc ) ;
-         goto error ;
-      }
-      rc = context->open( BSONObj(), BSONObj(), -1, 0 ) ;
-      PD_RC_CHECK( rc, PDERROR, "Open context failed, rc: %d", rc ) ;
+      INT64 totalCount;
 
       rc = rtnGetCount( collection, matcher, BSONObj(), _pDmsCB, _pEduCB,
-                        _pRtnCB, context ) ;
+                        _pRtnCB, &totalCount ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to rtn count:%d",rc ) ;
          goto error ;
       }
+      SDB_ASSERT( totalCount >= 0, "totalCount must be greater than or equal 0") ;
 
-      rc = rtnGetMore( contextID, 1, buffObj, _pEduCB, _pRtnCB ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to rtn getmore:%d",rc ) ;
-         contextID = -1 ;
-         goto error ;
-      }
-
-      {
-         SDB_ASSERT( NULL != buffObj.data(), "impossible" ) ;
-         BSONObj res( buffObj.data() ) ;
-         SDB_ASSERT( !res.isEmpty(), "impossible" ) ;
-         BSONElement ele = res.firstElement() ;
-         if ( ele.eoo() || !ele.isNumber() )
-         {
-            PD_LOG( PDERROR, "sth wrong with count res[%s]",
-                    res.toString().c_str() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         count = ele.Number() ;
-      }
+      count = static_cast<UINT64>( totalCount ) ;
 
    done:
-      if ( -1 != contextID )
-      {
-         _pRtnCB->contextDelete ( contextID, _pEduCB ) ;
-      }
       return rc ;
    error:
       goto done ;
    }
 
-   INT32 catNodeManager::_delNode( BSONObj &boDelNodeInfo )
+   INT32 catNodeManager::_delNode( BSONObj &boDelNodeInfo, BOOLEAN isLoalConn )
    {
       INT32 rc = SDB_OK ;
 
@@ -1925,6 +1915,16 @@ namespace engine
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
                    CMD_NAME_ENFORCED, rc ) ;
+
+      if ( 0 == ossStrcmp( hostName, OSS_LOCALHOST ) ||
+           0 == ossStrcmp( hostName, OSS_LOOPBACK_IP ) )
+      {
+         if ( !isLoalConn )
+         {
+            rc = SDB_CAT_NOT_LOCALCONN ;
+            goto error ;
+         }
+      }
 
       if ( !forced &&
            0 == ossStrcmp( groupName, CATALOG_GROUPNAME ) )
@@ -1995,7 +1995,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 catNodeManager::_createNode( const CHAR *pQuery )
+   INT32 catNodeManager::_createNode( const CHAR *pQuery, BOOLEAN isLoalConn )
    {
       INT32 rc = SDB_OK ;
       UINT16 nodeID = CAT_INVALID_NODEID ;
@@ -2003,6 +2003,7 @@ namespace engine
       try
       {
          const CHAR *groupName = NULL ;
+         const CHAR *hostName = NULL ;
          BSONObj boGroupInfo ;
 
          BSONObj boNodeInfo( pQuery ) ;
@@ -2010,6 +2011,10 @@ namespace engine
                                    &groupName ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get the field[%s], rc: %d",
                       FIELD_NAME_GROUPNAME, rc ) ;
+         rc = rtnGetStringElement( boNodeInfo, FIELD_NAME_HOST,
+                                   &hostName ) ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to get the field[%s], rc: %d",
+                      FIELD_NAME_HOST, rc ) ;
 
          rc = catGetGroupObj( groupName, FALSE, boGroupInfo, _pEduCB ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to get group[%s] info, rc: %d",
@@ -2031,6 +2036,31 @@ namespace engine
                       "reached the maximum number of nodes!" ) ;
          }
          }
+
+         {
+         BOOLEAN isLocalHost = FALSE;
+         if ( 0 == ossStrcmp( hostName, OSS_LOCALHOST ) ||
+              0 == ossStrcmp( hostName, OSS_LOOPBACK_IP ) )
+         {
+            if ( !isLoalConn )
+            {
+               rc = SDB_CAT_NOT_LOCALCONN ;
+               goto error ;
+            }
+            isLocalHost = TRUE ;
+         }
+
+         BOOLEAN isValid = FALSE;
+         rc = _checkLocalHost( isValid ) ;
+         PD_RC_CHECK( rc, PDERROR,
+                      "Failed to get localhost existing info, rc: %d", rc ) ;
+
+         PD_CHECK( !(isLocalHost ^ isValid),
+                   SDB_CAT_LOCALHOST_CONFLICT, error, PDERROR,
+                   "'localhost' and '127.0.0.1' cannot be used mixed with "
+                   "other hostname and IP address" );
+         }
+
          if ( 0 == ossStrcmp( groupName, CATALOG_GROUPNAME ) ||
               0 == ossStrcmp( groupName, COORD_GROUPNAME ) )
          {
@@ -2112,12 +2142,14 @@ namespace engine
 
    INT32 catNodeManager::_updateNodeToGrp ( BSONObj &boGroupInfo,
                                             BSONObj &boNodeInfoNew,
-                                            UINT16 nodeID )
+                                            UINT16 nodeID,
+                                            BOOLEAN isLoalConn )
    {
       INT32 rc = SDB_OK ;
       INT32 nodeRole = SDB_ROLE_DATA ;
       const CHAR *groupName = NULL ;
-      BSONObjBuilder newObjBuilder ;
+      const CHAR *hostName = NULL ;
+      BSONObj oldInfoObj ;
       BSONObj newInfoObj ;
       BSONArrayBuilder newGroupsBuild ;
 
@@ -2133,11 +2165,6 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
                    FIELD_NAME_GROUPNAME, rc ) ;
 
-      rc = _checkNodeInfo( boGroupInfo, nodeRole, &newObjBuilder ) ;
-      PD_RC_CHECK( rc, PDERROR, "Check node info failed, rc: %d", rc ) ;
-      newObjBuilder.append( FIELD_NAME_NODEID, nodeID ) ;
-      newInfoObj = newObjBuilder.obj() ;
-
       {
          BSONElement beGroups = boGroupInfo.getField( FIELD_NAME_GROUP ) ;
          if ( beGroups.eoo() || beGroups.type() != Array )
@@ -2148,11 +2175,55 @@ namespace engine
             goto error ;
          }
          rc = _getRemovedGroupsObj( beGroups.embeddedObject(), nodeID,
-                                    newGroupsBuild ) ;
-         PD_RC_CHECK( rc, PDERROR, "Remove the node[%d] from group info failed,"
-                      "rc: %d, groupInfo: %s", nodeID, rc,
+                                    oldInfoObj, newGroupsBuild ) ;
+         PD_RC_CHECK( rc, PDERROR, "Remove the node[%d] from group info "
+                      "failed, rc: %d, groupInfo: %s", nodeID, rc,
                       boGroupInfo.toString().c_str() ) ;
       }
+
+      rc = rtnGetStringElement( oldInfoObj, FIELD_NAME_HOST, &hostName ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
+                   FIELD_NAME_HOST, rc ) ;
+
+      if ( 0 == ossStrcmp( hostName, OSS_LOCALHOST ) ||
+           0 == ossStrcmp( hostName, OSS_LOOPBACK_IP ) )
+      {
+         if ( !isLoalConn )
+         {
+            rc = SDB_CAT_NOT_LOCALCONN ;
+            goto error ;
+         }
+      }
+
+      {
+         BSONObjBuilder mergeBuild ;
+         mergeBuild.append( FIELD_NAME_HOST, hostName ) ;
+
+         BSONObjIterator itr( oldInfoObj ) ;
+         while ( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            if ( 0 == ossStrcmp( e.fieldName(), FIELD_NAME_HOST ) ||
+                 0 == ossStrcmp( e.fieldName(), FIELD_NAME_NODEID ) )
+            {
+               continue ;
+            }
+            BSONElement newEle = boNodeInfoNew.getField( e.fieldName() ) ;
+            if ( !newEle.eoo() )
+            {
+               mergeBuild.append( newEle ) ;
+            }
+            else
+            {
+               mergeBuild.append( e ) ;
+            }
+         }
+         mergeBuild.append( FIELD_NAME_NODEID, nodeID ) ;
+         newInfoObj = mergeBuild.obj() ;
+      }
+
+      rc = _checkNodeInfo( newInfoObj, nodeRole, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Check node info failed, rc: %d", rc ) ;
 
       newGroupsBuild.append( newInfoObj ) ;
 
@@ -2178,6 +2249,7 @@ namespace engine
 
    INT32 catNodeManager::_getRemovedGroupsObj( const BSONObj & srcGroupsObj,
                                                UINT16 removeNode,
+                                               BSONObj &removedObj,
                                                BSONArrayBuilder &newObjBuilder )
    {
       INT32 rc = SDB_OK ;
@@ -2201,6 +2273,7 @@ namespace engine
          else
          {
             exist = TRUE ;
+            removedObj = boNode.getOwned() ;
          }
       }
 
@@ -2501,5 +2574,41 @@ namespace engine
    INT16 catNodeManager::_majoritySize()
    {
       return _pCatCB->majoritySize() ;
+   }
+
+   INT32 catNodeManager::_checkLocalHost( BOOLEAN &isValid )
+   {
+      BSONObj matcher;
+      UINT64 count = 0;
+      INT32 rc = SDB_OK;
+
+      rc = _count( CAT_NODE_INFO_COLLECTION, matcher, count) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      if ( 0 == count )
+      {
+         isValid = TRUE;
+         goto done;
+      }
+
+      matcher =
+         BSON( CAT_GROUP_NAME"."CAT_HOST_FIELD_NAME <<
+            BSON ( "$in" <<
+               BSON_ARRAY( OSS_LOCALHOST << OSS_LOOPBACK_IP ) ) ) ;
+      rc = _count( CAT_NODE_INFO_COLLECTION, matcher, count) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      isValid = ( 0 == count) ? FALSE : TRUE;
+
+      done:
+         return rc ;
+      error:
+         goto done ;
    }
 }

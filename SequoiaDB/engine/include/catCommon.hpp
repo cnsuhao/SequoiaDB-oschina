@@ -122,9 +122,8 @@ namespace engine
 
    /* Collection[CAT_COLLECTION_SPACE_COLLECTION] functions: */
    INT32 catAddCL2CS( const CHAR *csName, const CHAR *clName,
-                      INT32 *pGroupID, const CHAR *groupName,
-                      pmdEDUCB *cb, _SDB_DMSCB * dmsCB, _dpsLogWrapper * dpsCB,
-                      INT16 w ) ;
+                      pmdEDUCB *cb, _SDB_DMSCB * dmsCB,
+                      _dpsLogWrapper * dpsCB, INT16 w ) ;
    INT32 catDelCLFromCS( const CHAR *csName, const CHAR *clName,
                          pmdEDUCB *cb, _SDB_DMSCB * dmsCB,
                          _dpsLogWrapper * dpsCB,
@@ -133,8 +132,6 @@ namespace engine
                        pmdEDUCB *cb, _SDB_DMSCB * dmsCB,
                        _dpsLogWrapper * dpsCB,
                        INT16 w ) ;
-
-   INT32 catGetCSGroups( const BSONObj &csObj, vector< INT32 > &groups ) ;
 
    INT32 catCheckSpaceExist( const char *pSpaceName,
                              BOOLEAN &isExist,

@@ -63,15 +63,11 @@ namespace engine
    */
    catMainController::catMainController ()
    {
-      _nodeManagerEDUID    = PMD_INVALID_EDUID ;
-      _catalogManagerEDUID = PMD_INVALID_EDUID ;
       _pEduMgr             = NULL ;
       _pCatCB              = NULL ;
       _pDmsCB              = NULL ;
       _pRtnCB              = NULL ;
       _pAuthCB             = NULL ;
-      _pNodeMgrCB          = NULL ;
-      _pCataMgrCB          = NULL ;
       _pEDUCB              = NULL ;
 
       _isActived           = FALSE ;
@@ -84,38 +80,26 @@ namespace engine
 
    void catMainController::attachCB( pmdEDUCB * cb )
    {
-      if ( EDU_TYPE_CATMAINCONTROLLER == cb->getType() )
+      _pEDUCB = cb ;
+
+      if ( _pCatCB )
       {
-         _pEDUCB = cb ;
+         _pCatCB->getCatlogueMgr()->attachCB( cb ) ;
+         _pCatCB->getCatNodeMgr()->attachCB( cb ) ;
       }
-      else if ( EDU_TYPE_CATCATALOGUEMANAGER == cb->getType() )
-      {
-         _pCataMgrCB = cb ;
-         _catalogManagerEDUID = cb->getID() ;
-      }
-      else if ( EDU_TYPE_CATNODEMANAGER == cb->getType() )
-      {
-         _pNodeMgrCB = cb ;
-         _nodeManagerEDUID = cb->getID() ;
-      }
+
       _attachEvent.signalAll() ;
    }
 
    void catMainController::detachCB( pmdEDUCB * cb )
    {
-      if ( EDU_TYPE_CATMAINCONTROLLER == cb->getType() )
+      if ( _pCatCB )
       {
-         _pEDUCB = NULL ;
-         _changeEvent.signal() ;
+         _pCatCB->getCatlogueMgr()->detachCB( cb ) ;
+         _pCatCB->getCatNodeMgr()->detachCB( cb ) ;
       }
-      else if ( EDU_TYPE_CATCATALOGUEMANAGER == cb->getType() )
-      {
-         _pCataMgrCB = NULL ;
-      }
-      else if ( EDU_TYPE_CATNODEMANAGER == cb->getType() )
-      {
-         _pNodeMgrCB = NULL ;
-      }
+      _pEDUCB = NULL ;
+      _changeEvent.signal() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT_HANDLEMSG, "catMainController::handleMsg" )
@@ -174,41 +158,14 @@ namespace engine
 
       pmdEDUEvent event ;
 
-      if ( MSG_CAT_CATALOGUE_BEGIN < (UINT32)header->opCode &&
-           (UINT32)header->opCode < MSG_CAT_CATALOGUE_END )
+      if ( NULL == _pEDUCB )
       {
-         if ( NULL == _pCataMgrCB )
-         {
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         rc = _catBuildMsgEvent ( handle, header, event ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to build the event, rc: %d", rc );
-         _pCataMgrCB->postEvent( event ) ;
+         rc = SDB_SYS ;
+         goto error ;
       }
-      else if  ( MSG_CAT_NODE_BEGIN < (UINT32)header->opCode &&
-                 (UINT32)header->opCode < MSG_CAT_NODE_END )
-      {
-         if ( NULL == _pNodeMgrCB )
-         {
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         rc = _catBuildMsgEvent ( handle, header, event ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to build the event, rc: %d", rc );
-         _pNodeMgrCB->postEvent( event ) ;
-      }
-      else
-      {
-         if ( NULL == _pEDUCB )
-         {
-            rc = SDB_SYS ;
-            goto error ;
-         }
-         rc = _catBuildMsgEvent( handle, header, event ) ;
-         PD_RC_CHECK( rc, PDERROR, "Failed to build the event, rc: %d", rc ) ;
-         _pEDUCB->postEvent( event ) ;
-      }
+      rc = _catBuildMsgEvent( handle, header, event ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to build the event, rc: %d", rc ) ;
+      _pEDUCB->postEvent( event ) ;
 
    done:
       PD_TRACE_EXITRC ( SDB_CATMAINCT_POSTMSG, rc ) ;
@@ -413,27 +370,13 @@ namespace engine
       }
       _isActived = TRUE ;
 
-      _pCatCB->getCatNodeMgr()->getChangeEvent()->reset() ;
-      rc = _pEduMgr->postEDUPost( _nodeManagerEDUID, PMD_EDU_EVENT_ACTIVE ) ;
-      if ( rc )
-      {
-         _pCatCB->getCatNodeMgr()->getChangeEvent()->signal() ;
-         PD_LOG( PDERROR, "Failed to post active event to node manager, "
-                 "rc: %d", rc ) ;
-         goto error ;
-      }
-      _pCatCB->getCatlogueMgr()->getChangeEvent()->reset() ;
-      rc = _pEduMgr->postEDUPost( _catalogManagerEDUID, PMD_EDU_EVENT_ACTIVE ) ;
-      if ( rc )
-      {
-         _pCatCB->getCatlogueMgr()->getChangeEvent()->signal() ;
-         PD_LOG( PDERROR, "Failed to post active event to catalog manager, "
-                 "rc: %d", rc ) ;
-         goto error ;
-      }
+      rc = _pCatCB->getCatNodeMgr()->active() ;
+      PD_RC_CHECK( rc, PDERROR, "Active catalog node manager failed, rc: %d",
+                   rc ) ;
 
-      _pCatCB->getCatlogueMgr()->getChangeEvent()->wait( OSS_ONE_SEC * 120 ) ;
-      _pCatCB->getCatNodeMgr()->getChangeEvent()->wait( OSS_ONE_SEC * 120 ) ;
+      rc = _pCatCB->getCatlogueMgr()->active() ;
+      PD_RC_CHECK( rc, PDERROR, "Active catalog manager failed, rc: %d",
+                   rc ) ;
 
    done:
       _changeEvent.signal() ;
@@ -449,26 +392,8 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATMAINCT_DEACTIVE ) ;
 
-      _pCatCB->getCatNodeMgr()->getChangeEvent()->reset() ;
-      rc = _pEduMgr->postEDUPost( _nodeManagerEDUID, PMD_EDU_EVENT_DEACTIVE ) ;
-      if ( rc )
-      {
-         _pCatCB->getCatNodeMgr()->getChangeEvent()->signal() ;
-         PD_LOG( PDERROR, "Post deactive event to node manager failed, "
-                 "rc: %d", rc ) ;
-      }
-      _pCatCB->getCatlogueMgr()->getChangeEvent()->reset() ;
-      rc = _pEduMgr->postEDUPost( _catalogManagerEDUID,
-                                  PMD_EDU_EVENT_DEACTIVE ) ;
-      if ( rc )
-      {
-         _pCatCB->getCatlogueMgr()->getChangeEvent()->signal() ;
-         PD_LOG( PDERROR, "Post deactive event to catalog manager failed, "
-                 "rc: %d", rc ) ;
-      }
-
-      _pCatCB->getCatlogueMgr()->getChangeEvent()->wait( OSS_ONE_SEC * 120 ) ;
-      _pCatCB->getCatNodeMgr()->getChangeEvent()->wait( OSS_ONE_SEC * 120 ) ;
+      _pCatCB->getCatNodeMgr()->deactive() ;
+      _pCatCB->getCatlogueMgr()->deactive() ;
 
       _isActived = FALSE ;
       _changeEvent.signal() ;
@@ -844,7 +769,24 @@ namespace engine
    INT32 catMainController::_defaultMsgFunc( NET_HANDLE handle,
                                              MsgHeader * msg )
    {
-      return _processMsg( handle, msg ) ;
+      INT32 rc = SDB_OK ;
+
+      if ( MSG_CAT_CATALOGUE_BEGIN < (UINT32)msg->opCode &&
+           (UINT32)msg->opCode < MSG_CAT_CATALOGUE_END )
+      {
+         rc = _pCatCB->getCatlogueMgr()->processMsg( handle, msg ) ;
+      }
+      else if  ( MSG_CAT_NODE_BEGIN < (UINT32)msg->opCode &&
+                 (UINT32)msg->opCode < MSG_CAT_NODE_END )
+      {
+         rc = _pCatCB->getCatNodeMgr()->processMsg( handle, msg ) ;
+      }
+      else
+      {
+         rc = _processMsg( handle, msg ) ;
+      }
+
+      return rc ;
    }
 
    INT32 catMainController::_processMsg( const NET_HANDLE &handle,

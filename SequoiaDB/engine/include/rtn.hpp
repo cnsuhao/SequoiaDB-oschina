@@ -330,6 +330,15 @@ namespace engine
                        SDB_DMSCB *dmsCB,
                        _pmdEDUCB *cb,
                        SDB_RTNCB *rtnCB,
+                       INT64 *count,
+                       INT32 flags = 0 ) ;
+
+   INT32 rtnGetCount ( const CHAR *pCollection,
+                       const BSONObj &matcher,
+                       const BSONObj &hint,
+                       SDB_DMSCB *dmsCB,
+                       _pmdEDUCB *cb,
+                       SDB_RTNCB *rtnCB,
                        rtnContext *context,
                        INT32 flags = 0 ) ;
 

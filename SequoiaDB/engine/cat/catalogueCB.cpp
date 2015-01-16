@@ -140,36 +140,14 @@ namespace engine
       EDUID eduID = PMD_INVALID_EDUID ;
 
       _catMainCtrl.getAttachEvent()->reset() ;
-      rc = pEDUMgr->startEDU ( EDU_TYPE_CATMAINCONTROLLER,
+      rc = pEDUMgr->startEDU ( EDU_TYPE_CATMGR,
                                (_pmdObjBase*)getMainController(),
                                &eduID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to start cat main controller edu, "
                    "rc: %d", rc ) ;
-      pEDUMgr->regSystemEDU( EDU_TYPE_CATMAINCONTROLLER, eduID ) ;
+      pEDUMgr->regSystemEDU( EDU_TYPE_CATMGR, eduID ) ;
       rc = _catMainCtrl.getAttachEvent()->wait( CAT_WAIT_EDU_ATTACH_TIMEOUT ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to wait cat main contoller edu "
-                   "attach, rc: %d", rc ) ;
-
-      _catMainCtrl.getAttachEvent()->reset() ;
-      rc = pEDUMgr->startEDU ( EDU_TYPE_CATCATALOGUEMANAGER,
-                               (_pmdObjBase*)getCatlogueMgr(),
-                               &eduID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to start catlogue manager edu, "
-                   "rc: %d", rc ) ;
-      pEDUMgr->regSystemEDU( EDU_TYPE_CATCATALOGUEMANAGER, eduID ) ;
-      rc = _catMainCtrl.getAttachEvent()->wait( CAT_WAIT_EDU_ATTACH_TIMEOUT ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to wait catlogue manager edu "
-                   "attach, rc: %d", rc ) ;
-
-      _catMainCtrl.getAttachEvent()->reset() ;
-      rc = pEDUMgr->startEDU ( EDU_TYPE_CATNODEMANAGER,
-                               (_pmdObjBase*)getCatNodeMgr(),
-                               &eduID ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to start cat node manager edu, "
-                   "rc: %d", rc ) ;
-      pEDUMgr->regSystemEDU( EDU_TYPE_CATNODEMANAGER, eduID ) ;
-      rc = _catMainCtrl.getAttachEvent()->wait( CAT_WAIT_EDU_ATTACH_TIMEOUT ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to wait cat node manager edu "
+      PD_RC_CHECK( rc, PDERROR, "Failed to wait cat manager edu "
                    "attach, rc: %d", rc ) ;
 
       pEDUMgr->startEDU ( EDU_TYPE_CATNETWORK, (netRouteAgent*)netWork(),
@@ -457,7 +435,7 @@ namespace engine
 
       if ( SDB_EVT_OCCUR_AFTER == occurType )
       {
-         EDUID eduID = pEDUMgr->getSystemEDU( EDU_TYPE_CATMAINCONTROLLER ) ;
+         EDUID eduID = pEDUMgr->getSystemEDU( EDU_TYPE_CATMGR ) ;
          if ( PMD_INVALID_EDUID != eduID )
          {
             _catMainCtrl.getChangeEvent()->reset() ;

@@ -128,6 +128,11 @@ namespace engine
       return port ;
    }
 
+   BOOLEAN _netEventHandler::isLocalConnection() const
+   {
+      return localAddr() == remoteAddr() ? TRUE : FALSE ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETEVNHND_SETOPT, "_netEventHandler::setOpt" )
    void _netEventHandler::setOpt()
    {

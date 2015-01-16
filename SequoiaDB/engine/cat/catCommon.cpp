@@ -839,6 +839,9 @@ namespace engine
       BSONObj modifier = BSON( "$pull" << BSON( CAT_GROUPS_NAME <<
                                BSON( CAT_GROUPNAME_NAME << groupName <<
                                      CAT_GROUPID_NAME << groupID ) ) ) ;
+      BSONObj modifier2 = BSON( "$pull" << BSON( CAT_GROUPS_NAME <<
+                                BSON( CAT_GROUPID_NAME << groupID <<
+                                      CAT_GROUPNAME_NAME << groupName ) ) ) ;
       BSONObj matcher ;
       BSONObj dummy ;
 
@@ -858,6 +861,13 @@ namespace engine
                    matcher.toString().c_str(), modifier.toString().c_str(),
                    rc ) ;
 
+      rc = rtnUpdate( CAT_DOMAIN_COLLECTION, matcher, modifier2,
+                      dummy, 0, cb, dmsCB, dpsCB, w ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to update collection: %s, match: %s, "
+                   "updator: %s, rc: %d", CAT_COLLECTION_SPACE_COLLECTION,
+                   matcher.toString().c_str(), modifier2.toString().c_str(),
+                   rc ) ;
+
    done:
       PD_TRACE_EXITRC ( SDB_CATDELGRPFROMDOMAIN, rc ) ;
       return rc ;
@@ -867,7 +877,6 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CAATADDCL2CS, "catAddCL2CS" )
    INT32 catAddCL2CS( const CHAR * csName, const CHAR * clName,
-                      INT32 *pGroupID, const CHAR *groupName,
                       pmdEDUCB * cb, SDB_DMSCB * dmsCB, SDB_DPSCB * dpsCB,
                       INT16 w )
    {
@@ -879,27 +888,10 @@ namespace engine
       BSONObjBuilder updateBuild ;
       BSONObjBuilder sub( updateBuild.subobjStart("$addtoset") ) ;
 
-      if ( clName )
-      {
-         BSONObj newCLObj = BSON( CAT_COLLECTION_NAME << clName ) ;
-         BSONObjBuilder sub1( sub.subarrayStart( CAT_COLLECTION ) ) ;
-         sub1.append( "0", newCLObj ) ;
-         sub1.done() ;
-      }
-
-      if ( pGroupID && *pGroupID != CAT_INVALID_GROUPID )
-      {
-         BSONObjBuilder groupBuilder ;
-         groupBuilder.append( CAT_GROUPID_NAME, *pGroupID ) ;
-         if ( groupName && *groupName != '\0' )
-         {
-            groupBuilder.append( CAT_GROUPNAME_NAME, groupName ) ;
-         }
-         BSONObj newGroupObj = groupBuilder.obj() ;
-         BSONObjBuilder sub2( sub.subarrayStart( CAT_GROUP_NAME ) ) ;
-         sub2.append( "0", newGroupObj ) ;
-         sub2.done() ;
-      }
+      BSONObj newCLObj = BSON( CAT_COLLECTION_NAME << clName ) ;
+      BSONObjBuilder sub1( sub.subarrayStart( CAT_COLLECTION ) ) ;
+      sub1.append( "0", newCLObj ) ;
+      sub1.done() ;
 
       sub.done() ;
       BSONObj updator = updateBuild.obj() ;
@@ -968,52 +960,6 @@ namespace engine
 
    done:
       PD_TRACE_EXITRC ( SDB_CATRESTORECS, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETCSGROUPS, "catGetCSGroups" )
-   INT32 catGetCSGroups( const BSONObj & csObj, vector < INT32 > & groups )
-   {
-      INT32 rc = SDB_OK ;
-
-      PD_TRACE_ENTRY ( SDB_CATGETCSGROUPS ) ;
-      BSONElement beGroups = csObj.getField( CAT_GROUP_NAME ) ;
-      if ( beGroups.eoo() )
-      {
-         goto done ;
-      }
-
-      if ( Array != beGroups.type() )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "CS group type error, CS info: %s",
-                 csObj.toString().c_str() ) ;
-         goto error ;
-      }
-
-      {
-         BSONObjIterator i( beGroups.embeddedObject() ) ;
-         while ( i.more() )
-         {
-            BSONElement ele = i.next() ;
-            PD_CHECK( Object == ele.type(), SDB_INVALIDARG, error, PDERROR,
-                      "CS group ele type is not Object, CS info: %s",
-                      csObj.toString().c_str() ) ;
-            {
-               INT32 groupID = 0 ;
-               BSONObj boGroup = ele.embeddedObject() ;
-               rc = rtnGetIntElement( boGroup, CAT_GROUPID_NAME, groupID ) ;
-               PD_RC_CHECK( rc, PDERROR, "Get CS group id failed, rc: %d, "
-                            "CS info: %s", rc, csObj.toString().c_str() ) ;
-               groups.push_back( groupID ) ;
-            }
-         }
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB_CATGETCSGROUPS, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -1185,10 +1131,18 @@ namespace engine
          {
             obj = BSONObj( contextBuf.data() ) ;
             BSONElement eleCataInfo = obj.getField( CAT_CATALOGINFO_NAME ) ;
+            if ( Array != eleCataInfo.type() )
+            {
+               continue ;
+            }
             BSONObjIterator itr( eleCataInfo.embeddedObject() ) ;
             while( itr.more() )
             {
                BSONElement e = itr.next() ;
+               if ( Object != e.type() )
+               {
+                  continue ;
+               }
                BSONObj cataItemObj = e.embeddedObject() ;
                BSONElement eleGrpID = cataItemObj.getField( CAT_GROUPID_NAME ) ;
                groupSet.insert( eleGrpID.numberInt() ) ;

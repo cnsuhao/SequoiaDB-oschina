@@ -309,7 +309,9 @@ const CHAR* getErrDesp ( INT32 errCode )
                    "Task failed",
                    "Lob does not open",
                    "Lob has been open",
-                   "Node is in restoring"
+                   "Node is in restoring",
+                   "There are some collections in the collection space",
+                   "'localhost' and '127.0.0.1' cannot be used mixed with other hostname and IP address"
     };
     if ( code < 0 || (UINT32)code >= (sizeof ( errDesp ) / sizeof ( CHAR* )) )
         return "unknown error";

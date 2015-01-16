@@ -877,6 +877,7 @@ public:
 #define OSS_MAX_IP_NAME 15
 #define OSS_MAX_IP_ADDR 15
 #define OSS_LOOPBACK_IP "127.0.0.1"
+#define OSS_LOCALHOST   "localhost"
 
 typedef struct _ossIP
 {

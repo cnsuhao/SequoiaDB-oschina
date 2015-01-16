@@ -31,7 +31,7 @@ TEST(catalogMainControllerTest, init)
 {
    pmdEDUMgr *pEduMgr = pmdGetKRCB()->getEDUMgr();
    EDUID agentEDU = PMD_INVALID_EDUID;
-   INT32 rc = pEduMgr->startEDU(EDU_TYPE_CATMAINCONTROLLER, NULL, &agentEDU);
+   INT32 rc = pEduMgr->startEDU(EDU_TYPE_CATMGR, NULL, &agentEDU);
    ASSERT_EQ(SDB_OK, rc);
    ASSERT_NE(PMD_INVALID_EDUID, agentEDU);
    boost::xtime sleepTime;
