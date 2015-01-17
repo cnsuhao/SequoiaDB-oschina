@@ -277,6 +277,7 @@ var SDB_MIG_DATA_NON_UTF             = -270  ; // Data is not in UTF-8 format;
 var SDB_OMA_TASK_FAIL                = -271  ; // Task failed;
 var SDB_LOB_NOT_OPEN                 = -272  ; // Lob does not open;
 var SDB_LOB_HAS_OPEN                 = -273  ; // Lob has been open;
+var SDBCM_NODE_IS_IN_RESTORING       = -274  ; // Node is in restoring;
 
 function _getErr (errCode) {
    var errDesp = [ 
@@ -553,7 +554,8 @@ function _getErr (errCode) {
                    "Data is not in UTF-8 format",
                    "Task failed",
                    "Lob does not open",
-                   "Lob has been open"
+                   "Lob has been open",
+                   "Node is in restoring"
    ]; 
    var index = -errCode ;
    if ( index < 0 || index >= errDesp.length ) 

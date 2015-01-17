@@ -60,7 +60,7 @@ transactionon=false
 # The number of pre-loaders, default:0,value range:[0,100]
 # numpreload=
 
-# The maximum number of prefetchers, default:200, value range:[0,1000]
+# The maximum number of prefetchers, default:0, value range:[0,1000]
 # maxprefpool=
 
 # The maximum number of repl-sync threads, default:10, value range:[0, 200], 0:disable concurrent repl-sync
@@ -84,8 +84,8 @@ transactionon=false
 # Prefered instance for read request, default:A, value enum:M,S,A,1-7
 preferedinstance=A
 
-# Number of page cleaners, default 1, value range:[0, 50]
-numpagecleaners=1
+# Number of page cleaners, default 0, value range:[0, 50]
+numpagecleaners=0
 
 # The minimal interval between two cleanup actions for each collection space (in ms, default 10000, min 1000 )
 pagecleaninterval=10000

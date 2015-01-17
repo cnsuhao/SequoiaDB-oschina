@@ -12,57 +12,43 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-/*    Copyright (C) 2011-2014 SequoiaDB Ltd.
- *    This program is free software: you can redistribute it and/or modify
- *    it under the term of the GNU Affero General Public License, version 3,
- *    as published by the Free Software Foundation.
- *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warrenty of
- *    MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *    GNU Affero General Public License for more details.
- *
- *    You should have received a copy of the GNU Affero General Public License
- *    along with this program. If not, see <http://www.gnu.org/license/>.
- */
 
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef restTRACE_H__
 #define restTRACE_H__
-#define SDB__RESTADP_PARQUERY                              0x400000000001e5L
-#define SDB__RESTADP_SWITCHMSG                             0x400000000001e6L
-#define SDB__RESTADP_CONVERTMSG                            0x400000000001e7L
-#define SDB__RESTADP_INIT                                  0x400000000001e8L
-#define SDB__RESTADP_PARAINIT                              0x400000000001e9L
-#define SDB__RESTADP_RECVREQHE                             0x400000000001eaL
-#define SDB__RESTADP_RECVREQBO                             0x400000000001ebL
-#define SDB__RESTADP_SETOPR                                0x400000000001ecL
-#define SDB__RESTADP_SENDRE                                0x400000000001edL
-#define SDB__RESTADP_APPENDHEADER                          0x400000000001eeL
-#define SDB__RESTADP_GETHEADER                             0x400000000001efL
-#define SDB__RESTADP_APPENDBODY                            0x400000000001f0L
-#define SDB__RESTCONVERTMSG__QUERY                         0x400000000001f1L
-#define SDB__RESTADP_GETQUERY                              0x400000000001f2L
-#define SDB__RESTADP_CLEARHTTPBODY                         0x400000000001f3L
-#define SDB__RESTADP_GETREQ                                0x400000000001f4L
-#define SDB__RESTADP_SNDREP                                0x400000000001f5L
-#define SDB__RESTADP__RECV                                 0x400000000001f6L
-#define SDB__RESTADP__HTTPCVMSG                            0x400000000001f7L
-#define SDB__RESTADP__STRET                                0x400000000001f8L
-#define SDB__RESTADP__SKIP2PM                              0x400000000001f9L
-#define SDB__RESTADP__GETPSTBODY                           0x400000000001faL
-#define SDB__RESTADP__GETPM                                0x400000000001fbL
-#define SDB__RESTADP__RUNCMD                               0x400000000001fcL
-#define SDB__RESTADP__SNAPCMD                              0x400000000001fdL
-#define SDB__RESTADP__CRTCMD                               0x400000000001feL
-#define SDB__RESTADP__DROPCMD                              0x400000000001ffL
-#define SDB__RESTADP__SNCMD                                0x40000000000200L
-#define SDB__RESTADP__CONTXCMD                             0x40000000000201L
-#define SDB__RESTADP__QCMD                                 0x40000000000202L
-#define SDB__RESTADP__UPCMD                                0x40000000000203L
-#define SDB__RESTADP__INSCMD                               0x40000000000204L
-#define SDB__RESTADP__DELCMD                               0x40000000000205L
-#define SDB__RESTADP__CNTCMD                               0x40000000000206L
-#define SDB__RESTADP__DFCMD                                0x40000000000207L
-#define SDB__RESTADP__STRRLC                               0x40000000000208L
+#define SDB__RESTADP_PARQUERY                              0x400000000001a6L
+#define SDB__RESTADP_CONVERTMSG                            0x400000000001a7L
+#define SDB__RESTADP_INIT                                  0x400000000001a8L
+#define SDB__RESTADP_PARAINIT                              0x400000000001a9L
+#define SDB__RESTADP_RECVREQHE                             0x400000000001aaL
+#define SDB__RESTADP_RECVREQBO                             0x400000000001abL
+#define SDB__RESTADP_SETOPR                                0x400000000001acL
+#define SDB__RESTADP_SENDRE                                0x400000000001adL
+#define SDB__RESTADP_APPENDHEADER                          0x400000000001aeL
+#define SDB__RESTADP_GETHEADER                             0x400000000001afL
+#define SDB__RESTADP_SENDHTTPHEADER                        0x400000000001b0L
+#define SDB__RESTADP_APPENDBODY                            0x400000000001b1L
+#define SDB__RESTADP_GETQUERY                              0x400000000001b2L
+#define SDB__RESTADP_CLEARHTTPBODY                         0x400000000001b3L
+#define SDB__RESTADP_GETREQ                                0x400000000001b4L
+#define SDB__RESTADP_SNDREP                                0x400000000001b5L
+#define SDB__RESTADP__RECV                                 0x400000000001b6L
+#define SDB__RESTADP__HTTPCVMSG                            0x400000000001b7L
+#define SDB__RESTADP__STRET                                0x400000000001b8L
+#define SDB__RESTADP__SKIP2PM                              0x400000000001b9L
+#define SDB__RESTADP__GETPSTBODY                           0x400000000001baL
+#define SDB__RESTADP__GETPM                                0x400000000001bbL
+#define SDB__RESTADP__RUNCMD                               0x400000000001bcL
+#define SDB__RESTADP__SNAPCMD                              0x400000000001bdL
+#define SDB__RESTADP__CRTCMD                               0x400000000001beL
+#define SDB__RESTADP__DROPCMD                              0x400000000001bfL
+#define SDB__RESTADP__SNCMD                                0x400000000001c0L
+#define SDB__RESTADP__CONTXCMD                             0x400000000001c1L
+#define SDB__RESTADP__QCMD                                 0x400000000001c2L
+#define SDB__RESTADP__UPCMD                                0x400000000001c3L
+#define SDB__RESTADP__INSCMD                               0x400000000001c4L
+#define SDB__RESTADP__DELCMD                               0x400000000001c5L
+#define SDB__RESTADP__CNTCMD                               0x400000000001c6L
+#define SDB__RESTADP__DFCMD                                0x400000000001c7L
+#define SDB__RESTADP__STRRLC                               0x400000000001c8L
 #endif

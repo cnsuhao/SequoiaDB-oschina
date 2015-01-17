@@ -12,28 +12,15 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-/*    Copyright (C) 2011-2014 SequoiaDB Ltd.
- *    This program is free software: you can redistribute it and/or modify
- *    it under the term of the GNU Affero General Public License, version 3,
- *    as published by the Free Software Foundation.
- *
- *    This program is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warrenty of
- *    MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- *    GNU Affero General Public License for more details.
- *
- *    You should have received a copy of the GNU Affero General Public License
- *    along with this program. If not, see <http://www.gnu.org/license/>.
- */
 
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef coordTRACE_H__
 #define coordTRACE_H__
-#define SDB_COORDGI_FRMBSONOBJ                             0x80000000054fL
-#define SDB_COORDCB_ADDCATNDADDR                           0x800000000550L
-#define SDB_COORDSN_DISCONN                                0x800000000551L
-#define SDB_COORDSN_CHECKREMOTEROUTEID                     0x800000000552L
-#define SDB_COORDSN_GETALLSR                               0x800000000553L
-#define SDB_COORDSN_ISSUBSNCONN                            0x800000000554L
-#define SDB_COORDSN_GETLASTND                              0x800000000555L
+#define SDB_COORDGI_FRMBSONOBJ                             0x80000000076cL
+#define SDB_COORDCB_ADDCATNDADDR                           0x80000000076dL
+#define SDB_COORDSN_DISCONN                                0x80000000076eL
+#define SDB_COORDSN_CHECKREMOTEROUTEID                     0x80000000076fL
+#define SDB_COORDSN_GETALLSR                               0x800000000770L
+#define SDB_COORDSN_ISSUBSNCONN                            0x800000000771L
+#define SDB_COORDSN_GETLASTND                              0x800000000772L
 #endif
