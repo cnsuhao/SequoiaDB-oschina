@@ -156,9 +156,8 @@ namespace engine
                                      pmdEDUCB *cb,
                                      std::vector<BSONObj> &objs ) ;
    protected:
-#if defined (_DEBUG)
       virtual void _printDebug ( CHAR *pReceiveBuffer, const CHAR *pFuncName ) ;
-#endif
+
    private:
       INT32 _getReplyObjsFromQueue( REPLY_QUE &replyQueue,
                                     pmdEDUCB *cb,

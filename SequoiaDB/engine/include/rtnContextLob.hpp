@@ -36,6 +36,8 @@
 
 #include "rtnContext.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
    class _rtnLobStream ;

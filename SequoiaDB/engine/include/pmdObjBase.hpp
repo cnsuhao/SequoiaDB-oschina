@@ -105,6 +105,8 @@ namespace engine
          _pmdObjBase() { _bProcess = FALSE ; }
          virtual ~_pmdObjBase() {}
 
+         pmdEDUEvent*   getLastEvent() { return &_lastEvent ; }
+
          virtual void   attachCB( _pmdEDUCB *cb ) {}
          virtual void   detachCB( _pmdEDUCB *cb ) {}
 
@@ -115,7 +117,7 @@ namespace engine
          OSS_INLINE INT32   dispatchEvent ( pmdEDUEvent *event,
                                             INT32 *pTime = NULL ) ;
          OSS_INLINE INT32   dispatchMsg( NET_HANDLE handle, MsgHeader* msg,
-                                     INT32 *pTime = NULL ) ;
+                                         INT32 *pTime = NULL ) ;
          virtual void   onTimer ( UINT64 timerID, UINT32 interval ) { }
 
       protected:
@@ -157,6 +159,7 @@ namespace engine
 
       private:
          BOOLEAN           _bProcess ;
+         pmdEDUEvent       _lastEvent ;
 
    };
 
@@ -194,6 +197,11 @@ namespace engine
       time_t bTime = 0 ;
       INT32  diffTime = 0 ;
 
+      _lastEvent._Data = msg ;
+      _lastEvent._dataMemType = PMD_EDU_MEM_NONE ;
+      _lastEvent._eventType = PMD_EDU_EVENT_MSG ;
+      _lastEvent._userData = ( UINT64 )handle ;
+
       const _msgMap* msgMap = NULL;
       for (msgMap = getMsgMap(); msgMap != NULL; 
                msgMap = (*msgMap->pfnGetBaseMap)())
@@ -225,6 +233,7 @@ namespace engine
 
    done:
       _bProcess = FALSE ;
+      _lastEvent.reset() ;
       if ( pTime )
       {
          *pTime = diffTime ;
@@ -246,6 +255,8 @@ namespace engine
       INT32 rc = SDB_OK;
       time_t bTime = 0 ;
       INT32  diffTime = 0 ;
+
+      _lastEvent = *event ;
 
       const _msgMap* msgMap = NULL;
       for (msgMap = getMsgMap(); msgMap != NULL; 
@@ -291,6 +302,7 @@ namespace engine
 
    done:
       _bProcess = FALSE ;
+      _lastEvent.reset() ;
       if ( pTime )
       {
          *pTime = diffTime ;

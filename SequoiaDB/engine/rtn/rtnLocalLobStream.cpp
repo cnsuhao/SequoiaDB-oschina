@@ -213,7 +213,7 @@ namespace engine
       }
       if ( lockDms )
       {
-         dmsCB->writeDown();
+         dmsCB->writeDown( cb ) ;
       }
       PD_TRACE_EXITRC( SDB_RTNLOCALLOBSTREAM__ENSURELOB, rc ) ;
       return rc ;
@@ -252,7 +252,7 @@ namespace engine
    done:
       if ( lockDms )
       {
-         dmsCB->writeDown();
+         dmsCB->writeDown( cb );
       }
       PD_TRACE_EXITRC( SDB_RTNLOCALLOBSTREAM__COMPLETELOB, rc ) ;
       return rc ;
@@ -333,7 +333,7 @@ namespace engine
    done:
       if ( lockDms )
       {
-         dmsCB->writeDown();
+         dmsCB->writeDown( cb ) ;
       }
       PD_TRACE_EXITRC( SDB_RTNLOCALLOBSTREAM__WRITE, rc ) ;
       return rc ;
@@ -452,8 +452,7 @@ namespace engine
       while ( 0 < num )
       {
          --num ;
-         piece.set( &getOID(), num,
-                  0, 0, NULL ) ;
+         piece.set( &getOID(), num, 0, 0, NULL ) ;
          rc = _su->lob()->remove( piece, _mbContext, cb,
                                   _getDPSCB() ) ;
          if ( SDB_OK != rc )
@@ -471,7 +470,7 @@ namespace engine
    done:
       if ( lockDms )
       {
-         dmsCB->writeDown() ;
+         dmsCB->writeDown( cb ) ;
       }
       PD_TRACE_EXITRC( SDB_RTNLOCALLOBSTREAM__ROLLBACK, rc ) ;
       return rc ;
@@ -539,7 +538,7 @@ namespace engine
    done:
       if ( lockDms )
       {
-         dmsCB->writeDown();
+         dmsCB->writeDown( cb ) ;
       }
       PD_TRACE_EXITRC( SDB_RTNLOCALLOBSTREAM__REMOVEV, rc ) ;
       return rc ;

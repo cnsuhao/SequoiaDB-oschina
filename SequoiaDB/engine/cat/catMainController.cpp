@@ -53,6 +53,10 @@
 using namespace bson;
 namespace engine
 {
+
+   #define CAT_MAX_DELAY_RETRY_TIMES         ( 100 )
+   #define CAT_DEALY_TIME_INTERVAL           ( 100 ) // ms
+
    BEGIN_OBJ_MSG_MAP( catMainController, _pmdObjBase )
       ON_EVENT( PMD_EDU_EVENT_ACTIVE, _onActiveEvent )
       ON_EVENT( PMD_EDU_EVENT_DEACTIVE, _onDeactiveEvent )
@@ -69,6 +73,8 @@ namespace engine
       _pRtnCB              = NULL ;
       _pAuthCB             = NULL ;
       _pEDUCB              = NULL ;
+      _checkEventTimerID   = NET_INVALID_TIMER_ID ;
+      _isDelayed           = FALSE ;
 
       _isActived           = FALSE ;
       _changeEvent.signal() ;
@@ -93,6 +99,8 @@ namespace engine
 
    void catMainController::detachCB( pmdEDUCB * cb )
    {
+      _dispatchDelayedOperation( FALSE ) ;
+
       if ( _pCatCB )
       {
          _pCatCB->getCatlogueMgr()->detachCB( cb ) ;
@@ -100,6 +108,115 @@ namespace engine
       }
       _pEDUCB = NULL ;
       _changeEvent.signal() ;
+   }
+
+   void catMainController::onTimer( UINT64 timerID, UINT32 interval )
+   {
+      if ( _checkEventTimerID == timerID )
+      {
+         _dispatchDelayedOperation( TRUE ) ;
+      }
+
+      _pmdObjBase::onTimer( timerID, interval ) ;
+   }
+
+   BOOLEAN catMainController::delayCurOperation()
+   {
+      BOOLEAN result       = TRUE ;
+      pmdEDUEvent *last    = getLastEvent() ;
+      UINT32 handle        = 0 ;
+      UINT32 tryTime       = 0 ;
+
+      if ( PMD_EDU_EVENT_MSG != last->_eventType ||
+           NULL == last->_Data )
+      {
+         result = FALSE ;
+      }
+      else
+      {
+         pmdEDUEvent event ;
+         event._eventType = PMD_EDU_EVENT_MSG ;
+
+         if ( _lastDelayEvent._Data == last->_Data )
+         {
+            ossUnpack32From64( _lastDelayEvent._userData, tryTime, handle ) ;
+
+            if ( tryTime > CAT_MAX_DELAY_RETRY_TIMES )
+            {
+               result = FALSE ;
+               goto done ;
+            }
+            event = _lastDelayEvent ;
+            _lastDelayEvent._Data = NULL ;
+            _lastDelayEvent._dataMemType = PMD_EDU_MEM_NONE ;
+         }
+         else
+         {
+            CHAR *pData = NULL ;
+            INT32 buffLen = 0 ;
+            MsgHeader *pMsg = ( MsgHeader* )last->_Data ;
+            if ( SDB_OK == _pEDUCB->allocBuff( pMsg->messageLength,
+                                               &pData, buffLen ) )
+            {
+               ossMemcpy( pData, last->_Data, pMsg->messageLength ) ;
+               event._Data = pData ;
+               event._dataMemType = PMD_EDU_MEM_SELF ;
+               event._eventType = PMD_EDU_EVENT_MSG ;
+
+               handle = last->_userData ;
+            }
+            else
+            {
+               result = FALSE ;
+               goto done ;
+            }
+         }
+
+         event._userData = ossPack32To64( ++tryTime, handle ) ;
+         _vecEvent.push_back( event ) ;
+         _isDelayed = TRUE ;
+
+         if ( NET_INVALID_TIMER_ID == _checkEventTimerID )
+         {
+            _checkEventTimerID = _pCatCB->setTimer( CAT_DEALY_TIME_INTERVAL ) ;
+         }
+      }
+
+   done:
+      return result ;
+   }
+
+   void catMainController::_dispatchDelayedOperation( BOOLEAN dispatch )
+   {
+      UINT32 handle  = 0 ;
+      UINT32 tryTime = 0 ;
+      VEC_EVENT tmpVecEvent = _vecEvent ;
+      _vecEvent.clear() ;
+
+      VEC_EVENT::iterator it = tmpVecEvent.begin() ;
+      while ( it != tmpVecEvent.end() )
+      {
+         pmdEDUEvent &event = *it ;
+         ++it ;
+         _lastDelayEvent = event ;
+
+         if ( dispatch )
+         {
+            ossUnpack32From64( event._userData, tryTime, handle ) ;
+            _defaultMsgFunc( ( NET_HANDLE )handle,
+                             ( MsgHeader * )event._Data ) ;
+         }
+
+         pmdEduEventRelase( _lastDelayEvent, _pEDUCB ) ;
+      }
+      tmpVecEvent.clear() ;
+      _lastDelayEvent.reset() ;
+      if ( NET_INVALID_TIMER_ID != _checkEventTimerID &&
+           0 == _vecEvent.size() )
+      {
+         _pCatCB->killTimer( _checkEventTimerID ) ;
+         _checkEventTimerID = NET_INVALID_TIMER_ID ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATMAINCT_HANDLEMSG, "catMainController::handleMsg" )
@@ -127,6 +244,44 @@ namespace engine
                                         _MsgRouteID id )
    {
       _delContextByHandle( handle );
+   }
+
+   void catMainController::handleTimeout( const UINT32 &millisec,
+                                          const UINT32 &id )
+   {
+      PMD_EVENT_MESSAGES *eventMsg = NULL ;
+
+      if ( !_pEDUCB )
+      {
+         PD_LOG( PDERROR, "Catalog Mgr cb is NULL" ) ;
+         goto done ;
+      }
+
+      eventMsg = ( PMD_EVENT_MESSAGES * )SDB_OSS_MALLOC(
+                 sizeof (PMD_EVENT_MESSAGES ) ) ;
+
+      if ( NULL == eventMsg )
+      {
+         PD_LOG ( PDWARNING, "Failed to allocate memory for PDM "
+                  "timeout Event for %d bytes",
+                  sizeof (PMD_EVENT_MESSAGES ) ) ;
+      }
+      else
+      {
+         ossTimestamp ts;
+         ossGetCurrentTime(ts);
+
+         eventMsg->timeoutMsg.interval = millisec ;
+         eventMsg->timeoutMsg.occurTime = ts.time ;
+         eventMsg->timeoutMsg.timerID = id ;
+
+         _pEDUCB->postEvent( pmdEDUEvent ( PMD_EDU_EVENT_TIMEOUT, 
+                                           PMD_EDU_MEM_ALLOC,
+                                           (void*)eventMsg ) ) ;
+      }
+
+   done:
+      return ;
    }
 
    INT32 catMainController::_processInterruptMsg( const NET_HANDLE & handle,
@@ -770,6 +925,8 @@ namespace engine
                                              MsgHeader * msg )
    {
       INT32 rc = SDB_OK ;
+
+      _isDelayed = FALSE ;
 
       if ( MSG_CAT_CATALOGUE_BEGIN < (UINT32)msg->opCode &&
            (UINT32)msg->opCode < MSG_CAT_CATALOGUE_END )

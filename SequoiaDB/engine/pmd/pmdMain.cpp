@@ -227,7 +227,7 @@ namespace engine
       }
       else if ( startTimerCount >= PMD_START_WAIT_TIME )
       {
-         PD_LOG( PDWARNING, "Start warning(wait business ative timeout)" ) ;
+         PD_LOG( PDWARNING, "Start warning (timeout)" ) ;
       }
 
 #if defined (_LINUX)

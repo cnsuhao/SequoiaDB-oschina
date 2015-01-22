@@ -973,7 +973,7 @@ namespace engine
             continue ; 
          }
       }
-      
+
       if ( DMS_LOB_INVALID_PAGEID != pageInBucket && NULL != bucket )
       {
          *bucket = bucketNumber ;

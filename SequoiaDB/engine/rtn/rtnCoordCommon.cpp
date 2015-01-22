@@ -394,15 +394,6 @@ namespace engine
             continue;
          }
          MsgHeader *pReply = ( MsgHeader *)(pmdEvent._Data);
-         PD_LOG ( PDDEBUG, "received the reply("
-                  " opCode=[%d]%d, requestID=%llu, TID=%u, "
-                  "groupID=%u, nodeID=%u, serviceID=%u )",
-                  pReply->opCode>>31&0x01,
-                  pReply->opCode&0x7fffffff,
-                  pReply->requestID, pReply->TID,
-                  pReply->routeID.columns.groupID,
-                  pReply->routeID.columns.nodeID,
-                  pReply->routeID.columns.serviceID );
 
          if ( opCode != pReply->opCode
             || ( iterMap=requestIdMap.find( pReply->requestID ))
@@ -418,8 +409,10 @@ namespace engine
                         "received unexpected msg(opCode=%[%d]%d,"
                         "expectOpCode=[%d]%d,"
                         "groupID=%u, nodeID=%u, serviceID=%u)",
-                        pReply->opCode>>31&0x01, pReply->opCode&0x7fffffff,
-                        opCode>>31&0x01, opCode&0x7fffffff,
+                        IS_REPLY_TYPE( pReply->opCode ),
+                        GET_REQUEST_TYPE( pReply->opCode ),
+                        IS_REPLY_TYPE( opCode ),
+                        GET_REQUEST_TYPE( opCode ),
                         pReply->routeID.columns.groupID,
                         pReply->routeID.columns.nodeID,
                         pReply->routeID.columns.serviceID );
@@ -428,6 +421,16 @@ namespace engine
          }
          else
          {
+            PD_LOG ( PDDEBUG, "received the reply("
+                     " opCode=[%d]%d, requestID=%llu, TID=%u, "
+                     "groupID=%u, nodeID=%u, serviceID=%u )",
+                     IS_REPLY_TYPE( pReply->opCode ),
+                     GET_REQUEST_TYPE( pReply->opCode ),
+                     pReply->requestID, pReply->TID,
+                     pReply->routeID.columns.groupID,
+                     pReply->routeID.columns.nodeID,
+                     pReply->routeID.columns.serviceID );
+
             requestIdMap.erase(iterMap);
             cb->getCoordSession()->delRequest( pReply->requestID );
             replyQue.push( (CHAR *)( pmdEvent._Data ));

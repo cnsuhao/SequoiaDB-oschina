@@ -41,13 +41,16 @@
 
 #include "pmdObjBase.hpp"
 #include "netMsgHandler.hpp"
+#include "netTimer.hpp"
 #include "msgCatalog.hpp"
 #include "pmdEDU.hpp"
 #include "pmd.hpp"
 #include "ossEvent.hpp"
 #include "catCatalogManager.hpp"
 #include "catNodeManager.hpp"
+
 #include <map>
+#include <vector>
 
 namespace engine
 {
@@ -60,9 +63,11 @@ namespace engine
    /*
       catMainController define
    */
-   class catMainController : public _pmdObjBase, public _netMsgHandler
+   class catMainController : public _pmdObjBase, public _netMsgHandler,
+                             public _netTimeoutHandler
    {
-   typedef std::map< SINT64, UINT64 > CONTEXT_LIST ;
+   typedef std::map< SINT64, UINT64 >  CONTEXT_LIST ;
+   typedef std::vector< pmdEDUEvent >  VEC_EVENT ;
 
    DECLARE_OBJ_MSG_MAP()
 
@@ -74,8 +79,13 @@ namespace engine
       virtual void   attachCB( _pmdEDUCB *cb ) ;
       virtual void   detachCB( _pmdEDUCB *cb ) ;
 
+      virtual void   onTimer ( UINT64 timerID, UINT32 interval ) ;
+
       ossEvent* getAttachEvent() { return &_attachEvent ; }
       ossEvent* getChangeEvent() { return &_changeEvent ; }
+
+      BOOLEAN   delayCurOperation() ;
+      BOOLEAN   isDelayed() const { return _isDelayed ; }
 
    public:
       INT32 handleMsg( const NET_HANDLE &handle,
@@ -83,11 +93,15 @@ namespace engine
                        const CHAR *msg ) ;
       void  handleClose( const NET_HANDLE &handle, _MsgRouteID id ) ;
 
+      void  handleTimeout( const UINT32 &millisec, const UINT32 &id ) ;
+
    protected:
       virtual INT32 _defaultMsgFunc ( NET_HANDLE handle,
                                       MsgHeader* msg ) ;
 
       INT32 _processMsg( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
+
+      void  _dispatchDelayedOperation( BOOLEAN dispatch ) ;
 
    protected:
       INT32 _onActiveEvent( pmdEDUEvent *event ) ;
@@ -143,6 +157,12 @@ namespace engine
       BOOLEAN           _isActived ;
 
       ossEvent          _changeEvent ;
+
+      VEC_EVENT         _vecEvent ;
+      UINT32            _checkEventTimerID ;
+      pmdEDUEvent       _lastDelayEvent ;
+      BOOLEAN           _isDelayed ;
+
    } ;
 
 }

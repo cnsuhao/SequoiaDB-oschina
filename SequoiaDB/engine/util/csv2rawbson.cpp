@@ -54,6 +54,7 @@
 #define CSV_STR_BACKSLASH      '/'
 #define CSV_STR_LEFTBRACKET    '('
 #define CSV_STR_RIGHTBRACKET   ')'
+#define CSV_STR_EMPTYOPTIONS   ""
 
 #define TIME_FORMAT "%d-%d-%d-%d.%d.%d.%d"
 #define DATE_FORMAT "%d-%d-%d"
@@ -1481,6 +1482,7 @@ INT32 csvParser::_string2regex( _csvRegex &value, CHAR *pBuffer, INT32 size )
       else
       {
          value.pPattern = pBuffer ;
+         value.pOptions = CSV_STR_EMPTYOPTIONS ;
       }
    }
 done:
@@ -1567,12 +1569,13 @@ INT32 csvParser::_string2binary( _csvBinary &value, CHAR *pBuffer, INT32 size )
       }
       else
       {
-         base64Len = getDeBase64Size( pBuffer ) ;
+         pStr = pBuffer ;
+         base64Len = getDeBase64Size( pStr ) ;
          if( base64Len == 0 )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG ( PDERROR, "Binary format error, %*s, rc=%d",
-                     size, pBuffer, rc ) ;
+                     size, pStr, rc ) ;
             goto error ;
          }
          pDeStr = (CHAR *)SDB_OSS_MALLOC( base64Len ) ;
@@ -1588,7 +1591,7 @@ INT32 csvParser::_string2binary( _csvBinary &value, CHAR *pBuffer, INT32 size )
          {
             rc = SDB_INVALIDARG ;
             PD_LOG ( PDERROR, "Binary format error, %*s, rc=%d",
-                     size, pBuffer, rc ) ;
+                     size, pStr, rc ) ;
             goto error ;
          }
          value.strSize = base64Len - 1 ;

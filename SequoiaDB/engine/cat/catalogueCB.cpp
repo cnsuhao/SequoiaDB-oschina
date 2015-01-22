@@ -69,6 +69,29 @@ namespace engine
       return (INT16)( sdbGetReplCB()->groupSize() / 2 + 1 ) ;
    }
 
+   UINT32 sdbCatalogueCB::setTimer( UINT32 milliSec )
+   {
+      UINT32 id = NET_INVALID_TIMER_ID ;
+      if ( _pNetWork )
+      {
+         _pNetWork->addTimer( milliSec, &_catMainCtrl, id ) ;
+      }
+      return id ;
+   }
+
+   void sdbCatalogueCB::killTimer( UINT32 timerID )
+   {
+      if ( _pNetWork )
+      {
+         _pNetWork->removeTimer( timerID ) ;
+      }
+   }
+
+   BOOLEAN sdbCatalogueCB::delayCurOperation()
+   {
+      return _catMainCtrl.delayCurOperation() ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_INIT, "sdbCatalogueCB::init" )
    INT32 sdbCatalogueCB::init()
    {

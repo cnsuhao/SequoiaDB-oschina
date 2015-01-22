@@ -993,7 +993,7 @@ namespace engine
          }
       }
 
-      rc = _pDMSCB->registerBackup() ;
+      rc = _pDMSCB->registerBackup( cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to register backup, rc: %d", rc ) ;
       hasReg = TRUE ;
 
@@ -1019,7 +1019,7 @@ namespace engine
    error:
       if ( hasReg )
       {
-         _pDMSCB->backupDown() ;
+         _pDMSCB->backupDown( cb ) ;
       }
       if ( -1 != _replStatus )
       {
@@ -1035,7 +1035,7 @@ namespace engine
 
    INT32 _barBKOfflineLogger::_afterBackup ( _pmdEDUCB *cb )
    {
-      _pDMSCB->backupDown() ;
+      _pDMSCB->backupDown( cb ) ;
       if ( -1 != _replStatus )
       {
          _pClsCB->getReplCB()->setStatus( (CLS_BS_STATUS)_replStatus ) ;

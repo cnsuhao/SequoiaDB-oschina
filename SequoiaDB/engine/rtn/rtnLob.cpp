@@ -41,6 +41,112 @@
 
 namespace engine
 {
+
+   class _rtnLobEnv : public SDBObject
+   {
+      public :
+         _rtnLobEnv( const CHAR *fullName, _pmdEDUCB *cb ) ;
+         ~_rtnLobEnv() ;
+
+         INT32 prepareOpr( INT32 lockType ) ;
+         INT32 prepareRead() ;
+
+         void  oprDone() ;
+
+         dmsStorageUnit    *getSU() { return _su ; }
+         dmsMBContext      *getMBContext() { return _mbContext ; }
+
+      private:
+         const CHAR              *_fullName ;
+         _pmdEDUCB               *_pEDUCB ;
+
+         SDB_DMSCB               *_dmsCB ;
+         dmsStorageUnit          *_su ;
+         dmsStorageUnitID        _suID ;
+         dmsMBContext            *_mbContext ;
+
+         BOOLEAN                 _lockedDMS ;
+
+   } ;
+   typedef _rtnLobEnv rtnLobEnv ;
+
+   _rtnLobEnv::_rtnLobEnv( const CHAR *fullName, _pmdEDUCB *cb )
+   {
+      _fullName   = fullName ;
+      _pEDUCB     = cb ;
+      _dmsCB      = NULL ;
+      _su         = NULL ;
+      _suID       = DMS_INVALID_CS ;
+      _mbContext  = NULL ;
+
+      _lockedDMS  = FALSE ;
+   }
+
+   _rtnLobEnv::~_rtnLobEnv()
+   {
+      oprDone() ;
+   }
+
+   INT32 _rtnLobEnv::prepareOpr( INT32 lockType )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *clName = NULL ;
+      _dmsCB   = sdbGetDMSCB() ;
+
+      oprDone() ;
+
+      rc = _dmsCB->writable( _pEDUCB ) ;
+      if ( SDB_OK !=rc )
+      {
+         PD_LOG ( PDERROR, "database is not writable, rc = %d", rc ) ;
+         goto error ;
+      }
+      _lockedDMS = TRUE ;
+
+      rc = rtnResolveCollectionNameAndLock( _fullName, _dmsCB,
+                                            &_su, &clName, _suID ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to resolve collection:%s, rc:%d",
+                 _fullName, rc ) ;
+         goto error ;
+      }
+
+      rc = _su->data()->getMBContext( &_mbContext, clName, lockType ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to resolve collection name:%s, rc:%d",
+                 clName, rc ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      oprDone() ;
+      goto done ;
+   }
+
+   void _rtnLobEnv::oprDone()
+   {
+      if ( _mbContext && _su )
+      {
+         _su->data()->releaseMBContext( _mbContext ) ;
+         _mbContext = NULL ;
+      }
+      if ( DMS_INVALID_CS != _suID && _dmsCB )
+      {
+         _dmsCB->suUnlock( _suID, SHARED ) ;
+         _su = NULL ;
+         _suID = DMS_INVALID_CS ;
+      }
+      if ( _lockedDMS )
+      {
+         _dmsCB->writeDown( _pEDUCB ) ;
+         _lockedDMS = FALSE ;
+      }
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNOPENLOB, "rtnOpenLob" )
    INT32 rtnOpenLob( const BSONObj &lob,
                      SINT32 flags,
@@ -395,111 +501,6 @@ namespace engine
       goto done ;
    }
 
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNPREPARE4WRITELOB, "rtnPrepage4WriteLob" )
-   static INT32 rtnPrepage4WriteLob( const CHAR *fullName,
-                                     _pmdEDUCB *cb,
-                                     BOOLEAN acquireLock,
-                                     _dmsStorageUnit *&su,
-                                     _dmsMBContext *&mbContext )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_RTNPREPARE4WRITELOB ) ;
-      SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
-      dmsStorageUnitID suID = DMS_INVALID_CS ;
-      const CHAR *clName = NULL ;
-      BOOLEAN lockDms = FALSE ;
-      _dmsStorageUnit *tmpSu = NULL ;
-      _dmsMBContext *tmpMb = NULL ;
-
-      rc = rtnResolveCollectionNameAndLock( fullName, dmsCB,
-                                            &tmpSu, &clName, suID ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to resolve collection:%s, rc:%d",
-                 fullName, rc ) ;
-         goto error ;
-      }
-
-      rc = tmpSu->data()->getMBContext( &tmpMb, clName, -1 ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to resolve collection name:%s, rc:%d",
-                 clName, rc ) ;
-         goto error ;
-      }
-
-      rc = dmsCB->writable( cb ) ;
-      if ( SDB_OK !=rc )
-      {
-         PD_LOG ( PDERROR, "database is not writable, rc = %d", rc ) ;
-         goto error ;
-      }
-      lockDms = TRUE ;
-
-      if ( acquireLock )
-      {
-         rc = tmpMb->mbLock( EXCLUSIVE ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG( PDERROR, "failed to get exclusive lock:%d", rc ) ;
-            goto error ;
-         }
-      }
-
-      su = tmpSu ;
-      mbContext = tmpMb ;
-   done:
-      PD_TRACE_EXITRC( SDB_RTNPREPARE4WRITELOB, rc ) ;
-      return rc ;
-   error:
-      if ( NULL != tmpMb &&
-           tmpMb->isMBLock() )
-      {
-         tmpMb->mbUnlock() ;
-      }
-       
-      if ( NULL != tmpMb && NULL != tmpSu )
-      {
-         tmpSu->data()->releaseMBContext( tmpMb ) ;
-         tmpMb = NULL ;
-      }
-
-      if ( NULL != tmpSu )
-      {
-         dmsCB->suUnlock ( tmpSu->CSID() ) ;
-         tmpSu = NULL ;
-      }
-
-      if ( lockDms )
-      {
-         dmsCB->writeDown() ;
-      }
-
-      su = NULL ;
-      mbContext = NULL ;
-      goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNWRITELOBDONE, "rtnWriteLobDone" )
-   static void rtnWriteLobDone( _pmdEDUCB *cb,
-                                _dmsStorageUnit *&su,
-                                _dmsMBContext *&mbContext )
-   {
-      PD_TRACE_ENTRY( SDB_RTNWRITELOBDONE ) ;
-      SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
-      if ( mbContext->isMBLock() )
-      {
-         mbContext->mbUnlock() ;
-      }
-      su->data()->releaseMBContext( mbContext ) ;
-      dmsCB->suUnlock ( su->CSID() ) ;
-      dmsCB->writeDown() ;
-      su = NULL ;
-      mbContext = NULL ;
-      PD_TRACE_EXIT( SDB_RTNWRITELOBDONE ) ;
-      return ;
-   }
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCREATELOB, "rtnCreateLob" )
    INT32 rtnCreateLob( const CHAR *fullName,
                        const bson::OID &oid,
@@ -510,22 +511,18 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNCREATELOB ) ;
       SDB_ASSERT( NULL != fullName && NULL != cb, "can not be null" ) ;
-      _dmsStorageUnit *su = NULL ;
-      _dmsMBContext *mbContext = NULL ;
       _dmsLobMeta meta ;
-      BOOLEAN prepared = FALSE ;
-   
-      rc = rtnPrepage4WriteLob( fullName, cb, TRUE,
-                                su, mbContext ) ;
+      rtnLobEnv lobEnv( fullName, cb ) ;
+
+      rc = lobEnv.prepareOpr( EXCLUSIVE ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to prepare to write lob:%d", rc ) ;
          goto error ;
       }
-      prepared = TRUE ;
 
-      rc = su->lob()->getLobMeta( oid, mbContext,
-                                  cb, meta ) ;
+      rc = lobEnv.getSU()->lob()->getLobMeta( oid, lobEnv.getMBContext(),
+                                              cb, meta ) ;
       if ( SDB_FNE == rc )
       {
          rc = SDB_OK ;
@@ -549,9 +546,8 @@ namespace engine
          goto error ;
       }
 
-      rc = su->lob()->writeLobMeta( oid, mbContext,
-                                    cb, meta, TRUE,
-                                    dpsCB ) ;
+      rc = lobEnv.getSU()->lob()->writeLobMeta( oid, lobEnv.getMBContext(),
+                                                cb, meta, TRUE, dpsCB ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to ensure meta data:%d", rc ) ;
@@ -563,11 +559,8 @@ namespace engine
          dpsCB->completeOpr( cb, w ) ;
          cb->resetLsn () ;
       }
+
    done:
-      if ( prepared )
-      {
-         rtnWriteLobDone( cb, su, mbContext ) ;
-      }
       PD_TRACE_EXITRC( SDB_RTNCREATELOB, rc ) ;
       return rc ;
    error:
@@ -588,24 +581,19 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNWRITELOB2 ) ;
       SDB_ASSERT( NULL != fullName && NULL != cb, "can not be null" ) ;
-      _dmsStorageUnit *su = NULL ;
-      _dmsMBContext *mbContext = NULL ;
       _dmsLobRecord record ;
-      BOOLEAN prepared = FALSE ;
+      rtnLobEnv lobEnv( fullName, cb ) ;
 
-      rc = rtnPrepage4WriteLob( fullName, cb, FALSE,
-                                su, mbContext ) ;
+      rc = lobEnv.prepareOpr( -1 ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to prepare to write lob:%d", rc ) ;
          goto error ;
       }
-      prepared = TRUE ;
 
-      record.set( &oid, sequence, offset,
-                  len, data ) ;
-      rc = su->lob()->write( record, mbContext, cb,
-                             dpsCB ) ;
+      record.set( &oid, sequence, offset, len, data ) ;
+      rc = lobEnv.getSU()->lob()->write( record, lobEnv.getMBContext(),
+                                         cb, dpsCB ) ;
 
       if ( SDB_OK != rc )
       {
@@ -617,12 +605,9 @@ namespace engine
       {
          dpsCB->completeOpr( cb, w ) ;
          cb->resetLsn () ;
-      }   
-   done:
-      if ( prepared )
-      {
-         rtnWriteLobDone( cb, su, mbContext ) ;
       }
+
+   done:
       PD_TRACE_EXITRC( SDB_RTNWRITELOB2, rc ) ;
       return rc ;
    error:
@@ -640,21 +625,17 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNCLOSELOB2 ) ;
       SDB_ASSERT( NULL != fullName && NULL != cb, "can not be null" ) ;
-      _dmsStorageUnit *su = NULL ;
-      _dmsMBContext *mbContext = NULL ;
-      BOOLEAN prepared = FALSE ;
+      rtnLobEnv lobEnv( fullName, cb ) ;
 
-      rc = rtnPrepage4WriteLob( fullName, cb, FALSE,
-                                su, mbContext ) ;
+      rc = lobEnv.prepareOpr( -1 ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to prepare to write lob:%d", rc ) ;
          goto error ;
       }
-      prepared = TRUE ;
 
-      rc = su->lob()->writeLobMeta( oid, mbContext, cb,
-                                    meta, FALSE, dpsCB ) ;
+      rc = lobEnv.getSU()->lob()->writeLobMeta( oid, lobEnv.getMBContext(),
+                                                cb, meta, FALSE, dpsCB ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to write meta data of lob:%d", rc ) ;
@@ -666,94 +647,12 @@ namespace engine
          dpsCB->completeOpr( cb, w ) ;
          cb->resetLsn () ;
       }
+
    done:
-      if ( prepared )
-      {
-         rtnWriteLobDone( cb, su, mbContext ) ;
-      }
       PD_TRACE_EXITRC( SDB_RTNCLOSELOB2, rc ) ;
       return rc ;
    error:
       goto done ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNPREPARE4READLOB, "rtnPrepage4ReadLob" )
-   static INT32 rtnPrepage4ReadLob( const CHAR *fullName,
-                                    _dmsStorageUnit *&su,
-                                    _dmsMBContext *&mbContext )
-   {
-      INT32 rc = SDB_OK ;
-      PD_TRACE_ENTRY( SDB_RTNPREPARE4READLOB ) ;
-      SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
-      dmsStorageUnitID suID = DMS_INVALID_CS ;
-      const CHAR *clName = NULL ;
-      BOOLEAN lockDms = FALSE ;
-      _dmsStorageUnit *tmpSu = NULL ;
-      _dmsMBContext *tmpMb = NULL ;
-
-      rc = rtnResolveCollectionNameAndLock( fullName, dmsCB,
-                                            &tmpSu, &clName, suID ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to resolve collection:%s, rc:%d",
-                 fullName, rc ) ;
-         goto error ;
-      }
-
-      rc = tmpSu->data()->getMBContext( &tmpMb, clName, -1 ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to resolve collection name:%s",
-                 clName ) ;
-         goto error ;
-      }
-
-      su = tmpSu ;
-      mbContext = tmpMb ;
-   done:
-      PD_TRACE_EXITRC( SDB_RTNPREPARE4READLOB, rc ) ;
-      return rc ;
-   error:
-      if ( NULL != tmpMb &&
-           tmpMb->isMBLock() )
-      {
-         tmpMb->mbUnlock() ;
-      }
-
-      if ( NULL != tmpMb && NULL != tmpSu )
-      {
-         tmpSu->data()->releaseMBContext( tmpMb ) ;
-         tmpMb = NULL ;
-      }
-
-      if ( NULL != tmpSu )
-      {
-         dmsCB->suUnlock ( tmpSu->CSID() ) ;
-         tmpSu = NULL ;
-      }
-
-      if ( lockDms )
-      {
-         dmsCB->writeDown() ;
-      }
-
-      su = NULL ;
-      mbContext = NULL ;
-      goto done ;
-   }
-
-   static void rtnReadLobDone( _pmdEDUCB *cb,
-                               _dmsStorageUnit *&su,
-                               _dmsMBContext *&mbContext )
-   {
-      PD_TRACE_ENTRY( SDB_RTNWRITELOBDONE ) ;
-      SDB_DMSCB *dmsCB = sdbGetDMSCB() ;
-      su->data()->releaseMBContext( mbContext ) ;
-      dmsCB->suUnlock ( su->CSID() ) ;
-      su = NULL ;
-      mbContext = NULL ;
-      PD_TRACE_EXIT( SDB_RTNWRITELOBDONE ) ;
-      return ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNGETLOBMETADATA2, "rtnGetLobMetaData" )
@@ -764,22 +663,18 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNGETLOBMETADATA2 ) ;
-      _dmsStorageUnit *su = NULL ;
-      _dmsMBContext *mbContext = NULL ;
       _dmsLobRecord record ;
-      BOOLEAN prepared = FALSE ;
+      rtnLobEnv lobEnv( fullName, cb ) ;
 
-      rc = rtnPrepage4ReadLob( fullName, 
-                               su, mbContext ) ;
+      rc = lobEnv.prepareOpr( -1 ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to prepare to read lob:%d", rc ) ;
          goto error ;
       }
-      prepared = TRUE ;
 
-      rc = su->lob()->getLobMeta( oid, mbContext,
-                                  cb, meta ) ;
+      rc = lobEnv.getSU()->lob()->getLobMeta( oid, lobEnv.getMBContext(),
+                                              cb, meta ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to read lob[%s] in collection[%s], rc:%d",
@@ -794,11 +689,8 @@ namespace engine
          rc = SDB_LOB_IS_NOT_AVAILABLE ;
          goto error ;
       }
+
    done:
-      if ( prepared )
-      {
-         rtnReadLobDone( cb, su, mbContext ) ; 
-      }
       PD_TRACE_EXITRC( SDB_RTNGETLOBMETADATA2, rc ) ;
       return rc ;
    error:
@@ -818,34 +710,27 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNREADLOB2 ) ;
-      _dmsStorageUnit *su = NULL ;
-      _dmsMBContext *mbContext = NULL ;
       _dmsLobRecord record ;
-      BOOLEAN prepared = FALSE ;
       const CHAR *np = NULL ;
+      rtnLobEnv lobEnv( fullName, cb ) ;
 
-      rc = rtnPrepage4ReadLob( fullName,
-                               su, mbContext ) ;
+      rc = lobEnv.prepareOpr( -1 ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to prepare to read lob:%d", rc ) ;
          goto error ;
       }
-      prepared = TRUE ;
 
       record.set( &oid, sequence, offset, len, np ) ;
-      rc = su->lob()->read( record, mbContext, cb,
-                            data, read ) ;
+      rc = lobEnv.getSU()->lob()->read( record, lobEnv.getMBContext(), cb,
+                                        data, read ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to read lob:%d", rc ) ;
          goto error ;
       }
+
    done:
-      if ( prepared )
-      {
-         rtnReadLobDone( cb, su, mbContext ) ;
-      }
       PD_TRACE_EXITRC( SDB_RTNREADLOB2, rc ) ;
       return rc ;
    error:
@@ -862,23 +747,19 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNREMOVELOBPIECE ) ;
-      dmsStorageUnit *su = NULL ;
-      _dmsMBContext *mbContext = NULL ;
       _dmsLobRecord record ;
-      BOOLEAN prepared = FALSE ;
+      rtnLobEnv lobEnv( fullName, cb ) ;
 
-      rc = rtnPrepage4WriteLob( fullName, cb, FALSE,
-                                su, mbContext ) ;
+      rc = lobEnv.prepareOpr( -1 ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to prepare to write lob:%d", rc ) ;
          goto error ;
       }
-      prepared = TRUE ;
 
       record.set( &oid, sequence, 0, 0, NULL ) ;
-      rc = su->lob()->remove( record, mbContext, cb,
-                              dpsCB ) ;
+      rc = lobEnv.getSU()->lob()->remove( record, lobEnv.getMBContext(), cb,
+                                          dpsCB ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to remove lob[%s],"
@@ -892,11 +773,8 @@ namespace engine
          dpsCB->completeOpr( cb, w ) ;
          cb->resetLsn () ;
       }
+
    done:
-      if ( prepared )
-      {
-         rtnWriteLobDone( cb, su, mbContext ) ;
-      }
       PD_TRACE_EXITRC( SDB_RTNREMOVELOBPIECE, rc ) ;
       return rc ;
    error:
@@ -913,22 +791,18 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNQUERYANDINVALIDAGELOB ) ;
-      BOOLEAN prepared = FALSE ;
-      dmsStorageUnit *su = NULL ;
-      _dmsMBContext *mbContext = NULL ;
       dmsLobMeta lobMeta ;
+      rtnLobEnv lobEnv( fullName, cb ) ;
 
-      rc = rtnPrepage4WriteLob( fullName, cb, TRUE,
-                                su, mbContext ) ;
+      rc = lobEnv.prepareOpr( EXCLUSIVE ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to prepare to write lob:%d", rc ) ;
          goto error ;
       }
-      prepared = TRUE ;
 
-      rc = su->lob()->getLobMeta( oid, mbContext, cb,
-                                  lobMeta ) ;
+      rc = lobEnv.getSU()->lob()->getLobMeta( oid, lobEnv.getMBContext(), cb,
+                                              lobMeta ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to get lob meta[%s], rc:%d",
@@ -945,8 +819,8 @@ namespace engine
       meta = lobMeta ;
       lobMeta._status = DMS_LOB_UNCOMPLETE ;
 
-      rc = su->lob()->writeLobMeta( oid, mbContext, cb,
-                                    lobMeta, FALSE, dpsCB ) ;
+      rc = lobEnv.getSU()->lob()->writeLobMeta( oid, lobEnv.getMBContext(), cb,
+                                                lobMeta, FALSE, dpsCB ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to invalidate lob[%s], rc:%d",
@@ -955,10 +829,6 @@ namespace engine
       }
 
    done:
-      if ( prepared )
-      {
-         rtnWriteLobDone( cb, su, mbContext ) ;
-      }
       PD_TRACE_EXITRC( SDB_RTNQUERYANDINVALIDAGELOB, rc ) ;
       return rc ;
    error:
@@ -979,25 +849,21 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNUPDATELOB ) ;
       SDB_ASSERT( NULL != fullName && NULL != cb, "can not be null" ) ;
-      _dmsStorageUnit *su = NULL ;
-      _dmsMBContext *mbContext = NULL ;
       _dmsLobRecord record ;
-      BOOLEAN prepared = FALSE ;
+      rtnLobEnv lobEnv( fullName, cb ) ;
 
-      rc = rtnPrepage4WriteLob( fullName, cb, FALSE,
-                                su, mbContext ) ;
+      rc = lobEnv.prepareOpr( -1 ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to prepare to write lob:%d", rc ) ;
          goto error ;
       }
-      prepared = TRUE ;
 
       record.set( &oid, sequence, offset,
                   len, data ) ;
 
-      rc = su->lob()->update( record, mbContext, cb,
-                              dpsCB ) ;
+      rc = lobEnv.getSU()->lob()->update( record, lobEnv.getMBContext(), cb,
+                                          dpsCB ) ;
 
       if ( SDB_OK != rc )
       {
@@ -1010,11 +876,8 @@ namespace engine
          dpsCB->completeOpr( cb, w ) ;
          cb->resetLsn () ;
       }
+
    done:
-      if ( prepared )
-      {
-         rtnWriteLobDone( cb, su, mbContext ) ;
-      }
       PD_TRACE_EXITRC( SDB_RTNUPDATELOB, rc ) ;
       return rc ;
    error:

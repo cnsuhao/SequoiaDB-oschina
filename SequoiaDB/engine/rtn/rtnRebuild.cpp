@@ -62,7 +62,7 @@ namespace engine
 
       PD_LOG ( PDEVENT, "Start rebuilding database" ) ;
 
-      rc = dmsCB->registerRebuild () ;
+      rc = dmsCB->registerRebuild ( cb ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to register rebuild" ) ;
@@ -165,7 +165,7 @@ namespace engine
    done :
       if ( registeredRebuild )
       {
-         dmsCB->rebuildDown () ;
+         dmsCB->rebuildDown ( cb ) ;
       }
       PD_TRACE_EXITRC ( SDB_RTNREBUILDDB, rc ) ;
       return rc ;

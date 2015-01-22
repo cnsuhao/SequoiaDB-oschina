@@ -159,7 +159,7 @@ namespace engine
       }
       if ( writable )
       {
-         dmsCB->writeDown();
+         dmsCB->writeDown( cb );
       }
       if ( cb )
       {

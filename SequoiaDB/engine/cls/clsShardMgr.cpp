@@ -125,6 +125,8 @@ namespace engine
       if ( !_pNetRtAgent )
       {
          rc = SDB_INVALIDARG ;
+         PD_LOG ( PDERROR, "network runtime agent can't be NULL, rc = %d",
+                  rc ) ;
          goto error ;
       }
 
@@ -142,8 +144,9 @@ namespace engine
 
       if ( _vecCatlog.size() == 0 )
       {
-         PD_LOG ( PDERROR, "Not config catalog info" ) ;
          rc = SDB_INVALIDARG ;
+         PD_LOG ( PDERROR, "Catalog information was not properly configured, "
+                  "rc = %d", rc ) ;
          goto error ;
       }
 
@@ -253,7 +256,6 @@ namespace engine
       if ( CATALOG_GROUPID == groupID )
       {
          ossScopedLock lock ( &_shardLatch, SHARED ) ;
-
          if ( primary && _primary >= 0 && _primary < (INT32)_vecCatlog.size() )
          {
             hosts.push_back( _hostAndPort( _vecCatlog[_primary].host,
@@ -325,8 +327,8 @@ namespace engine
          }
       }
 
-      PD_RC_CHECK( rc, PDERROR, "Find node failed, rc:%d", rc ) ;
-
+      PD_RC_CHECK( rc, PDERROR, "Failed to find nodes for sync send, "
+                   "group id = %d, rc = %d", groupID, rc ) ;
       {
          UINT32 msgLength = 0 ;
          INT32 receivedLen = 0 ;
@@ -388,7 +390,6 @@ namespace engine
                PD_LOG ( PDERROR, "Recieve response message failed, rc: %d", rc ) ;
                goto error ;
             }
-
             *ppRecvMsg = (MsgHeader*)buff ;
             break ;
          }
@@ -418,6 +419,8 @@ namespace engine
       if ( !_pNetRtAgent || _vecCatlog.size() == 0 )
       {
          rc = SDB_SYS ;
+         PD_LOG ( PDERROR, "Either network runtime agent does not exist, "
+                  "or catalog list is empty, rc = %d", rc ) ;
          goto error ;
       }
 
@@ -463,7 +466,8 @@ namespace engine
             }
             else
             {
-               PD_LOG ( PDWARNING, "Send message to catlog[%s:%s] failed[rc:%d]. "
+               PD_LOG ( PDWARNING,
+                        "Send message to catlog[%s:%s] failed[rc:%d]. "
                         "It is possible because the remote service was not "
                         "started yet",
                         _vecCatlog[index].host.c_str(),
@@ -485,6 +489,8 @@ namespace engine
    INT32 _clsShardMgr::updateCatGroup ( BOOLEAN unsetPrimary, INT64 millsec )
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR_UPDCATGRP );
+      SDB_ASSERT ( _vecCatlog.size() > 0,
+                   "there's at least 1 catalog exist" ) ;
       if ( unsetPrimary )
       {
          _primary = -1 ;
@@ -520,6 +526,12 @@ namespace engine
          }
       }
 
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to sync send to catalog, rc = %d", rc ) ;
+         goto error ;
+      }
+
       if ( millsec > 0 )
       {
          INT32 result = 0 ;
@@ -529,9 +541,11 @@ namespace engine
             rc = result ;
          }
       }
-
+   done :
       PD_TRACE_EXITRC ( SDB__CLSSHDMGR_UPDCATGRP, rc );
       return rc ;
+   error :
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR_CLRALLDATA, "_clsShardMgr::clearAllData" )
@@ -577,16 +591,18 @@ namespace engine
       if ( !pCollectionName )
       {
          rc = SDB_INVALIDARG ;
+         PD_LOG ( PDERROR, "collection name can't be NULL, rc = %d", rc ) ;
          goto error ;
       }
 
       _catLatch.get() ;
-
       pEventInfo = _findCatSyncEvent( pCollectionName, TRUE ) ;
       if ( !pEventInfo )
       {
          _catLatch.release () ;
          rc = SDB_OOM ;
+         PD_LOG ( PDERROR, "Failed to allocate memory for event info, "
+                  "rc = %d", rc ) ;
          goto error ;
       }
 
@@ -661,6 +677,8 @@ namespace engine
       {
          _catLatch.release () ;
          rc = SDB_OOM ;
+         PD_LOG ( PDERROR, "Failed to allocate event info for group %d, "
+                  "rc = %d", groupID, rc ) ;
          goto error ;
       }
 
@@ -751,7 +769,7 @@ namespace engine
          index++ ;
       }
       rc = SDB_SYS ;
-      PD_LOG ( PDINFO, "Catlog primary node to [%s] id error[%u:%u:%u]",
+      PD_LOG ( PDERROR, "Catlog primary node to [%s] id error[%u:%u:%u]",
                primary ? "primary" : "slave",
                id.columns.groupID,
                id.columns.nodeID,
@@ -778,22 +796,32 @@ namespace engine
       msg.id.columns.groupID = groupID ;
 
       INT32 rc = sendToCatlog( (MsgHeader *)&msg, pSendNum ) ;
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to send to catalog, rc = %d", rc ) ;
+         goto error ;
+      }
 
       PD_LOG ( PDDEBUG, "send group req[id: %d, requestID: %lld, rc: %d]",
                groupID, _requestID, rc ) ;
+   done :
       PD_TRACE_EXITRC ( SDB__CLSSHDMGR__SNDGPREQ, rc );
-      return rc ;      
+      return rc ;
+   error :
+      goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__SENDCATAQUERYREQ, "_clsShardMgr::_sendCataQueryReq" )
    INT32 _clsShardMgr::_sendCataQueryReq( INT32 queryType,
                                           const BSONObj & query,
                                           UINT64 requestID,
                                           INT32 *pSendNum )
    {
-      INT32 rc = SDB_OK ;
-      CHAR *pBuffer = NULL ;
-      INT32 buffSize = 0 ;
+      INT32 rc        = SDB_OK ;
+      CHAR *pBuffer   = NULL ;
+      INT32 buffSize  = 0 ;
       MsgHeader * msg = NULL ;
+      PD_TRACE_ENTRY ( SDB__CLSSHDMGR__SENDCATAQUERYREQ ) ;
 
       if ( 0 == requestID )
       {
@@ -804,6 +832,7 @@ namespace engine
                               -1, &query, NULL, NULL, NULL ) ;
       if ( SDB_OK != rc )
       {
+         PD_LOG ( PDERROR, "Failed to build query msg, rc = %d", rc ) ;
          goto error ;
       }
 
@@ -812,13 +841,18 @@ namespace engine
       msg->TID = 0 ;
       msg->routeID.value = 0 ;
       rc = sendToCatlog ( msg, pSendNum ) ;
-
+      if ( rc )
+      {
+         PD_LOG ( PDDEBUG, "Failed to send message to catalog, rc = %d", rc ) ;
+         goto error ;
+      }
    done:
       if ( pBuffer )
       {
          SDB_OSS_FREE ( pBuffer ) ;
          pBuffer = NULL ;
       }
+      PD_TRACE_EXITRC ( SDB__CLSSHDMGR__SENDCATAQUERYREQ, rc ) ;
       return rc ;
    error:
       goto done ;
@@ -835,6 +869,7 @@ namespace engine
       if ( !pCollectionName )
       {
          rc = SDB_INVALIDARG ;
+         PD_LOG ( PDERROR, "collection name can't be NULL, rc = %d", rc ) ;
          goto error ;
       }
 
@@ -866,14 +901,17 @@ namespace engine
       goto done ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDMGR__SENDCSINFOREQ, "_clsShardMgr::_sendCSInfoReq" )
    INT32 _clsShardMgr::_sendCSInfoReq( const CHAR * pCSName, UINT64 requestID,
                                        INT32 *pSendNum )
    {
       INT32 rc = SDB_OK ;
       BSONObj query ;
+      PD_TRACE_ENTRY ( SDB__CLSSHDMGR__SENDCSINFOREQ ) ;
       if ( !pCSName )
       {
          rc = SDB_INVALIDARG ;
+         PD_LOG ( PDERROR, "cs name can't be NULL, rc = %d", rc ) ;
          goto error ;
       }
 
@@ -899,7 +937,7 @@ namespace engine
       }
 
    done:
-      PD_TRACE_EXITRC ( SDB__CLSSHDMGR__SNDCATREQ, rc );
+      PD_TRACE_EXITRC ( SDB__CLSSHDMGR__SENDCSINFOREQ, rc );
       return rc ;
    error:
       goto done ;
@@ -986,7 +1024,6 @@ namespace engine
             }
             index++ ;
          }
-
          optCB->toString( newCfg ) ;
          if ( oldCfg != newCfg )
          {
@@ -1007,6 +1044,11 @@ namespace engine
          primaryNode.columns.serviceID = MSG_ROUTE_CAT_SERVICE ;
          primaryNode.columns.nodeID = primary ;
          rc = updatePrimary ( primaryNode, TRUE ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to update primary, rc = %d", rc ) ;
+            goto error ;
+         }
       }
 
    done:
@@ -1082,14 +1124,13 @@ namespace engine
          UINT32 groupID = 0 ;
 
          rc = _pNodeMgrAgent->updateGroupInfo( objdata, length, &groupID ) ;
-
-         PD_LOG ( PDEVENT, "Update group[groupID:%u, rc: %d]", groupID, rc ) ;
+         PD_LOG ( (SDB_OK == rc)?PDEVENT:PDERROR,
+                  "Update group[groupID:%u, rc: %d]", groupID, rc ) ;
 
          clsGroupItem* groupItem = NULL ;
          if ( SDB_OK == rc )
          {
             groupItem = _pNodeMgrAgent->groupItem( groupID ) ;
-
             if ( !pEventInfo )
             {
                pEventInfo = _findNMSyncEvent( groupID, FALSE ) ;
@@ -1127,18 +1168,17 @@ namespace engine
    INT32 _clsShardMgr::_onCatalogReqMsg ( NET_HANDLE handle, MsgHeader* msg )
    {
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR__ONCATREQMSG );
-      MsgCatQueryCatRsp *res = ( MsgCatQueryCatRsp*)msg ;
-
+      MsgCatQueryCatRsp *res   = ( MsgCatQueryCatRsp*)msg ;
       PD_LOG ( PDDEBUG, "Recieve catalog response[requestID: %lld, flag: %d]",
                msg->requestID, res->flags ) ;
 
-      INT32 flag = 0 ;
-      INT64 contextID = -1 ;
-      INT32 startFrom = 0 ;
-      INT32 numReturned = 0 ;
+      INT32 flag               = 0 ;
+      INT64 contextID          = -1 ;
+      INT32 startFrom          = 0 ;
+      INT32 numReturned        = 0 ;
       vector < BSONObj > objList ;
-      UINT32 groupID = nodeID().columns.groupID ;
-      INT32 rc = SDB_OK ;
+      UINT32 groupID           = nodeID().columns.groupID ;
+      INT32 rc                 = SDB_OK ;
       clsEventItem *pEventInfo = NULL ;
 
       ossScopedLock lock ( &_catLatch ) ;
@@ -1195,7 +1235,7 @@ namespace engine
                                 &numReturned, objList ) ;
          if ( SDB_OK != rc )
          {
-            rc = SDB_INVALIDARG ;
+            PD_LOG ( PDERROR, "Failed to extract reply msg, rc = %d", rc ) ;
             goto error ;
          }
 
@@ -1362,11 +1402,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR_GETANDLOCKCATSET );
-      if ( !ppSet || !name )
-      {
-         rc = SDB_INVALIDARG ;
-         goto done ;
-      }
+      SDB_ASSERT ( ppSet && name,
+                   "ppSet and name can't be NULL" ) ;
 
       while ( SDB_OK == rc )
       {
@@ -1376,6 +1413,12 @@ namespace engine
          {
             _pCatAgent->release_r() ;
             rc = syncUpdateCatalog( name, waitMillSec ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to sync update catalog, rc = %d",
+                        rc ) ;
+               goto error ;
+            }
             if ( pUpdated )
             {
                *pUpdated = TRUE ;
@@ -1383,7 +1426,6 @@ namespace engine
             noWithUpdate = FALSE ;
             continue ;
          }
-
          if ( !(*ppSet) )
          {
             _pCatAgent->release_r() ;
@@ -1394,6 +1436,8 @@ namespace engine
    done :
       PD_TRACE_EXITRC ( SDB__CLSSHDMGR_GETANDLOCKCATSET, rc );
       return rc ;
+   error :
+      goto done ;
    }
 
    INT32 _clsShardMgr::unlockCataSet( clsCatalogSet * catSet )
@@ -1413,11 +1457,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR_GETNLCKGPITEM );
-      if ( !ppItem )
-      {
-         rc = SDB_INVALIDARG ;
-         goto done ;
-      }
+      SDB_ASSERT ( ppItem, "ppItem can't be NULL" ) ;
 
       while ( SDB_OK == rc )
       {
@@ -1427,6 +1467,12 @@ namespace engine
          {
             _pNodeMgrAgent->release_r() ;
             rc = syncUpdateGroupInfo( id, waitMillSec ) ;
+            if ( rc )
+            {
+               PD_LOG ( PDERROR, "Failed to sync update group info, rc = %d",
+                        rc ) ;
+               goto error ;
+            }
             if ( pUpdated )
             {
                *pUpdated = TRUE ;
@@ -1434,7 +1480,6 @@ namespace engine
             noWithUpdate = FALSE ;
             continue ;
          }
-
          if ( !(*ppItem) )
          {
             _pNodeMgrAgent->release_r() ;
@@ -1445,6 +1490,8 @@ namespace engine
    done :
       PD_TRACE_EXITRC ( SDB__CLSSHDMGR_GETNLCKGPITEM, rc );
       return rc ;
+   error :
+      goto done ;
    }
 
    INT32 _clsShardMgr::unlockGroupItem( clsGroupItem * item )
@@ -1465,12 +1512,7 @@ namespace engine
       clsCSEventItem *item = NULL ;
       UINT64 requestID = 0 ;
       INT32 result = 0 ;
-
-      if ( NULL == csName )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
+      SDB_ASSERT ( csName, "collection space name can't be NULL" ) ;
 
       item = SDB_OSS_NEW clsCSEventItem() ;
       if ( NULL == item )
@@ -1489,9 +1531,9 @@ namespace engine
       rc = _sendCSInfoReq( csName, requestID, &(item->sendNums) ) ;
       if ( rc )
       {
+         PD_LOG ( PDERROR, "Failed to send cs info request, rc = %d", rc ) ;
          goto error ;
       }
-
       rc = item->event.wait( waitMillSec, &result ) ;
       if ( SDB_OK == rc )
       {
@@ -1559,7 +1601,6 @@ namespace engine
                goto done ;
             }
             updateCatGroup ( TRUE ) ;
-
             rc = _sendCSInfoReq( csItem->csName.c_str(),
                                  it->first,
                                  &(csItem->sendNums) ) ;

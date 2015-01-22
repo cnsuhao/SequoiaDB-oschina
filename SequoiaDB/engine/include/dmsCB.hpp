@@ -225,33 +225,13 @@ namespace engine
       }
 
       INT32 writable( _pmdEDUCB * cb ) ;
+      void  writeDown( _pmdEDUCB * cb ) ;
 
-      OSS_INLINE void writeDown()
-      {
-         _stateMtx.get();
-         --_writeCounter;
-         SDB_ASSERT( 0 <= _writeCounter, "write counter should not < 0" ) ;
-         _stateMtx.release();
-      }
+      INT32 registerBackup( _pmdEDUCB *cb ) ;
+      void  backupDown( _pmdEDUCB *cb ) ;
 
-      INT32 registerBackup() ;
-
-      OSS_INLINE void backupDown()
-      {
-         _stateMtx.get() ;
-         _dmsCBState = DMS_STATE_NORMAL ;
-         _backEvent.signalAll() ;
-         _stateMtx.release() ;
-      }
-
-      INT32 registerRebuild() ;
-
-      OSS_INLINE void rebuildDown()
-      {
-         _stateMtx.get();
-         _dmsCBState = DMS_STATE_NORMAL;
-         _stateMtx.release();
-      }
+      INT32 registerRebuild( _pmdEDUCB *cb ) ;
+      void  rebuildDown( _pmdEDUCB *cb ) ;
 
       OSS_INLINE UINT8 getCBState () const
       {

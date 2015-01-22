@@ -1,0 +1,15 @@
+import os
+
+Import("fapEnv")
+
+fapMongoFiles = [
+      "fap/mongodb/pmdMongoAccess.cpp",
+      "fap/mongodb/mongoConverter.cpp",
+      "fap/mongodb/pmdMongoSession.cpp",
+      "fap/mongodb/commands.cpp",
+      "fap/mongodb/msgBuffer.cpp",
+      "fap/mongodb/mongodef.cpp",
+      ]
+
+libmongo = fapEnv.SharedLibrary( 'fapmongo', fapMongoFiles )
+fapEnv.Install( '#/fap', libmongo )

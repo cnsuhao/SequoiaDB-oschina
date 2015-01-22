@@ -87,6 +87,11 @@ public class SequoiadbDatasource
 		return abnormal_urls.size();
 	}
 	
+	public synchronized void addCoord(String url) 
+	{
+	    normal_urls.add(url);
+	}
+	
 	/**
 	 * @fn SequoiadbDatasource(ArrayList<String> urls, String username, String password,
 	 *		                   ConfigOptions nwOpt, SequoiadbOption dsOpt)

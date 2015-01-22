@@ -115,13 +115,14 @@ namespace engine
       virtual void*              getOrgPointByType( SDB_CB_TYPE type ) ;
       virtual BOOLEAN            isCBValue( SDB_CB_TYPE type ) const ;
 
+      virtual UINT16             getLocalPort() const ;
+      virtual SDB_ROLE           getDBRole() const ;
+      virtual const CHAR*        getHostName() const { return _hostName ; }
+
       INT32             registerCB( IControlBlock *pCB, void *pOrg ) ;
 
       virtual void      onConfigChange ( UINT32 changeID ) ;
       virtual INT32     onConfigInit () ;
-
-   public:
-      const CHAR*       getHostName() const { return _hostName ; }
 
    private:
       IControlBlock                 *_arrayCBs[ SDB_CB_MAX ] ;
@@ -156,10 +157,6 @@ namespace engine
       UINT32 getDBStatus () const
       {
          return _dbStatus ;
-      }
-      SDB_ROLE getDBRole () const
-      {
-         return _role ;
       }
       pmdEDUMgr *getEDUMgr ()
       {

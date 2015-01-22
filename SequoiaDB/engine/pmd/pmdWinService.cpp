@@ -40,6 +40,8 @@
 #include "ossErr.h"
 #include "pd.hpp"
 #include "ossUtil.h"
+#include "pdTrace.hpp"
+#include "pmdTrace.hpp"
 
 #include <boost/bind.hpp>
 #include <boost/thread/thread.hpp>
@@ -63,6 +65,7 @@ INT32 WINAPI pmdWinstartService( const CHAR *pServiceName,
                                  PMD_WINSERVICE_FUNC svcFun )
 {
    INT32 rc = SDB_OK;
+   PD_TRACE_ENTRY ( SDB_PMDWINSTARTSVC );
    SDB_ASSERT( pServiceName, "service name can't be null!" );
    SDB_ASSERT( svcFun, "service function can't be null!" );
    SDB_ASSERT( g_service_name[0] == 0 && NULL == g_service_fun,
@@ -91,6 +94,7 @@ INT32 WINAPI pmdWinstartService( const CHAR *pServiceName,
       goto error;
    }
 done:
+   PD_TRACE_EXITRC ( SDB_PMDWINSTARTSVC, rc );
    return rc;
 error:
    goto done;
@@ -99,6 +103,7 @@ error:
 //PD_TRACE_DECLARE_FUNCTION ( SDB_PMDWINSVC_STPSVC, "pmdWinStopService" )
 VOID pmdWinStopService(LPTSTR lpszMsg)
 {
+    PD_TRACE_ENTRY ( SDB_PMDWINSVC_STPSVC );
     TCHAR chMsg[256];
     HANDLE hEventSource;
     LPTSTR lpszStrings[2];
@@ -118,11 +123,13 @@ VOID pmdWinStopService(LPTSTR lpszMsg)
     }
 
     SetEvent(g_wait_event);
+    PD_TRACE_EXIT ( SDB_PMDWINSVC_STPSVC );
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_PMDWINSVCMAIN, "pmdWinServiceMain" )
 void WINAPI pmdWinServiceMain( DWORD argc, LPTSTR *argv )
 {
+   PD_TRACE_ENTRY ( SDB_PMDWINSVCMAIN );
    SDB_ASSERT( g_service_fun, "service function can't be null!" );
    DWORD dwWait;
    if ( NULL == g_service_fun )
@@ -192,6 +199,7 @@ void WINAPI pmdWinServiceMain( DWORD argc, LPTSTR *argv )
       pmdWinSvcReportStatusToSCMgr( SERVICE_STOPPED );
    }
 done:
+   PD_TRACE_EXIT ( SDB_PMDWINSVCMAIN );
    return ;
 error:
    goto done;
@@ -201,6 +209,7 @@ error:
 BOOLEAN pmdWinSvcReportStatusToSCMgr( DWORD dwStatus )
 {
    BOOLEAN result = TRUE;
+   PD_TRACE_ENTRY ( SDB_PMDWINSVCREPSTATTOMGR );
 
    if ( dwStatus == SERVICE_START_PENDING )
    {
@@ -219,12 +228,14 @@ BOOLEAN pmdWinSvcReportStatusToSCMgr( DWORD dwStatus )
       pmdWinStopService( L"SetServiceStatus" );
    }
 
+   PD_TRACE_EXIT ( SDB_PMDWINSVCREPSTATTOMGR );
    return result;
 }
 
 //PD_TRACE_DECLARE_FUNCTION ( SDB_PMDWINSVCCTRLHANDL, "pmdWinServiceCtrlHandler" )
 void WINAPI pmdWinServiceCtrlHandler( DWORD control )
 {
+   PD_TRACE_ENTRY ( SDB_PMDWINSVCCTRLHANDL );
    switch( control )
    {
    case SERVICE_CONTROL_SHUTDOWN:
@@ -238,6 +249,7 @@ void WINAPI pmdWinServiceCtrlHandler( DWORD control )
       break;
    }
 
+   PD_TRACE_EXIT ( SDB_PMDWINSVCCTRLHANDL );
    return ;
 }
 

@@ -48,4 +48,5 @@ else if ( $groupname != "" && $nodename != "" )
 $smarty -> assign( "isgroupnode" , $isgroupnode ) ;
 $smarty -> assign( "group_list" , $group_list ) ;
 $smarty -> assign( "node_list" , $node_list ) ;
+
 ?>

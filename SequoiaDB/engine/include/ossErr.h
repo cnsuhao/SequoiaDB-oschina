@@ -324,4 +324,5 @@ const CHAR* getErrDesp ( INT32 errCode );
 #define SDBCM_NODE_IS_IN_RESTORING      -274  /**< Node is in restoring */
 #define SDB_DMS_CS_NOT_EMPTY            -275  /**< There are some collections in the collection space */
 #define SDB_CAT_LOCALHOST_CONFLICT      -276  /**< 'localhost' and '127.0.0.1' cannot be used mixed with other hostname and IP address */
+#define SDB_CAT_NOT_LOCALCONN           -277  /**< If use 'localhost' and '127.0.0.1' for hostname, coord and catalog must in the same host  */
 #endif /* OSSERR_HPP_ */

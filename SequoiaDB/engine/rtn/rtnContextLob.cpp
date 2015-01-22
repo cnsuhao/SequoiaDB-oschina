@@ -37,6 +37,8 @@
 #include "rtnCoordLobStream.hpp"
 #include "rtnTrace.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
    _rtnContextLob::_rtnContextLob( INT64 contextID, UINT64 eduID )

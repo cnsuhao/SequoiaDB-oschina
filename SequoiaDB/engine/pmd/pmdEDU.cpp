@@ -179,6 +179,7 @@ namespace engine
       _alignedMemSize   = 0 ;
 
       _curRequestID     = 1 ;
+      _dmsLockLevel     = 0 ;
 
       _monCfgCB = *( (monConfigCB*)(pmdGetKRCB()->getMonCB()) ) ;
 #endif // SDB_ENGINE
@@ -1100,6 +1101,8 @@ namespace engine
                         myEDUID, getEDUName(type), contextID ) ;
             }
          }
+
+         SDB_ASSERT( 0 == cb->getDmsLockLevel(), "Dms lock level must be 0" ) ;
 #endif // SDB_ENGINE
 
          cb->clear() ;

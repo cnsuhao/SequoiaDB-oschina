@@ -60,7 +60,7 @@ namespace engine
          /*
             0 for unlimited
          */
-         virtual UINT32          maxConnNum() const = 0 { return 0 ; }
+         virtual UINT32          maxConnNum() const { return 0 ; }
 
       public:
          virtual INT32           init( IResource *pResource ) = 0 ;
@@ -69,9 +69,9 @@ namespace engine
          virtual INT32           fini() = 0 ;
 
          virtual const CHAR*     getServiceName() const = 0 ;
-         pmdSession*             getSession( SOCKET fd,
+         virtual pmdSession*     getSession( SOCKET fd,
                                              IProcessor *pProcessor ) = 0 ;
-         void                    releaseSession( pmdSession *pSession ) = 0 ;
+         virtual void            releaseSession( pmdSession *pSession ) = 0 ;
 
    } ;
    typedef _IPmdAccessProtocol IPmdAccessProtocol ;
@@ -87,9 +87,12 @@ namespace engine
       return SDB_OSS_NEW apClass() ; \
    } \
    SDB_EXPORT void releaseAccessProtocol( IPmdAccessProtocol *&pAccessProtocol ) \
-   {
-      SDB_OSS_DEL pAccessProtocol ; \
-      pAccessProtocol = NULL ; \
+   { \
+      if ( NULL != pAccessProtocol ) \
+      { \
+         SDB_OSS_DEL pAccessProtocol ; \
+         pAccessProtocol = NULL ;      \
+      } \
    } \
    SDB_EXTERN_C_END
 

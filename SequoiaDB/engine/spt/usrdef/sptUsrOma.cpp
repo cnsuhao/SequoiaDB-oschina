@@ -200,16 +200,16 @@ namespace engine
          << " Oma.getOmaConfigs( [confFile] )" << endl
          << " Oma.setOmaConfigs( obj, [confFile] )" << endl
          << " Oma.getAOmaSvcName( hostname, [confFile] )" << endl
-         << " Oma.addAOmaSvcName( hostname, svcname, [isReplace], [confFile])"
+         << " Oma.addAOmaSvcName( hostname, svcname, [isReplace], [confFile] )"
          << endl
          << " Oma.delAOmaSvcName( hostname, [confFile] )" << endl
          << endl
          << "var oma = new Oma( [hostname], [svcname] )" << endl
-         << "   createCoord( svcname, dbpath, [config obj])" << endl
+         << "   createCoord( svcname, dbpath, [config obj] )" << endl
          << "   removeCoord( svcname )" << endl
-         << "   createData( svcname, dbpath, [config obj])  -standalone" << endl
+         << "   createData( svcname, dbpath, [config obj] )  -standalone" << endl
          << "   removeData( svcname )                       -standalone" << endl
-         << "   createOM( svcname, dbpath, [config obj])" << endl
+         << "   createOM( svcname, dbpath, [config obj] )" << endl
          << "   removeOM( svcname )" << endl
          << "   startNode( svcname )" << endl
          << "   stopNode( svcname )" << endl

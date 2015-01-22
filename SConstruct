@@ -172,6 +172,9 @@ add_option( "release" , "release build" , 0 , True )
 add_option( "dd", "debug build no optimization" , 0 , True , "debugBuild" )
 add_option( "noscreenout", "do not send anything to screen", 0, True )
 
+#fap options
+add_option( "fap", "foreign access protocol", 0, False )
+
 # don't run configure if user calls --help
 if GetOption('help'):
     Return()
@@ -184,6 +187,7 @@ shellVariantDir = variantDir + "shell"
 toolVariantDir = variantDir + "tool"
 fmpVariantDir = variantDir + "fmp"
 driverDir = variantDir + "driver"
+fapVariantDir = variantDir + "fap"
 
 def printLocalInfo():
    import sys, SCons
@@ -250,6 +254,7 @@ hasTool = has_option( "tool" )
 hasShell = has_option( "shell" )
 hasFmp = has_option("fmp")
 hasAll = has_option( "all" )
+hasFap = has_option("fap")
 
 # if everything are set, let's set everything to true
 if hasAll:
@@ -259,8 +264,9 @@ if hasAll:
    hasTool = True
    hasShell = True
    hasFmp = True
+   hasFap = True
 # if nothing specified, let's use engine+client+shell by default
-elif not ( hasEngine or hasClient or hasTestcase or hasTool or hasShell or hasFmp ):
+elif not ( hasEngine or hasClient or hasTestcase or hasTool or hasShell or hasFmp or hasFap ):
    hasEngine = True
    hasClient = True
    hasShell = True
@@ -349,7 +355,8 @@ elif guess_os == "win32":
         hdfsJniPath = join(java_dir,"jdk_win64/include")
         hdfsJniMdPath = join(java_dir,"jdk_win64/include/win32")
 
-env.Append( CPPPATH=[join(engine_dir,'include'),join(engine_dir,'client'),join(ssl_dir,'include'),join(gtest_dir,'include'),pcre_dir, boost_dir, ssh2_dir, hdfsJniPath, hdfsJniMdPath] )
+env.Append(
+CPPPATH=[join(engine_dir,'include'),join(engine_dir,'client'),join(ssl_dir,'include'),join(gtest_dir,'include'),pcre_dir, boost_dir, ssh2_dir, hdfsJniPath, hdfsJniMdPath] )
 
 env.Append( CPPDEFINES=["__STDC_LIMIT_MACROS", "HAVE_CONFIG_H"] )
 env.Append( CPPDEFINES=[ "SDB_DLL_BUILD" ] )
@@ -589,6 +596,8 @@ def getSysInfo():
 clientCppEnv = env.Clone()
 clientCppEnv.Append( CPPDEFINES=[ "SDB_DLL_BUILD" ] )
 clientCEnv = clientCppEnv.Clone()
+fapEnv = clientCppEnv.Clone()
+fapEnv["BUILD_DIR"] = fapVariantDir
 clientCppEnv["BUILD_DIR"] = clientCppVariantDir
 clientCEnv["BUILD_DIR"] = clientCVariantDir
 
@@ -627,6 +636,8 @@ toolEnv.Append( CPPDEFINES=[ "SDB_TOOL" ] )
 toolEnv.Append( CPPPATH=[ncursesinclude_dir] )
 fmpEnv.Append( CPPDEFINES=[ "SDB_FMP" ] )
 fmpEnv.Append( CPPDEFINES=[ "SDB_CLIENT" ] )
+fapEnv.Append( CPPDEFINES=["SDB_ENGINE"])
+#fapEnv.Append( CPPPATH=[join(engine_dir, "bson")])
 
 env['INSTALL_DIR'] = installDir
 if testEnv is not None:
@@ -639,6 +650,8 @@ if clientCEnv is not None:
     clientCEnv['INSTALL_DIR'] = installDir
 if fmpEnv is not None:
     fmpEnv['INSTALL_DIR'] = installDir
+if fapEnv is not None:
+    fapEnv['INSTALL_DIR'] = installDir
 # The following symbols are exported for use in subordinate SConscript files.
 # Ideally, the SConscript files would be purely declarative.  They would only
 # import build environment objects, and would contain few or no conditional
@@ -652,6 +665,7 @@ Export("shellEnv")
 Export("toolEnv")
 Export("testEnv")
 Export("fmpEnv")
+Export("fapEnv")
 Export("clientCppEnv")
 Export("clientCEnv")
 Export("installSetup getSysInfo")
@@ -713,4 +727,5 @@ if hasFmp:
    fmpEnv.SConscript ( 'SequoiaDB/SConscriptFmp', variant_dir=fmpVariantDir, duplicate=False )
 #if hasTestcase:
 #   env.SConscript( 'SequoiaDB/SConscript', variant_dir=variantDir, duplicate=False )
-
+if hasFap:
+   fapEnv.SConscript ( 'SequoiaDB/SConscriptFap', variant_dir=fapVariantDir, duplicate=False )

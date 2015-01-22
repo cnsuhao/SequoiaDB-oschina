@@ -37,6 +37,8 @@
 #include "rtnLob.hpp"
 #include "clsMgr.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
    _rtnContextShdOfLob::_rtnContextShdOfLob( INT64 contextID, UINT64 eduID )

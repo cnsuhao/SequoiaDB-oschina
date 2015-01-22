@@ -203,7 +203,7 @@ namespace engine
       }
       if ( writable )
       {
-         dmsCB->writeDown() ;
+         dmsCB->writeDown( cb ) ;
       }
       if ( cb )
       {
@@ -350,7 +350,7 @@ namespace engine
       }
       if ( writable )
       {
-         dmsCB->writeDown() ;
+         dmsCB->writeDown( cb ) ;
       }
       if ( cb )
       {

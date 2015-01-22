@@ -6,9 +6,9 @@
 			<td>集合数</td>
 		</tr>
 		<tr>
-			<td>{{$cs_info["Name"]}}</td>
-			<td>{{$cs_info["PageSize"]}}</td>
-			<td>{{count($cs_info["Collection"])}}</td>
+			<td>{{if array_key_exists( "Name", $cs_info )}} {{$cs_info["Name"]}} {{/if}}</td>
+			<td>{{if array_key_exists( "PageSize", $cs_info )}} {{$cs_info["PageSize"]}} {{/if}}</td>
+			<td>{{if array_key_exists( "Collection", $cs_info )}} {{count($cs_info["Collection"])}} {{/if}}</td>
 		</tr>
 	</table>
 	{{if array_key_exists( "Group", $cs_info )}}
@@ -130,8 +130,8 @@
 				<td>{{$count_num}}</td>
 				<td>{{if array_key_exists("ReplSize",$cl_split)}}{{$cl_split["ReplSize"]}}{{/if}}</td>
 				<td>
-					{{if array_key_exists("Compressed",$cl_split)}}
-						{{if $cl_split["Compressed"]}}
+					{{if array_key_exists("Attribute",$cl_split)}}
+						{{if $cl_split["Attribute"]}}
 							{{"true"}}
 						{{else}}
 							{{"false"}}
@@ -219,7 +219,7 @@
 				<td>{{$cl_nature["Name"]}}</td>
 				<td>{{$count_num}}</td>
 				<td>{{$child["Indexes"]}}</td>
-				<td>{{$child["NodeName"]}}</td>
+				<td>{{if array_key_exists( "NodeName", $child )}} {{$child["NodeName"]}} {{/if}}</td>
 			</tr>
 		</table>
 	{{/if}}

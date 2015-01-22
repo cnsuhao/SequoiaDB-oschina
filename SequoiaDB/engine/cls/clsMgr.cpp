@@ -98,7 +98,8 @@ namespace engine
    {
       UINT64 sessionID = ossPack32To64( header->routeID.columns.nodeID,
                                         header->TID ) ;
-      if ( MSG_INVALID_ROUTEID == header->routeID.value )
+      if ( header->routeID.columns.nodeID < DATA_NODE_ID_BEGIN ||
+           header->routeID.columns.groupID < DATA_GROUP_ID_BEGIN )
       {
          sessionID = ossPack32To64( PMD_BASE_HANDLE_ID + handle, header->TID ) ;
       }
@@ -115,7 +116,6 @@ namespace engine
       UINT32 tid = 0 ;
 
       ossUnpack32From64( sessionID, nodeID, tid ) ;
-
       if ( PMD_BASE_HANDLE_ID >= nodeID )
       {
          if ( PMD_SESSION_ACTIVE == startType )
@@ -159,10 +159,11 @@ namespace engine
       }
    }
 
-   pmdAsyncSession* _clsShardSessionMgr::_createSession( SDB_SESSION_TYPE sessionType,
-                                                         INT32 startType,
-                                                         UINT64 sessionID,
-                                                         void *data )
+   pmdAsyncSession* _clsShardSessionMgr::_createSession(
+         SDB_SESSION_TYPE sessionType,
+         INT32 startType,
+         UINT64 sessionID,
+         void *data )
    {
       pmdAsyncSession *pSession = NULL ;
 
@@ -226,7 +227,6 @@ namespace engine
             ++it ;
             continue ;
          }
-
          if ( !pSession->isProcess() && pSession->timeout( interval ) )
          {
             PD_LOG ( PDEVENT, "Session[%s] timeout", pSession->sessionName() ) ;
@@ -319,13 +319,13 @@ namespace engine
    {
    }
 
-   pmdAsyncSession* _clsReplSessionMgr::_createSession( SDB_SESSION_TYPE sessionType,
-                                                        INT32 startType,
-                                                        UINT64 sessionID,
-                                                        void *data )
+   pmdAsyncSession* _clsReplSessionMgr::_createSession(
+         SDB_SESSION_TYPE sessionType,
+         INT32 startType,
+         UINT64 sessionID,
+         void *data )
    {
       pmdAsyncSession *pSession = NULL ;
-
       if ( SDB_SESSION_REPL_DST == sessionType )
       {
          pSession = SDB_OSS_NEW clsReplDstSession( sessionID ) ;
@@ -435,7 +435,7 @@ namespace engine
       nodeID.columns.serviceID = _shardServiceID ;
       _shardNetRtAgent.updateRoute( nodeID, hostName, _shdServiceName ) ;
       rc = _shardNetRtAgent.listen( nodeID ) ;
-      if (SDB_OK != rc )
+      if ( SDB_OK != rc )
       {
          PD_LOG ( PDERROR, "Create listen[Hostname:%s, ServiceName:%s] failed",
                   hostName, _shdServiceName ) ;
@@ -1015,7 +1015,6 @@ namespace engine
             ++it ;
             continue ;
          }
-
          pSession = pSessionMgr->getSession ( info.sessionID, info.startType,
                                               NET_INVALID_HANDLE, TRUE, 0,
                                               info.data ) ;
@@ -1026,7 +1025,6 @@ namespace engine
             it = _vecInnerSessionParam.erase ( it ) ;
             continue ;
          }
-
          PD_LOG ( PDERROR, "Create inner session[TID:%d] failed",
                   info.innerTid ) ;
          rc = SDB_SYS ;
@@ -1113,13 +1111,14 @@ namespace engine
       rc = pTask->init( objdata ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG ( PDERROR, "Init split task failed[rc:%d]", rc ) ;
+         PD_LOG ( PDERROR, "Init task failed[rc:%d]", rc ) ;
          goto error ;
       }
 
       rc = _taskMgr.addTask( pTask, taskID ) ;
       if ( SDB_OK != rc )
       {
+         PD_LOG ( PDERROR, "Failed to add task, rc = %d", rc ) ;
          pTask = NULL ;
          goto error ;
       }
@@ -1130,7 +1129,13 @@ namespace engine
 
       tid = (UINT32)taskID ;
       rc = startInnerSession ( type, tid, (void *)pTask ) ;
-
+      if ( rc )
+      {
+         PD_LOG ( PDERROR, "Failed to start inner session, rc = %d",
+                  rc ) ;
+         pTask = NULL ;
+         goto error ;
+      }
    done:
       PD_TRACE_EXITRC ( SDB__CLSMGR__ADDTSKINSN, rc );
       return rc ;

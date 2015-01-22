@@ -67,7 +67,6 @@ namespace engine
 
       setGroupName ( "" );
 
-
 #if defined ( SDB_ENGINE )
       _monCfgCB.timestampON = TRUE ;
       _monDBCB.recordActivateTimestamp () ;
@@ -115,16 +114,30 @@ namespace engine
       return _arrayCBs[ type ] ? TRUE : FALSE ;
    }
 
+   UINT16 _SDB_KRCB::getLocalPort() const
+   {
+      return _optioncb.getServicePort() ;
+   }
+
+   SDB_ROLE _SDB_KRCB::getDBRole() const
+   {
+      return _role ;
+   }
+
    INT32 _SDB_KRCB::registerCB( IControlBlock *pCB, void *pOrg )
    {
       INT32 rc = SDB_OK ;
 
       SDB_ASSERT( pCB, "CB can't be NULL" ) ;
-      SDB_ASSERT( FALSE == _init, "Registered cb must before init krcb" ) ;
+      SDB_ASSERT( FALSE == _init, "Registered cb must be done before "
+                                  "KRCB initialization" ) ;
 
       if ( (INT32)( pCB->cbType () ) < 0 ||
            (INT32)( pCB->cbType () ) >= SDB_CB_MAX )
       {
+         SDB_ASSERT ( FALSE, "CB registration should not be out of range" ) ;
+         PD_LOG ( PDSEVERE, "Control Block type is not valid: %d",
+                  pCB->cbType () ) ;
          rc = SDB_SYS ;
          goto error ;
       }
@@ -284,6 +297,5 @@ namespace engine
     * kernel control block
     */
    pmdKRCB pmd_krcb ;
-
 }
 

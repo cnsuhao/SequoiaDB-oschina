@@ -219,14 +219,6 @@ namespace engine
       goto done ;
    }
 
-   struct fieldCompare
-   {
-      BOOLEAN operator()( const CHAR *a, const CHAR *b ) const
-      {
-         return ossStrcmp( a, b ) < 0 ;
-      }
-   } ;
-
    void needResetSelector( const BSONObj &original,
                            const BSONObj &orderBy,
                            BOOLEAN &needReset )

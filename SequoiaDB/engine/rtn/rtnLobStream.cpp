@@ -134,7 +134,7 @@ namespace engine
                  oid.str().c_str(), rc ) ;
          goto error ;
       }
-      
+
       rc = _getLobPageSize( _lobPageSz ) ;
       if ( SDB_OK != rc )
       {

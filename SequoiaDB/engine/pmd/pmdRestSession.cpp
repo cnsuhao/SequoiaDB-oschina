@@ -924,6 +924,7 @@ namespace engine
                                                              localIP ) ;
       if ( !_pSessionInfo )
       {
+         PD_LOG ( PDERROR, "Failed to allocate session" ) ;
          rc = SDB_OOM ;
       }
       else

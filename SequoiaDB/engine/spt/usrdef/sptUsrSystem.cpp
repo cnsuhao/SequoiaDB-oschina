@@ -37,6 +37,7 @@
 #include "utilStr.hpp"
 #include "ossSocket.hpp"
 #include "ossIO.hpp"
+#include "oss.h"
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
 #if defined (_LINUX)
@@ -72,6 +73,9 @@ namespace engine
    JS_STATIC_FUNC_DEFINE( _sptUsrSystem, getIpTablesInfo )
    JS_STATIC_FUNC_DEFINE( _sptUsrSystem, getHostName )
    JS_STATIC_FUNC_DEFINE( _sptUsrSystem, sniffPort )
+   JS_STATIC_FUNC_DEFINE( _sptUsrSystem, getPID )
+   JS_STATIC_FUNC_DEFINE( _sptUsrSystem, getTID )
+   JS_STATIC_FUNC_DEFINE( _sptUsrSystem, getEWD )
    JS_STATIC_FUNC_DEFINE( _sptUsrSystem, help )
 
    JS_BEGIN_MAPPING( _sptUsrSystem, "System" )
@@ -93,6 +97,9 @@ namespace engine
       JS_ADD_STATIC_FUNC( "getIpTablesInfo", getIpTablesInfo )
       JS_ADD_STATIC_FUNC( "getHostName", getHostName )
       JS_ADD_STATIC_FUNC( "sniffPort", sniffPort )
+      JS_ADD_STATIC_FUNC( "getPID", getPID )
+      JS_ADD_STATIC_FUNC( "getTID", getTID )
+      JS_ADD_STATIC_FUNC( "getEWD", getEWD )
       JS_ADD_STATIC_FUNC( "help", help )
    JS_MAPPING_END()
 
@@ -123,7 +130,8 @@ namespace engine
       cmd << "ping -n 2 -w 1000 " << "\"" << host << "\"" ;
 #endif
 
-      rc = runner.exec( cmd.str().c_str(), exitCode ) ;
+      rc = runner.exec( cmd.str().c_str(), exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
@@ -192,7 +200,8 @@ namespace engine
       }
 
 #if defined (_LINUX)
-      rc = runner.exec( "lsb_release -a |grep -v \"LSB Version\"", exitCode ) ;
+      rc = runner.exec( "lsb_release -a |grep -v \"LSB Version\"", exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
 #elif defined (_WINDOWS)
       rc = SDB_SYS ;
 #endif
@@ -235,7 +244,8 @@ namespace engine
 
       outStr = "" ;
 #if defined (_LINUX)
-      rc = runner.exec( "uname -a", exitCode ) ;
+      rc = runner.exec( "uname -a", exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
 #elif defined (_WINDOWS)
       rc = SDB_SYS ;
 #endif
@@ -874,7 +884,8 @@ namespace engine
    #define CPU_CMD "wmic CPU GET CurrentClockSpeed,Name,NumberOfCores"
 #endif
 
-      rc = runner.exec( CPU_CMD, exitCode ) ;
+      rc = runner.exec( CPU_CMD, exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc || SDB_OK != exitCode )
       {
          PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
@@ -1139,7 +1150,8 @@ namespace engine
       BSONObjBuilder builder ;
 
 #if defined (_LINUX)
-      rc = runner.exec( "free -m |grep Mem", exitCode ) ;
+      rc = runner.exec( "free -m |grep Mem", exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
 #elif defined (_WINDOWS)
       rc = SDB_SYS ;
 #endif
@@ -1273,7 +1285,8 @@ namespace engine
                      "DriveType,FreeSpace,SystemVolume"
 #endif // _LINUX
 
-      rc = runner.exec( DISK_CMD, exitCode ) ;
+      rc = runner.exec( DISK_CMD, exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc || SDB_OK != exitCode )
       {
          PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
@@ -1793,7 +1806,8 @@ namespace engine
                                " grep -v bytes | sed 's/:/ /' |"
                                " awk '{print $1,$2,$3,$4,$5,$10,$11,$12,$13}'" ;
 
-      rc = runner.exec( netFlowCMD, exitCode ) ;
+      rc = runner.exec( netFlowCMD, exitCode,
+                        FALSE, -1, FALSE, NULL, TRUE ) ;
       if ( SDB_OK != rc || SDB_OK != exitCode )
       {
          PD_LOG( PDERROR, "failed to exec cmd, rc:%d, exit:%d",
@@ -2063,6 +2077,89 @@ namespace engine
       goto done ;
    }
 
+   INT32 _sptUsrSystem::getPID ( const _sptArguments &arg,
+                                 _sptReturnVal &rval,
+                                 bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      UINT32 id = 0 ;
+      stringstream ss ;
+      BSONObjBuilder builder ;
+
+      if ( 0 < arg.argc() )
+      {
+         rc = SDB_INVALIDARG ;
+         ss << "No need arguments" ;
+         goto error ;
+      }
+      id = ossGetCurrentProcessID() ;
+      rval.setNativeVal( "", NumberInt, (const void *)(&id) ) ;
+      
+   done:
+      return rc ;
+   error:
+      detail = BSON( SPT_ERR << ss.str() ) ;
+      goto done ;
+   }
+
+   INT32 _sptUsrSystem::getTID ( const _sptArguments &arg,
+                                 _sptReturnVal &rval,
+                                 bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      UINT32 id = 0 ;
+      stringstream ss ;
+      BSONObjBuilder builder ;
+
+      if ( 0 < arg.argc() )
+      {
+         rc = SDB_INVALIDARG ;
+         ss << "No need arguments" ;
+         goto error ;
+      }
+
+      id = (UINT32)ossGetCurrentThreadID() ;
+      rval.setNativeVal( "", NumberInt, (const void *)(&id) ) ;
+
+   done:
+      return rc ;
+   error:
+      detail = BSON( SPT_ERR << ss.str() ) ;
+      goto done ;
+   }
+
+   INT32 _sptUsrSystem::getEWD ( const _sptArguments &arg,
+                                 _sptReturnVal &rval,
+                                 bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      CHAR buf[ OSS_MAX_PATHSIZE + 1 ] = {0} ;
+      stringstream ss ;
+      BSONObjBuilder builder ;
+
+      if ( 0 < arg.argc() )
+      {
+         rc = SDB_INVALIDARG ;
+         ss << "No need arguments" ;
+         goto error ;
+      }
+
+      rc = ossGetEWD( buf, OSS_MAX_PATHSIZE ) ;
+      if ( rc )
+      {
+         ss << "Get current executable file's working directory failed" ;
+         goto error ;
+      }
+
+      rval.setStringVal( "", buf ) ;
+
+   done:
+      return rc ;
+   error:
+      detail = BSON( SPT_ERR << ss.str() ) ;
+      goto done ;
+   }
+
    INT32 _sptUsrSystem::help( const _sptArguments & arg,
                               _sptReturnVal & rval,
                               BSONObj & detail )
@@ -2086,7 +2183,10 @@ namespace engine
          << " System.snapshotNetcardInfo()" << endl
          << " System.getIpTablesInfo()" << endl
          << " System.getHostName()" << endl
-         << " System.sniffPort( port )" << endl ;
+         << " System.sniffPort( port )" << endl
+         << " System.getPID()" << endl
+         << " System.getTID()" << endl
+         << " System.getEWD()" << endl;
       rval.setStringVal( "", ss.str().c_str() ) ;
       return SDB_OK ;
    }

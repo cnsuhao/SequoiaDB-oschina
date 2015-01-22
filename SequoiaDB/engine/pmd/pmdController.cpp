@@ -136,7 +136,7 @@ namespace engine
       EDUID eduID = PMD_INVALID_EDUID ;
 
       rc = _restAdptor.init( _fixBufSize, _maxRestBodySize, _restTimeout ) ;
-      PD_RC_CHECK( rc, PDERROR, "Failed to init rest adptor, rc: %d", rc ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init rest adaptor, rc: %d", rc ) ;
 
       rc = pEDUMgr->startEDU( EDU_TYPE_SYNCCLOCK, NULL, &eduID ) ;
       pEDUMgr->regSystemEDU( EDU_TYPE_SYNCCLOCK, eduID ) ;
@@ -257,7 +257,6 @@ namespace engine
          PMD_REGISTER_CB( sdbGetAuthCB() ) ;       // AUTH
          PMD_REGISTER_CB( sdbGetOMManager() ) ;    // OMSVC
       }
-
       PMD_REGISTER_CB( sdbGetDMSCB() ) ;           // DMS
       PMD_REGISTER_CB( sdbGetRTNCB() ) ;           // RTN
       PMD_REGISTER_CB( sdbGetSQLCB() ) ;           // SQL
@@ -322,11 +321,7 @@ namespace engine
       _add2UserMap( userName, newSession ) ;
       newSession->_inNum.inc() ;
       _ctrlLatch.release() ;
-
-      if ( newSession )
-      {
-         newSession->lock() ;
-      }
+      newSession->lock() ;
 
    done:
       return newSession ;
@@ -386,7 +381,7 @@ namespace engine
    {
       map<string, vector<restSessionInfo*> >::iterator it ;
       it = _mapUser2Sessions.find( user ) ;
-      if ( it == _mapUser2Sessions.end() )
+      if ( _mapUser2Sessions.end() == it )
       {
          vector<restSessionInfo*> vecSession ;
          vecSession.push_back( pSessionInfo ) ;
@@ -544,7 +539,6 @@ namespace engine
       static pmdController s_pmdctrl ;
       return &s_pmdctrl ;
    }
-
 }
 
 

@@ -372,6 +372,7 @@ catFiles = [
       "cat/catalogueCB.cpp",
       "cat/catNodeManager.cpp",
       "cat/catCatalogManager.cpp",
+      "cat/catLevelLock.cpp",
       "cat/catSplit.cpp"
       ]
 
