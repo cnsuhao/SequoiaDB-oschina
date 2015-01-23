@@ -318,7 +318,6 @@ namespace engine
          cmdline += SDBCM_OPTION_PREFIX PMD_OPTION_CURUSER ;
       }
 
-      PD_LOG( PDEVENT, "begin to run %s\n", cmdline.c_str() ) ;
       rc = runner.exec( cmdline.c_str(), exit, FALSE, OSS_ONE_SEC * 900 ) ;
       if ( rc )
       {
@@ -326,7 +325,6 @@ namespace engine
                   cmdline.c_str(), rc ) ;
          goto error ;
       }
-      PD_LOG( PDEVENT, "end to run %s\n", cmdline.c_str() ) ;
       if ( exit == SDB_OK  )
       {
          UTIL_VEC_NODES nodes ;

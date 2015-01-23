@@ -477,7 +477,7 @@ namespace engine
       {
 #endif
       rc = ossExec( getExecuteFile(), getArguments(), NULL,
-                     0, _pid, result, NULL, NULL );
+                    0, _pid, result, NULL, NULL );
 #if defined  (_LINUX)
       if ( SDB_OK != rc )
       {

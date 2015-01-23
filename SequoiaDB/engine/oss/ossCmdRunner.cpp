@@ -135,7 +135,7 @@ namespace engine
       CHAR *arguments = NULL ;
       INT32 argLen = 0 ;
       ossResultCode res ;
-      INT32 flags = OSS_EXEC_SSAVE ; // OSS_EXEC_SSAVE | OSS_EXEC_NODETACHED
+      INT32 flags = OSS_EXEC_SSAVE | OSS_EXEC_NODETACHED ; // OSS_EXEC_SSAVE 
 
 #if defined( _LINUX )
       std::vector<std::string> vecArgs ;

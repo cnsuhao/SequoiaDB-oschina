@@ -87,6 +87,8 @@
 #define REST_STRING_CL            "cl"
 #define REST_STRING_RECORD        "record"
 
+#define REST_STRING_EMPTY         ""
+
 /* http default body */
 #define REST_RESULT_STRING_OK     "{ \"errno\": 0, \"description\": \"OK\" }"
 
@@ -330,6 +332,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__RESTADP_PARQUERY ) ;
       INT32 keyOffset   = 0 ;
       INT32 valueOffset = 0 ;
+      const CHAR *pValueBuf = NULL ;
 
       for ( INT32 i = 0; i < length; ++i )
       {
@@ -337,6 +340,7 @@ namespace engine
          {
             pBuffer[i] = 0 ;
             valueOffset = i + 1 ;
+            pValueBuf = pBuffer + valueOffset ;
          }
          else if ( pBuffer[i] == '&' || ( i + 1 == length ) )
          {
@@ -349,7 +353,8 @@ namespace engine
                pBuffer[i] = 0 ;
             }
             pHttpConnection->_requestQuery.insert(
-                  std::make_pair(pBuffer + keyOffset, pBuffer + valueOffset) ) ;
+                  std::make_pair(pBuffer + keyOffset, pValueBuf) ) ;
+            pValueBuf = NULL ;
             keyOffset = i + 1 ;
          }
       }
@@ -1062,6 +1067,10 @@ namespace engine
       if ( it == pHttpCon->_requestQuery.end() )
       {
          *ppValue = NULL ;
+      }
+      else if( NULL == it->second )
+      {
+         *ppValue = REST_STRING_EMPTY ;
       }
       else
       {
