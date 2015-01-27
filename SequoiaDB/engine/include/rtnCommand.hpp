@@ -1242,26 +1242,6 @@ namespace engine
 
    } ;
 
-   class _rtnInvalidateCache : public _rtnCommand
-   {
-      DECLARE_CMD_AUTO_REGISTER()
-   public:
-      _rtnInvalidateCache() ;
-      virtual ~_rtnInvalidateCache() ;
-
-   public:
-      virtual const CHAR *name() { return NAME_INVALIDATE_CACHE ; }
-      virtual RTN_COMMAND_TYPE type() { return CMD_INVALIDATE_CACHE ; } 
-      virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
-                              const CHAR *pMatcherBuff,
-                              const CHAR *pSelectBuff,
-                              const CHAR *pOrderByBuff,
-                              const CHAR *pHintBuff ) ;
-      virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
-                           _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
-                           INT16 w = 1, INT64 *pContextID = NULL ) ;
-   } ;
-
    class _rtnForceSession : public _rtnCommand
    {
    DECLARE_CMD_AUTO_REGISTER()
@@ -1310,6 +1290,28 @@ namespace engine
       INT64 _contextID ;
       bson::BSONObj _query ;
       const CHAR *_fullName ;
+   } ;
+
+   class _rtnSetSessionAttr : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+      public:
+         _rtnSetSessionAttr() {}
+         virtual ~_rtnSetSessionAttr() {}
+
+      public:
+         virtual const CHAR * name () { return NAME_SET_SESSIONATTR ; }
+         virtual RTN_COMMAND_TYPE type () { return CMD_SET_SESSIONATTR ; }
+
+         virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn, 
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+         virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                              _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                              INT16 w = 1, INT64 *pContextID = NULL ) ;
    } ;
 }
 

@@ -398,7 +398,7 @@ namespace engine
    }
 
    void _CoordCB::updateCataInfo ( const std::string &collectionName,
-                         CoordCataInfoPtr &cataInfo )
+                                   CoordCataInfoPtr &cataInfo )
    {
       ossScopedLock _lock( &_cataInfoMutex, EXCLUSIVE );
       _cataInfoMap[collectionName] = cataInfo ;
@@ -429,6 +429,13 @@ namespace engine
    {
       ossScopedLock _lock( &_cataInfoMutex, EXCLUSIVE );
       _cataInfoMap.clear() ;
+   }
+
+   void _CoordCB::invalidateGroupInfo()
+   {
+      ossScopedLock _lock(&_nodeGroupMutex, EXCLUSIVE) ;
+      _nodeGroupInfo.clear() ;
+      _groupNameMap.clear() ;
    }
 
    /*

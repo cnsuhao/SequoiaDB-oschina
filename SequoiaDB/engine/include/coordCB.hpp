@@ -155,15 +155,16 @@ namespace engine
       INT32 getGroupInfo ( const CHAR *groupName,
                            CoordGroupInfoPtr &groupInfo ) ;
 
-      void updateCataInfo ( const std::string &collectionName,
-                            CoordCataInfoPtr &cataInfo ) ;
+      void  updateCataInfo ( const std::string &collectionName,
+                             CoordCataInfoPtr &cataInfo ) ;
 
       INT32 getCataInfo ( const std::string &strCollectionName,
                           CoordCataInfoPtr &cataInfo ) ;
 
-      void delCataInfo ( const std::string &collectionName ) ;
+      void  delCataInfo ( const std::string &collectionName ) ;
 
-      void invalidateCataInfo() ;
+      void  invalidateCataInfo() ;
+      void  invalidateGroupInfo() ;
 
    protected:
       INT32         _addGroupName ( const std::string& name, UINT32 id ) ;
@@ -173,7 +174,7 @@ namespace engine
       _netRouteAgent                      *_pNetWork;
       ossSpinSLatch                       _mutex;
       netMultiRouteAgent                  _multiRouteAgent;
-      CoordGroupInfoPtr                   _catGroupInfo;//don't modify while runtime
+      CoordGroupInfoPtr                   _catGroupInfo;
       rtnCoordProcesserFactory            _processerFactory;
 
       ossSpinSLatch                       _nodeGroupMutex;

@@ -80,6 +80,7 @@ namespace engine
 #define NAME_TEST_COLLECTION                 CMD_NAME_TEST_COLLECTION
 #define NAME_TEST_COLLECTIONSPACE            CMD_NAME_TEST_COLLECTIONSPACE
 #define NAME_SET_PDLEVEL                     CMD_NAME_SET_PDLEVEL
+#define NAME_SET_SESSIONATTR                 CMD_NAME_SETSESS_ATTR
 #define NAME_SPLIT                           CMD_NAME_SPLIT
 #define NAME_TRACE_START                     CMD_NAME_TRACE_START
 #define NAME_TRACE_STOP                      CMD_NAME_TRACE_STOP
@@ -172,6 +173,7 @@ namespace engine
       CMD_TEST_COLLECTIONSPACE               = 111,
 
       CMD_SET_PDLEVEL                        = 120,
+      CMD_SET_SESSIONATTR                    = 121,
 
       CMD_CREATE_GROUP                       = 130,
       CMD_CREATE_NODE                        = 131,

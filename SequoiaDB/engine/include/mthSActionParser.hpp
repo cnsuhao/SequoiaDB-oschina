@@ -1,0 +1,88 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program. If not, see <http://www.gnu.org/license/>.
+
+   Source File Name = mthSActionParser.hpp
+
+   Descriptive Name = mth selector action parser
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          15/01/2015  YW  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
+
+#ifndef MTH_SACTIONPARSER_HPP_
+#define MTH_SACTIONPARSER_HPP_
+
+#include "mthSAction.hpp"
+#include "ossLatch.hpp"
+#include <map>
+
+namespace engine
+{
+   class _mthSActionParser : public SDBObject
+   {
+   public:
+      _mthSActionParser() ;
+      ~_mthSActionParser() ;
+
+   public:
+      INT32 parse( const bson::BSONElement &e,
+                   _mthSAction &action ) ;
+
+      INT32 buildDefaultValueAction( const bson::BSONElement &e,
+                                     _mthSAction &action ) ;
+   public:
+      class parser : public SDBObject
+      {
+      public:
+         parser(){}
+         virtual ~parser() {}
+
+      public:
+         virtual INT32 parse( const bson::BSONElement &e,
+                              _mthSAction &action ) const = 0 ;
+
+         OSS_INLINE const std::string &getActionName() const
+         {
+            return _name ;
+         }
+
+      protected:
+         std::string _name ;
+      } ;
+
+   private:
+      typedef std::map<std::string, const parser *> PARSERS ;
+
+   private:
+      static INT32 _registerParsers() ;
+   private:
+      static PARSERS _parsers ;
+      static INT32 _initParsers ;
+   } ;
+   typedef class _mthSActionParser mthSActionParser ;
+}
+
+#endif
+

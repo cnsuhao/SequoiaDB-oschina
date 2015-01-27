@@ -765,9 +765,10 @@ namespace engine
       return &_lockBucket[ id ] ;
    }
 
-   INT32 _omAgentNodeMgr::addANode( const CHAR *arg1, const CHAR *arg2 )
+   INT32 _omAgentNodeMgr::addANode( const CHAR *arg1, const CHAR *arg2,
+                                    string *omsvc )
    {
-      return _addANode( arg1, arg2, TRUE, FALSE ) ;
+      return _addANode( arg1, arg2, TRUE, FALSE, omsvc ) ;
    }
 
    const CHAR* _omAgentNodeMgr::_getSvcNameFromArg( const CHAR * arg )
@@ -799,7 +800,8 @@ namespace engine
    }
 
    INT32 _omAgentNodeMgr::_addANode( const CHAR *arg1, const CHAR *arg2,
-                                     BOOLEAN needLock, BOOLEAN isModify )
+                                     BOOLEAN needLock, BOOLEAN isModify,
+                                     string *omsvc )
    {
       INT32 rc = SDB_OK ;
       const CHAR *pSvcName = NULL ;
@@ -1005,6 +1007,10 @@ namespace engine
                     pSvcName, rc ) ;
             goto error ;
          }
+         if ( omsvc )
+         {
+            *omsvc = nodeOptions.getOMService() ;
+         }
       }
 
       if ( isModify || !arg2 )
@@ -1082,7 +1088,7 @@ namespace engine
    }
 
    INT32 _omAgentNodeMgr::rmANode( const CHAR *arg1, const CHAR *arg2,
-                                   const CHAR *roleStr )
+                                   const CHAR *roleStr, string *omsvc )
    {
       INT32 rc = SDB_OK ;
       const CHAR *pSvcName = _getSvcNameFromArg( arg1 ) ;
@@ -1144,6 +1150,10 @@ namespace engine
          PD_LOG( PDERROR, "Extract node[%s] config failed, rc: %d",
                  pSvcName, rc ) ;
          goto error ;
+      }
+      if ( omsvc )
+      {
+         *omsvc = nodeOptions.getOMService() ;
       }
 
       if ( roleStr && 0 != *roleStr &&

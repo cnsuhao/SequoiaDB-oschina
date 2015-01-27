@@ -14,7 +14,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program. If not, see <http://www.gnu.org/license/>.
 
-   Source File Name = mthSelector.hpp
+   Source File Name = mthNodePool.hpp
 
    Descriptive Name =
 
@@ -31,61 +31,73 @@
 
 *******************************************************************************/
 
-#ifndef MTH_SELECTOR_HPP_
-#define MTH_SELECTOR_HPP_
+#ifndef MTH_NODEPOOL_HPP_
+#define MTH_NODEPOOL_HPP_
 
-#include "mthSColumnMatrix.hpp"
+#include <list>
+
+#define MTH_NODE_POOL_DEFAULT_SZ 32
 
 namespace engine
 {
-   class _mthSelector : public SDBObject
+   template<typename T>
+   class _mthNodePool : public SDBObject
    {
    public:
-      _mthSelector() ;
-      ~_mthSelector() ;
+      _mthNodePool()
+      :_eleSize( 0 )
+      {
+
+      }
+
+      ~_mthNodePool()
+      {
+         clear() ;
+      }
 
    public:
-      OSS_INLINE BOOLEAN isInitialized() const
+      INT32 allocate( T *&tp )
       {
-         return _init ;
+         INT32 rc = SDB_OK ;
+         if ( _eleSize < MTH_NODE_POOL_DEFAULT_SZ )
+         {
+            tp = &(_static[_eleSize++]) ;
+         }
+         else
+         {
+            T *node = SDB_OSS_NEW T ;
+            if ( NULL == node )
+            {
+               rc = SDB_OOM ;
+               goto error ;
+            }
+
+            _dynamic.push_back( node ) ;
+            tp = node ;
+            ++_eleSize ;
+         }
+      done:
+         return rc ;
+      error:
+         goto done ;
       }
 
-      OSS_INLINE const bson::BSONObj getPattern() const
+      void clear()
       {
-         return _matrix.getPattern() ;
+         typename std::list<T*>::iterator itr = _dynamic.begin() ;
+         for ( ; itr != _dynamic.end(); ++itr )
+         {
+            SDB_OSS_DEL *itr ;
+         }
+         _dynamic.clear() ;
+         _eleSize = 0 ;
+         return ;
       }
-
-      OSS_INLINE void setStringOutput ( BOOLEAN strOut )
-      {
-         _stringOutput = strOut ;
-      }
-
-      OSS_INLINE BOOLEAN getStringOutput () const
-      {
-         return _stringOutput ;
-      }
-   public:
-      INT32 loadPattern( const bson::BSONObj &pattern ) ;
-
-      INT32 select( const bson::BSONObj &source,
-                    bson::BSONObj &target ) ;
-
-      INT32 move( _mthSelector &other ) ;
-
-      void clear() ;
-
    private:
-      INT32 _buildCSV( const bson::BSONObj &obj,
-                       bson::BSONObj &csv ) ;
-   private:
-      mthSColumnMatrix _matrix ;
-      BOOLEAN _init ;
-
-      BOOLEAN _stringOutput ;
-      INT32 _stringOutputBufferSize ;
-      CHAR *_stringOutputBuffer ;
+      T _static[MTH_NODE_POOL_DEFAULT_SZ] ;
+      std::list<T*> _dynamic ;
+      UINT32 _eleSize ;
    } ;
-   typedef class _mthSelector mthSelector ;
 }
 
 #endif

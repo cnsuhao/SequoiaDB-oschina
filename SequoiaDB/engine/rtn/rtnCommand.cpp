@@ -2588,39 +2588,6 @@ namespace engine
       return rc ;
    }
 
-   IMPLEMENT_CMD_AUTO_REGISTER(_rtnInvalidateCache)
-   _rtnInvalidateCache::_rtnInvalidateCache()
-   {
-
-   }
-
-   _rtnInvalidateCache::~_rtnInvalidateCache()
-   {
-
-   }
-
-   INT32 _rtnInvalidateCache::init ( INT32 flags,
-                                     INT64 numToSkip,
-                                     INT64 numToReturn,
-                                     const CHAR *pMatcherBuff,
-                                     const CHAR *pSelectBuff,
-                                     const CHAR *pOrderByBuff,
-                                     const CHAR *pHintBuff )
-   {
-      return SDB_OK ;
-   }
-
-   INT32 _rtnInvalidateCache::doit ( _pmdEDUCB *cb,
-                                     SDB_DMSCB *dmsCB,
-                                     _SDB_RTNCB *rtnCB,
-                                     _dpsLogWrapper *dpsCB,
-                                     INT16 w,
-                                     INT64 *pContextID )
-   {
-      sdbGetShardCB()->getCataAgent()->clearAll() ;
-      return  SDB_OK ;
-   }
-
    _rtnForceSession::_rtnForceSession()
    :_sessionID( OSS_INVALID_PID )
    {
@@ -2780,6 +2747,59 @@ namespace engine
       }
       goto done ;
    }
+
+   IMPLEMENT_CMD_AUTO_REGISTER( _rtnSetSessionAttr )
+   INT32 _rtnSetSessionAttr::init( INT32 flags, INT64 numToSkip,
+                                   INT64 numToReturn,
+                                   const CHAR *pMatcherBuff,
+                                   const CHAR *pSelectBuff,
+                                   const CHAR *pOrderByBuff,
+                                   const CHAR *pHintBuff )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         INT32 prefType = PREFER_REPL_TYPE_MIN ;
+         BSONObj obj( pMatcherBuff ) ;
+         BSONElement e =  obj.getField( FIELD_NAME_PREFERED_INSTANCE ) ;
+         if ( e.type() != NumberInt )
+         {
+            PD_LOG( PDERROR, "Feild[%s] is not numberInt in obj[%s]",
+                    FIELD_NAME_PREFERED_INSTANCE, obj.toString().c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         prefType = e.numberInt() ;
+         if ( prefType <= PREFER_REPL_TYPE_MIN ||
+              prefType >=  PREFER_REPL_TYPE_MAX )
+         {
+            PD_LOG( PDERROR, "Prefer instance value[%d] invalid, must in "
+                    "rang(%d, %d)", prefType, PREFER_REPL_TYPE_MIN,
+                    PREFER_REPL_TYPE_MAX ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Ocurr exception: %s", e.what() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _rtnSetSessionAttr::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                                   _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                                   INT16 w, INT64 *pContextID )
+   {
+      return SDB_OK ;
+   }
+
 }
 
 

@@ -508,5 +508,45 @@ namespace engine
    error:
       goto done ;
    }
+
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnInvalidateCache)
+   _rtnInvalidateCache::_rtnInvalidateCache()
+   {
+
+   }
+
+   _rtnInvalidateCache::~_rtnInvalidateCache()
+   {
+
+   }
+
+   INT32 _rtnInvalidateCache::spaceNode()
+   {
+      return CMD_SPACE_NODE_DATA | CMD_SPACE_NODE_CATA  ;
+   }
+
+   INT32 _rtnInvalidateCache::init ( INT32 flags,
+                                     INT64 numToSkip,
+                                     INT64 numToReturn,
+                                     const CHAR *pMatcherBuff,
+                                     const CHAR *pSelectBuff,
+                                     const CHAR *pOrderByBuff,
+                                     const CHAR *pHintBuff )
+   {
+      return SDB_OK ;
+   }
+
+   INT32 _rtnInvalidateCache::doit ( _pmdEDUCB *cb,
+                                     SDB_DMSCB *dmsCB,
+                                     _SDB_RTNCB *rtnCB,
+                                     _dpsLogWrapper *dpsCB,
+                                     INT16 w,
+                                     INT64 *pContextID )
+   {
+      sdbGetShardCB()->getCataAgent()->clearAll() ;
+      sdbGetShardCB()->getNodeMgrAgent()->clearAll() ;
+      return  SDB_OK ;
+   }
+
 }
 

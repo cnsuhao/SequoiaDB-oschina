@@ -509,5 +509,49 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN utilSplitIterator::more() const
+   {
+      return NULL != _src && _ch != *_src ;
+   }
+
+   const CHAR *utilSplitIterator::next()
+   {
+      CHAR *ch = NULL ;
+      const CHAR *r = NULL ;
+
+      if ( NULL != _last )
+      {
+         *_last = _ch ;
+         _last = NULL ;
+      }
+
+      if ( NULL == _src )
+      {
+         goto done ;
+      }
+
+      ch = ossStrchr( _src, _ch ) ;
+
+      if ( NULL == ch )
+      {
+         r = _src ;
+         _src = NULL ;
+         goto done ;
+      }
+
+      if ( _src == ch )
+      {
+         _src = NULL ;
+         goto done ;
+      }
+
+      *ch = '\0' ;
+      _last = ch ;
+      r = _src ;
+
+      _src = ( '\0' == *( ch + 1 ) ) ? ch : ch + 1 ;
+   done:
+      return r ;
+   } 
 }
 

@@ -38,6 +38,7 @@
 #define UTILSTR_HPP_
 
 #include "core.hpp"
+#include "oss.hpp"
 #include <string>
 #include <vector>
 
@@ -84,6 +85,36 @@ namespace engine
                            INT32 &subVersion,    // out
                            INT32 &release,       // out
                            string &buildInfo ) ;
+
+   class utilSplitIterator : public SDBObject
+   {
+   public:
+      utilSplitIterator( CHAR *src, CHAR ch = '.' )
+      :_src( src ),
+       _ch( ch ),
+       _last( NULL )
+      {
+
+      }
+
+      ~utilSplitIterator()
+      {
+         if ( NULL != _last )
+         {
+            *_last = _ch ;
+            _last = NULL ;
+         }
+         _src = NULL ;
+      }
+
+   public:
+      BOOLEAN more() const ;
+      const CHAR *next() ;
+   private:
+      CHAR *_src ;
+      CHAR _ch ;
+      CHAR *_last ;
+   } ;
 }
 
 #endif // UTILSTR_HPP_

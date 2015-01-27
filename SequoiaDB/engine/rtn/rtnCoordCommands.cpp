@@ -9196,6 +9196,7 @@ namespace engine
       }
 
       sdbGetCoordCB()->invalidateCataInfo() ;
+      sdbGetCoordCB()->invalidateGroupInfo() ;
 
       reqHeader->TID = cb->getTID() ;
       rc = _executeOnMultiNodes( pReceiveBuffer,

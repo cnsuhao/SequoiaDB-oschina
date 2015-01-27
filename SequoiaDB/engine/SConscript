@@ -243,7 +243,14 @@ mthFiles = [
       "mth/mthModifier.cpp",
       "mth/mthSelector.cpp",
       "mth/mthMergeSelector.cpp",
-      "mth/mthCommon.cpp"
+      "mth/mthCommon.cpp",
+      "mth/mthSColumn.cpp",
+      "mth/mthSColumnMatrix.cpp",
+      "mth/mthSActionParser.cpp",
+      "mth/parsers/mthIncludeParser.cpp",
+      "mth/mthSAction.cpp",
+      "mth/mthSActionFunc.cpp",
+      "mth/parsers/mthDefaultParser.cpp"
       ]
 
 optFiles = [
@@ -588,6 +595,10 @@ spdTestFiles =[
       "test/spd/spdTest.cpp"
       ]
 
+selectorTestFiles= [
+      "test/selector/test.cpp"
+     ]
+
 #BSON
 env.StaticLibrary('bson', bsonFiles)
 #PCRE
@@ -659,7 +670,7 @@ clstest = env.Object('clstest', gtestMainFile)
 sqltest2 = env.Object('sqltest2', gtestMainFile)
 #sqltest3 = env.Object('sqltest3', gtestMainFile)
 spdtest = env.Object('spdtest', gtestMainFile)
-
+selectortest = env.Object('selectortest', gtestMainFile)
 
 if hasEngine:
    engine = env.Program("sequoiadb", pmdMain,
@@ -770,6 +781,11 @@ if hasTestcase:
 #          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
 
+   selectorTest =  env.Program("selectorTest", [ selectorTestFiles, selectortest],
+          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net",
+"sql","auth", "aggr", "spd", "omsvc"],
+          _LIBDEPS='$_LIBDEPS_OBJS' )
+
 # Tools
 if hasTool:
    sdbrestore = env.Program("sdbrestore", sdbrestoreFiles,
@@ -810,6 +826,7 @@ if hasTestcase:
 #   env.Install( '#/tests', sqlTest3 )
    env.Install( '#/tests', sqlclient )
 #   env.Install( '#/tests', performance )
+   env.Install( '#/tests', selectorTest )
 # Install tools
 if hasTool:
    env.Install( '#/bin', sdbrestore )
