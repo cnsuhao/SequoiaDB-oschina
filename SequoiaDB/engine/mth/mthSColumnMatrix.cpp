@@ -122,7 +122,7 @@ namespace engine
       PD_TRACE_ENTRY( SDB__MTHSCOLUMNMATRIX_SELECT ) ;
       BSONObjBuilder builder( src.objsize() * 1.2 ) ;
 
-      rc = _buildFromChildren( src, builder ) ;
+      rc = _buildObjFromChildren( src, builder ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to select columns "

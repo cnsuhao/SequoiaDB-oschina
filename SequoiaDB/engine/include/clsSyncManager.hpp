@@ -65,7 +65,8 @@ namespace engine
 
    public:
       INT32 sync( _clsSyncSession &session,
-                  const UINT32 &w ) ;
+                  const UINT32 &w,
+                  INT64 timeout = -1 ) ;
 
       void  updateNodeStatus( const MsgRouteID &id, BOOLEAN valid ) ;
       void  notifyFullSync( const MsgRouteID &id ) ;
@@ -102,7 +103,7 @@ namespace engine
       DPS_LSN_OFFSET getSyncCtrlArbitLSN() ;
 
    private:
-      INT32 _wait( _pmdEDUCB *&cb, UINT32 sub ) ;
+      INT32 _wait( _pmdEDUCB *&cb, UINT32 sub, INT64 timeout = -1 ) ;
 
       void _createWakePlan( const DPS_LSN_OFFSET &offset,
                             CLS_WAKE_PLAN &plan ) ;
@@ -131,6 +132,7 @@ namespace engine
 
       UINT32 _validSync ;
       UINT32 _timeout ;
+      UINT32 _aliveCount ;
 
    } ;
 }

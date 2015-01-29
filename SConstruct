@@ -636,7 +636,7 @@ toolEnv.Append( CPPDEFINES=[ "SDB_TOOL" ] )
 toolEnv.Append( CPPPATH=[ncursesinclude_dir] )
 fmpEnv.Append( CPPDEFINES=[ "SDB_FMP" ] )
 fmpEnv.Append( CPPDEFINES=[ "SDB_CLIENT" ] )
-fapEnv.Append( CPPDEFINES=["SDB_ENGINE"])
+fapEnv.Append( CPPDEFINES=["SDB_ENGINE", "SDB_DLL_BUILD"])
 #fapEnv.Append( CPPPATH=[join(engine_dir, "bson")])
 
 env['INSTALL_DIR'] = installDir

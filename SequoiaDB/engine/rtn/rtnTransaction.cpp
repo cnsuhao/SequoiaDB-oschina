@@ -228,6 +228,14 @@ namespace engine
       cb->setRelatedTransLSN( DPS_INVALID_LSN_OFFSET ) ;
       sdbGetTransCB()->transLockReleaseAll( cb ) ;
       cb->stopRollback() ;
+
+#if defined ( _DEBUG )
+      if ( dpsCB )
+      {
+         dpsCB->completeOpr( cb, CLS_REPLSET_MAX_NODE_SIZE ) ;
+      }
+#endif // _DEBUG
+
       PD_TRACE_EXITRC ( SDB_RTNTRANSROLLBACK, rc ) ;
       return rc ;
    error:

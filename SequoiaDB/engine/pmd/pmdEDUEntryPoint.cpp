@@ -116,7 +116,12 @@ namespace engine
          ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_SYNCCLOCK, TRUE,
                                 pmdSyncClockEntryPoint,
                                 "SyncClockWorker" ),
-
+         ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_PROTOCOLLISTENER, TRUE,
+                                pmdProtocolListenerEntryPoint,
+                                "FAPListener" ),
+         ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_PROTOCOL, TRUE,
+                                pmdProtocolEntryPoint,
+                                "ForeignAccessProtocol" ),
          ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_MAXIMUM, FALSE,
                                 NULL,
                                 "Unknow" )

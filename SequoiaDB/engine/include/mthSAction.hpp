@@ -39,6 +39,7 @@
 #include "mthDef.hpp"
 #include "mthSActionFunc.hpp"
 #include "ossUtil.hpp"
+#include "mthMatcher.hpp"
 
 namespace engine
 {
@@ -101,6 +102,22 @@ namespace engine
          return ;
       }
 
+      OSS_INLINE void setSlicePair( INT32 begin,
+                                    INT32 step )
+      {
+         _begin = begin ;
+         _limit = step ;
+         return ;
+      }
+
+      OSS_INLINE void getSlicePair( INT32 &begin,
+                                    INT32 &step )
+      {
+         begin = _begin ;
+         step = _limit ;
+         return ;
+      }
+
       OSS_INLINE void clear()
       {
          _value = bson::BSONElement() ;
@@ -112,6 +129,11 @@ namespace engine
       OSS_INLINE BOOLEAN empty() const
       {
          return !MTH_ATTR_IS_VALID( _attribute ) ;
+      }
+
+      OSS_INLINE _mthMatcher &getMatcher()
+      {
+         return _matcher ;
       }
    public:
       INT32 build( const CHAR *name,
@@ -130,7 +152,12 @@ namespace engine
       bson::BSONElement _value ;
       const CHAR *_name ;
       MTH_S_ATTRIBUTE _attribute ;
+
       bson::BSONObj _obj ;
+      _mthMatcher _matcher ;
+      INT32 _begin ;
+      INT32 _limit ;
+      
    } ;
    typedef class _mthSAction mthSAction ;
 }

@@ -42,6 +42,8 @@
 #include "pmdRestSession.hpp"
 #include "restAdaptor.hpp"
 #include "pmdRemoteSession.hpp"
+#include "../fap/fapModuleWrapper.hpp"
+#include "pmdAccessProtocolBase.hpp"
 
 #include <string>
 #include <map>
@@ -106,6 +108,11 @@ namespace engine
       private:
          ossSocket               *_pTcpListener ;
          ossSocket               *_pHttpListener ;
+         ossSocket               *_pMongoListener ;
+
+      private:
+         fapModuleWrapper        *_fapMongo ;
+         IPmdAccessProtocol      *_protocol ;
 
       private:
          map<string, restSessionInfo*>          _mapSessions ;

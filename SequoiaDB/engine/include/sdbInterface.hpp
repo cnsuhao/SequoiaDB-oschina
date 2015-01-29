@@ -98,7 +98,7 @@ namespace engine
       SDB_SESSION_SPLIT_SRC,
       SDB_SESSION_SPLIT_DST,
       SDB_SESSION_OMAGENT,
-      SDB_SESSION_MONGO,
+      SDB_SESSION_PROTOCOL,
 
       SDB_SESSION_MAX
    } ;

@@ -88,6 +88,8 @@ namespace engine
      _replStatus( CLS_BS_NORMAL )
    {
       _srcSessionNum = 0 ;
+      _ntyLastOffset = DPS_INVALID_LSN_OFFSET ;
+      _ntyProcessedOffset = DPS_INVALID_LSN_OFFSET ;
 
       _totalLogSize = 0 ;
       _inSyncCtrl   = FALSE ;
@@ -110,6 +112,7 @@ namespace engine
    {
       if ( getNtySessionNum() > 0 )
       {
+         _ntyLastOffset = offset ;
          _ntyQue.push( clsLSNNtyInfo( csLID, clLID, extLID ,offset ) ) ;
       }
    }
@@ -131,6 +134,8 @@ namespace engine
          }
          _vecLatch.release_r () ;
       }
+      _ntyProcessedOffset = offset ;
+
       PD_TRACE_EXIT ( SDB__CLSREPPSET_NOTIFY2SESSION );
    }
 
@@ -694,7 +699,7 @@ namespace engine
                _info.primary.value = MSG_INVALID_ROUTEID ;
             }
             PD_LOG( PDERROR, "vote: [node:%d] alive break",
-                        itr->second->beat.identity.columns.nodeID ) ;
+                    itr->second->beat.identity.columns.nodeID ) ;
             itr->second->beat.beatID = 0 ;
             itr->second->beat.serviceStatus = SERVICE_UNKNOWN ;
 

@@ -145,11 +145,13 @@ namespace engine
 
    INT32 _dpsLogWrapper::completeOpr( _pmdEDUCB * cb, INT32 w )
    {
+      INT32 rc = SDB_OK ;
       if ( _pEventHandler && w > 1 && cb && 0 != cb->getLsnCount() )
       {
-         return _pEventHandler->onCompleteOpr( cb, w ) ;
+         rc = _pEventHandler->onCompleteOpr( cb, w ) ;
+         cb->resetLsn() ;
       }
-      return SDB_OK ;
+      return rc ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLGWRAPP_RECDROW, "_dpsLogWrapper::recordRow" )

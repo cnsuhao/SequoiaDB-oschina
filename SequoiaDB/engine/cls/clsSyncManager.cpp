@@ -63,7 +63,8 @@ namespace engine
                                      _agent( agent ),
                                      _info( info ),
                                      _validSync( 0 ),
-                                     _timeout( 0 )
+                                     _timeout( 0 ),
+                                     _aliveCount( 0 )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__CLSSYNCMAG ) ;
       _syncSrc.value = MSG_INVALID_ROUTEID ;
@@ -89,6 +90,14 @@ namespace engine
          if ( _notifyList[i].id.value == id.value )
          {
             _notifyList[i].valid = valid ;
+            if ( valid )
+            {
+               ++_aliveCount ;
+            }
+            else
+            {
+               --_aliveCount ;
+            }
             break ;
          }
       }
@@ -167,6 +176,8 @@ namespace engine
 
       ossScopedRWLock lock( &_info->mtx, EXCLUSIVE ) ;
 
+      _aliveCount = _info->alives.size() ;
+
       for ( UINT32 i = 0; i < _validSync ; i++ )
       {
          if ( _notifyList[i].valid )
@@ -228,7 +239,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_SYNC, "_clsSyncManager::sync" )
    INT32 _clsSyncManager::sync( _clsSyncSession &session,
-                                const UINT32 &w )
+                                const UINT32 &w,
+                                INT64 timeout )
    {
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG_SYNC ) ;
       SDB_ASSERT( w <= CLS_REPLSET_MAX_NODE_SIZE &&
@@ -241,7 +253,7 @@ namespace engine
       UINT32 sub = 0;
       BOOLEAN needWait = TRUE ;
 
-      if ( w == CLS_REPLSE_WRITE_ONE )
+      if ( w <= CLS_REPLSE_WRITE_ONE )
       {
          goto done ;
       }
@@ -252,6 +264,12 @@ namespace engine
       {
          _info->mtx.release_r() ;
          goto done ;
+      }
+      else if ( _aliveCount < _validSync && w > _aliveCount + 1 )
+      {
+         rc = SDB_CLS_WAIT_SYNC_FAILED ;
+         _info->mtx.release_r() ;
+         goto error ;
       }
       else if ( w > _validSync + 1 )
       {
@@ -281,7 +299,7 @@ namespace engine
       }
       else if ( needWait )
       {
-         rc = _wait( session.eduCB, sub ) ;
+         rc = _wait( session.eduCB, sub, timeout ) ;
       }
 
    done:
@@ -611,7 +629,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__WAIT, "_clsSyncManager::_wait" )
-   INT32 _clsSyncManager::_wait( _pmdEDUCB *&cb, UINT32 sub )
+   INT32 _clsSyncManager::_wait( _pmdEDUCB *&cb, UINT32 sub, INT64 timeout )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSYNCMAG__WAIT ) ;
@@ -621,6 +639,15 @@ namespace engine
       {
          if ( SDB_OK != cb->getEvent().wait ( OSS_ONE_SEC, &rc ) )
          {
+            if ( timeout >= 0 )
+            {
+               timeout -= OSS_ONE_SEC ;
+               if ( timeout <= 0 )
+               {
+                  rc = SDB_TIMEOUT ;
+                  break ;
+               }
+            }
             continue ;
          }
          else
@@ -647,7 +674,10 @@ namespace engine
             ++i ;
          }
          _mtxs[sub].release() ;
-         rc = SDB_APP_INTERRUPT ;
+         if ( SDB_OK == rc )
+         {
+            rc = SDB_APP_INTERRUPT ;
+         }
       }
 
    done:

@@ -428,7 +428,10 @@ void pdLog( PDLEVEL level, const CHAR* func, const CHAR* file,
    );
 
 #if defined (_DEBUG) && defined (SDB_ENGINE)
-   ossPrintf ( "%s"OSS_NEWLINE, sysInfo ) ;
+   if ( 1 != ossGetParentProcessID() )
+   {
+      ossPrintf ( "%s"OSS_NEWLINE, sysInfo ) ;
+   }
 #else
    /* We write into log file if the string is not empty */
    if ( _getPDCfgInfo().isEnabled() )

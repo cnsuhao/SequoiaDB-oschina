@@ -75,6 +75,16 @@ default :                                                     \
 
 #endif
 
+#ifdef _LINUX
+#define LIB_START_STR "lib"
+#endif
+
+#ifdef _LINUX
+#define LIB_END_STR ".so"
+#else
+#define LIB_END_STR ".dll"
+#endif
+
 class _ossModuleHandle : public SDBObject
 {
 public :
@@ -94,6 +104,8 @@ public :
    INT32 unload () ;
    INT32 resolveAddress ( const CHAR *pFunctionName,
                           OSS_MODULE_PFUNCTION *pFunctionAddress ) ;
+private:
+   INT32 patchModuleName( const CHAR* name, CHAR *patchedName, UINT32 size ) ;
 } ;
 typedef class _ossModuleHandle ossModuleHandle ;
 

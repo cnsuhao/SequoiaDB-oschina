@@ -89,7 +89,10 @@ pmdFiles = [
       "pmd/pmdRestSvc.cpp",
       "pmd/pmdController.cpp",
       "pmd/pmdEDUEntryPoint.cpp",
-      "pmd/pmdProcessor.cpp"
+      "pmd/pmdProcessor.cpp",
+      "fap/mongodb/fapMongoModule.cpp",
+      "fap/fapModuleWrapper.cpp",
+      "pmd/pmdProtocolEntryPoint.cpp",
       ]
 migFiles = [
       "mig/migLoad.cpp"
@@ -250,7 +253,12 @@ mthFiles = [
       "mth/parsers/mthIncludeParser.cpp",
       "mth/mthSAction.cpp",
       "mth/mthSActionFunc.cpp",
-      "mth/parsers/mthDefaultParser.cpp"
+      "mth/parsers/mthDefaultParser.cpp",
+      "mth/parsers/mthSliceParser.cpp",
+      "mth/mthSliceIterator.cpp",
+      "mth/mthElemMatchIterator.cpp",
+      "mth/parsers/mthElemMatchParser.cpp",
+      "mth/parsers/mthElemMatchOneParser.cpp"
       ]
 
 optFiles = [

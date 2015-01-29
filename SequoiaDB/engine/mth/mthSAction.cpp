@@ -39,8 +39,12 @@
 namespace engine
 {
    _mthSAction::_mthSAction()
-   :_name( NULL ),
-    _attribute( MTH_S_ATTR_NONE )
+   :_buildFunc( NULL ),
+    _getFunc( NULL ),
+    _name( NULL ),
+    _attribute( MTH_S_ATTR_NONE ),
+    _begin( 0 ),
+    _limit( -1 )
    {
 
    }

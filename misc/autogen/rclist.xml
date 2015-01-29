@@ -2234,5 +2234,13 @@
          </description>
       </code>
 
+      <code>
+        <name>SDB_CAT_IS_NOT_DATAGROUP</name>
+        <description>
+          <en>The special group is not data group</en>
+          <cn>指定分区组不是数据分区组</cn>
+        </description>
+      </code>
+
    </codelist>
 </rclist>

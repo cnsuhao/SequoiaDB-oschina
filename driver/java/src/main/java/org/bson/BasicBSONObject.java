@@ -64,23 +64,42 @@ import org.bson.util.JSON;
  * 
  * </blockquote>
  */
-public class BasicBSONObject extends TreeMap<String, Object> implements
-		BSONObject {
+public class BasicBSONObject implements BSONObject {
 
 	private static final long serialVersionUID = -4415279469780082174L;
+	private Map<String, Object> _objectMap = null ;
+	
+	 /**
+     * Creates an empty object.
+     * 
+     * @param sort
+     *            true:  key will be sorted
+     *            false: key won't be sorted. 
+     */
+    public BasicBSONObject(boolean sort) {
+        if (sort) {
+            _objectMap = new TreeMap<String, Object>() ;
+        }
+        else {
+            _objectMap = new LinkedHashMap<String, Object>() ;
+        }
+    }
 
 	/**
-	 * Creates an empty object.
+	 * Creates an empty object. by default, key won't be sorted
 	 */
 	public BasicBSONObject() {
+	    this(false);
 	}
+	
+
 
 	public BasicBSONObject(int size) {
-		super();
+		this(false);
 	}
 
 	public boolean isEmpty() {
-		return this.size() == 0;
+		return _objectMap.size() == 0;
 	}
 
 	/**
@@ -92,6 +111,7 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	 *            value to stor
 	 */
 	public BasicBSONObject(String key, Object value) {
+	    this(false);
 		put(key, value);
 	}
 
@@ -103,7 +123,7 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	 */
 	@SuppressWarnings({"unchecked"})
 	public BasicBSONObject(Map m) {
-		super(m);
+	    _objectMap = new LinkedHashMap<String, Object>(m) ;
 	}
 
 	/**
@@ -112,7 +132,7 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	 * @return the DBObject
 	 */
 	public Map toMap() {
-		return new LinkedHashMap<String, Object>(this);
+		return new LinkedHashMap<String, Object>(_objectMap);
 	}
 
 	/**
@@ -123,7 +143,7 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	 * @return the object removed
 	 */
 	public Object removeField(String key) {
-		return remove(key);
+		return _objectMap.remove(key);
 	}
 
 	/**
@@ -134,7 +154,7 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	 * @return if the field exists
 	 */
 	public boolean containsField(String field) {
-		return super.containsKey(field);
+		return _objectMap.containsKey(field);
 	}
 
 	/**
@@ -153,7 +173,7 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	 * @return the value
 	 */
 	public Object get(String key) {
-		return super.get(key);
+		return _objectMap.get(key);
 	}
 
 	/**
@@ -369,7 +389,7 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 	 * @return the <code>val</code> parameter
 	 */
 	public Object put(String key, Object val) {
-		return super.put(key, val);
+		return _objectMap.put(key, val);
 	}
 
 	@SuppressWarnings({ "unchecked", "rawtypes" })
@@ -724,5 +744,14 @@ public class BasicBSONObject extends TreeMap<String, Object> implements
 
 		return result;
 	}
+
+    @Override
+    public Set<String> keySet() {
+        return _objectMap.keySet();
+    }
+    
+    public Set<Entry<String, Object>> entrySet() {
+        return _objectMap.entrySet();
+    }
 
 }

@@ -870,7 +870,7 @@ namespace engine
             break;
          }
          BSONObj boGroupInfo;
-         rc = activeGrp( strGroupName, boGroupInfo );
+         rc = activeGrp( strGroupName, 0, boGroupInfo );
          if ( rc != SDB_OK )
          {
             PD_LOG( PDERROR, "Failed to active group(rc=%d)", rc ) ;
@@ -2510,6 +2510,7 @@ namespace engine
    }
 
    INT32 catNodeManager::activeGrp( const std::string &strGroupName,
+                                    UINT32 groupID,
                                     BSONObj &boGroupInfo )
    {
       INT32 rc = SDB_OK;
@@ -2517,26 +2518,34 @@ namespace engine
       {
          try
          {
-            rc = catGetGroupObj( strGroupName.c_str(),
-                                 FALSE, boGroupInfo, _pEduCB );
+            if ( 0 != groupID )
+            {
+               rc = catGetGroupObj( groupID, boGroupInfo, _pEduCB ) ;
+            }
+            else
+            {
+               rc = catGetGroupObj( strGroupName.c_str(),
+                                    FALSE, boGroupInfo, _pEduCB ) ;
+            }
             if ( rc )
             {
-               PD_LOG( PDERROR, "Failed to get group(%s) info(rc=%d)",
-                       strGroupName.c_str(), rc ) ;
-               break;
+               PD_LOG( PDERROR, "Failed to get group(%s/%d) info, rc: %d",
+                       strGroupName.c_str(), groupID, rc ) ;
+               break ;
             }
+
             BSONElement beGroup = boGroupInfo.getField( CAT_GROUP_NAME );
             if ( beGroup.eoo() || beGroup.type()!=Array )
             {
-               rc = SDB_CLS_EMPTY_GROUP;
+               rc = SDB_CLS_EMPTY_GROUP ;
                PD_LOG( PDERROR, "Active group failed, can't active "
                        "empty-group" );
-               break;
+               break ;
             }
             BSONObj boGroup = beGroup.embeddedObject() ;
             if ( boGroup.isEmpty() )
             {
-               rc = SDB_CLS_EMPTY_GROUP;
+               rc = SDB_CLS_EMPTY_GROUP ;
                PD_LOG( PDERROR, "Active group failed, can't active "
                        "empty-group" );
                break;

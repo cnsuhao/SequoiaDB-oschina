@@ -36,6 +36,7 @@
 
 #include "mthSAction.hpp"
 #include "utilArray.hpp"
+#include "mthSAttribute.hpp"
 
 #define MTH_SCOLUMN_STATIC_NAME_BUF_LEN 32 
 
@@ -83,11 +84,6 @@ namespace engine
          return _actions ;
       }
 
-      OSS_INLINE MTH_S_ATTRIBUTE _getAttribute() const
-      {
-         return _attribute ;
-      }
-
       INT32 _setAttribute( MTH_S_ATTRIBUTE attribute ) ;
 
       INT32 _selectWithExclusion( const bson::BSONObj &obj,
@@ -104,8 +100,11 @@ namespace engine
       INT32 _buildFromChildren( const bson::BSONElement &e,
                                 bson::BSONObjBuilder &builder ) ;
 
-      INT32 _buildFromChildren( const bson::BSONObj &obj,
-                                bson::BSONObjBuilder &builder ) ;
+      INT32 _buildFromChildren( const bson::BSONElement &e,
+                                bson::BSONArrayBuilder &builder ) ;
+
+      INT32 _buildObjFromChildren( const bson::BSONObj &obj,
+                                   bson::BSONObjBuilder &builder ) ;
 
       INT32 _buildLastChildren( MTH_S_COLUMNS &array,
                                 bson::BSONObjBuilder &builder ) ;
@@ -120,7 +119,7 @@ namespace engine
       CHAR _staticName[MTH_SCOLUMN_STATIC_NAME_BUF_LEN] ;
       CHAR *_dynamicName ;
 
-      MTH_S_ATTRIBUTE _attribute ;
+      _mthSAttribute _attribute ;
 
    friend class _mthSColumnMatrix ;
    } ;

@@ -336,7 +336,7 @@ namespace engine
 
       for ( INT32 i = 0; i < length; ++i )
       {
-         if ( pBuffer[i] == '=' )
+         if ( pBuffer[i] == '=' && pValueBuf == NULL )
          {
             pBuffer[i] = 0 ;
             valueOffset = i + 1 ;

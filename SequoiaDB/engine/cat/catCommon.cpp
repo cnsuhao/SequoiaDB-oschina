@@ -397,15 +397,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATGETGROUPOBJ ) ;
       BSONObj dummyObj ;
       BSONObj boMatcher ;
-      if ( dataGroupOnly )
-      {
-         boMatcher = BSON( CAT_GROUPNAME_NAME << groupName
-                           << CAT_ROLE_NAME << SDB_ROLE_DATA ) ;
-      }
-      else
-      {
-         boMatcher = BSON( CAT_GROUPNAME_NAME << groupName ) ;
-      }
+      boMatcher = BSON( CAT_GROUPNAME_NAME << groupName ) ;
 
       rc = catGetOneObj( CAT_NODE_INFO_COLLECTION, dummyObj, boMatcher,
                          dummyObj, cb, obj ) ;
@@ -418,6 +410,15 @@ namespace engine
          PD_LOG( PDERROR, "Failed to get obj(%s) from %s, rc: %d",
                  boMatcher.toString().c_str(), CAT_NODE_INFO_COLLECTION, rc ) ;
          goto error ;
+      }
+      else if ( dataGroupOnly )
+      {
+         BSONElement e = obj.getField( CAT_ROLE_NAME ) ;
+         if ( !e.isNumber() || SDB_ROLE_DATA != e.numberInt() )
+         {
+            rc = SDB_CAT_IS_NOT_DATAGROUP ;
+            goto error ;
+         }
       }
 
    done :

@@ -50,7 +50,7 @@ namespace engine
    /*
       _IPmdAccessProtocol define
    */
-   class _IPmdAccessProtocol : public SDBObject
+   class SDB_EXPORT _IPmdAccessProtocol : public SDBObject
    {
       public:
          _IPmdAccessProtocol() {}

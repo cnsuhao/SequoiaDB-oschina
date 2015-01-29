@@ -254,6 +254,7 @@ namespace engine
          INT32                   _step ;
          INT32                   _needSyncData ;
          BOOLEAN                 _regTask ;
+         UINT32                  _collectionW ;
 
    };
 }

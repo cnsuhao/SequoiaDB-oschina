@@ -162,7 +162,7 @@ namespace engine
          {
             ossPrintf ( "FAILED"OSS_NEWLINE ) ;
             PD_LOG ( PDERROR, "Failed to terminate process %d, rc = %d",
-                     procs[ i ]._pid, rc ) ;
+                     procs[ i ]._pid, rctmp ) ;
             rc = rctmp ;
          }
          else

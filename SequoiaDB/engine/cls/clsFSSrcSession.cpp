@@ -803,7 +803,7 @@ namespace engine
             _syncLob( handle, packet, routeID, TID, requestID ) ;
          }
       }
-      else if ( retryTime < 20 )
+      else if ( retryTime < 10 )
       {
          ++retryTime ;
          ossSleep( 100 ) ;
@@ -1678,7 +1678,9 @@ namespace engine
 
       _taskID           = 0 ;
       _updateMetaTime   = 0 ;
-      _lastEndNtyTime   = 0 ;
+      _lastEndNtyOffset = DPS_INVALID_LSN_OFFSET ;
+      _getLastEndNtyOffset = FALSE ;
+      _collectionW      = 1 ;
    }
 
    _clsSplitSrcSession::~_clsSplitSrcSession()
@@ -1987,15 +1989,28 @@ namespace engine
             return FALSE ;
          }
 
-         if ( 0 == _lastEndNtyTime )
+         if ( FALSE == _getLastEndNtyOffset )
          {
-            _lastEndNtyTime = ( UINT64 )time( NULL ) ;
+            _getLastEndNtyOffset = TRUE ;
+            _lastEndNtyOffset = sdbGetReplCB()->getNtyLastOffset() ;
          }
 
-         if ( sdbGetReplCB()->getNtyQue()->size() > 0 &&
-              ( UINT64 )time( NULL ) - _lastEndNtyTime <= 2 )
+         if ( DPS_INVALID_LSN_OFFSET != _lastEndNtyOffset )
          {
-            return FALSE ; // delay 2 seconds
+            DPS_LSN_OFFSET processed = sdbGetReplCB()->getNtyProcessedOffset() ;
+            if ( DPS_INVALID_LSN_OFFSET == processed ||
+                 processed < _lastEndNtyOffset )
+            {
+               return FALSE ;
+            }
+            else
+            {
+               ossScopedLock lock( &_LSNlatch ) ;
+               if ( _deqLSN.size() > 0 )
+               {
+                  return FALSE ;
+               }
+            }
          }
       }
 
@@ -2110,6 +2125,16 @@ namespace engine
             goto done ;
          }
 
+         if ( _collectionW > 1 )
+         {
+            INT32 rc = sdbGetReplCB()->sync( eduCB()->getEndLsn(),
+                                             eduCB(), _collectionW, 1 ) ;
+            if ( SDB_TIMEOUT == rc )
+            {
+               goto done ;
+            }
+         }
+
          MsgClsFSEndRes res ;
          res.header.header.requestID = header->requestID ;
          res.header.header.routeID = header->routeID ;
@@ -2170,6 +2195,7 @@ namespace engine
       if ( pSet )
       {
          mainCLName = pSet->getMainCLName() ;
+         _collectionW = pSet->getW() ;
       }
       if ( !pSet || !pSet->isKeyInGroup( _rangeKeyObj, groupID ) )
       {

@@ -84,7 +84,7 @@ namespace engine
       :_pmdAsyncSession ( sessionID )
    {
       PD_TRACE_ENTRY ( SDB__CLSSDSESS__CLSSHDSESS ) ;
-      _pCollectionName = NULL ;
+      _pCollectionName  = NULL ;
       pmdKRCB *pKRCB = pmdGetKRCB () ;
       _pReplSet  = sdbGetReplCB () ;
       _pShdMgr   = sdbGetShardCB () ;
@@ -358,6 +358,7 @@ namespace engine
       BOOLEAN isNeedRollback = FALSE;
 
       MON_START_OP( _pEDUCB->getMonAppCB() ) ;
+      _pEDUCB->resetLsn() ;
 
       while ( loop )
       {

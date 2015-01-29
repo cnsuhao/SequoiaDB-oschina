@@ -146,7 +146,7 @@ namespace engine
       return mutex ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCLNJOB_DOIT, "_clsCleanupJob::doit" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCLNJOB_DOIT, "_clsCleanupJob::doit" )
    INT32 _clsCleanupJob::doit ()
    {
       INT32 rc = SDB_OK ;
@@ -181,7 +181,6 @@ namespace engine
          catSet = catAgent->collectionSet( _clFullName.c_str() ) ;
          if ( catSet )
          {
-            w = catSet->getW () ;
             dropCollection = ( 0 == catSet->groupCount() ) ? TRUE : FALSE ;
          }
          else
@@ -316,7 +315,7 @@ retry:
       goto done ;
    }
 
-   //PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCLNJOB__CLEANLOBDATA, "_clsCleanupJob::_cleanLobData" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCLNJOB__CLEANLOBDATA, "_clsCleanupJob::_cleanLobData" )
    INT32 _clsCleanupJob::_cleanLobData( INT32 w )
    {
       INT32 rc = SDB_OK ;
@@ -360,7 +359,11 @@ retry:
                rc = rtnRemoveLobPiece( _clFullName.c_str(),
                                        page._oid, page._sequence,
                                        eduCB(), w, _dpsCB ) ;
-               if ( SDB_OK != rc )
+               if ( SDB_CLS_WAIT_SYNC_FAILED == rc )
+               {
+                  rc = SDB_OK ;
+               }
+               else if ( SDB_OK != rc )
                {
                   PD_LOG( PDERROR, "failed to remove lob[%s][%d]",
                           ", rc:%d", page._oid.str().c_str(),
@@ -387,7 +390,7 @@ retry:
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCLNJOB__CLNBYTBSCAN, "_clsCleanupJob::_cleanByTBSCan" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCLNJOB__CLNBYTBSCAN, "_clsCleanupJob::_cleanByTBSCan" )
    INT32 _clsCleanupJob::_cleanByTBSCan ( INT32 w, CLS_CLEANUP_TYPE cleanType )
    {
       INT32 rc = SDB_OK ;
@@ -490,12 +493,17 @@ retry:
 
    INT32 _clsCleanupJob::_cleanBySplitKeyObj ( INT32 w )
    {
-      return rtnTraversalDelete ( _clFullName.c_str(), _splitKeyObj,
-                                  IXM_SHARD_KEY_NAME, 1, eduCB(),
-                                  _dmsCB, _dpsCB, w ) ;
+      INT32 rc = rtnTraversalDelete ( _clFullName.c_str(), _splitKeyObj,
+                                      IXM_SHARD_KEY_NAME, 1, eduCB(),
+                                      _dmsCB, _dpsCB, w ) ;
+      if ( SDB_CLS_WAIT_SYNC_FAILED == rc )
+      {
+         rc = SDB_OK ;
+      }
+      return rc ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCLNJOB__FLTDEL, "_clsCleanupJob::_filterDel" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCLNJOB__FLTDEL, "_clsCleanupJob::_filterDel" )
    INT32 _clsCleanupJob::_filterDel( const CHAR * buff, INT32 buffSize,
                                      CLS_CLEANUP_TYPE cleanType,
                                      UINT32 groupID )
@@ -525,7 +533,6 @@ retry:
                if ( !catSet->isObjInGroup( recordObj, groupID) )
                {
                   needDel = TRUE ;
-                  w = catSet->getW() ;
                }
             }
             else if ( catSet && CLS_CLEANUP_BY_RANGE == cleanType )
@@ -548,7 +555,6 @@ retry:
                       !catSet->isKeyInGroup( BSON(""<<hashValue), groupID ) )
                   {
                      needDel = TRUE ;
-                     w = catSet->getW() ;
                   }
                }
                else
@@ -561,7 +567,6 @@ retry:
                        !catSet->isKeyInGroup( keyObj, groupID ) )
                   {
                      needDel = TRUE ;
-                     w = catSet->getW() ;
                   }
                }
             }
@@ -606,7 +611,7 @@ retry:
 
                rc = rtnDelete( _clFullName.c_str(), selector, hint, 0,
                                eduCB(), _dmsCB, _dpsCB, w ) ;
-               if ( SDB_OK != rc )
+               if ( SDB_OK != rc && SDB_CLS_WAIT_SYNC_FAILED != rc )
                {
                   PD_LOG ( PDWARNING, "Job[%s] delete record[%s] failed[rc:%d]",
                            name(), recordObj.toString().c_str(), rc ) ;
@@ -632,7 +637,7 @@ retry:
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_STRARTCLNJOB, "startCleanupJob" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_STRARTCLNJOB, "startCleanupJob" )
    INT32 startCleanupJob( const std::string &clFullName,
                           const BSONObj &splitKeyObj,
                           const BSONObj &splitEndKeyObj,

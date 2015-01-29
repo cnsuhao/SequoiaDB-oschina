@@ -145,6 +145,7 @@ namespace engine
       {
          _pEDUCB->resetInterrupt() ;
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
+         _pEDUCB->resetLsn() ;
 
          rc = recvData( (CHAR*)&msgSize, sizeof(UINT32) ) ;
          if ( rc )

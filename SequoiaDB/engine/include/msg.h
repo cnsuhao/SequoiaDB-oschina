@@ -247,6 +247,11 @@ enum MSG_TYPE
    MSG_BS_LOB_CLOSE_RES                   = MAKE_REPLY_TYPE( MSG_BS_LOB_CLOSE_REQ ),
    MSG_LOB_END                            = 8999,
 
+   MSG_OM_BEGIN                        = 9000,
+   MSG_OM_UPDATE_TASK_REQ              = 9001,
+   MSG_OM_UPDATE_TASK_RES              = MAKE_REPLY_TYPE( MSG_OM_UPDATE_TASK_REQ ),
+   MSG_OM_END                          = 9999,
+
    MSG_NULL                            = 999999        //reserved
 };
 

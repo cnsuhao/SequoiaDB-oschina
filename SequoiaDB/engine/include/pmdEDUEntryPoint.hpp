@@ -79,6 +79,9 @@ namespace engine
    INT32 pmdLoadWorkerEntryPoint ( pmdEDUCB *cb, void *pData ) ;
    INT32 pmdSyncClockEntryPoint( pmdEDUCB *cb, void *arg ) ;
 
+   INT32 pmdProtocolListenerEntryPoint ( pmdEDUCB *cb, void *pData ) ;
+   INT32 pmdProtocolEntryPoint( pmdEDUCB *cb, void *arg ) ;
+
 }
 
 #endif // PMD_EDU_ENTRYPOINT_HPP__

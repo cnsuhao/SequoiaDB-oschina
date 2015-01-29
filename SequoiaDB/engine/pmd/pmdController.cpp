@@ -39,6 +39,9 @@
 #include "pmdCB.hpp"
 #include "rtnPageCleanerJob.hpp"
 #include "../bson/lib/md5.hpp"
+#include "ossDynamicLoad.hpp"
+#include "../fap/mongodb/fapMongoModule.hpp"
+#include "../fap/fapModuleWrapper.hpp"
 
 namespace engine
 {
@@ -57,12 +60,15 @@ namespace engine
    {
       _pTcpListener        = NULL ;
       _pHttpListener       = NULL ;
+      _pMongoListener      = NULL ;
       _sequence            = 1 ;
       _timeCounter         = 0 ;
       _fixBufSize          = SDB_PAGE_SIZE ;
       _maxRestBodySize     = PMD_REST_MAX_BODY_SIZE ;
       _restTimeout         = REST_TIMEOUT ;
       _pRSManager          = NULL ;
+      _fapMongo            = NULL ;
+      _protocol            = NULL ;
    }
 
    _pmdController::~_pmdController ()
@@ -70,6 +76,7 @@ namespace engine
       SDB_ASSERT( _vecFixBuf.size() == 0, "Fix buff catch must be empty" ) ;
       _pTcpListener        = NULL ;
       _pHttpListener       = NULL ;
+      _pMongoListener      = NULL ;
    }
 
    SDB_CB_TYPE _pmdController::cbType () const
@@ -87,6 +94,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       pmdOptionsCB *pOptCB = pmdGetOptionCB() ;
       UINT16 port = 0 ;
+      UINT16 protocolPort = 0 ;
+      const CHAR *moduleName = NULL ;
+      const CHAR *modulePath = NULL ;
 
       port = pOptCB->getServicePort() ;
       _pTcpListener = SDB_OSS_NEW ossSocket( port ) ;
@@ -122,6 +132,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to bind http listerner socket[%d], "
                    "rc: %d", port, rc ) ;
       PD_LOG( PDEVENT, "Http Listerning on port[%d]", port ) ;
+
 
    done:
       return rc ;
@@ -161,6 +172,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Wait rest Listener active failed, rc: %d",
                    rc ) ;
 
+      
       if ( SDB_ROLE_COORD != pmdGetDBRole() )
       {
          UINT32 pageTaskNum = pmdGetOptionCB()->getPageCleanNum() ;
@@ -195,7 +207,22 @@ namespace engine
          SDB_OSS_DEL _pHttpListener ;
          _pHttpListener = NULL ;
       }
+      if ( _pMongoListener )
+      {
+         SDB_OSS_DEL _pMongoListener ;
+         _pMongoListener = NULL ;
+      }
+      if ( _protocol )
+      {
+         _fapMongo->release( _protocol ) ;
+      }
 
+      if( _fapMongo )
+      {
+         _fapMongo->unload() ;
+         SDB_OSS_DEL _fapMongo ;
+         _fapMongo = NULL;
+      }
       _ctrlLatch.get() ;
       for ( UINT32 i = 0 ; i < _vecFixBuf.size() ; ++i )
       {
@@ -540,5 +567,3 @@ namespace engine
       return &s_pmdctrl ;
    }
 }
-
-

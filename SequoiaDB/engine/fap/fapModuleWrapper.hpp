@@ -1,0 +1,75 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program. If not, see <http://www.gnu.org/license/>.
+
+   Source File Name = aggrGroup.hpp
+
+   Descriptive Name =
+
+   When/how to use: this program may be used on binary and text-formatted
+   versions of PMD component. This file contains functions for agent processing.
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          01/27/2015  LZ  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
+#ifndef _SDB_FAP_WRAPPER_HPP_
+#define _SDB_FAP_WRAPPER_HPP_
+
+#include "oss.hpp"
+#include "ossDynamicLoad.hpp"
+#include "ossTypes.h"
+#include "pmdAccessProtocolBase.hpp"
+#include "ossDynamicLoad.hpp"
+
+#define OSS_FAP_CREATE  ( IPmdAccessProtocol*(*)() )
+#define OSS_FAP_RELEASE ( void(*)( IPmdAccessProtocol *) )
+
+namespace engine {
+
+class _fapModuleWrapper : public SDBObject
+{
+public:
+   _fapModuleWrapper() ;
+   virtual ~_fapModuleWrapper() ;
+
+   virtual INT32 init()   { return SDB_OK ; }
+   virtual INT32 active() { return SDB_OK ; }
+   virtual INT32 fini()   { return SDB_OK ; }
+
+   INT32 getFunction( const CHAR *funcName, OSS_MODULE_PFUNCTION *function ) ;
+   INT32 create ( IPmdAccessProtocol *&protocol ) ;
+   INT32 release( IPmdAccessProtocol *protocol ) ;
+
+   INT32 load( const CHAR *mudule, const CHAR *path, UINT32 mode = 0 ) ;
+   void  unload() ;
+
+protected:
+   OSS_MODULE_PFUNCTION  _function ;
+   ossModuleHandle      *_loadModule ;
+};
+
+typedef _fapModuleWrapper fapModuleWrapper ;
+}
+#endif

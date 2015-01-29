@@ -97,6 +97,7 @@ namespace engine
                          bson::BSONObj &boNodeInfo );
       INT32 removeGrp( const CHAR *groupName ) ;
       INT32 activeGrp( const std::string &strGroupName,
+                       UINT32 groupID,
                        bson::BSONObj &boGroupInfo );
 
       INT32 _count( const CHAR *collection, const BSONObj &matcher,

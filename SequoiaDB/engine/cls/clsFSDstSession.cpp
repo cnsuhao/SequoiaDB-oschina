@@ -1631,6 +1631,7 @@ namespace engine
       _replayer.enableDPS () ;
       _needSyncData = 1 ;
       _regTask = FALSE ;
+      _collectionW = 1 ;
    }
 
    _clsSplitDstSession::~_clsSplitDstSession ()
@@ -1914,6 +1915,7 @@ namespace engine
                            "task: %s", sessionName(), _pTask->taskName() ) ;
                   pmdGetKRCB()->getClsCB()->invalidateCata(
                      _pTask->clFullName() ) ;
+                  _collectionW = catSet->getW() ;
                   _step = STEP_END_NTY ;
                   _lend () ;
                }
@@ -2148,6 +2150,17 @@ namespace engine
                  "expect[%d]", sessionName(), _pTask->taskName(),
                  _status, CLS_FS_STATUS_END ) ;
          goto done ;
+      }
+
+      if ( _collectionW > 1 )
+      {
+         INT32 rc = sdbGetReplCB()->sync( eduCB()->getEndLsn(),
+                                          eduCB(), _collectionW, 1 ) ;
+         if ( SDB_TIMEOUT == rc )
+         {
+            _timeout = CLS_FS_TIMEOUT ;
+            goto done ;
+         }
       }
 
       _step = STEP_REMOVE ;

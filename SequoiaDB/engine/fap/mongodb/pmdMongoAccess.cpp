@@ -1,15 +1,50 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program. If not, see <http://www.gnu.org/license/>.
+
+   Source File Name = aggrGroup.hpp
+
+   Descriptive Name =
+
+   When/how to use: this program may be used on binary and text-formatted
+   versions of PMD component. This file contains functions for agent processing.
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          01/27/2015  LZ  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
 #include "pmdMongoAccess.hpp"
-#include "ossUtil.h"
-#include "pmdOptions.h"
+#include "ossUtil.hpp"
+#include "pmdOptions.hpp"
 #include "pmdMongoSession.hpp"
 
 namespace engine {
    PMD_EXPORT_ACCESSPROTOCOL_DLL( pmdMongoAccess )
 }
 
-INT32 pmdMongoAccess::init( engine::IResource *pResource )
+INT32 _pmdMongoAccess::init( engine::IResource *pResource )
 {
-   INT32 rc        = SDB_OK ;
    UINT16 basePort = 0 ;
    if ( NULL != pResource )
    {
@@ -23,34 +58,31 @@ INT32 pmdMongoAccess::init( engine::IResource *pResource )
       ossItoa( basePort + PORT_OFFSET, _serviceName, OSS_MAX_SERVICENAME ) ;
    }
 
-done:
-   return rc ;
-error:
-   goto done ;
+   return SDB_OK ;
 }
 
-INT32 pmdMongoAccess::active()
+INT32 _pmdMongoAccess::active()
 {
    return SDB_OK ;
 }
 
-INT32 pmdMongoAccess::deactive()
+INT32 _pmdMongoAccess::deactive()
 {
    return SDB_OK ;
 }
 
-INT32 pmdMongoAccess::fini()
+INT32 _pmdMongoAccess::fini()
 {
    return SDB_OK ;
 }
 
-const CHAR * pmdMongoAccess::getServiceName() const
+const CHAR * _pmdMongoAccess::getServiceName() const
 {
-   SDB_ASSERT( '\0' == _serviceName[0], "service name should not be empty" ) ;
+   SDB_ASSERT( '\0' != _serviceName[0], "service name should not be empty" ) ;
    return _serviceName ;
 }
 
-engine::pmdSession * pmdMongoAccess::getSession( SOCKET fd,
+engine::pmdSession * _pmdMongoAccess::getSession( SOCKET fd,
                                                  engine::IProcessor *pProcessor )
 {
    pmdMongoSession *session = NULL ;
@@ -60,10 +92,12 @@ engine::pmdSession * pmdMongoAccess::getSession( SOCKET fd,
       session->attachProcessor( pProcessor ) ;
    }
 
+   session->attachProcessor( pProcessor ) ;
+
    return session ;
 }
 
-void pmdMongoAccess::releaseSession( engine::pmdSession *pSession )
+void _pmdMongoAccess::releaseSession( engine::pmdSession *pSession )
 {
    pmdMongoSession *session = dynamic_cast< pmdMongoSession *>( pSession ) ;
    if ( NULL == session )
@@ -76,7 +110,7 @@ void pmdMongoAccess::releaseSession( engine::pmdSession *pSession )
    _release() ;
 }
 
-void pmdMongoAccess::_release()
+void _pmdMongoAccess::_release()
 {
    ossMemset( _serviceName, 0, OSS_MAX_SERVICENAME + 1 ) ;
 

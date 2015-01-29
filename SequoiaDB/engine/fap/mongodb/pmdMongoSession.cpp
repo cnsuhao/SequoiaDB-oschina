@@ -1,3 +1,39 @@
+/*******************************************************************************
+
+
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program. If not, see <http://www.gnu.org/license/>.
+
+   Source File Name = aggrGroup.hpp
+
+   Descriptive Name =
+
+   When/how to use: this program may be used on binary and text-formatted
+   versions of PMD component. This file contains functions for agent processing.
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          01/27/2015  LZ  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
 #include "util.hpp"
 #include "mongodef.hpp"
 #include "mongoConverter.hpp"
@@ -38,7 +74,7 @@ INT32 _pmdMongoSession::getServiceType() const
 
 engine::SDB_SESSION_TYPE _pmdMongoSession::sessionType() const
 {
-   return engine::SDB_SESSION_MONGO ;
+   return engine::SDB_SESSION_PROTOCOL ;
 }
 
 INT32 _pmdMongoSession::attachProcessor( engine::_IProcessor *processor )
@@ -57,7 +93,6 @@ void _pmdMongoSession::detachProcessor()
 INT32 _pmdMongoSession::run()
 {
    INT32 rc                     = SDB_OK ;
-   INT32 buffSize               = 0 ;
    UINT32 msgSize               = 0 ;
    CHAR *pBuff                  = NULL ;
    engine::pmdEDUMgr *pmdEDUMgr = NULL ;
@@ -74,6 +109,7 @@ INT32 _pmdMongoSession::run()
    {
       _pEDUCB->resetInterrupt() ;
       _pEDUCB->resetInfo( engine::EDU_INFO_ERROR ) ;
+      _pEDUCB->resetLsn() ;
 
       rc = recvData( (CHAR*)&msgSize, sizeof(UINT32) ) ;
       if ( rc )
@@ -103,7 +139,6 @@ INT32 _pmdMongoSession::run()
             rc = SDB_OOM ;
             break ;
          }
-         buffSize = getBuffLen() ;
          *(UINT32*)pBuff = msgSize ;
          rc = recvData( pBuff + sizeof(UINT32), msgSize - sizeof(UINT32) ) ;
          if ( rc )
@@ -147,20 +182,20 @@ error:
 
 INT32 _pmdMongoSession::_processMsg( const CHAR *pMsg, const INT32 len )
 {
-   INT32 rc             = SDB_OK ;
-   CONVERT_ERROR con_rc = CON_OK ;
-   const CHAR *pBody    = NULL ;
-   INT32 bodyLen        = 0 ;
+   INT32 rc          = SDB_OK ;
+   INT32 con_rc      = SDB_OK ;
+   const CHAR *pBody = NULL ;
+   INT32 bodyLen     = 0 ;
 
    _converter->loadFrom( pMsg, len ) ;
-   con_rc = _converter->convert( _inStream ) ;
-   if ( CON_OK != con_rc )
+   con_rc = _converter->convert( _inBuffer ) ;
+   if ( SDB_OK != con_rc )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
    }
 
-   rc = _onMsgBegin( (MsgHeader *) _inStream.data() ) ;
+   rc = _onMsgBegin( (MsgHeader *) _inBuffer.data() ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -180,7 +215,7 @@ INT32 _pmdMongoSession::_processMsg( const CHAR *pMsg, const INT32 len )
    }
    else
    {
-      rc = _processor->processMsg( (MsgHeader *) _inStream.data(),
+      rc = _processor->processMsg( (MsgHeader *) _inBuffer.data(),
                                     _pDPSCB, _contextBuff, 
                                     _replyHeader.contextID, _needReply ) ;
       pBody     = _contextBuff.data() ;
@@ -216,7 +251,7 @@ INT32 _pmdMongoSession::_processMsg( const CHAR *pMsg, const INT32 len )
       }
    }
 
-   rc = _onMsgEnd( rc, (MsgHeader *) _inStream.data() ) ;
+   rc = _onMsgEnd( rc, (MsgHeader *) _inBuffer.data() ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -274,6 +309,8 @@ INT32 _pmdMongoSession::_onMsgEnd( INT32 result, MsgHeader *msg )
    }
 
    MON_END_OP( _pEDUCB->getMonAppCB() ) ;
+
+   return SDB_OK ;
 }
 
 INT32 _pmdMongoSession::_reply( MsgOpReply *replyHeader,
@@ -315,7 +352,7 @@ INT32 _pmdMongoSession::_reply( MsgOpReply *replyHeader,
       bob.append( "code",  rc ) ;
       bob.append( "errmsg", bsonBody.getStringField( OP_ERRDESP_FIELD) ) ;
 
-      _outStream.write( bob.obj().objdata(), bob.obj().objsize() ) ;
+      _outBuffer.write( bob.obj().objdata(), bob.obj().objsize() ) ;
    }
 
    msgLen = sizeof( mongoMsgReply ) + bob.obj().objsize() ;
@@ -331,7 +368,7 @@ INT32 _pmdMongoSession::_reply( MsgOpReply *replyHeader,
 
    if ( pBody )
    {
-      rc = sendData(  _outStream.data(), _outStream.size() ) ;
+      rc = sendData(  _outBuffer.data(), _outBuffer.size() ) ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Session[%s] failed to send response body, rc: %d",
@@ -363,13 +400,13 @@ void _pmdMongoSession::_onDetach()
 
 void _pmdMongoSession::_zeroStream()
 {
-   if ( !_inStream.empty() )
+   if ( !_inBuffer.empty() )
    {
-      _inStream.zero() ;
+      _inBuffer.zero() ;
    }
 
-   if ( !_outStream.empty() )
+   if ( !_outBuffer.empty() )
    {
-      _outStream.zero() ;
+      _outBuffer.zero() ;
    }
 }

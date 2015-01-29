@@ -57,6 +57,7 @@ namespace engine
       OMNODE_NORMAL           = 0,
       OMNODE_RUNNING,
       OMNODE_CRASH,
+      OMNODE_RESTART,
       OMNODE_REMOVING
    } ;
 

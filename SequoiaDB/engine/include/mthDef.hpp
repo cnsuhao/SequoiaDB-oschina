@@ -60,7 +60,7 @@ namespace engine
    #define MTH_S_ATTR_EXCLUDE            ( MTH_S_ATTR_VALID_BIT )
    #define MTH_S_ATTR_INCLUDE            ( MTH_S_ATTR_VALID_BIT | MTH_S_ATTR_INCLUDE_BIT )
    #define MTH_S_ATTR_DEFAULT            ( MTH_S_ATTR_INCLUDE | MTH_S_ATTR_DEFAULT_BIT )
-   #define MTH_S_PROJECTION              ( MTH_S_ATTR_INCLUDE | MTH_S_ATTR_PROJECTION_BIT )
+   #define MTH_S_ATTR_PROJECTION         ( MTH_S_ATTR_VALID_BIT | MTH_S_ATTR_PROJECTION_BIT )
 
    #define MTH_ATTR_IS_VALID( attribute ) \
            OSS_BIT_TEST( attribute, MTH_S_ATTR_VALID_BIT )

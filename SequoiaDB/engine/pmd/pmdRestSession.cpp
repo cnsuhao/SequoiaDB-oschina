@@ -201,6 +201,7 @@ namespace engine
 
          _pEDUCB->resetInterrupt() ;
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
+         _pEDUCB->resetLsn() ;
 
          rc = pAdptor->recvRequestHeader( this ) ;
          if ( rc )
@@ -335,6 +336,7 @@ namespace engine
 
          _pEDUCB->resetInterrupt() ;
          _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
+         _pEDUCB->resetLsn() ;
 
          rc = pAdptor->recvRequestHeader( this ) ;
          if ( rc )
