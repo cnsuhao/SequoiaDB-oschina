@@ -85,6 +85,9 @@ namespace engine
 
       INT32 _allocateAction( _mthSAction *&action ) ;
 
+      INT32 _addMiddleAction( _mthSColumn *column,
+                              const CHAR *desc ) ;
+
    private:
       bson::BSONObj _pattern ;
 

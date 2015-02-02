@@ -42,7 +42,6 @@
 #include "pmdRestSession.hpp"
 #include "restAdaptor.hpp"
 #include "pmdRemoteSession.hpp"
-#include "../fap/fapModuleWrapper.hpp"
 #include "pmdAccessProtocolBase.hpp"
 
 #include <string>
@@ -52,7 +51,7 @@ using namespace std ;
 
 namespace engine
 {
-
+   class _pmdModuleLoader ;
    /*
       _pmdController define
    */
@@ -106,12 +105,15 @@ namespace engine
          virtual void  registerCB( SDB_ROLE dbrole ) ;
 
       private:
+         INT32 loadForeignModule() ;
+
+      private:
          ossSocket               *_pTcpListener ;
          ossSocket               *_pHttpListener ;
          ossSocket               *_pMongoListener ;
 
       private:
-         fapModuleWrapper        *_fapMongo ;
+         _pmdModuleLoader         *_fapMongo ;
          IPmdAccessProtocol      *_protocol ;
 
       private:

@@ -8,10 +8,11 @@
 #include "pmdTrace.hpp"
 #include "pmdProcessor.hpp"
 #include "pmdAccessProtocolBase.hpp"
+#include "pmdModuleLoader.hpp"
 
 namespace engine {
 
-   INT32 pmdProtocolListenerEntryPoint ( pmdEDUCB *cb, void *pData )
+   INT32 pmdFapListenerEntryPoint ( pmdEDUCB *cb, void *pData )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_PMDTCPLSTNENTPNT ) ;
@@ -19,7 +20,12 @@ namespace engine {
       monDBCB *mondbcb = krcb->getMonDBCB () ;
       pmdEDUMgr * eduMgr = cb->getEDUMgr() ;
       EDUID agentEDU = PMD_INVALID_EDUID ;
-      ossSocket *pListerner = ( ossSocket* )pData ;
+
+      pmdEDUParam* param = ( pmdEDUParam * )pData ;
+      ossSocket *pListerner = (ossSocket *)(param->pSocket) ;
+      IPmdAccessProtocol *protocol = param->protocol ;
+      SDB_OSS_DEL param ;
+      param = NULL ;
 
       if ( SDB_OK != ( rc = eduMgr->activateEDU ( cb ) ) )
       {
@@ -43,7 +49,7 @@ namespace engine {
          else if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to accept socket in TcpListener(rc=%d)",
-               rc ) ;
+                     rc ) ;
             if ( pListerner->isClosed() )
             {
                break ;
@@ -57,8 +63,9 @@ namespace engine {
          cb->incEventCount() ;
          ++mondbcb->numConnects ;
 
-         void *pData = NULL ;
-         *((SOCKET *) &pData) = s ;
+         pmdEDUParam *pParam = SDB_OSS_NEW pmdEDUParam() ;
+         *(( SOCKET *)&pParam->pSocket) = s ;
+         pParam->protocol = protocol ;
 
          if ( !krcb->isActive() )
          {
@@ -67,11 +74,11 @@ namespace engine {
             continue ;
          }
 
-         rc = eduMgr->startEDU ( EDU_TYPE_PROTOCOL, pData, &agentEDU ) ;
+         rc = eduMgr->startEDU ( EDU_TYPE_FAPAGENT, (void *)pParam, &agentEDU ) ;
          if ( rc )
          {
             PD_LOG( ( rc == SDB_QUIESCED ? PDWARNING : PDERROR ),
-               "Failed to start edu, rc: %d", rc ) ;
+                      "Failed to start edu, rc: %d", rc ) ;
 
             ossSocket newsock ( &s ) ;
             newsock.close () ;
@@ -101,13 +108,16 @@ namespace engine {
       goto done ;
    }
 
-   INT32 pmdProtocolEntryPoint( pmdEDUCB *cb, void *arg )
+   INT32 pmdFapAgentEntryPoint( pmdEDUCB *cb, void *arg )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_PMDLOCALAGENTENTPNT );
       pmdSession *session = NULL ;
-      SOCKET s = *(( SOCKET *) &arg ) ;
-      IPmdAccessProtocol* protocol = NULL ;
+      pmdEDUParam *pParam = ( pmdEDUParam * )arg ;
+      SOCKET s = *((SOCKET *)&pParam->pSocket) ;
+      IPmdAccessProtocol* protocol = pParam->protocol ;
+      SDB_OSS_DEL pParam ;
+      pParam = NULL ;
 
       if ( pmdGetDBRole() == SDB_ROLE_COORD )
       {

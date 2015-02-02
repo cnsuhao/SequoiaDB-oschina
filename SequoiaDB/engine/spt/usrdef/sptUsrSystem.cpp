@@ -52,6 +52,7 @@
 using namespace bson ;
 
 #define SPT_MB_SIZE     ( 1024*1024 )
+#define SPT_DISK_SRC_FILE "/etc/mtab"
 
 namespace engine
 {
@@ -1273,17 +1274,158 @@ namespace engine
                                      bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
+#if defined (_LINUX)
+      rc = _getLinuxDiskInfo( arg, rval, detail ) ;
+#else
+      rc = _getWinDiskInfo( arg, rval, detail ) ;
+#endif
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptUsrSystem::_getLinuxDiskInfo( const _sptArguments &arg,
+                                           _sptReturnVal &rval,
+                                           bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      INT64 fileSz = 0 ;
+      CHAR *buf = NULL ;
+      SINT64 read = 0 ;
+      OSSFILE file ;
+      stringstream ss ;
+
+      rc = ossGetFileSizeByName( SPT_DISK_SRC_FILE, &fileSz ) ;
+      if ( SDB_OK != rc )
+      {
+         ss << "failed to get size of file(/etc/mtab), rc:" << rc ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+
+      buf = ( CHAR * )SDB_OSS_MALLOC( fileSz + 1 ) ;
+      if ( NULL == buf )
+      {
+         ss << "failed to allocate memory" ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+
+      rc = ossOpen( "/etc/mtab",
+                    OSS_READONLY | OSS_SHAREREAD,
+                    OSS_DEFAULTFILE,
+                    file ) ;
+      if ( SDB_OK != rc )
+      {
+         ss << "failed to open file(/etc/mtab), rc:" << rc ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+
+      rc = ossReadN( &file, fileSz, buf, read ) ;
+      if ( SDB_OK != rc )
+      {
+         ss << "failed to read file(/etc/mtab), rc:" << rc ;
+         detail = BSON( SPT_ERR << ss.str() ) ;
+         goto error ;
+      }
+
+      buf[read] = '\0' ;
+      rc = _extractLinuxDiskInfo( buf, rval, detail ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+   done:
+      if ( file.isOpened() )
+      {
+         ossClose( file ) ;
+      }
+      SAFE_OSS_FREE( buf ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptUsrSystem::_extractLinuxDiskInfo( const CHAR *buf,
+                                               _sptReturnVal &rval,
+                                               bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder builder ;
+      BSONArrayBuilder arrBuilder ;
+      vector<string> splited ;
+      boost::algorithm::split( splited, buf, boost::is_any_of("\r\n") ) ;
+      for ( vector<string>::iterator itr = splited.begin();
+            itr != splited.end();
+            itr++ )
+      {
+         BSONObjBuilder diskBuilder ;
+         INT64 totalBytes = 0 ;
+         INT64 freeBytes = 0 ;
+         const CHAR *fs = NULL ;
+         const CHAR *fsType = NULL ;
+         const CHAR *mount = NULL ;
+
+         vector<string> columns ;
+         boost::algorithm::split( columns, *itr, boost::is_any_of("\t ") ) ;
+         if ( 6 != columns.size() )
+         {
+            continue ;
+         }
+
+         if ( 0 == columns.at( 0 ).compare( "proc" ) ||
+              0 == columns.at( 0 ).compare( "sysfs" ) ||
+              0 == columns.at( 0 ).compare( "devpts" ) ||
+              0 == columns.at( 0 ).compare( "tmpfs" ) ||
+              0 == columns.at( 0 ).compare( "none" ) ||
+              0 == columns.at( 0 ).compare( "sunrpc" ) )
+         {
+            continue ;
+         }
+
+         fs = columns.at( 0 ).c_str() ;
+         fsType = columns.at( 2 ).c_str() ;
+         mount = columns.at( 1 ).c_str() ;
+         rc = ossGetDiskInfo( mount, totalBytes, freeBytes ) ;
+         if ( SDB_OK == rc )
+         {
+            diskBuilder.append( SPT_USR_SYSTEM_FILESYSTEM,
+                                fs ) ;
+            diskBuilder.append( SPT_USR_SYSTEM_FSTYPE, fsType ) ;
+            diskBuilder.appendNumber( SPT_USR_SYSTEM_SIZE, totalBytes / ( 1024 * 1024 ) ) ;
+            diskBuilder.appendNumber( SPT_USR_SYSTEM_USED, ( totalBytes - freeBytes ) / ( 1024 * 1024 ) ) ;
+            diskBuilder.append( SPT_USR_SYSTEM_UNIT, "MB" ) ;
+            diskBuilder.append( SPT_USR_SYSTEM_MOUNT, mount ) ;
+            diskBuilder.appendBool( SPT_USR_SYSTEM_ISLOCAL,
+                                    string::npos != columns.at( 0 ).find( "/dev/", 0, 5 ) ) ;
+         }
+
+         arrBuilder << diskBuilder.obj() ;
+      }
+
+      builder.append( SPT_USR_SYSTEM_DISKS, arrBuilder.arr() ) ;
+      rval.setBSONObj( "", builder.obj() ) ;
+      return rc ;
+   }
+
+   INT32 _sptUsrSystem::_getWinDiskInfo( const _sptArguments &arg,
+                                         _sptReturnVal &rval,
+                                         bson::BSONObj &detail )
+   {
+      INT32 rc = SDB_OK ;
       UINT32 exitCode = 0 ;
       _ossCmdRunner runner ;
       string outStr ;
       BSONObjBuilder builder ;
 
-#if defined (_LINUX)
-   #define DISK_CMD  "df -m |grep -v \"Use%\""
-#else
-   #define DISK_CMD  "wmic VOLUME get Capacity,DriveLetter,Caption,"\
-                     "DriveType,FreeSpace,SystemVolume"
-#endif // _LINUX
+#define DISK_CMD  "wmic VOLUME get Capacity,DriveLetter,Caption,"\
+                  "DriveType,FreeSpace,SystemVolume"
 
       rc = runner.exec( DISK_CMD, exitCode,
                         FALSE, -1, FALSE, NULL, TRUE ) ;
@@ -1315,7 +1457,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _extractDiskInfo( outStr.c_str(), builder ) ;
+      rc = _extractWinDiskInfo( outStr.c_str(), builder ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to extract disk info:%d", rc ) ;
@@ -1340,114 +1482,8 @@ namespace engine
       return getDiskInfo( arg, rval, detail ) ;
    }
 
-#if defined( _LINUX )
-   INT32 _sptUsrSystem::_extractDiskInfo( const CHAR *buf,
-                                          bson::BSONObjBuilder &builder )
-   {
-      INT32 rc = SDB_OK ;
-      BSONArrayBuilder arrBuilder ;
-      string fileSystem ;
-      string used ;
-      string available ;
-      string mount ;
-      vector<string> splited ;
-      boost::algorithm::split( splited, buf, boost::is_any_of("\r\n") ) ;
-      for ( vector<string>::iterator itr = splited.begin();
-            itr != splited.end();
-            itr++ )
-      {
-         if ( itr->empty() )
-         {
-            continue ;
-         }
-
-         vector<string> columns ;
-         boost::algorithm::split( columns, *itr, boost::is_any_of("\t ") ) ;
-
-         for ( vector<string>::iterator itr2 = columns.begin();
-               itr2 != columns.end();
-               )
-         {
-            if ( itr2->empty() )
-            {
-               itr2 = columns.erase( itr2 ) ;
-            }
-            else
-            {
-               ++itr2 ;
-            }
-         }
-
-         if ( 6 == columns.size() )
-         {
-            fileSystem = columns.at( 0 ) ;
-            used = columns.at( 2 ) ;
-            available = columns.at( 3 ) ;
-            mount = columns.at( 5 ) ;
-         }
-         else if ( 1 == columns.size() )
-         {
-            fileSystem = columns.at( 0 ) ;
-         }
-         else if ( 5 == columns.size() )
-         {
-            used = columns.at( 1 ) ;
-            available = columns.at( 2 ) ;
-            mount = columns.at( 4 ) ;
-         }
-         else
-         {
-            rc = SDB_SYS ;
-            goto error ;
-         }
-
-         if ( !mount.empty() )
-         {
-            if ( 0 != ossStrncmp( "/dev/shm", mount.c_str(), 8 ) )
-            {
-               SINT64 total = 0 ;
-               SINT64 usedNumber = 0 ;
-               SINT64 avaNumber = 0 ;
-               BSONObjBuilder lineBuilder ;
-               try
-               {
-                  usedNumber = boost::lexical_cast<SINT64>( used ) ;
-                  avaNumber = boost::lexical_cast<SINT64>( available ) ;
-                  total = usedNumber + avaNumber ;
-                  lineBuilder.append( SPT_USR_SYSTEM_FILESYSTEM,
-                                      fileSystem.c_str() ) ;
-                  lineBuilder.appendNumber( SPT_USR_SYSTEM_SIZE, total ) ;
-                  lineBuilder.appendNumber( SPT_USR_SYSTEM_USED, usedNumber ) ;
-                  lineBuilder.append( SPT_USR_SYSTEM_UNIT, "M" ) ;
-                  lineBuilder.append( SPT_USR_SYSTEM_MOUNT, mount ) ;
-                  lineBuilder.appendBool( SPT_USR_SYSTEM_ISLOCAL,
-                                          string::npos !=
-                                          fileSystem.find( "/dev/", 0, 5 )) ;
-                  arrBuilder << lineBuilder.obj() ;
-               }
-               catch ( std::exception &e )
-               {
-                  rc = SDB_SYS ;
-                  goto error ;
-               }
-            }
-
-            used.clear();
-            available.clear() ;
-            mount.clear() ;
-            fileSystem.clear() ;
-         }
-      }
-
-      builder.append( SPT_USR_SYSTEM_DISKS, arrBuilder.arr() ) ;
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-#else
-   INT32 _sptUsrSystem::_extractDiskInfo( const CHAR *buf,
-                                          bson::BSONObjBuilder &builder )
+   INT32 _sptUsrSystem::_extractWinDiskInfo( const CHAR *buf,
+                                             bson::BSONObjBuilder &builder )
    {
       INT32 rc = SDB_OK ;
       BSONArrayBuilder arrBuilder ;
@@ -1535,7 +1571,6 @@ namespace engine
    error:
       goto done ;
    }
-#endif // _LINUX
 
    INT32 _sptUsrSystem::getNetcardInfo( const _sptArguments &arg,
                                         _sptReturnVal &rval,

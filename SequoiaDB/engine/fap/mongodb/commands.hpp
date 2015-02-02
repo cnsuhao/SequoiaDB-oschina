@@ -52,7 +52,8 @@ public:
       return _cmdName ;
    }
 
-   virtual INT32 convertRequest( mongoParser &parser, msgBuffer &sdbMsg )
+   virtual INT32 convertRequest( mongoParser &parser,
+                                 std::vector<msgBuffer*> &sdbMsgs )
    {
       return SDB_OK ;
    }
@@ -107,13 +108,13 @@ private:
    std::map< std::string, command *> _cmdMap ;
 } ;
 
-#define __DECLARE_COMMAND( cmd, cmdClass )                        \
-class cmdClass : public command                                   \
-{                                                                 \
-public:                                                           \
-   cmdClass() : command( cmd ) {}                                 \
-   virtual INT32 convertRequest( mongoParser &parser,             \
-                                         msgBuffer &sdbMsg ) ;    \
+#define __DECLARE_COMMAND( cmd, cmdClass )                           \
+class cmdClass : public command                                      \
+{                                                                    \
+public:                                                              \
+   cmdClass() : command( cmd ) {}                                    \
+   virtual INT32 convertRequest( mongoParser &parser,                \
+                                 std::vector<msgBuffer*> &sdbMsgs ) ;\
 } ;
 
 #define __DECLARE_COMMAND_VAR( commandClass, var )                \
@@ -135,8 +136,10 @@ DECLARE_COMMAND( query )
 DECLARE_COMMAND( getMore )
 DECLARE_COMMAND( killCursors )
 
-DECLARE_COMMAND( create )  // create collection
-DECLARE_COMMAND( drop )    // drop   collection
+DECLARE_COMMAND( getnonce )
+DECLARE_COMMAND( createCS )   // create collection space
+DECLARE_COMMAND( create )     // create collection
+DECLARE_COMMAND( drop )       // drop   collection
 DECLARE_COMMAND( count )
 DECLARE_COMMAND( aggregate )
 

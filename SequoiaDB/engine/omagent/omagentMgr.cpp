@@ -45,6 +45,7 @@ namespace engine
       LOCAL DEFINE
    */
    #define OMAGENT_WAIT_CB_ATTACH_TIMEOUT             ( 300 * OSS_ONE_SEC )
+   #define OMAGENT_ALONE_ALIVE_TIMEOUT_DFT            ( 300 ) // secs
 
    /*
       _omAgentOptions implement
@@ -70,6 +71,8 @@ namespace engine
                    SDBCM_DFT_PORT ) ;
 
       _useCurUser = FALSE ;
+      _useStandAlone = FALSE ;
+      _aliveTimeout = 0 ;
    }
 
    _omAgentOptions::~_omAgentOptions()
@@ -349,6 +352,17 @@ namespace engine
       }
    }
 
+   void _omAgentOptions::setStandAlone()
+   {
+      _useStandAlone = TRUE ;
+      _aliveTimeout = OMAGENT_ALONE_ALIVE_TIMEOUT_DFT * OSS_ONE_SEC ;
+   }
+
+   void _omAgentOptions::setAliveTimeout( UINT32 timeout )
+   {
+      _aliveTimeout = timeout * OSS_ONE_SEC ;
+   }
+
    void _omAgentOptions::lock( INT32 type )
    {
       if ( SHARED == type )
@@ -453,6 +467,8 @@ namespace engine
       _watchAndCleanTimer  = NET_INVALID_TIMER_ID ;
       _primaryPos          = -1 ;
       _taskID              = 0 ;
+      _sessionNum          = 0 ;
+      _noMsgTimerCounter   = 0 ;
    }
 
    _omAgentMgr::~_omAgentMgr()
@@ -581,6 +597,14 @@ namespace engine
 
       pmdSetPrimary( TRUE ) ;
 
+      if ( _options.isStandAlone() )
+      {
+         MsgRouteID id ;
+         id.value = 0 ;
+         id.columns.groupID = OMAGENT_GROUPID ;
+         pmdSetNodeID( id ) ;
+      }
+
       rc = _nodeMgr.active() ;
       PD_RC_CHECK( rc, PDERROR, "Active node manager failed, rc: %d", rc ) ;
 
@@ -603,19 +627,22 @@ namespace engine
          goto error ;
       }
 
-      rc = _netAgent.addTimer( 2 * OSS_ONE_SEC, &_timerHandler,
-                               _nodeMonitorTimer ) ;
-      if ( rc )
+      if ( FALSE == _options.isStandAlone() )
       {
-         PD_LOG( PDERROR, "Failed to set timer, rc: %d", rc ) ;
-         goto error ;
-      }
-      rc = _netAgent.addTimer( 120 * OSS_ONE_SEC, &_timerHandler,
-                               _watchAndCleanTimer ) ;
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to set timer, rc: %d", rc ) ;
-         goto error ;
+         rc = _netAgent.addTimer( 2 * OSS_ONE_SEC, &_timerHandler,
+                                  _nodeMonitorTimer ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to set timer, rc: %d", rc ) ;
+            goto error ;
+         }
+         rc = _netAgent.addTimer( 120 * OSS_ONE_SEC, &_timerHandler,
+                                  _watchAndCleanTimer ) ;
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to set timer, rc: %d", rc ) ;
+            goto error ;
+         }
       }
 
    done:
@@ -663,6 +690,34 @@ namespace engine
    {
       _msgHandler.detach() ;
       _timerHandler.detach() ;
+   }
+
+   void _omAgentMgr::incSession()
+   {
+      if ( _options.isStandAlone() )
+      {
+         ossScopedLock lock( &_mgrLatch, EXCLUSIVE ) ;
+         ++_sessionNum ;
+         _noMsgTimerCounter = 0 ;
+      }
+   }
+
+   void _omAgentMgr::decSession()
+   {
+      if ( _options.isStandAlone() )
+      {
+         ossScopedLock lock( &_mgrLatch, EXCLUSIVE ) ;
+         --_sessionNum ;
+      }
+   }
+
+   void _omAgentMgr::resetNoMsgTimeCounter()
+   {
+      if ( _options.isStandAlone() )
+      {
+         ossScopedLock lock( &_mgrLatch, EXCLUSIVE ) ;
+         _noMsgTimerCounter = 0 ;
+      }
    }
 
    void _omAgentMgr::onConfigChange()
@@ -763,6 +818,22 @@ namespace engine
          _sessionMgr.onTimer( interval ) ;
 
          _prepareTask() ;
+
+         if ( _options.isStandAlone() && _options.getAliveTimeout() > 0 &&
+              _sessionNum == 0 )
+         {
+            ossScopedLock lock( &_mgrLatch, EXCLUSIVE ) ;
+            if ( _sessionNum == 0 )
+            {
+               _noMsgTimerCounter += interval ;
+               if ( _noMsgTimerCounter > _options.getAliveTimeout() )
+               {
+                  PD_LOG( PDEVENT, "Has %u secs no recv msg, quit",
+                          _noMsgTimerCounter ) ;
+                  PMD_SHUTDOWN_DB( SDB_TIMEOUT ) ;
+               }
+            }
+         }
       }
       else if ( _nodeMonitorTimer == timerID )
       {

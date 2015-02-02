@@ -79,14 +79,13 @@ engine::SDB_SESSION_TYPE _pmdMongoSession::sessionType() const
 
 INT32 _pmdMongoSession::attachProcessor( engine::_IProcessor *processor )
 {
-   SDB_ASSERT( NULL != processor, "" ) ;
+   SDB_ASSERT( NULL != processor, "processor cannot be NULL" ) ;
    _processor = processor ;
    return SDB_OK ;
 }
 
 void _pmdMongoSession::detachProcessor()
 {
-   SDB_ASSERT( NULL != _processor, "" ) ;
    _processor = NULL ;
 }
 
@@ -95,6 +94,7 @@ INT32 _pmdMongoSession::run()
    INT32 rc                     = SDB_OK ;
    UINT32 msgSize               = 0 ;
    CHAR *pBuff                  = NULL ;
+   BOOLEAN bigEndian            = FALSE ;
    engine::pmdEDUMgr *pmdEDUMgr = NULL ;
 
    if ( !_pEDUCB )
@@ -102,9 +102,9 @@ INT32 _pmdMongoSession::run()
       rc = SDB_SYS ;
       goto error ;
    }
-
+   
    pmdEDUMgr = _pEDUCB->getEDUMgr() ;
-
+   bigEndian = checkBigEndian() ;
    while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
    {
       _pEDUCB->resetInterrupt() ;
@@ -122,6 +122,12 @@ INT32 _pmdMongoSession::run()
          break ;
       }
 
+      if ( bigEndian )
+      {
+         UINT32 tmp = msgSize ;
+         ossEndianConvert4( tmp, msgSize) ;
+      }
+      
       if ( msgSize < sizeof( mongoMsgHeader ) || msgSize > SDB_MAX_MSG_LENGTH )
       {
          PD_LOG( PDERROR, "Session[%s] recv msg size[%d] is less than "
@@ -150,25 +156,53 @@ INT32 _pmdMongoSession::run()
             }
             break ;
          }
-
-         _pEDUCB->incEventCount() ;
          pBuff[ msgSize ] = 0 ;
-         if ( SDB_OK != ( rc = pmdEDUMgr->activateEDU( _pEDUCB ) ) )
+
          {
-            PD_LOG( PDERROR, "Session[%s] activate edu failed, rc: %d",
-                    sessionName(), rc ) ;
-            break ;
-         }
-         rc = _processMsg( pBuff, msgSize ) ;
-         if ( rc )
-         {
-            break ;
-         }
-         if ( SDB_OK != ( rc = pmdEDUMgr->waitEDU( _pEDUCB ) ) )
-         {
-            PD_LOG( PDERROR, "Session[%s] wait edu failed, rc: %d",
-                    sessionName(), rc ) ;
-            break ;
+            _converter->loadFrom( pBuff, msgSize ) ;
+            rc = _converter->convert( _inBufferVec ) ;
+            if ( SDB_OK != rc )
+            {
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            if ( _inBufferVec.size() > 1 )
+            {
+               std::vector< msgBuffer * >::iterator itr = _inBufferVec.begin() ;
+               while ( itr != _inBufferVec.end() )
+               {
+                  _pEDUCB->incEventCount() ;
+                  if ( SDB_OK != ( rc = pmdEDUMgr->activateEDU( _pEDUCB ) ) )
+                  {
+                     PD_LOG( PDERROR, "Session[%s] activate edu failed, rc: %d",
+                             sessionName(), rc ) ;
+                     break ;
+                  }
+                  rc = _processMsg( (*itr)->data(), (*itr)->size() ) ;
+                  if ( rc )
+                  {
+                     break ;
+                  }
+                  if ( SDB_OK != ( rc = pmdEDUMgr->waitEDU( _pEDUCB ) ) )
+                  {
+                     PD_LOG( PDERROR, "Session[%s] wait edu failed, rc: %d",
+                             sessionName(), rc ) ;
+                     break ;
+                  }
+
+                  ++itr ;
+               }
+
+               itr = _inBufferVec.begin() ;
+               while ( itr != _inBufferVec.end() )
+               {
+                  delete *itr ;
+                  (*itr) = NULL ;
+                  ++itr ;
+               }
+               _inBufferVec.clear() ;
+            }
          }
       }
    } // end while
@@ -183,19 +217,11 @@ error:
 INT32 _pmdMongoSession::_processMsg( const CHAR *pMsg, const INT32 len )
 {
    INT32 rc          = SDB_OK ;
-   INT32 con_rc      = SDB_OK ;
    const CHAR *pBody = NULL ;
    INT32 bodyLen     = 0 ;
 
-   _converter->loadFrom( pMsg, len ) ;
-   con_rc = _converter->convert( _inBuffer ) ;
-   if ( SDB_OK != con_rc )
-   {
-      rc = SDB_INVALIDARG ;
-      goto error ;
-   }
 
-   rc = _onMsgBegin( (MsgHeader *) _inBuffer.data() ) ;
+   rc = _onMsgBegin( (MsgHeader *) pMsg ) ;//_inBuffer.data() ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -216,7 +242,7 @@ INT32 _pmdMongoSession::_processMsg( const CHAR *pMsg, const INT32 len )
    else
    {
       rc = _processor->processMsg( (MsgHeader *) _inBuffer.data(),
-                                    _pDPSCB, _contextBuff, 
+                                    _pDPSCB, _contextBuff,
                                     _replyHeader.contextID, _needReply ) ;
       pBody     = _contextBuff.data() ;
       bodyLen   = _contextBuff.size() ;
@@ -251,7 +277,7 @@ INT32 _pmdMongoSession::_processMsg( const CHAR *pMsg, const INT32 len )
       }
    }
 
-   rc = _onMsgEnd( rc, (MsgHeader *) _inBuffer.data() ) ;
+   rc = _onMsgEnd( rc, (MsgHeader *) pMsg ) ;// _inBuffer.data() ) ;
    if ( SDB_OK != rc )
    {
       goto error ;

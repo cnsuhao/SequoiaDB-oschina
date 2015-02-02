@@ -40,6 +40,7 @@
 #include "oss.hpp"
 #include "ossUtil.hpp"
 #include "ossMem.hpp"
+#include "../../bson/bsonobj.h"
 #define MEMERY_BLOCK_SIZE 4096
 
 class _msgBuffer : public SDBObject
@@ -66,6 +67,9 @@ public:
    }
 
    INT32 write( const CHAR *in, const UINT32 inLen ) ;
+
+   INT32 write( const bson::BSONObj &obj,
+                BOOLEAN align = FALSE, INT32 bytes = 4 ) ;
 
    INT32 read( CHAR* in, const UINT32 len ) ;
 

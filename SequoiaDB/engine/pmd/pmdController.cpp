@@ -40,8 +40,7 @@
 #include "rtnPageCleanerJob.hpp"
 #include "../bson/lib/md5.hpp"
 #include "ossDynamicLoad.hpp"
-#include "../fap/mongodb/fapMongoModule.hpp"
-#include "../fap/fapModuleWrapper.hpp"
+#include "pmdModuleLoader.hpp"
 
 namespace engine
 {
@@ -77,6 +76,8 @@ namespace engine
       _pTcpListener        = NULL ;
       _pHttpListener       = NULL ;
       _pMongoListener      = NULL ;
+      _fapMongo            = NULL ;
+      _protocol            = NULL ;
    }
 
    SDB_CB_TYPE _pmdController::cbType () const
@@ -97,6 +98,7 @@ namespace engine
       UINT16 protocolPort = 0 ;
       const CHAR *moduleName = NULL ;
       const CHAR *modulePath = NULL ;
+
 
       port = pOptCB->getServicePort() ;
       _pTcpListener = SDB_OSS_NEW ossSocket( port ) ;
@@ -558,6 +560,33 @@ namespace engine
       _pRSManager = pRSManager ;
    }
 
+   INT32 _pmdController::loadForeignModule()
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *MONGO_MODULE_NAME = "fapmongo" ;
+      const CHAR *MONGO_MODULE_PATH = "./bin/fap/" ;
+      _fapMongo = SDB_OSS_NEW pmdModuleLoader() ;
+      if ( NULL == _fapMongo )
+      {
+         PD_LOG( PDERROR, "Failed to alloc foreign access protocol module" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+      rc = _fapMongo->load( MONGO_MODULE_NAME, MONGO_MODULE_PATH ) ;/*need be replaced*/
+      PD_RC_CHECK( rc, PDERROR, "Failed to load module: %s, path: %s"
+                   " rc: %d", MONGO_MODULE_NAME, MONGO_MODULE_PATH, rc ) ;
+      rc = _fapMongo->create( _protocol ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to create protocol service" ) ;
+      rc = _protocol->init( pmdGetKRCB() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to init protocol" ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+
    /*
       get global pointer
    */
@@ -567,3 +596,5 @@ namespace engine
       return &s_pmdctrl ;
    }
 }
+
+

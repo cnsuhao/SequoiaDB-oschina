@@ -43,6 +43,8 @@
 #include "sqlGrammar.hpp"
 #include "ossUtil.hpp"
 #include "../bson/bson.h"
+#include "mthCommon.hpp"
+#include "utilStr.hpp"
 
 using namespace bson ;
 
@@ -151,6 +153,33 @@ namespace engine
          return "" ;
       }
 
+      string toFieldName() const
+      {
+         stringstream ss ;
+         string str = toString() ;
+         if ( !str.empty() )
+         {
+            utilSplitIterator i( ( CHAR * )( str.c_str() ) ) ;
+            while ( i.more() )
+            {
+               const CHAR *left = i.next() ;
+               if ( '$' == *left && '[' == *(left + 1) )
+               {
+                  INT32 n = 0 ;
+                  mthConvertSubElemToNumeric( left, n ) ;
+                  ss << n << '.';
+               }
+               else
+               {
+                  ss << left << '.' ;
+               }
+            }
+            ss.seekp( (INT32)ss.tellp() - 1 ) ;
+            ss << '\0' ;
+         }
+         return ss.str() ;
+      }
+
       friend class _qgmPtrTable ;
    } ;
    typedef class _qgmField qgmField ;
@@ -218,6 +247,23 @@ namespace engine
          {
             return _relegation.empty() ?
                    _attr.toString() : _relegation.toString() ;
+         }
+      }
+
+      OSS_INLINE string toFieldName() const
+      {
+         if ( !_relegation.empty() && !_attr.empty() )
+         {
+            stringstream ss ;
+            ss << _relegation.toString()
+               << "."
+               << _attr.toFieldName() ;
+            return ss.str() ;
+         }
+         else
+         {
+            return _relegation.empty() ?
+                   _attr.toFieldName() : _relegation.toString() ;
          }
       }
 

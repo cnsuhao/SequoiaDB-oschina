@@ -76,7 +76,9 @@ namespace engine
 
    #define COMMANDS_HIDE_OPTIONS \
       ( PMD_OPTION_CURUSER, "use current user" ) \
-      ( PMD_OPTION_PORT, boost::program_options::value<string>(), "agent port" ) \
+      ( PMD_OPTION_STANDALONE, "use standalone mode to start" ) \
+      ( PMD_OPTION_ALIVE_TIME, po::value<int>(), "alive time out" ) \
+      ( PMD_OPTION_PORT, po::value<string>(), "agent port" ) \
 
    void displayArg ( po::options_description &desc )
    {
@@ -121,6 +123,8 @@ namespace engine
       utilNodeInfo cmInfo ;
       vector < ossProcInfo > procs ;
       BOOLEAN asProc = FALSE ;
+      BOOLEAN asStandalone = FALSE ;
+      string  procShortName = PMDDMN_EXE_NAME ;
 
       PMD_ADD_PARAM_OPTIONS_BEGIN ( desc )
          COMMANDS_OPTIONS
@@ -159,6 +163,12 @@ namespace engine
       {
          UTIL_CHECK_AND_CHG_USER() ;
       }
+      if ( vm.count( PMD_OPTION_STANDALONE ) )
+      {
+         asStandalone = TRUE ;
+         asProc = TRUE ;
+         procShortName = SDBSDBCMPROG ;
+      }
 
       rc = ossGetEWD ( progName, OSS_MAX_PATHSIZE ) ;
       if ( rc )
@@ -167,7 +177,6 @@ namespace engine
                      "directory"OSS_NEWLINE ) ;
          goto error ;
       }
-      ossStrncat( progName, OSS_FILE_SEP, 1 ) ;
 
       rc = utilBuildFullPath( progName, SDBCM_LOG_PATH,
                               OSS_MAX_PATHSIZE, dialogFile ) ;
@@ -193,35 +202,38 @@ namespace engine
       sdbEnablePD( dialogFile ) ;
       setPDLevel( PDINFO ) ;
 
-      ossStrncat ( progName, PMDDMN_EXE_NAME,
-                   sizeof( PMDDMN_EXE_NAME ) ) ;
-
+      utilCatPath( progName, OSS_MAX_PATHSIZE, procShortName.c_str() ) ;
       argvs.push_back( progName ) ;
       for ( INT32 i = 1; i < argc ; ++i )
       {
-         argvs.push_back(argv[i]) ;
+         argvs.push_back( argv[i] ) ;
       }
 
-      ossEnumProcesses( procs, PMDDMN_EXE_NAME, TRUE, TRUE ) ;
-      if ( procs.size() > 0 )
+      if ( !asStandalone )
       {
-         ossPrintf( "Success: sdbcmd is already started (%d)"OSS_NEWLINE,
-                    (*procs.begin())._pid ) ;
-      }
-      else
-      {
-         rc = startSdbcm ( argvs, pid, asProc ) ;
-         if ( rc )
+         ossEnumProcesses( procs, procShortName.c_str(), TRUE, TRUE ) ;
+         if ( procs.size() > 0 )
          {
-            ossPrintf ( "Error: Failed to start sdbcm, rc: %d"OSS_NEWLINE,
-                        rc ) ;
-            goto error ;
+            ossPrintf( "Success: sdbcmd is already started (%d)"OSS_NEWLINE,
+                       (*procs.begin())._pid ) ;
+            goto done ;
          }
+      }
 
+      rc = startSdbcm ( argvs, pid, asProc ) ;
+      if ( rc )
+      {
+         ossPrintf ( "Error: Failed to start sdbcm, rc: %d"OSS_NEWLINE,
+                     rc ) ;
+         goto error ;
+      }
+
+      if ( !asStandalone )
+      {
          while ( ossIsProcessRunning( pid ) )
          {
             procs.clear() ;
-            ossEnumProcesses(  procs, PMDDMN_EXE_NAME, TRUE, TRUE ) ;
+            ossEnumProcesses( procs, procShortName.c_str(), TRUE, TRUE ) ;
             if ( procs.size() > 0 )
             {
                ossPrintf( "Success: sdbcmd is successfully started (%d)"
@@ -239,11 +251,14 @@ namespace engine
          }
       }
 
-      rc = utilWaitNodeOK( cmInfo, NULL, OSS_INVALID_PID, SDB_TYPE_OMA ) ;
+      rc = utilWaitNodeOK( cmInfo, NULL,
+                           asStandalone ? pid : OSS_INVALID_PID,
+                           SDB_TYPE_OMA, UTIL_WAIT_NODE_TIMEOUT,
+                           asStandalone ? TRUE : FALSE ) ;
       if ( SDB_OK == rc )
       {
-         ossPrintf ( "Success: %s(%s) is successfully started (%d)"OSS_NEWLINE,
-                     SDB_TYPE_OMA_STR, cmInfo._svcname.c_str(),
+         ossPrintf ( "Success: %s(%s) is successfully started (%d)"
+                     OSS_NEWLINE, SDB_TYPE_OMA_STR, cmInfo._svcname.c_str(),
                      cmInfo._pid ) ;
       }
       else

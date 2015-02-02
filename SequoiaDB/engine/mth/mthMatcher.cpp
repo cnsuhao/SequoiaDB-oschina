@@ -1759,7 +1759,16 @@ namespace engine
                   goto done ;
             }
          }
-         BSONObjIterator it( e.embeddedObject() ) ;
+
+         BSONObj eEmbObj = e.embeddedObject() ;
+         if ( ( BSONObj::opIN == op ) && ( eEmbObj.nFields() == 0 )
+              && ( bm._myset.size() == 0 ) )
+         {
+            result = MATCH ;
+            goto done ;
+         }
+
+         BSONObjIterator it( eEmbObj ) ;
          while ( it.moreWithEOO() )
          {
             BSONElement z=it.next() ;

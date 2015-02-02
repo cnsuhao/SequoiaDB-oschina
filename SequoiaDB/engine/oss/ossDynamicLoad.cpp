@@ -86,7 +86,7 @@ INT32 _ossModuleHandle::init ()
    {
       *p = '\0' ;
    }
-   rc = patchModuleName( _moduleName, strModule, sizeof(_moduleName) );
+   rc = patchModuleName( strModule, _moduleName, sizeof(_moduleName) );
    PD_RC_CHECK ( rc, PDERROR, "Failed to patch module name, rc = %d", rc ) ;
    if ( _libPath[0] )
    {
@@ -243,7 +243,7 @@ INT32 _ossModuleHandle::patchModuleName( const CHAR* name, CHAR *patchedName, UI
    INT32 rc = SDB_OK ;
    SDB_ASSERT( name, "Module name can not be NULL" ) ;
    SDB_ASSERT( patchedName, "Patched buffer can not be NULL" ) ;
-   
+
    const CHAR *ptr = NULL ;
    INT32 patchedNameLen = 0 ;
 #ifdef _WINDOWS
@@ -306,11 +306,7 @@ INT32 _ossModuleHandle::patchModuleName( const CHAR* name, CHAR *patchedName, UI
          goto error ;
       }
       ossStrncat( patchedName, name, ptr - name ) ;
-#ifdef _WINDOWS
       ossStrncat( patchedName, LIB_END_STR, tailLen ) ;
-#else
-      ossStrncat( patchedName, LIB_END_STR, tailLen ) ;
-#endif
    }
 
 done:

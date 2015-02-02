@@ -269,7 +269,7 @@ namespace engine
                if(0 == startKey.woCompare( bson::minKey.firstElement() ) &&
                   0 == stopKey.woCompare( bson::maxKey.firstElement() ))
                {
-                  continue;
+                  break;
                }
                
                ++matchedFields ;

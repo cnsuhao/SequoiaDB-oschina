@@ -174,7 +174,8 @@ spt2Files = [
       "spt/usrdef/sptUsrSystem.cpp",
       "spt/usrdef/sptUsrOma.cpp",
       "spt/usrdef/sptUsrOmaAssit.cpp",
-      "spt/usrdef/sptUsrHash.cpp"
+      "spt/usrdef/sptUsrHash.cpp",
+      "spt/usrdef/sptUsrSdbTool.cpp"
       ]
 
 ssh2Files = [

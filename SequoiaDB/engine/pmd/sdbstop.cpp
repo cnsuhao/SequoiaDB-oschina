@@ -116,15 +116,18 @@ namespace engine
       if ( vm.count( PMD_OPTION_TYPE ) )
       {
          string listType = vm[ PMD_OPTION_TYPE ].as<string>() ;
-         if ( 0 == ossStrcasecmp( listType.c_str(), "db" ) )
+         if ( 0 == ossStrcasecmp( listType.c_str(),
+                                  SDBLIST_TYPE_DB_STR ) )
          {
             typeFilter = SDB_TYPE_DB ;
          }
-         else if ( 0 == ossStrcasecmp( listType.c_str(), "om" ) )
+         else if ( 0 == ossStrcasecmp( listType.c_str(),
+                                       SDBLIST_TYPE_OM_STR ) )
          {
             typeFilter = SDB_TYPE_OM ;
          }
-         else if ( 0 == ossStrcasecmp( listType.c_str(), "all" ) )
+         else if ( 0 == ossStrcasecmp( listType.c_str(),
+                                       SDBLIST_TYPE_ALL_STR ) )
          {
             typeFilter = -1 ;
          }

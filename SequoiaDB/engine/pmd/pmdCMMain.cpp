@@ -52,6 +52,8 @@ namespace engine
 
    #define COMMANDS_HIDE_OPTIONS \
       ( PMD_OPTION_CURUSER, "use current user" ) \
+      ( PMD_OPTION_STANDALONE, "use standalone mode to start" ) \
+      ( PMD_OPTION_ALIVE_TIME, po::value<int>(), "alive time out" ) \
       ( PMD_OPTION_PORT, boost::program_options::value<string>(), "agent port" ) \
 
    void displayArg ( po::options_description &desc )
@@ -170,11 +172,19 @@ namespace engine
       {
          sdbGetOMAgentOptions()->setCurUser() ;
       }
+      if ( vm.count( PMD_OPTION_STANDALONE ) )
+      {
+         sdbGetOMAgentOptions()->setStandAlone() ;
+         if ( vm.count( PMD_OPTION_ALIVE_TIME ) )
+         {
+            UINT32 timeout = vm[ PMD_OPTION_ALIVE_TIME ].as<INT32>() ;
+            sdbGetOMAgentOptions()->setAliveTimeout( timeout ) ;
+         }
+      }
       if ( vm.count( PMD_OPTION_PORT ) )
       {
          string svcname = vm[ PMD_OPTION_PORT ].as<string>() ;
          sdbGetOMAgentOptions()->setCMServiceName( svcname.c_str() ) ;
-         sdbGetOMAgentOptions()->save() ;
       }
       setPDLevel( sdbGetOMAgentOptions()->getDiagLevel() ) ;
 

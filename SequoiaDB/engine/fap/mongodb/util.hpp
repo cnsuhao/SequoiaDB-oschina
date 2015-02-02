@@ -37,11 +37,12 @@
 #ifndef _SDB_MSG_CONVERTER_UTIL_HPP_
 #define _SDB_MSG_CONVERTER_UTIL_HPP_
 
+#include "oss.hpp"
 #include "iostream"
 #include "msgBuffer.hpp"
 #include "../../bson/bson.h"
 
-class _baseConverter/*, public IConverter*/
+class _baseConverter : public SDBObject
 {
 public:
    _baseConverter() : _msglen( 0 ), _msgdata( NULL )
@@ -82,22 +83,7 @@ protected:
 } ;
 
 typedef _baseConverter baseConverter ;
-/*
-#define __DECLARE_PROCESSOR( className )                                       \
-class className : public baseConverter                                         \
-{                                                                              \
-public:                                                                        \
-   className( const CHAR *msgdata,                                             \
-              const INT32 msgLen )                                             \
-      : baseConverter( sdbmsg, msgLen )                                        \
-   {}                                                                          \
-                                                                               \
-   ~className() {}                                                             \
-                                                                               \
-   virtual CONVERT_ERROR convert( fixedStream &buffer ) ;                      \
-   virtual CONVERT_ERROR reConvert( fixedStream &result, fixedStream &reply ) ;\
-} ;
-*/
+
 inline BOOLEAN checkBigEndian()
 {
    BOOLEAN bigEndian = FALSE ;

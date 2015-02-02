@@ -37,22 +37,29 @@
 #include "mongodef.hpp"
 
 mongoParser::mongoParser()
-   : nsLen( 0 ),
-     dbNameLen( 0 ),
-     dbName( NULL ),
+   : withCmd( FALSE ),
+     withIndex( FALSE ),
+     nsLen( 0 ),
      _dataStart( NULL ),
      _dataEnd( NULL ),
      _nextObj( NULL ),
      _offset( 0 )
 {
+   ossMemset( csName, 0, CS_NAME_SIZE + 1 ) ;
+   ossMemset( fullName, 0, CL_FULL_NAME_SIZE + 1 ) ;
 }
 
 mongoParser::~mongoParser( )
 {
-   dbName   = NULL ;
-   _dataEnd = NULL ;
-   _nextObj = NULL ;
-   _offset  = 0 ;
+   ossMemset( csName, 0, CS_NAME_SIZE + 1 ) ;
+   ossMemset( fullName, 0, CL_FULL_NAME_SIZE + 1 ) ;
+   withCmd    = FALSE ;
+   withIndex  = FALSE ;
+   nsLen      = 0 ;
+   _dataStart = NULL ;
+   _dataEnd   = NULL ;
+   _nextObj   = NULL ;
+   _offset    = 0 ;
 }
 
 void mongoParser::nextObj( bson::BSONObj &obj )
@@ -91,18 +98,21 @@ void mongoParser::readNumber( const UINT32 size, CHAR *out )
 
 void mongoParser::extractMsg()
 {
-   const CHAR *ptr = NULL ;
+   const CHAR *ptr    = NULL ;
+   const CHAR *dbName = NULL ;
 
    readNumber( sizeof( INT32 ), ( CHAR * )&len ) ;
 
    readNumber( sizeof( INT32 ), ( CHAR * )&id ) ;
 
    responseTo = 0 ;
+   skip( 4 ) ;
 
    readNumber( sizeof( SINT16 ), ( CHAR * )&opCode ) ;
 
    _flags = 0 ;
    _version = 0 ;
+   skip( 2 ) ;
 
    readNumber( sizeof( INT32 ), ( CHAR * )&reservedFlags ) ;
 
@@ -111,21 +121,30 @@ void mongoParser::extractMsg()
    {
       ++nsLen ;
    }
-   _offset += nsLen + 1 ;
 
    ptr = ossStrstr( dbName, ".$cmd" ) ;
-   if ( NULL == ptr )
-   {
-      ptr = ossStrstr(dbName, ".system.indexes" ) ;
-   }
-
    if ( NULL != ptr )
    {
-      dbNameLen = ( UINT32 )( ptr - dbName ) ;
+      withCmd = TRUE ;
+      ossMemcpy( csName, dbName, ptr - csName ) ;
    }
    else
    {
-      dbNameLen = nsLen ;
+      ptr = ossStrstr(dbName, ".system.indexes" ) ;
+      if ( NULL != ptr )
+      {
+         withIndex = TRUE ;
+         ossMemcpy( csName, dbName, ptr - dbName ) ;
+      }
+      else
+      {
+         ossMemcpy( fullName, dbName, ossStrlen( dbName ) ) ;
+         ptr = ossStrstr( dbName, "." ) ;
+         if ( NULL != ptr )
+         {
+            ossMemcpy( csName, dbName, ptr - dbName ) ;
+         }
+      }
    }
 }
 

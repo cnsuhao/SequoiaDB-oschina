@@ -521,6 +521,7 @@ namespace engine
       info._groupID     = 0 ;
       info._nodeID      = 0 ;
       info._primary     = -1 ;
+      info._isAlone     = 0 ;
       info._dbPath      = "" ;
       info._groupName   = "" ;
 
@@ -592,7 +593,8 @@ namespace engine
                         INT32 typeFilter,
                         const CHAR * svcnameFilter,
                         OSSPID pidFilter,
-                        INT32 roleFilter )
+                        INT32 roleFilter,
+                        BOOLEAN allowAloneCM )
    {
       INT32 rc                   = SDB_OK ;
       DIR *pDir                  = NULL ;
@@ -727,6 +729,19 @@ namespace engine
 
          utilGetNodeExtraInfo( findNode ) ;
 
+         if ( SDB_TYPE_OMA == findNode._type )
+         {
+            if ( 0 != findNode._groupID )
+            {
+               if ( FALSE == allowAloneCM )
+               {
+                  continue ;
+               }
+               findNode._groupID = 0 ;
+               findNode._isAlone = 1 ;
+            }
+         }
+
          nodes.push_back( findNode ) ;
 
          if ( pidFilter != OSS_INVALID_PID ||
@@ -750,7 +765,7 @@ namespace engine
 
    INT32 utilListNodes( UTIL_VEC_NODES & nodes, INT32 typeFilter,
                         const CHAR * svcnameFilter, OSSPID pidFilter,
-                        INT32 roleFilter )
+                        INT32 roleFilter, BOOLEAN allowAloneCM )
    {
       INT32 rc = SDB_OK ;
       vector< string > names ;
@@ -818,6 +833,20 @@ namespace engine
 
          findNode._orgname = names[ i ] ;
          utilGetNodeExtraInfo( findNode ) ;
+
+         if ( SDB_TYPE_OMA == findNode._type )
+         {
+            if ( 0 != findNode._groupID )
+            {
+               if ( FALSE == allowAloneCM )
+               {
+                  continue ;
+               }
+               findNode._groupID = 0 ;
+               findNode._isAlone = 1 ;
+            }
+         }
+
          nodes.push_back( findNode ) ;
 
          if ( pidFilter != OSS_INVALID_PID ||
@@ -900,7 +929,7 @@ namespace engine
 
    INT32 utilWaitNodeOK( utilNodeInfo & node, const CHAR * svcname,
                          OSSPID pid, INT32 typeFilter,
-                         INT32 timeout )
+                         INT32 timeout, BOOLEAN allowAloneCM )
    {
       INT32 rc = SDB_OK ;
       UTIL_VEC_NODES nodes ;
@@ -919,7 +948,8 @@ namespace engine
          --timeout ;
 
          nodes.clear() ;
-         rc = utilListNodes( nodes, typeFilter, svcname, pid ) ;
+         rc = utilListNodes( nodes, typeFilter, svcname, pid,
+                             -1, allowAloneCM ) ;
          if ( SDB_OK == rc && nodes.size() > 0 )
          {
             node = ( *nodes.begin() ) ;

@@ -2877,8 +2877,6 @@ namespace engine
             rc = SDB_OK ;
             goto done ;
          }
-         rc = SDB_CLS_GROUP_NAME_CONFLICT ;
-         goto done ;
       }
       _groupNameMap[name] = id ;
    done :

@@ -55,6 +55,9 @@ namespace engine
    BOOLEAN mthCheckUnknowDollar( const CHAR *pField,
                                  std::vector<INT64> *dollarList ) ;
 
+   INT32 mthConvertSubElemToNumeric( const CHAR *desc,
+                                     INT32 &number ) ;
+
 }
 
 #endif //MTHCOMMON_HPP__

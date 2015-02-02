@@ -64,10 +64,12 @@ namespace engine
    {
       ossMemset( (void*)&_replyHeader, 0, sizeof(_replyHeader) ) ;
       _pNodeMgr   = NULL ;
+      sdbGetOMAgentMgr()->incSession() ;
    }
 
    _omaSession::~_omaSession()
    {
+      sdbGetOMAgentMgr()->decSession() ;
    }
 
    SDB_SESSION_TYPE _omaSession::sessionType() const
@@ -83,6 +85,7 @@ namespace engine
    void _omaSession::onRecieve( const NET_HANDLE netHandle, MsgHeader * msg )
    {
       ossGetCurrentTime( _lastRecvTime ) ;
+      sdbGetOMAgentMgr()->resetNoMsgTimeCounter() ;
    }
 
    BOOLEAN _omaSession::timeout ( UINT32 interval )
@@ -91,7 +94,12 @@ namespace engine
       ossTimestamp curTime ;
       ossGetCurrentTime ( curTime ) ;
 
-      if ( curTime.time - _lastRecvTime.time > OMAGENT_SESESSION_TIMEOUT )
+      if ( sdbGetOMAgentOptions()->isStandAlone() )
+      {
+         ret = TRUE ;
+         goto done ;
+      }
+      else if ( curTime.time - _lastRecvTime.time > OMAGENT_SESESSION_TIMEOUT )
       {
          ret = TRUE ;
          goto done ;
@@ -234,6 +242,12 @@ namespace engine
       CHAR *arg2 = NULL ;
       CHAR *arg3 = NULL ;
       CHAR *arg4 = NULL ;
+
+      if ( sdbGetOMAgentOptions()->isStandAlone() )
+      {
+         rc = SDB_PERM ;
+         goto done ;
+      }
 
       if ( pMsg->messageLength < (SINT32)sizeof (MsgCMRequest) )
       {

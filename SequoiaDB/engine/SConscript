@@ -65,13 +65,13 @@ pmdFiles = [
       "pmd/pmdInnerClient.cpp",
       "pmd/pmdSession.cpp",
       "pmd/pmdRemoteSession.cpp",
-	  "pmd/pmdAsyncSession.cpp",
-	  "pmd/pmdAsyncHandler.cpp",
+      "pmd/pmdAsyncSession.cpp",
+      "pmd/pmdAsyncHandler.cpp",
       "pmd/pmdEDUMgr.cpp",
       "pmd/pmdAgent.cpp",
-	  "pmd/pmdAsyncSessionAgent.cpp",
-	  "pmd/pmdCBMgrEntryPoint.cpp",
-	  "pmd/pmdAsyncNetEntryPoint.cpp",
+      "pmd/pmdAsyncSessionAgent.cpp",
+      "pmd/pmdCBMgrEntryPoint.cpp",
+      "pmd/pmdAsyncNetEntryPoint.cpp",
       "pmd/pmdTcpListener.cpp",
       "pmd/pmdSignalHandler.cpp",
       "pmd/pmdWindowsListener.cpp",
@@ -90,9 +90,8 @@ pmdFiles = [
       "pmd/pmdController.cpp",
       "pmd/pmdEDUEntryPoint.cpp",
       "pmd/pmdProcessor.cpp",
-      "fap/mongodb/fapMongoModule.cpp",
-      "fap/fapModuleWrapper.cpp",
       "pmd/pmdProtocolEntryPoint.cpp",
+      "pmd/pmdModuleLoader.cpp"
       ]
 migFiles = [
       "mig/migLoad.cpp"

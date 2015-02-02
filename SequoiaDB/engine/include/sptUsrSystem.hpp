@@ -66,6 +66,7 @@
 #define SPT_USR_SYSTEM_REACHABLE          "Reachable"
 #define SPT_USR_SYSTEM_USABLE             "Usable"
 #define SPT_USR_SYSTEM_UNIT               "Unit"
+#define SPT_USR_SYSTEM_FSTYPE             "FsType"
 
 #define SPT_USR_SYSTEM_RX_PACKETS         "RXPackets"
 #define SPT_USR_SYSTEM_RX_BYTES           "RXBytes"
@@ -237,8 +238,20 @@ namespace engine
       static INT32 _extractMemInfo( const CHAR *buf,
                                     bson::BSONObjBuilder &builder ) ;
 
-      static INT32 _extractDiskInfo( const CHAR *buf,
-                                     bson::BSONObjBuilder &builder ) ;
+      static INT32 _getLinuxDiskInfo( const _sptArguments &arg,
+                                      _sptReturnVal &rval,
+                                      bson::BSONObj &detail ) ;
+
+      static INT32 _extractLinuxDiskInfo( const CHAR *buf,
+                                          _sptReturnVal &rval,
+                                          bson::BSONObj &detail ) ;
+
+      static INT32 _getWinDiskInfo( const _sptArguments &arg,
+                                    _sptReturnVal &rval,
+                                    bson::BSONObj &detail ) ;
+
+      static INT32 _extractWinDiskInfo( const CHAR *buf,
+                                        bson::BSONObjBuilder &builder ) ;
 
       static INT32 _extractNetcards( bson::BSONObjBuilder &builder ) ;
 

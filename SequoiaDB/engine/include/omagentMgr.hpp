@@ -78,8 +78,8 @@ namespace engine
          const CHAR* getOMAddress() const { return _omAddress ; }
          INT32       getRestartCount() const { return _restartCount ; }
          INT32       getRestartInterval() const { return _restartInterval ; }
-         BOOLEAN     isAutoStart() const { return _autoStart ; }
-         BOOLEAN     isGeneralAgent() const { return _isGeneralAgent ; }
+         BOOLEAN     isAutoStart() const { return _autoStart && !_useStandAlone ; }
+         BOOLEAN     isGeneralAgent() const { return _isGeneralAgent && !_useStandAlone ; }
          PDLEVEL     getDiagLevel() const ;
 
          vector< _pmdOptionsMgr::_pmdAddrPair > omAddrs() const
@@ -94,6 +94,12 @@ namespace engine
 
          void        setCurUser() { _useCurUser = TRUE ; }
          BOOLEAN     isUseCurUser() const { return _useCurUser ; }
+
+         void        setStandAlone() ;
+         BOOLEAN     isStandAlone() const { return _useStandAlone ; }
+
+         void        setAliveTimeout( UINT32 timeout ) ;
+         UINT32      getAliveTimeout() const { return _aliveTimeout ; }
 
          void        setCMServiceName( const CHAR *serviceName ) ;
 
@@ -126,6 +132,8 @@ namespace engine
          vector < pmdAddrPair >     _vecOMAddr ;
 
          BOOLEAN                    _useCurUser ;
+         BOOLEAN                    _useStandAlone ;
+         UINT32                     _aliveTimeout ;
 
          ossSpinSLatch              _latch ;
 
@@ -207,6 +215,10 @@ namespace engine
          sptScope*       getScope() ;
          void            releaseScope( sptScope *pScope ) ;
 
+         void            incSession() ;
+         void            decSession() ;
+         void            resetNoMsgTimeCounter() ;
+
          INT32           sendToOM( MsgHeader *msg, INT32 *pSendNum = NULL ) ;
 
          INT32           startTaskCheck ( const BSONObj& match ) ;
@@ -241,6 +253,9 @@ namespace engine
 
          UINT32                     _nodeMonitorTimer ;
          UINT32                     _watchAndCleanTimer ;
+
+         UINT32                     _sessionNum ;
+         UINT32                     _noMsgTimerCounter ;
 
          ossSpinSLatch              _mgrLatch ;
          vector< MsgRouteID >       _vecOmNode ;

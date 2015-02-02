@@ -94,19 +94,19 @@
 
 #define RTNCOORD_SNAPSHOTCL_INPUT     "{$project:{\
                                                 Name:1,\
-                                                GroupName:\"$Details.0.GroupName\",\
-                                                ID:\"$Details.0.ID\",\
-                                                LogicalID:\"$Details.0.LogicalID\",\
-                                                Sequence:\"$Details.0.Sequence\",\
-                                                Indexes:\"$Details.0.Indexes\",\
-                                                Status:\"$Details.0.Status\",\
-                                                TotalRecords:\"$Details.0.TotalRecords\",\
-                                                TotalDataPages:\"$Details.0.TotalDataPages\",\
-                                                TotalIndexPages:\"$Details.0.TotalIndexPages\",\
-                                                TotalLobPages:\"$Details.0.TotalLobPages\",\
-                                                TotalDataFreeSpace:\"$Details.0.TotalDataFreeSpace\",\
-                                                TotalIndexFreeSpace:\"$Details.0.TotalIndexFreeSpace\",\
-                                                NodeName:\"$Details.0.NodeName\"\
+                                                GroupName:\"$Details.$[0].GroupName\",\
+                                                ID:\"$Details.$[0].ID\",\
+                                                LogicalID:\"$Details.$[0].LogicalID\",\
+                                                Sequence:\"$Details.$[0].Sequence\",\
+                                                Indexes:\"$Details.$[0].Indexes\",\
+                                                Status:\"$Details.$[0].Status\",\
+                                                TotalRecords:\"$Details.$[0].TotalRecords\",\
+                                                TotalDataPages:\"$Details.$[0].TotalDataPages\",\
+                                                TotalIndexPages:\"$Details.$[0].TotalIndexPages\",\
+                                                TotalLobPages:\"$Details.$[0].TotalLobPages\",\
+                                                TotalDataFreeSpace:\"$Details.$[0].TotalDataFreeSpace\",\
+                                                TotalIndexFreeSpace:\"$Details.$[0].TotalIndexFreeSpace\",\
+                                                NodeName:\"$Details.$[0].NodeName\"\
                                                 }\
                                        }\n\
                                        {$project:{\

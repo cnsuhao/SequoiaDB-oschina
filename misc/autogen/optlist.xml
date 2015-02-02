@@ -782,6 +782,36 @@
          <cn>如果不指定，默认值为"false"</cn>
       </detail>
       <typeofweb>boolean</typeofweb>
-  </opt>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_CLUSTER_NAME</name>
+      <long>clustername</long>
+      <description>
+         <en>Cluster name which belonging to</en>
+         <cn>所属集群名称</cn>
+      </description>
+     <hidden>true</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_BUSINESS_NAME</name>
+      <long>businessname</long>
+      <description>
+         <en>Business name which belonging to</en>
+         <cn>所属业务名称</cn>
+      </description>
+     <hidden>true</hidden>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_USERTAG</name>
+      <long>usertag</long>
+      <description>
+         <en>User defined tag</en>
+         <cn>用户自定义标签</cn>
+      </description>
+     <hidden>true</hidden>
+   </opt>
 
 </optlist>

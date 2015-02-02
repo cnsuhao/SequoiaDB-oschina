@@ -121,12 +121,13 @@ namespace engine
                goto done ;
             }
             {
-            BSONElement ele = src.getFieldDotted( itr->value.attr().toString() ) ;
+            string fieldName = itr->value.attr().toFieldName() ;
+            BSONElement ele = src.getFieldDotted( fieldName ) ;
             if ( ele.eoo() )
             {
                if ( itr->alias.empty() )
                {
-                  builder.appendNull( itr->value.attr().toString() ) ;
+                  builder.appendNull( fieldName ) ;
                }
                else
                {
@@ -198,7 +199,7 @@ namespace engine
                {
                   if ( itr->alias.empty() )
                   {
-                     builder.appendNull( itr->value.attr().toString() ) ;
+                     builder.appendNull( itr->value.attr().toFieldName() ) ;
                   }
                   else
                   {

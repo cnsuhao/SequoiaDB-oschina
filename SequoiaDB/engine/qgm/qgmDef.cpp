@@ -56,7 +56,7 @@ namespace engine
       {
          try
          {
-            local = obj.getFieldDotted( attr.attr().toString() );
+            local = obj.getFieldDotted( attr.attr().toFieldName() );
          }
          catch ( std::exception &e )
          {
@@ -73,8 +73,9 @@ namespace engine
          {
             try
             {
-               local = obj.getFieldDotted( attr.attr().toString() ) ;
-               next = this->next->obj.getFieldDotted( attr.attr().toString() ) ;
+               string fieldName = attr.attr().toFieldName() ;
+               local = obj.getFieldDotted( fieldName ) ;
+               next = this->next->obj.getFieldDotted( fieldName ) ;
             }
             catch ( std::exception &e )
             {
@@ -133,7 +134,7 @@ namespace engine
 
             try
             {
-               local = srcObj.getFieldDotted( attr.attr().toString() ) ;
+               local = srcObj.getFieldDotted( attr.attr().toFieldName() ) ;
             }
             catch ( std::exception &e )
             {

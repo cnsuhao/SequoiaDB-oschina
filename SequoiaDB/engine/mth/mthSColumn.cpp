@@ -39,6 +39,7 @@
 
 using namespace bson ;
 
+
 namespace engine
 {
 #define MTH_S_IS_LAST_ACTION( i )\
@@ -451,17 +452,9 @@ namespace engine
          UINT32 mid = ( begin + end ) / 2 ;
          _mthSColumn * node = array[mid] ;
          SDB_ASSERT( NULL != node, "can not be null" ) ;
-         INT32 compare = ossStrcmp( name, node->getName() ) ;
-         if ( 0 < compare )
-         {
-            begin = mid == begin ?
-                    end : mid ;
-         }
-         else if ( compare < 0 )
-         {
-            end = mid ;
-         }
-         else
+         FieldCompareResult compare =
+                      compareDottedFieldNames( name, node->getName() ) ;
+         if ( SAME == compare )
          {
             column = node ;
             rc = TRUE ;
@@ -471,11 +464,20 @@ namespace engine
             }
             goto done ;
          }
+         else if ( ( compare == RIGHT_SUBFIELD ) || ( compare == LEFT_BEFORE ) )
+         {
+            end = mid ;
+         }
+         else
+         {
+            begin = mid == begin ?
+                    end : mid ;
+         }
       }
 
       {
       _mthSColumn *node = array[begin] ;
-      if ( 0 == ossStrcmp( name, node->getName() ) )
+      if ( SAME == compareDottedFieldNames( name, node->getName() ) )
       {
          column = node ;
          rc = TRUE ;

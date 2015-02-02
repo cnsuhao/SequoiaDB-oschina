@@ -721,6 +721,11 @@ namespace engine
          set<BSONElement, element_lt> vals ;
          vector<rtnPredicate> regexes ;
          BSONObjIterator i ( e.embeddedObject() ) ;
+
+         if ( !i.more() )
+         {
+            vals.insert ( e ) ;
+         }
          while ( i.more() )
          {
             BSONElement ie = i.next() ;

@@ -39,6 +39,7 @@
 
 #include "util.hpp"
 #include "../../bson/bson.hpp"
+#include "../../include/dms.hpp"
 
 enum mongoOption
 {
@@ -118,12 +119,18 @@ struct mongoMsgReply : mongoMsgHeader
    INT32 nReturned;
 };
 
+#define CS_NAME_SIZE       DMS_COLLECTION_SPACE_NAME_SZ
+#define CL_FULL_NAME_SIZE  DMS_COLLECTION_SPACE_NAME_SZ +   \
+                           DMS_COLLECTION_NAME_SZ + 1
+
 class mongoParser : public mongoMsgHeader
 {
 public:
-   UINT32 nsLen ;
-   UINT32 dbNameLen ;
-   const CHAR *dbName ;
+   BOOLEAN withCmd ;
+   BOOLEAN withIndex ;
+   INT32 nsLen ;
+   CHAR csName[ CS_NAME_SIZE + 1 ] ;
+   CHAR fullName[ CL_FULL_NAME_SIZE + 1 ] ;
 
 public:
    mongoParser() ;

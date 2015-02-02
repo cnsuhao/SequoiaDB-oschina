@@ -157,8 +157,7 @@ namespace engine
       EDU_TYPE_OMNET,
       EDU_TYPE_SYNCCLOCK,
       EDU_TYPE_PIPESLISTENER,
-      EDU_TYPE_PROTOCOLLISTENER,
-      EDU_TYPE_PROTOCOL,
+      EDU_TYPE_FAPLISTENER,
 
       EDU_TYPE_AGENT_BEGIN,
 
@@ -166,6 +165,7 @@ namespace engine
       EDU_TYPE_SHARDAGENT,
       EDU_TYPE_REPLAGENT,
       EDU_TYPE_RESTAGENT,
+      EDU_TYPE_FAPAGENT,
 
       EDU_TYPE_AGENT_END,
 
@@ -227,8 +227,37 @@ namespace engine
    #define PMD_OPTION_AS_PROC          "asproc"
    #endif // _LINUX
    #define PMD_OPTION_TYPE             "type"
+   #define PMD_OPTION_MODE             "mode"
+   #define PMD_OPTION_DETAIL           "detail"
+   #define PMD_OPTION_EXPAND           "expand"
+   #define PMD_OPTION_LONG             "long"
    #define PMD_OPTION_CURUSER          "I"
    #define PMD_OPTION_PORT             "port"
+   #define PMD_OPTION_STANDALONE       "standalone"      // for om
+   #define PMD_OPTION_ALIVE_TIME       "alivetime"       // for om
+
+   /*
+      SDB_RUN_MODE_TYPE_STR DEFINE
+   */
+   #define SDB_RUN_MODE_TYPE_LOCAL_STR  "local"
+   #define SDB_RUN_MODE_TYPE_RUN_STR    "run"
+
+   /*
+     SDBLIST_TYPE_STR
+   */
+   #define SDBLIST_TYPE_OMA_STR    "cm"
+   #define SDBLIST_TYPE_OM_STR     "om"
+   #define SDBLIST_TYPE_DB_STR     "db"
+   #define SDBLIST_TYPE_ALL_STR    "all"
+
+   /*
+      SDB_RUN_MODE_TYPE define
+   */
+   enum SDB_RUN_MODE_TYPE
+   {
+      LOCAL = 1,
+      RUN
+   } ;
 
    #define ENGINE_NPIPE_MSG_PID        "$pid"
    #define ENGINE_NPIPE_MSG_SHUTDOWN   "$shutdown"

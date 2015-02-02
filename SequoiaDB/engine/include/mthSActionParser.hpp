@@ -52,6 +52,10 @@ namespace engine
 
       INT32 buildDefaultValueAction( const bson::BSONElement &e,
                                      _mthSAction &action ) ;
+
+      INT32 buildSliceAction( INT32 begin,
+                              INT32 limit,
+                               _mthSAction &action ) ;
    public:
       class parser : public SDBObject
       {

@@ -105,6 +105,7 @@ namespace engine
       INT32    _groupID ;
       INT32    _nodeID ;
       INT32    _primary ;
+      INT32    _isAlone ;
       string   _groupName ;
       string   _dbPath ;
 
@@ -116,6 +117,7 @@ namespace engine
          _groupID    = 0 ;
          _nodeID     = 0 ;
          _primary    = -1 ;
+         _isAlone    = 0 ;
       }
    } ;
    typedef _utilNodeInfo utilNodeInfo ;
@@ -129,7 +131,8 @@ namespace engine
                            INT32 typeFilter = -1,
                            const CHAR *svcnameFilter = NULL,
                            OSSPID pidFilter = OSS_INVALID_PID,
-                           INT32 roleFilter = -1 ) ;
+                           INT32 roleFilter = -1,
+                           BOOLEAN allowAloneCM = FALSE ) ;
 
    /*
       get node group id/name, node id, dbpath info
@@ -154,7 +157,8 @@ namespace engine
                             const CHAR *svcname,
                             OSSPID pid = OSS_INVALID_PID,
                             INT32 typeFilter = -1,
-                            INT32 timeout = UTIL_WAIT_NODE_TIMEOUT ) ;
+                            INT32 timeout = UTIL_WAIT_NODE_TIMEOUT,
+                            BOOLEAN allowAloneCM = FALSE ) ;
 
    #define UTIL_STOP_NODE_TIMEOUT         ( 5 * 60 ) // second
 

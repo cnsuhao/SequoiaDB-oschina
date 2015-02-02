@@ -34,57 +34,58 @@
    Last Changed =
 
 *******************************************************************************/
-#ifndef _SDB_MONGO_CONVERTER_HPP_
-#define _SDB_MONGO_CONVERTER_HPP_
+#ifndef _SDB_MODULE_LOADER_HPP_
+#define _SDB_MODULE_LOADER_HPP_
 
-#include "util.hpp"
 #include "oss.hpp"
-#include "mongodef.hpp"
-#include "commands.hpp"
+#include "ossDynamicLoad.hpp"
+#include "ossTypes.h"
+#include "pmdAccessProtocolBase.hpp"
 
-class command ;
+#define OSS_FAP_CREATE  ( IPmdAccessProtocol*(*)() )
+#define OSS_FAP_RELEASE ( void(*)( IPmdAccessProtocol *) )
 
-class mongoConverter : public baseConverter
+namespace engine {
+
+class _pmdEDUParam : public SDBObject
 {
 public:
-   mongoConverter() : _cmd( NULL )
+   _pmdEDUParam() : pSocket( NULL ), protocol( NULL )
+   {}
+
+   virtual ~_pmdEDUParam()
    {
-      _bigEndian = checkBigEndian() ;
-      parser.setEndian( _bigEndian ) ;
+      pSocket = NULL ;
+      protocol = NULL ;
    }
 
-   ~mongoConverter()
-   {
-
-   }
-
-   BOOLEAN isBigEndian() const
-   {
-      return _bigEndian ;
-   }
-
-   BOOLEAN isGetLastError() const
-   {
-      const CHAR *ptr = NULL ;
-      ptr = ossStrstr( _cmd->name(), "getLastError" ) ;
-      if ( NULL == ptr )
-      {
-         ptr = ossStrstr( _cmd->name(), "getlasterror" ) ;
-      }
-      return NULL != ptr ;
-   }
-
-   void resetCommand()
-   {
-      _cmd = NULL ;
-   }
-
-   virtual INT32 convert( std::vector<msgBuffer*> &out ) ;
-   virtual INT32 reConvert( msgBuffer *in, msgBuffer &out ) ;
-
-private:
-   BOOLEAN _bigEndian ;
-   command *_cmd ;
-   mongoParser parser ;
+   void               *pSocket ;
+   IPmdAccessProtocol *protocol ;
 };
+typedef _pmdEDUParam pmdEDUParam ;
+
+class _pmdModuleLoader : public SDBObject
+{
+public:
+   _pmdModuleLoader() ;
+   virtual ~_pmdModuleLoader() ;
+
+   virtual INT32 init()   { return SDB_OK ; }
+   virtual INT32 active() { return SDB_OK ; }
+   virtual INT32 fini()   { return SDB_OK ; }
+
+   INT32 getFunction( const CHAR *funcName, OSS_MODULE_PFUNCTION *function ) ;
+   INT32 create ( IPmdAccessProtocol *&protocol ) ;
+   INT32 release( IPmdAccessProtocol *protocol ) ;
+
+   INT32 load( const CHAR *mudule, const CHAR *path, UINT32 mode = 0 ) ;
+   void  unload() ;
+
+protected:
+   OSS_MODULE_PFUNCTION  _function ;
+   ossModuleHandle      *_loadModule ;
+};
+
+typedef _pmdModuleLoader pmdModuleLoader ;
+}
 #endif

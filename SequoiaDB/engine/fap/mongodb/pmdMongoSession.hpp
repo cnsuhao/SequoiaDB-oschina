@@ -78,6 +78,7 @@ private:
    engine::rtnContextBuf   _contextBuff ;
    BSONObj                 _errorInfo ;
 
+   std::vector< msgBuffer* > _inBufferVec ;
    msgBuffer               _inBuffer ;
    msgBuffer               _outBuffer ;
 } ;

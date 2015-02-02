@@ -144,6 +144,25 @@ namespace engine
       goto done ;
    }
 
+   ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSACTIONPARSER__BUILDSLICEACTION, "_mthSActionParser::buildSliceAction" )
+   INT32 _mthSActionParser::buildSliceAction( INT32 begin,
+                                              INT32 limit,
+                                              _mthSAction &action )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHSACTIONPARSER__BUILDSLICEACTION ) ;
+      action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
+      action.setFunc( &mthSliceBuild,
+                      &mthSliceGet ) ;
+      action.setName( MTH_S_SLICE ) ;
+      action.setSlicePair( begin, limit ) ;
+   done:
+      PD_TRACE_EXITRC( SDB__MTHSACTIONPARSER__BUILDSLICEACTION, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSACTIONPARSER__REGISTERPARSERS, "_mthSActionParser::_registerParsers" )
    INT32 _mthSActionParser::_registerParsers()
    {

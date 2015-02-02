@@ -27,7 +27,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -35,7 +34,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
@@ -64,8 +62,7 @@ import org.bson.util.JSON;
  * 
  * </blockquote>
  */
-public class BasicBSONObject implements BSONObject {
-
+public class BasicBSONObject implements Map<String, Object>, BSONObject {
 	private static final long serialVersionUID = -4415279469780082174L;
 	private Map<String, Object> _objectMap = null ;
 	
@@ -132,7 +129,12 @@ public class BasicBSONObject implements BSONObject {
 	 * @return the DBObject
 	 */
 	public Map toMap() {
-		return new LinkedHashMap<String, Object>(_objectMap);
+	    if (_objectMap instanceof LinkedHashMap) {
+	        return new LinkedHashMap<String, Object>(_objectMap);
+	    }
+	    else {
+	        return new TreeMap<String, Object>(_objectMap);
+	    }
 	}
 
 	/**
@@ -752,6 +754,41 @@ public class BasicBSONObject implements BSONObject {
     
     public Set<Entry<String, Object>> entrySet() {
         return _objectMap.entrySet();
+    }
+
+    @Override
+    public int size() {
+        return _objectMap.size();
+    }
+
+    @Override
+    public boolean containsKey(Object key) {
+        return _objectMap.containsKey(key);
+    }
+
+    @Override
+    public boolean containsValue(Object value) {
+        return _objectMap.containsValue(value);
+    }
+
+    @Override
+    public Object remove(Object key) {
+        return _objectMap.remove(key);
+    }
+
+    @Override
+    public void clear() {
+        _objectMap.clear();
+    }
+
+    @Override
+    public Collection<Object> values() {
+        return _objectMap.values();
+    }
+
+    @Override
+    public Object get(Object key) {
+        return _objectMap.get(key);
     }
 
 }

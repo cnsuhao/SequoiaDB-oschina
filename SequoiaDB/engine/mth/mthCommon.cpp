@@ -232,5 +232,63 @@ namespace engine
       goto done ;
    }
 
+   INT32 mthConvertSubElemToNumeric( const CHAR *desc,
+                                     INT32 &n )
+   {
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT( NULL != desc && '$' == *desc, "must be a $" ) ;
+      const CHAR *p = desc ;
+      const UINT32 maxLen = 10 ;
+      CHAR number[maxLen + 1] = { 0 } ;
+      UINT32 numberLen = 0 ;
+      if ( '[' == *( p + 1 ) )
+      {
+         p += 2 ;
+         while ( '\0' != *p )
+         {
+            if ( '0' <= *p && *p <= '9' )
+            {
+               if ( numberLen == maxLen )
+               {
+                  PD_LOG( PDERROR, "number is too long" ) ;
+                  rc = SDB_INVALIDARG ;
+                  goto error ;
+               }
+               number[numberLen++] = *p++ ;
+            }
+            else if ( ']' == *p )
+            {
+               break ;
+            }
+            else
+            {
+               PD_LOG( PDERROR, "argument should be a numeric" ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+         }
+
+         if ( 0 == numberLen )
+         {
+            PD_LOG( PDERROR, "invalid action in selector:%s", desc ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+
+         number[numberLen] = '\0' ;
+         n = ossAtoi( number ) ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "invalid action:%s", desc ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+   done:
+     return rc ;
+   error:
+     goto done ;
+   }
 }
 

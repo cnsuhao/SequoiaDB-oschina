@@ -36,6 +36,7 @@
 #include "mthTrace.hpp"
 #include "pdTrace.hpp"
 #include "utilStr.hpp"
+#include "mthCommon.hpp"
 
 using namespace bson ;
 
@@ -316,14 +317,36 @@ namespace engine
       {
          node = NULL ;
          const CHAR *columnName = i.next() ;
-         rc = _getColumn( columnName, father, node ) ;
-         if( SDB_OK != rc )
+
+         if ( '$' == *columnName )
          {
-            PD_LOG( PDERROR, "failed to get column:%d", rc ) ;
-            goto error ;
+            if ( NULL == father )
+            {
+               PD_LOG( PDERROR, "$ can not exist in top level" ) ;
+               rc = SDB_INVALIDARG ;
+               goto error ;
+            }
+
+            rc = _addMiddleAction( father, columnName ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to add action to column:%d", rc ) ;
+               goto error ;
+            }
+
+            node = father ;
          }
-         SDB_ASSERT( NULL != node, "can not be null" ) ;
-         father = node ;
+         else
+         {
+            rc = _getColumn( columnName, father, node ) ;
+            if( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to get column:%d", rc ) ;
+               goto error ;
+            }
+            SDB_ASSERT( NULL != node, "can not be null" ) ;
+            father = node ;
+         }
       }
 
       column = node ; 
@@ -379,6 +402,48 @@ namespace engine
       }
    done:
       PD_TRACE_EXITRC( SDB__MTHSCOLUMNMATRIX__GETCOLUMN2, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSCOLUMNMATRIX__ADDMIDDLEACTION, "_mthSColumnMatrix::_addMiddleAction" )
+   INT32 _mthSColumnMatrix::_addMiddleAction( _mthSColumn *column,
+                                              const CHAR *desc )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHSCOLUMNMATRIX__ADDMIDDLEACTION ) ;
+      INT32 elemNumber = 0 ;
+      mthSAction *action = NULL ;
+      rc = mthConvertSubElemToNumeric( desc, elemNumber ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to parse action:%d", rc ) ;
+         goto error ;
+      }
+
+      rc = _actionPool.allocate( action ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to allocate action:%d", rc ) ;
+         goto error ;
+      }
+
+      rc = _parser.buildSliceAction( elemNumber, 1, *action ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to build default value action:%d", rc ) ;
+         goto error ;
+      }
+
+      rc = column->addAction( action ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to add action to column:%d", rc ) ;
+         goto error ;
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__MTHSCOLUMNMATRIX__ADDMIDDLEACTION, rc ) ;
       return rc ;
    error:
       goto done ;

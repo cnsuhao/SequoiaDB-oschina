@@ -41,6 +41,7 @@
 #include "sptUsrSystem.hpp"
 #include "sptUsrOma.hpp"
 #include "sptUsrHash.hpp"
+#include "sptUsrSdbTool.hpp"
 
 namespace engine
 {
@@ -214,6 +215,9 @@ namespace engine
          rc = pScope->loadUsrDefObj<_sptUsrHash>() ;
          PD_CHECK ( SDB_OK == rc, SDB_SYS, error, PDERROR,
                     "Failed to load class _sptUsrHash, rc = %d", rc ) ;
+         rc = pScope->loadUsrDefObj<_sptUsrSdbTool>() ;
+         PD_CHECK ( SDB_OK == rc, SDB_SYS, error, PDERROR,
+                    "Failed to load class _sptUsrSdbTool, rc = %d", rc ) ;
       }
 
       if ( _loadMask & SPT_OBJ_MASK_INNER_JS )

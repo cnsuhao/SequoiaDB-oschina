@@ -65,35 +65,8 @@ namespace engine
 {
 
    /*
-      SDB_RUN_MODE_TYPE_STR DEFINE
-   */
-   #define SDB_RUN_MODE_TYPE_LOCAL_STR  "local"
-   #define SDB_RUN_MODE_TYPE_RUN_STR    "run"
-
-   /*
-     SDBLIST_TYPE_STR
-   */
-   #define SDBLIST_TYPE_OMA_STR    "cm"
-   #define SDBLIST_TYPE_OM_STR     "om"
-   #define SDBLIST_TYPE_DB_STR     "db"
-   #define SDBLIST_TYPE_ALL_STR    "all"
-
-   /*
-      SDB_RUN_MODE_TYPE define
-   */
-   enum SDB_RUN_MODE_TYPE
-   {
-      LOCAL = 1,
-      RUN
-   } ;
-
-   /*
       OPTION DEFINE
    */
-   #define PMD_OPTION_MODE             "mode"
-   #define PMD_OPTION_DETAIL           "detail"
-   #define PMD_OPTION_EXPAND           "expand"
-   #define PMD_OPTION_LONG             "long"
    #define SDB_CONF_FILE_PATH_FORMAT   SDBCM_LOCAL_PATH OSS_FILE_SEP "%s" OSS_FILE_SEP PMD_DFT_CONF
 
    #define COMMANDS_OPTIONS \

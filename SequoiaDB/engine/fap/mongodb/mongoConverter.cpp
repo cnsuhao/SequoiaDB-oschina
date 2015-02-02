@@ -38,7 +38,7 @@
 #include "mongodef.hpp"
 #include "commands.hpp"
 
-INT32 mongoConverter::convert( msgBuffer &out )
+INT32 mongoConverter::convert( std::vector<msgBuffer*> &out )
 {
    INT32 rc = SDB_OK ;
    parser.init( _msgdata, _msglen ) ;
