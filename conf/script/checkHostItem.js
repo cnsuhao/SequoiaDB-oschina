@@ -28,9 +28,9 @@ function OSInfo()
    this.Bit                = 0 ;
 }
 
-function OMInfo()
+function OMAInfo()
 {
-   this.HasInstalled       = false ;
+   //this.HasInstalled       = false ;
    this.Version            = "" ;
    this.Path               = "" ;
    this.Port               = "" ;

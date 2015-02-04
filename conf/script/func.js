@@ -21,32 +21,42 @@
    2014-7-26 Zhaobo Tan  Init
 */
 
+var FILE_NAME_FUNC = "func.js" ;
+var errMsg         = "" ;
+var rc             = SDB_OK ;
+
+/* *****************************************************************************
+@discretion: handle system exception
+@author: Tanzhaobo
+@parameter
+   exp[object]: all kinds of exceptions
+@return void
+***************************************************************************** */
+function SYSEXPHANDLE( exp )
+{
+   if ( "number" != typeof(exp) )
+   {
+      if ( "object" == typeof(exp) )
+         setLastErrMsg( exp.message ) ;
+      else
+         setLastErrMsg( exp + "" ) ;
+      setLastError( SDB_SYS ) ;
+   }
+}
+
 /* *****************************************************************************
 @discretion: get last error number
 @author: Tanzhaobo
-@parameter
-   e: the exception
-   flag[bool]: throw exception nor not
+@parameter void
 @return
-   
+   errno[int] the error number
 ***************************************************************************** */
-function GETLASTERROR ( e, flag )
+function GETLASTERROR ()
 {
-   if ( "number" == typeof(e) && e < 0 )
-   {
-      return e ;
-   }
-   else
-   {
-      if ( flag )
-      {
-         throw e ;
-      }
-      else
-      {
-         return SDB_SYS ;
-      } 
-   }
+   var errno = getLastError() ;
+   if ( undefined == errno )
+      errno = SDB_SYS ;
+   return errno ;
 }
 
 /* *****************************************************************************
@@ -54,17 +64,14 @@ function GETLASTERROR ( e, flag )
 @author: Tanzhaobo
 @parameter void
 @return
-   retStr[string]: error message
+   errmsg[string]: the error message
 ***************************************************************************** */
 function GETLASTERRMSG ()
 {
-   var retStr = "" ;
-   var msg = getLastErrMsg() ;
-   if ( "undefined" != typeof(msg) )
-   {
-      retStr = msg ;
-   }
-   return retStr ;
+   var errmsg = getLastErrMsg() ;
+   if ( undefined == errmsg )
+      errmsg = "" ;
+   return errmsg ;
 }
 
 /* *****************************************************************************
@@ -76,22 +83,6 @@ function GETLASTERRMSG ()
 @return void
 ***************************************************************************** */
 function exception_handle( exp, msg )
-{
-   setLastErrMsg( msg + ": " + getLastErrMsg() ) ; 
-   if ( "number" == typeof( exp ) && exp < 0 )
-   {
-      //setLastErrMsg( msg + ": " + getErr( exp ) ) ;
-      setLastError( exp ) ;
-      throw exp ;
-   }
-   else
-   {
-      //setLastErrMsg( msg + ", exception is: " + exp ) ;
-      setLastError( SDB_SYS ) ;
-      throw SDB_SYS ;
-   }
-}
-function exception_handle2( exp, msg )
 {
    setLastErrMsg( msg ) ;
    if ( "number" == typeof( exp ) && exp < 0 )
@@ -112,30 +103,6 @@ function exception_msg( exp )
 }
 
 /* *****************************************************************************
-@discretion: check whether ssh execute is successful or not
-@author: Tanzhaobo
-@parameter
-   ssh[object]: the ssh object
-   exp[number]: error number
-@return void
-***************************************************************************** */
-function SSH_CHECK( ssh, exp )
-{
-   if ( typeof (ssh) == "undefined" )
-   {
-      setLastErrMsg( "Invalid Ssh object" ) ;
-      setLastError( SDB_INVALIDARG ) ;
-      throw SDB_INVALIDARG ;
-   }
-   if ( ssh.getLastRet() )
-   {
-      setLastErrMsg( ssh.getLastOut() ) ;
-      setLastError( exp ) ;
-      throw exp ;
-   }
-}
-
-/* *****************************************************************************
 @discretion: remove the "\n" or "\n\r" in the end of string
 @author: Tanzhaobo
 @parameter
@@ -145,10 +112,9 @@ function SSH_CHECK( ssh, exp )
 ***************************************************************************** */
 function removeLineBreak ( str )
 {
-   var osInfo = System.type() ;
    var retStr = str ;
 
-   if ( OMA_LINUX == osInfo )
+   if ( SYS_LINUX == SYS_TYPE )
    {
       var i = str.indexOf( "\n" ) ;
       if ( -1 != i )
@@ -160,39 +126,6 @@ function removeLineBreak ( str )
       {
          retStr = str ;
       }
-   }
-   else
-   {
-      // TODO:
-   }
-   return retStr ;
-}
-
-/* *****************************************************************************
-@discretion: get the script's path
-@author: Tanzhaobo
-@parameter
-   path[string]: the path of sdbcm config file
-@return
-   retStr[string]: the path of script files
-***************************************************************************** */
-function getScriptPath( path )
-{
-   var osInfo = System.type() ;
-   var retStr = "" ;
-   var str = "" ;
-
-   if ( "LINUX" == osInfo )
-   {
-      str = "/" ;
-      var pos = path.lastIndexOf( str ) ;
-      if ( -1 == pos )
-      {
-         setLastErrMsg( "Invalid sdbcm config file's path: " + path ) ;
-         setLastError( SDB_INVALDARG ) ;
-         throw SDB_INVALIDARG ;
-      }
-      retStr = path.substring( 0, pos + 1 ) + OMA_PATH_SCRIPT_L ;
    }
    else
    {
@@ -216,7 +149,7 @@ function genTimeStamp()
    var dateStr = dateVar.toLocaleDateString() ;
    var timeStr = dateVar.toLocaleTimeString() ;
    var strs = dateStr.split( '/' ) ;
-   retStr = strs[2] + "-" + strs[1] + "-" + strs[0] + "-" + timeStr ;
+   retStr = strs[2] + "-" + strs[0] + "-" + strs[1] + "-" + timeStr ;
 
    return retStr ;
 }
@@ -247,15 +180,15 @@ function isInLocalHost( ssh )
 @discretion: adapt path with "\"(linux) or "//"(window) in the end
 @author: Tanzhaobo
 @parameter
-   ssh[object]: ssh object
-   osInfo[string]: os type
-@return void
+   path[string]: a path
+@return
+   [string]: a path with "\" or "//" in the end
 ***************************************************************************** */
-function adaptPath( osInfo, path )
+function adaptPath( path )
 {
    var s = "" ;
    var i = -1 ;
-   if ( OMA_LINUX == osInfo )
+   if ( SYS_LINUX == SYS_TYPE )
    {
       s = "/" ;
    }
@@ -324,6 +257,201 @@ function isReservedPort( port )
 }
 
 /* *****************************************************************************
+@discretion: create temporary directory in remote host
+@author: Tanzhaobo
+@parameter
+   ssh[object]: ssh object
+@return void
+***************************************************************************** */
+function createTmpDir( ssh )
+{
+   var str = "" ;
+   // directories make in target host /tmp
+   var dirs = [ OMA_PATH_TEMP_OMA_DIR_L,
+                OMA_PATH_TEMP_BIN_DIR_L,
+                OMA_PATH_TEMP_PACKET_DIR_L,
+                OMA_PATH_TEMP_CONF_DIR_L,
+                OMA_PATH_TEMP_LOG_DIR_L,
+                OMA_PATH_TEMP_SPT_DIR_L,
+                OMA_PATH_TEMP_TEMP_DIR_L,
+                OMA_PATH_VCOORD_PATH_L ] ;
+   try
+   {
+      if ( SYS_LINUX == SYS_TYPE )
+      {
+        // rm /tmp/omatmp
+        str = "rm " + OMA_PATH_TEMP_OMA_DIR_L + " -rf " ;
+        ssh.exec( str ) ;
+        // mkdir dirs
+        for ( var i = 0; i < dirs.length; i++ )
+        {
+           str = "mkdir -p " + dirs[i] ;
+           ssh.exec( str ) ;
+        }
+      }
+      else
+      {
+         // TODO: tanzhaobo
+      }
+/*
+      if ( SYS_LINUX == SYS_TYPE )
+      {
+        // rm /tmp/omatmp
+        cmd = "rm " + OMA_PATH_TEMP_OMA_DIR_L + " -rf " ;
+        ssh.exec( cmd ) ;
+        // mkdir /tmp/omatmp
+        cmd = "mkdir " + OMA_PATH_TEMP_OMA_DIR_L ;
+        ssh.exec( cmd ) ;
+        // mkdir /tmp/omatmp/bin
+        cmd = "mkdir " + OMA_PATH_TEMP_BIN_DIR_L ;
+        ssh.exec( cmd ) ;
+        // mkdir /tmp/omatmp/packet
+        cmd = "mkdir -p " + OMA_PATH_TEMP_PACKET_DIR_L ; 
+        ssh.exec( cmd ) ;
+        // mkdir /tmp/omatmp/conf
+        cmd = "mkdir " + OMA_PATH_TEMP_CONF_DIR_L ;
+        ssh.exec( cmd ) ;
+        // mkdir /tmp/omatmp/conf/log
+        cmd = "mkdir " + OMA_PATH_TEMP_LOG_DIR_L ;
+        ssh.exec( cmd ) ;
+        // mkdir /tmp/omatmp/conf/script
+        cmd = "mkdir " + OMA_PATH_TEMP_SPT_DIR_L ;
+        ssh.exec( cmd ) ;
+        // mkdir /tmp/omatmp/temp
+        cmd = "mkdir " + OMA_PATH_TEMP_TEMP_DIR_L ;
+        ssh.exec( cmd ) ;
+        // mkdir /tmp/omatmp/data/vCoord
+        cmd = "mkdir -p " + OMA_PATH_VCOORD_PATH_L ;
+        ssh.exec( cmd ) ;
+      }
+      else
+      {
+         // TODO: tanzhaobo
+      }
+*/
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = "Failed to create temporary directory in host[" + ssh.getPeerIP() + "]" ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
+              errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+}
+
+/* *****************************************************************************
+@discretion: remove the temporary directory and files in temporary directory
+@author: Tanzhaobo
+@parameter
+   ssh[object]: ssh object
+@return void
+***************************************************************************** */
+function removeTmpDir( ssh )
+{
+   var str = "" ;
+   
+   try
+   {   
+      if ( SYS_LINUX == SYS_TYPE )
+      {
+         str = "rm -rf " + OMA_PATH_TEMP_OMA_DIR_L2 ;
+         ssh.exec( str ) ;
+      }
+      else
+      {
+         // TODO:
+      }
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = "Failed to remove temporary directory in host [" + ssh.getPeerIP() + "]" ;
+      PD_LOG( arguments, PDWARNING, FILE_NAME_FUNC,
+              errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
+   }
+}
+
+/* *****************************************************************************
+@discretion: remove the temporary directory but leave log files
+@author: Tanzhaobo
+@parameter
+   ssh[object]: ssh object
+@return void
+***************************************************************************** */
+function removeTmpDir2( ssh )
+{
+   var str = "" ;
+   // directories need to be removed in target host
+   var dirs = [ OMA_PATH_TEMP_BIN_DIR_L,
+                OMA_PATH_TEMP_PACKET_DIR_L,
+                OMA_PATH_TEMP_SPT_DIR_L,
+                OMA_PATH_TEMP_LOCAL_DIR_L,
+                OMA_PATH_TEMP_DATA_DIR ] ;
+   try
+   {
+      if ( SYS_LINUX == SYS_TYPE )
+      {
+        // remove dirs
+        for ( var i = 0; i < dirs.length; i++ )
+        {
+           str = "rm -rf " + dirs[i] ;
+           ssh.exec( str ) ;
+        }
+      }
+      else
+      {
+         // TODO: tanzhaobo
+      }
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = "Failed to remove temporary directory but leave log file in host[" + ssh.getPeerIP() + "]" ;
+      PD_LOG( arguments, PDWARNING, FILE_NAME_FUNC,
+              errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
+   }
+}
+
+/* *****************************************************************************
+@discretion: get the script's path
+@author: Tanzhaobo
+@parameter
+   path[string]: the path of current program working
+                 e.g. /opt/sequoiadb/bin
+@return
+   retStr[string]: the path of script files
+***************************************************************************** */
+function getSptPath( path )
+{
+   var retStr = "" ;
+   var str = "" ;
+   var pos = -1 ;
+
+   if ( SYS_LINUX == SYS_TYPE )
+   {
+      retStr = adaptPath( path ) ;
+      str = "/" ;
+      pos = path.lastIndexOf( str, retStr.length - 2 ) ;
+      if ( -1 == pos )
+      {
+         setLastErrMsg( "Invalid sdbcm running path: " + path ) ;
+         setLastError( SDB_INVALIDARG ) ;
+         throw SDB_INVALIDARG ;
+      }
+      retStr = path.substring( 0, pos + 1 ) + "conf/script/" ;
+   }
+   else
+   {
+      // TODO:
+   }
+   return retStr ;
+}
+
+/* *****************************************************************************
 @discretion: get the total number of program about sdbcm in remote host
              according the result of sdblist
 @author: Tanzhaobo
@@ -373,18 +501,17 @@ function extractPort( str )
 @author: Tanzhaobo
 @parameter
    ssh[object]: ssh object
-   osInfo[string]: os type
 @exception
 @return
-   retPort[number]: the port of remote sdbcm program
+   retPort[number]: the port of target sdbcm
 ***************************************************************************** */
-function getSdbcmPort( ssh, osInfo )
+function getSdbcmPort( ssh )
 {
    var retPort = -1 ;
    var str = "" ;
    var errMsg = "" ;
 
-   if ( OMA_LINUX == osInfo )
+   if ( SYS_LINUX == SYS_TYPE )
    {
       var installInfoObj = null ;
       var installPath = null ;
@@ -394,9 +521,19 @@ function getSdbcmPort( ssh, osInfo )
       var isLocal = isInLocalHost( ssh ) ;
       if ( isLocal )
       {
-         installInfoObj = eval( '(' + Oma.getOmaInstallInfo() + ')' ) ;
-         installPath = adaptPath( osInfo, installInfoObj[INSTALL_DIR] ) ;
-         prog = installPath  + OMA_PROG_BIN_SDBLIST_L ;
+         try
+         {
+            installInfoObj = eval( '(' + Oma.getOmaInstallInfo() + ')' ) ;
+            installPath = adaptPath( installInfoObj[INSTALL_DIR] ) ;
+            prog = installPath  + OMA_PROG_BIN_SDBLIST_L ;
+         }
+         catch( e )
+         {
+            errMsg = "Failed to get sdbcm's port in host[" + ssh.getPeerIP() + "]" ;
+            PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
+                    errMsg + ", rc: " + getLastError() + ", detail: " + getLastErrMsg() ) ;
+            exception_handle( SDB_SYS, errMsg ) ;
+         }
       }
       else
       {
@@ -407,50 +544,56 @@ function getSdbcmPort( ssh, osInfo )
       {
          str = ssh.exec( cmd ) ;
       }
-      catch ( e)
+      catch ( e )
       {
+         SYSEXPHANDLE( e ) ;
          ret = ssh.getLastRet() ;
          if ( ret < 0 )
          {
-            errMsg = "Failed to get sdbcm's status in host [" + ssh.getPeerIP() + "]" ;
+            errMsg = "Failed to get sdbcm's port in host[" + ssh.getPeerIP() + "]" ;
+            PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
+                    errMsg + ", rc: " + getLastError() + ", detail: " + getLastErrMsg() ) ;
             exception_handle( SDB_SYS, errMsg ) ;
          }
          else if ( ret > 0 )
          {
-            errMsg = "sdbcm is not running in host [" + ssh.getPeerIP() + "]" ;
-            exception_handle2( SDB_SYS, errMsg ) ;
+            errMsg = "sdbcm is not running in host[" + ssh.getPeerIP() + "]" ;
+            PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
+                    errMsg + ", rc: " + getLastError() + "detail: " + getLastErrMsg() ) ;
+            exception_handle( SDB_SYS, errMsg ) ;
          }
       }
       retPort = extractPort ( str ) ;
       if ( -1 == retPort )
       {
-         errMsg = ( "Failed to get sdbcm's port in host [" + ssh.getPeerIP() + "]" ) ;
-         exception_handle2( SDB_SYS, errMsg ) ;
+         errMsg = ( "Failed to get sdbcm's port in host[" + ssh.getPeerIP() + "]" ) ;
+         PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
+                 errMsg + ", rc: " + getLastError() + "detail: " + getLastErrMsg() ) ;
+         exception_handle( SDB_SYS, errMsg ) ;
       }
    }
    else
    {
-      // TODO:
+      //TODO:
    }
    return retPort ;
 }
 
 /* *****************************************************************************
-@discretion: check whether sdbcm is running
+@discretion: check whether sdbcm is running in target host
 @author: Tanzhaobo
 @parameter
    ssh[object]: ssh object
-   osInfo[string]: os type
 @exception
 @return
    isRunning[bool]: whether sdbcm is running
 ***************************************************************************** */
-function isSdbcmRunning( ssh, osInfo, host )
+function isSdbcmRunning( ssh, host )
 {
    var isRunning = false ;
    var str = null ;
    var ret = SDB_OK ;
-   if ( OMA_LINUX == osInfo )
+   if ( SYS_LINUX == SYS_TYPE )
    {
       var installInfoObj = null ;
       var installPath = null ;
@@ -460,7 +603,7 @@ function isSdbcmRunning( ssh, osInfo, host )
       if ( isLocal )
       {
          installInfoObj = eval( '(' + Oma.getOmaInstallInfo() + ')' ) ;
-         installPath = adaptPath( osInfo, installInfoObj[INSTALL_DIR] ) ;
+         installPath = adaptPath( installInfoObj[INSTALL_DIR] ) ;
          prog = installPath  + OMA_PROG_BIN_SDBLIST_L ;
       }
       else
@@ -474,6 +617,7 @@ function isSdbcmRunning( ssh, osInfo, host )
       }
       catch ( e )
       {
+         SYSEXPHANDLE( e ) ;
          ret = ssh.getLastRet() ;
          if ( ret > 0 )
          {
@@ -555,18 +699,17 @@ function getAUsablePortFromLocal( osInfo )
 @author: Tanzhaobo
 @parameter
    ssh[object]: ssh object
-   osInfo[string]: os type
 @return
    retPort[nunber]: return a usable port or OMA_PORT_INVALID
 ***************************************************************************** */
-function getAUsablePortFromRemote( ssh, osInfo )
+function getAUsablePortFromRemote( ssh )
 {
    var retPort = OMA_PORT_INVALID ;
    var str = "" ;
    var port = OMA_PORT_TEMP_AGENT_PORT ;
    var flag = false ;
 
-   if ( OMA_LINUX == osInfo )
+   if ( SYS_LINUX == SYS_TYPE )
    {
       for ( var port = OMA_PORT_TEMP_AGENT_PORT ;
             port <= OMA_PORT_MAX; port++ )
@@ -583,17 +726,17 @@ function getAUsablePortFromRemote( ssh, osInfo )
          }
          catch ( e )
          {
+            SYSEXPHANDLE( e ) ;
             var ret = ssh.getLastRet() ;
             if ( 1 == ret )
             {
                retPort = port ;
-               break ;
             }
             else
             {
                retPort = OMA_PORT_INVALID ;
-               break ;
             }
+            break ;
          }
       }
    }
@@ -609,15 +752,14 @@ function getAUsablePortFromRemote( ssh, osInfo )
 @author: Tanzhaobo
 @parameter
    ssh[object]: ssh object
-   osInfo[string]: os type
 @return
    retPort[nunber]: return a dirctory path
 ***************************************************************************** */
-function getThePlaceToChangeOwner( osInfo, path )
+function getThePlaceToChangeOwner( path )
 {
    var retStr = path ;
    var pos = -1 ;
-   if ( OMA_LINUX == osInfo )
+   if ( SYS_LINUX == SYS_TYPE )
    {
       var arr = path.split( '/' ) ;
       var num = arr.length ;
@@ -661,18 +803,17 @@ function getThePlaceToChangeOwner( osInfo, path )
 @author: Tanzhaobo
 @parameter
    ssh[object]: ssh object
-   osInfo[string]: os type
    path[string]: the path of the directory
    user[string]: the user to change to
    userGroup[sring]: the user group to change to
 @return void
 ***************************************************************************** */
-function changeDirOwner( ssh, osInfo, path, user, userGroup )
+function changeDirOwner( ssh, path, user, userGroup )
 {
    var ret = null ;
    var str = null ;
    var cmd = null ;
-   if ( OMA_LINUX == osInfo )
+   if ( SYS_LINUX == SYS_TYPE )
    {
       cmd = " mkdir -p " + path ;
       try
@@ -681,10 +822,11 @@ function changeDirOwner( ssh, osInfo, path, user, userGroup )
       }
       catch ( e )
       {
+         SYSEXPHANDLE( e ) ;
          errMsg = "Failed to create path [" + path + "] in " + "[" + ssh.getPeerIP() + "]" ;
          exception_handle( e, errMsg ) ;
       }
-      path = getThePlaceToChangeOwner( osInfo, path ) ;
+      path = getThePlaceToChangeOwner( path ) ;
       str = user + ":" + userGroup ;
       cmd = " chown -R " + str + " " + path ;
       try
@@ -693,6 +835,7 @@ function changeDirOwner( ssh, osInfo, path, user, userGroup )
       }
       catch ( e )
       {
+         SYSEXPHANDLE( e ) ;
          errMsg = "Failed to change path [" + path + "]'s owner in " + "[" + ssh.getPeerIP() + "]" ;
          exception_handle( e, errMsg ) ;
       }
@@ -700,6 +843,40 @@ function changeDirOwner( ssh, osInfo, path, user, userGroup )
    else
    {
       // TODO: windows
+   }
+}
+
+/* *****************************************************************************
+@discretion: change the mode of file or directory
+@author: Tanzhaobo
+@parameter
+   ssh[object]: ssh object
+   path[string]: file or directory
+   mode[string]: the mode to change to, e.g. "755"
+@return void
+***************************************************************************** */
+function changeFileOrDirMode( ssh, path, mode )
+{
+   var str = "" ;
+   if ( SYS_LINUX == SYS_TYPE )
+   {
+      try
+      {
+         str = "chmod -R " + mode + " " + path ;
+         ssh.exec( str ) ;
+      }
+      catch( e )
+      {
+         errMsg = "Failed to change file or directory[" + path + "]'s mode to mode[" + mode + "]" ;
+         rc = GETLASTERROR() ;
+         PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
+                 errMsg + "rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
+         exception_handle( rc, errMsg ) ;
+      }
+   }
+   else
+   {
+      // TODO:
    }
 }
 
@@ -764,7 +941,7 @@ function _getLocalHostNameOrIP( type )
    var osInfo = System.type() ;
    try
    {
-      if ( OMA_LINUX == osInfo )
+      if ( SYS_LINUX == SYS_TYPE )
       {
          var str = null ;
          if ( "hostname" == type )
@@ -784,6 +961,7 @@ function _getLocalHostNameOrIP( type )
    }
    catch ( e )
    {
+      SYSEXPHANDLE( e ) ;
       errMsg = "Failed to get localhost host name or ip address" ;
       exception_handle( e, errMsg ) ;
    }
@@ -813,49 +991,17 @@ function getLocalIP()
 }
 
 /* *****************************************************************************
-@discretion: remove the temp directory and files in temporary directory
-@author: Tanzhaobo
-@parameter
-   ssh[object]: ssh object
-   osInfo[string]: os type
-@return void
-***************************************************************************** */
-function removeTmpDir( ssh, osInfo )
-{
-   var str = "" ;
-   var errMsg = "" ;
-   if ( OMA_LINUX == osInfo )
-   {
-      str = "rm -rf " + OMA_PATH_TEMP_OMA_DIR_L2 ;
-      try
-      {
-         ssh.exec( str ) ;
-      }
-      catch ( e )
-      {
-         errMsg = "Failed to remove director[" + OMA_PATH_TEMP_OMA_DIR_L + "] in host [" + ssh.getPeerIP() + "]" ;
-         exception_handle2( SDB_SYS, errMsg ) ;
-      }
-   }
-   else
-   {
-      // TODO:
-   }
-}
-
-/* *****************************************************************************
 @discretion: stop the temporary sdbcm installed in remote host
 @author: Tanzhaobo
 @parameter
    ssh[object]: ssh object
-   osInfo[string]: os type
 @return void
 ***************************************************************************** */
-function stopRemoteSdbcmProgram( ssh, osInfo )
+function stopRemoteSdbcmProgram( ssh )
 {
    var cmd = "" ;
 
-   if ( OMA_LINUX == osInfo )
+   if ( SYS_LINUX == SYS_TYPE )
    {
       cmd += OMA_PATH_TEMP_BIN_DIR_L ;
       cmd += OMA_PROG_SDBCMTOP_L ;
@@ -874,7 +1020,7 @@ function stopRemoteSdbcmProgram( ssh, osInfo )
       var times = 0 ;
       for ( ; times < OMA_TRY_TIMES; times++ )
       {
-         var isRunning = isSdbcmRunning ( ssh, osInfo ) ;
+         var isRunning = isSdbcmRunning ( ssh ) ;
          if ( isRunning )
          {
             sleep( OMA_SLEEP_TIME ) ;
@@ -896,4 +1042,39 @@ function stopRemoteSdbcmProgram( ssh, osInfo )
    }
 }
 
+/* *****************************************************************************
+@discretion: mimic "sprintf" in "C" simply 
+@author: Tanzhaobo
+@parameter
+   format[string]: e.g. "a = ?, b = ?, is it right/? "
+@return
+   newStr[string]: e.g. "a = 1, b = 2, is it right? "
+@usage
+   var str = sprintf( "a = ?, b = ?, is it right/? ", 1, 2, '?' ) ;
+***************************************************************************** */
+function sprintf( format )
+{
+   var len = arguments.length ;
+   var strLen = format.length ;
+   var newStr = '' ;
+   for ( var i = 0, k = 1; i < strLen; i++ )
+   {
+      var char = format.charAt( i ) ;
+      if ( char == '\\' && (i + 1 < strLen) && format.charAt(i + 1) == '?' )
+      {
+         newStr += '?' ;
+         i++ ;
+      }
+      else if ( char == '?' && k < len )
+      {
+         newStr += ( '' + arguments[k] ) ;
+         ++k ;
+      }
+      else
+      {
+         newStr += char ;
+      }
+   }
+   return newStr ;
+}
 

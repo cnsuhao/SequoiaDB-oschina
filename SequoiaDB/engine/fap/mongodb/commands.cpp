@@ -95,6 +95,7 @@ INT32 insertCommand::convertRequest( mongoParser &parser,
       goto done ;
    }
 
+   parser.opInsert = TRUE ;
    cmd = commandMgr::instance()->findCommand( "create" ) ;
    if ( NULL == cmd )
    {
@@ -305,7 +306,6 @@ INT32 queryCommand::convertRequest( mongoParser &parser,
    INT32 nToReturn    = 0 ;
    MsgHeader *header  = NULL ;
    MsgOpQuery *query  = NULL ;
-   const CHAR *ptr    = NULL ;
    const CHAR *cmdStr = NULL ;
    command* cmd       = NULL ;
    bson::BSONObj cond ;
@@ -611,6 +611,7 @@ INT32 createCommand::convertRequest( mongoParser &parser,
       goto error ;
    }
 
+   parser.opCreateCL = TRUE ;
    sdbMsg = SDB_OSS_NEW msgBuffer() ;
    if ( NULL == sdbMsg )
    {
@@ -959,7 +960,6 @@ INT32 dropIndexesCommand::convertRequest( mongoParser &parser,
    INT32 rc              = SDB_OK ;
    INT32 nToSkip         = 0 ;
    INT32 nToReturn       = 0 ;
-   const CHAR *ptr       = NULL ;
    MsgHeader *header     = NULL ;
    MsgOpQuery *dropIndex = NULL ;
    bson::BSONObj cond ;

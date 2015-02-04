@@ -21,8 +21,19 @@
    2014-7-26 Zhaobo Tan  Init
 */
 
+// global
+var SYS_LINUX = "LINUX" ;
+var SYS_WIN   = "WINDOWS" ;
+var SYS_TYPE  = System.type() ;
+
+if ( "LINUX" != SYS_TYPE && "WINDOWS" != SYS_TYPE )
+{
+   throw new Error("Failed to get system type") ;
+}
+
 // fields
-var AgentPort                    = "AgentPort" ;
+var AgentPort                    = "AgentService" ;
+var AgentService                 = "AgentService" ;
 var AuthUser                     = "AuthUser" ;
 var AuthPasswd                   = "AuthPasswd" ;
 var Bandwidth                    = "Bandwidth" ;
@@ -52,6 +63,7 @@ var HasInstalled                 = "HasInstalled" ;
 var HasUninstall                 = "HasUninstall" ;
 var HostInfo                     = "HostInfo" ;
 var Hosts                        = "Hosts" ;
+var MD5                          = "MD5" ;
 var Memory                       = "Memory" ;
 var Model                        = "Model" ;
 var Mount                        = "Mount" ;
@@ -67,6 +79,7 @@ var IsNeedUninstall              = "IsNeedUninstall" ;
 var LocalHost                    = "localhost" ;
 var IsRunning                    = "IsRunning" ;
 var IsOMStop                     = "IsOMStop" ;
+var ISPROGRAMEXIST               = "ISPROGRAMEXIST" ;
 var INSTALL_DIR                  = "INSTALL_DIR" ;
 var InstallConfig                = "InstallConfig" ;
 var InstallGroupName             = "InstallGroupName" ;
@@ -77,6 +90,7 @@ var InstallPath                  = "InstallPath" ;
 var InstallSvcName               = "InstallSvcName" ;
 var OS                           = "OS" ;
 var OM                           = "OM" ;
+var OMA                          = "OMA" ;
 var OmaHostName                  = "OmaHostName" ;
 var OmaSvcName                   = "OmaSvcName" ;
 var Path                         = "Path" ;
@@ -98,6 +112,8 @@ var Size                         = "Size" ;
 var SshPort                      = "SshPort" ;
 var Status                       = "Status" ;
 var Time                         = "Time" ;
+var TaskID                       = "TaskID" ;
+var TaskLog                      = "task" ;
 var Usable                       = "Usable" ;
 var Used                         = "Used" ;
 var User                         = "User" ;
@@ -117,31 +133,38 @@ var Other                        = "Other" ;
 var CalendarTime                 = "CalendarTime" ;
 var NetCards                     = "NetCards" ;
 
+
 var OMA_PATH_TEMP_OMA_DIR_L           = "/tmp/omatmp/" ;
 var OMA_PATH_TEMP_OMA_DIR_L2          = "/tmp/omatmp" ;
 var OMA_PATH_TEMP_BIN_DIR_L           = "/tmp/omatmp/bin/" ;
 var OMA_PATH_TEMP_PACKET_DIR_L        = "/tmp/omatmp/packet/" ;
 var OMA_PATH_TEMP_CONF_DIR_L          = "/tmp/omatmp/conf/" ;
+var OMA_PATH_TEMP_DATA_DIR            = "/tmp/omatmp/data/" ;
 var OMA_PATH_TEMP_LOG_DIR_L           = "/tmp/omatmp/conf/log/" ;
+var OMA_PATH_TEMP_LOCAL_DIR_L         = "/tmp/omatmp/conf/local/" ;
 var OMA_PATH_TEMP_SPT_DIR_L           = "/tmp/omatmp/conf/script/" ;
 var OMA_PATH_TEMP_TEMP_DIR_L          = "/tmp/omatmp/temp/" ;
 var OMA_PATH_VCOORD_PATH_L            = "/tmp/omatmp/data/tempCoord/" ;
 var OMA_PATH_VCOORD_BACKUP_PATH_L     = "/tmp/omatmp/data/tempCoord/backup/" ;
 var OMA_PATH_SCRIPT_L                 = "script/" ;
-var OMA_PATH_BIN_L                    = "bin/"
+var OMA_PATH_BIN_L                    = "bin/";
 
 // file in linux
 var OMA_FILE_TEMP_HOSTS_TABLE_L      = OMA_PATH_TEMP_TEMP_DIR_L + "hosts" ;
+var OMA_FILE_TEMP_ADD_HOST_CHECK     = OMA_PATH_TEMP_TEMP_DIR_L + "addHostPreCheckResult" ;
 var OMA_FILE_HOSTS_TABLE_L           = "/etc/hosts" ;
 var OMA_FILE_UPDATE_HOSTS_L          = "conf/script/updateHosts.js" ;
 var OMA_FILE_SDBCM_CONF2_L           = "conf/sdbcm.conf" ;
 var OMA_FILE_SDBCM_CONF              = "sdbcm.conf" ;
 var OMA_FILE_ERROR                   = "error.js" ;
+var OMA_FILE_LOG                     = "log.js" ;
 var OMA_FILE_COMMON                  = "common.js" ;
 var OMA_FILE_DEFINE                  = "define.js" ;
 var OMA_FILE_FUNC                    = "func.js" ;
 var OMA_FILE_CHECK_HOST_ITEM         = "checkHostItem.js" ;
 var OMA_FILE_CHECK_HOST              = "checkHost.js" ;
+var OMA_FILE_ADD_HOST_PRE_CHECK      = "addHostPreCheck.js" ;
+var OMA_FILE_INSTALL_INFO            = "/etc/default/sequoiadb" ;
 
 
 
@@ -151,6 +174,7 @@ var OMA_PROG_BIN_SDB_L                = "bin/sdb" ;
 var OMA_PROG_BIN_SDBCM_L              = "bin/sdbcm" ;
 var OMA_PROG_BIN_SDBLIST_L            = "bin/sdblist" ;
 var OMA_PROG_BIN_SDBOMTOOL_L          = "bin/sdbomtool" ;
+var OMA_PROG_SDB                      = "sdb" ;
 var OMA_PROG_SDBCMD_L                 = "sdbcmd" ;
 var OMA_PROG_SDBCMART_L               = "sdbcmart" ;
 var OMA_PROG_SDBCMTOP_L               = "sdbcmtop" ;
@@ -173,13 +197,17 @@ var OMA_RESERVED_PORT = [ 11790, [11800, 11804], [11810, 11814], [11820, 11824],
 // option
 var OMA_OPTION_SDBCMART_I             = "--I" ;
 var OMA_OPTION_SDBCMART_PORT          = "--port" ;
+var OMA_OPTION_SDBCMART_STANDALONE    = "--standalone" ;
+var OMA_OPTION_SDBCMART_ALIVETIME     = "--alivetime" ;
 
 // other
+var OMA_NEW_LINE                      = "\n" ;
 var OMA_NEW_LINE_L                    = "\n" ;
 var OMA_SYS_CATALOG_RG                = "SYSCatalogGroup" ;
 var OMA_SYS_COORD_RG                  = "SYSCoord" ;
 var OMA_LINUX                         = "LINUX" ;
 var OMA_WINDOWS                       = "WINDOWS" ;
+var OMA_TMP_SDBCM_ALIVE_TIME          = 300 // sec
 var OMA_SLEEP_TIME                    = 500 ; // ms
 var OMA_TRY_TIMES                     = 6 ;
 var OMA_WAIT_CATA_RG_TRY_TIMES        = 600 ;

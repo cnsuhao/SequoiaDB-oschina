@@ -43,6 +43,7 @@
 #include "ossEvent.hpp"
 #include "omagentNodeMgr.hpp"
 #include "sptContainer.hpp"
+#include "omagentMsgDef.hpp"
 #include "omagentTask.hpp"
 #include "omagentJob.hpp"
 
@@ -186,6 +187,7 @@ namespace engine
 
       typedef std::map<UINT64, BSONObj>         MAPTASKQUERY ;
       typedef MAPTASKQUERY                      MAP_TASKINFO ;
+      typedef std::map<UINT64, ossAutoEvent*>   MAP_TASKEVENT ;
 
       public:
          _omAgentMgr() ;
@@ -226,11 +228,18 @@ namespace engine
          BOOLEAN         isTaskInfoExist( UINT64 taskID ) ;
          void            registerTaskInfo( UINT64 taskID, const BSONObj &obj ) ;
          void            submitTaskInfo( UINT64 taskID ) ;
+         UINT64          getRequestID() ;
+         void            registerTaskEvent( UINT64 reqID, ossAutoEvent *pEvent ) ;
+         void            unregisterTaskEvent( UINT64 reqID ) ;
+         INT32           sendUpdateTaskReq ( UINT64 requestID,
+                                             const BSONObj* obj ) ;
 
       protected:
          void            _initOMAddr( vector< MsgRouteID > &vecNode ) ;
          INT32           _onOMQueryTaskRes( NET_HANDLE handle,
                                             MsgHeader *msg ) ;
+         INT32           _onOMUpdateTaskRes( NET_HANDLE handle,
+                                             MsgHeader *msg ) ;
          INT32           _prepareTask() ;
          INT32           _sendQueryTaskReq ( UINT64 requestID,
                                              const CHAR *clFullName,
@@ -261,9 +270,10 @@ namespace engine
          vector< MsgRouteID >       _vecOmNode ;
          INT32                      _primaryPos ;
 
-         UINT64                     _taskID ;
+         UINT64                     _requestID ;
          MAPTASKQUERY               _mapTaskQuery ;
          MAP_TASKINFO               _mapTaskInfo ;
+         MAP_TASKEVENT              _mapTaskEvent ;
 
    } ;
 

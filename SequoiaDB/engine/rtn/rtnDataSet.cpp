@@ -96,6 +96,10 @@ namespace engine
             {
                PD_LOG( PDERROR, "failed to get next object:%d", rc ) ;
             }
+            else
+            {
+               _contextID = -1 ;
+            }
             _lastErr = rc ;
             goto error ;
          }

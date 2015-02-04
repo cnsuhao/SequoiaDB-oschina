@@ -107,6 +107,7 @@ namespace engine
    } ;
    typedef struct _RollbackInfo RollbackInfo ;
 
+/*
    struct _AddHost
    {
       std::string _ip ;
@@ -124,27 +125,6 @@ namespace engine
       BOOLEAN _hasInstall ;
    } ;
    typedef struct _AddHostProgressStatus AddHostPS ;
-
-   struct _AddHostCommon
-   {
-      string _sdbUser ;
-      string _sdbPasswd ;
-      string _userGroup ;
-      string _installPacket ;
-   } ;
-   typedef struct _AddHostCommon AddHostCommon ;
-
-   struct _AddHostItem
-   {
-      string _ip ;
-      string _hostName ;
-      string _user ;
-      string _passwd ;
-      string _sshPort ;
-      string _agentPort ;
-      string _installPath ;
-   } ;
-   typedef struct _AddHostItem AddHostItem ;
 
    struct _AddHostInfo
    {
@@ -174,7 +154,63 @@ namespace engine
 
       OMA_OPT_END             = 10
    } ;
+*/ 
+   /********************************************************/   
 
+
+   struct _AddHostCommon
+   {
+      string _sdbUser ;
+      string _sdbPasswd ;
+      string _userGroup ;
+      string _installPacket ;
+   } ;
+   typedef struct _AddHostCommon AddHostCommon ;
+
+   struct _AddHostItem
+   {
+      string _ip ;
+      string _hostName ;
+      string _user ;
+      string _passwd ;
+      string _sshPort ;
+      string _agentService ;
+      string _installPath ;
+   } ;
+   typedef struct _AddHostItem AddHostItem ;
+   
+   struct _AddHostResultInfo
+   {
+      string         _ip ;
+      string         _hostName ;
+      INT32          _status ;
+      string         _statusDesc ;
+      INT32          _errno ;
+      string         _detail ;
+      vector<string> _flow ;
+   } ;
+   typedef struct _AddHostResultInfo AddHostResultInfo ;
+
+   struct _AddHostInfo
+   {
+      INT32             _serialNum ;
+      BOOLEAN           _flag ; // whether the host has been handled or not
+      INT64             _taskID ;
+      AddHostCommon     _common ; // add host common field
+      AddHostItem       _item ; // add host info
+   } ;
+   typedef struct _AddHostInfo AddHostInfo ;
+
+   struct _AddHostResult
+   {
+      INT64             _taskID ;
+      INT32             _status ;
+      INT32             _progress ;
+      map< INT32, AddHostResultInfo > _map_result ;
+   } ;
+   typedef struct _AddHostResult AddHostResult ;
+
+   
 }
 
 

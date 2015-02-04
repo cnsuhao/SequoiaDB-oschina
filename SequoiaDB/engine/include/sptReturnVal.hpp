@@ -36,6 +36,7 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "sptProperty.hpp"
+#include <vector>
 
 namespace engine
 {
@@ -67,6 +68,9 @@ namespace engine
       INT32 setBSONObj( const CHAR *name,
                         const bson::BSONObj &obj ) ;
 
+      INT32 setBSONArray( const CHAR *name,
+                          const std::vector< bson::BSONObj > &vecObj ) ;
+
       const sptProperty &getVal() const
       {
          return _property ;
@@ -85,6 +89,11 @@ namespace engine
       const SPT_PROPERTIES &getValProperties()const
       {
          return _properties ;
+      }
+
+      void releaseObj()
+      {
+         _property.releaseObj() ;
       }
 
    private:

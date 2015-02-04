@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program. If not, see <http://www.gnu.org/license/>.
 
-   Source File Name = omagentJobRunCmd.cpp
+   Source File Name = omagentRunJob.cpp
 
    Dependencies: N/A
 
@@ -31,7 +31,7 @@
 *******************************************************************************/
 
 #include "omagentUtil.hpp"
-#include "omagentCommand.hpp"
+#include "omagentAsyncCmd.hpp"
 #include "utilStr.hpp"
 #include "omagentMgr.hpp"
 
@@ -58,7 +58,8 @@ namespace engine
       try
       {
          BSONObj bus ;
-         rc = _getAddHostInfo( bus ) ;
+         BSONObj sys ;
+         rc = _getAddHostInfo( bus, sys ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to get add host info for js file, "
@@ -66,15 +67,16 @@ namespace engine
             goto error ;
          }
 
-         ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
-                      JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
+         ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; var %s = %s;",
+                      JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str(),
+                      JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Add hosts passes argument: %s",
                   _jsFileArgs ) ;
-         rc = addJsFile( FILE_ADD_HOST2, _jsFileArgs ) ;
+         rc = addJsFile( FILE_ADD_HOST, _jsFileArgs ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to add js file[%s], rc = %d ",
-                     FILE_ADD_HOST2, rc ) ;
+                     FILE_ADD_HOST, rc ) ;
             goto error ;
          }
       }
@@ -92,7 +94,7 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omaRunAddHost::_getAddHostInfo( BSONObj &retObj )
+   INT32 _omaRunAddHost::_getAddHostInfo( BSONObj &retObj1, BSONObj &retObj2 )
    {
       INT32 rc = SDB_OK ;
       BSONObjBuilder builder ;
@@ -107,7 +109,7 @@ namespace engine
          bob.append( OMA_FIELD_USER, _addHostInfo._item._user.c_str() ) ;
          bob.append( OMA_FIELD_PASSWD, _addHostInfo._item._passwd.c_str() ) ;
          bob.append( OMA_FIELD_SSHPORT, _addHostInfo._item._sshPort.c_str() ) ;
-         bob.append( OMA_FIELD_AGENTPORT, _addHostInfo._item._agentPort.c_str() ) ;
+         bob.append( OMA_FIELD_AGENTSERVICE, _addHostInfo._item._agentService.c_str() ) ;
          bob.append( OMA_FIELD_INSTALLPATH, _addHostInfo._item._installPath.c_str() ) ;
          subObj = bob.obj() ;
 
@@ -120,7 +122,8 @@ namespace engine
          builder.append( OMA_FIELD_INSTALLPACKET,
                          _addHostInfo._common._installPacket.c_str() ) ;
          builder.append( OMA_FIELD_HOSTINFO, subObj ) ;
-         retObj = builder.obj() ;
+         retObj1 = builder.obj() ;
+         retObj2 = BSON( OMA_FIELD_TASKID << _addHostInfo._taskID ) ;
       }
       catch ( std::exception &e )
       {
@@ -201,7 +204,7 @@ namespace engine
          bob.append( OMA_FIELD_USER, _RmHostInfo._item._user.c_str() ) ;
          bob.append( OMA_FIELD_PASSWD, _RmHostInfo._item._passwd.c_str() ) ;
          bob.append( OMA_FIELD_SSHPORT, _RmHostInfo._item._sshPort.c_str() ) ;
-         bob.append( OMA_FIELD_AGENTPORT, _RmHostInfo._item._agentPort.c_str() ) ;
+         bob.append( OMA_FIELD_AGENTSERVICE, _RmHostInfo._item._agentService.c_str() ) ;
          bob.append( OMA_FIELD_INSTALLPATH, _RmHostInfo._item._installPath.c_str() ) ;
          subObj = bob.obj() ;
 

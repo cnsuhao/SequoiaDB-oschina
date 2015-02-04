@@ -36,6 +36,7 @@
 #include "ossUtil.hpp"
 #include "sptSPDef.hpp"
 #include "sptBsonobj.hpp"
+#include "sptBsonobjArray.hpp"
 #include "sptGlobalFunc.hpp"
 #include "sptConvertor2.hpp"
 #include "sptConvertorHelper.hpp"
@@ -61,8 +62,7 @@ namespace engine
    } ;
 
    #define SPT_RVAL_KEY          ""
-   const UINT32 RUNTIME_SIZE = 8 * 1024 * 1024 ;
-   const UINT32 FUNC_ARRAY_SIZE = 50 ;
+   const UINT32 RUNTIME_SIZE = 32 * 1024 * 1024 ;
 
    /*
       _sptSPScope define
@@ -128,6 +128,12 @@ namespace engine
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to load bsonobj:%d", rc ) ;
+         goto error ;
+      }
+      rc = loadUsrDefObj( &(_sptBsonobjArray::__desc) ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to load bsonobjarray:%d", rc ) ;
          goto error ;
       }
 

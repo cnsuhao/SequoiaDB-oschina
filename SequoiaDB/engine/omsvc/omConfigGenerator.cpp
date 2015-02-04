@@ -48,7 +48,6 @@ namespace engine
    #define OM_GENERATOR_DOT               ","
    #define OM_GENERATOR_LINE              "-"
 
-   #define OM_CONF_DETAIL_DATAGROUPNAME   "datagroupname"
 
    #define OM_DG_NAME_PATTERN             "group"
 

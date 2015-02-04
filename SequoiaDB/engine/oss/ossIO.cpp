@@ -2132,6 +2132,51 @@ error:
    goto done ;
 }
 
+INT32 ossSeekAndReadN( OSSFILE *file,
+                       SINT64 offset,
+                       SINT64 len,
+                       CHAR *buf,
+                       SINT64 &read )
+{
+   INT32 rc = SDB_OK ;
+   SINT64 total = len ;
+   SINT64 totalRead = 0 ;
+   SINT64 seek = offset ;
+
+   while ( 0 < total )
+   {
+      SINT64 onceRead = 0 ;
+      rc = ossSeekAndRead( file, seek, buf + totalRead, total, &onceRead ) ;
+      if ( SDB_OK == rc )
+      {
+         totalRead += onceRead ;
+         total -= onceRead ;
+         seek += onceRead ;
+         continue ;
+      }
+      else if ( SDB_INTERRUPT == rc )
+      {
+         rc = SDB_OK ;
+         continue ;
+      }
+      else if ( SDB_EOF == rc && 0 < totalRead )
+      {
+         rc = SDB_OK ;
+         break ;
+      }
+      else
+      {
+         goto error ;
+      }
+   }
+
+   read = totalRead ;
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 INT32 ossWriteN( OSSFILE *file,
                  const CHAR *buf,
                  SINT64 len )

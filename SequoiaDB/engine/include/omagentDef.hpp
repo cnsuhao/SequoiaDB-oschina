@@ -109,25 +109,30 @@ namespace engine
       oma command define
    */
    #define OMA_CMD_SCAN_HOST                          OM_SCAN_HOST_REQ
-   #define OMA_CMD_BASIE_CHECK_HOST                   ""
    #define OMA_CMD_PRE_CHECK_HOST                     OM_PRE_CHECK_HOST
    #define OMA_CMD_CHECK_HOST                         OM_CHECK_HOST_REQ
    #define OMA_CMD_POST_CHECK_HOST                    OM_POST_CHECK_HOST
+
+   #define OMA_CMD_HANDLE_TASK_NOTIFY                 OM_NOTIFY_TASK
+
    #define OMA_CMD_ADD_HOST                           OM_ADD_HOST_REQ
    #define OMA_CMD_REMOVE_HOST                        OM_REMOVE_HOST_REQ
    #define OMA_CMD_INSTALL_DB_BUSINESS                OM_INSTALL_BUSINESS_REQ
    #define OMA_CMD_UNINSTALL_DB_BUSINESS              OM_REMOVE_BUSINESS_REQ
    #define OMA_CMD_START_DB_BUSINESS                  ""
    #define OMA_CMD_STOP_DB_BUSINESS                   ""
-   #define OMA_CMD_QUERY_PROGRESS                     OM_QUERY_PROGRESS
+   #define OMA_CMD_QUERY_PROGRESS                     "" //OM_QUERY_PROGRESS
    #define OMA_CMD_UPDATE_HOSTS                       OM_UPDATE_HOSTNAME_REQ
 
    #define OMA_CMD_QUERY_HOST_STATUS                  OM_QUERY_HOST_STATUS_REQ
 
 
+
    /*
       oma internal command
    */
+   #define OMA_CMD_CHECK_ADD_HOST_INFO                "check add host info"
+   
    #define OMA_CMD_CRRATE_VIRTUAL_COORD               "create virtual coord"
    #define OMA_CMD_REMOVE_VIRTUAL_COORD               "remove virtual coord"
    #define OMA_CMD_ROLLBACK_ADD_HOSTS                 "rollback add hosts"
@@ -140,6 +145,8 @@ namespace engine
    #define OMA_CMD_RM_CATA_RG                         "remove cataloggroup"
    #define OMA_CMD_RM_COORD_RG                        "remove coordgroup"
    #define OMA_CMD_RM_DATA_RG                         "remove datagroup"
+
+   #define OMA_CMD_UPDATE_TASK                        "update task"
    
    /*
       oma job
@@ -158,21 +165,24 @@ namespace engine
    #define OMA_JOB_ROLLBACK_COORD                     "rollback create coord job"
    #define OMA_JOB_REMOVE_VIRTUAL_COORD               "remove virtual coord job"
 
+   #define OMA_JOB                                    "omagent job"
+
    /*
       oma js file
    */
    #define FILE_DEFINE                      "define.js"
    #define FILE_ERROR                       "error.js"
    #define FILE_COMMON                      "common.js"
+   #define FILE_LOG                         "log.js"
    #define FILE_FUNC                        "func.js"
    
    #define FILE_SCAN_HOST                   "scanHost.js"
-   #define FILE_BASIC_CHECK_HOST            "basicCheckHost.js"
-   #define FILE_INSTALL_REMOTE_AGENT        "installRemoteAgent.js"
+   #define FILE_PRE_CHECK_HOST              "preCheckHost.js"
    #define FILE_CHECK_HOST                  "checkHost.js"
    #define FILE_CHECK_HOST_ITEM             "checkHostItem.js"
-   #define FILE_UNINSTALL_REMOTE_AGENT      "uninstallRemoteAgent.js"
-   #define FILE_ADD_HOST                    "addHost.js"
+   #define FILE_POST_CHECK_HOST             "postCheckHost.js"
+   
+   #define FILE_ADD_HOST                    "addHostNew.js"
    #define FILE_ADD_HOST2                   "addHost2.js"
    #define FIEL_CHECK_ADD_HOST_INFO         "checkAddHostInfo.js"
    #define FILE_REMOVE_HOST                 "removeHost.js"

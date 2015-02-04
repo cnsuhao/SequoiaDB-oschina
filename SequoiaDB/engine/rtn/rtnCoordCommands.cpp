@@ -63,6 +63,7 @@
 #include "aggrDef.hpp"
 #include "spdSession.hpp"
 #include "spdCoordDownloader.hpp"
+#include "rtnDataSet.hpp"
 
 using namespace bson;
 namespace engine
@@ -7340,6 +7341,8 @@ namespace engine
       CHAR *pObjsBuffer = NULL;
       INT64 contextID = -1;
       MsgHeader *pHeader = (MsgHeader *)pReceiveBuffer;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      BSONObj selector ;
 
       replyHeader.contextID = -1;
       replyHeader.flags = SDB_OK;
@@ -7351,7 +7354,8 @@ namespace engine
       replyHeader.header.routeID.value = 0;
       replyHeader.header.TID = pHeader->TID;
 
-      rc = generateAggrObjs( pReceiveBuffer, pObjsBuffer, objNum, pCMDName );
+      rc = generateAggrObjs( pReceiveBuffer, pObjsBuffer,
+                             objNum, pCMDName, selector );
       PD_RC_CHECK( rc, PDERROR,
                    "failed to generate aggregation object(rc=%d)",
                    rc );
@@ -7368,10 +7372,9 @@ namespace engine
                       e.what() );
       }
 
-      rc = pmdGetKRCB()->getAggrCB()->build( objs, objNum, getIntrCMDName(),
-                                             cb, contextID );
+      rc = openContext( objs, objNum, selector, cb, contextID ) ;
       PD_RC_CHECK( rc, PDERROR,
-                   "failed to execute aggregation operation(rc=%d)",
+                   "failed to build snapshot context(rc=%d)",
                    rc );
       replyHeader.contextID = contextID;
    done:
@@ -7379,6 +7382,11 @@ namespace engine
       return rc;
    error:
       replyHeader.flags = rc;
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete ( contextID, cb ) ;
+         contextID = -1 ;
+      }
       goto done;
    }
 
@@ -7441,15 +7449,15 @@ namespace engine
    }
 
    INT32 rtnCoordCMDSnapShotBase::generateAggrObjs( CHAR *pInputBuffer,
-                                                      CHAR *&pOutputBuffer,
-                                                      INT32 &objNum,
-                                                      CHAR *&pCLName )
+                                                    CHAR *&pOutputBuffer,
+                                                    INT32 &objNum,
+                                                    CHAR *&pCLName,
+                                                    BSONObj &selector   )
    {
       INT32 rc = SDB_OK;
 
       BSONObj nodesMatcher;
       BSONObj newMatcher;
-      BSONObj selector;
       BSONObj orderBy;
 
       INT32 flag = 0;
@@ -7495,11 +7503,7 @@ namespace engine
             }
          }
 
-         BSONObj boSelector( pFieldSelector );
-         if ( !boSelector.isEmpty() )
-         {
-            selector = BSON( AGGR_PROJECT_PARSER_NAME << boSelector );
-         }
+         selector = BSONObj( pFieldSelector );
 
          BSONObj boOrderBy( pOrderBy );
          if ( !boOrderBy.isEmpty() )
@@ -7545,6 +7549,7 @@ namespace engine
          ++addObjNum;
       }
 
+/*
       if ( !selector.isEmpty() )
       {
          rc = appendObj( selector, pOutputBuffer, bufSize, bufUsed );
@@ -7553,11 +7558,13 @@ namespace engine
                         rc );
          ++addObjNum;
       }
+*/
       objNum = addObjNum;
 
    done:
       return rc;
    error:
+      selector = BSONObj() ;
       SAFE_OSS_FREE( pOutputBuffer );
       goto done;
    }
@@ -7659,6 +7666,87 @@ namespace engine
    error:
       goto done;
    }
+
+   INT32 rtnCoordCMDSnapShotBase::openContext( BSONObj &objs,
+                                               INT32 objNum,
+                                               const BSONObj &selector,
+                                               pmdEDUCB *cb,
+                                               SINT64 &contextID )
+   {
+      INT32 rc = SDB_OK ;
+      rtnContextDump *context = NULL ;
+      SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
+      SINT64 aggrContextID = -1 ;
+      BSONObj obj ;
+      rc = pmdGetKRCB()->getAggrCB()->build( objs,
+                                             objNum,
+                                             getIntrCMDName(),
+                                             cb, aggrContextID );
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to build context:%d", rc ) ;
+         goto error ;
+      }
+
+      rc = rtnCB->contextNew ( RTN_CONTEXT_DUMP, (rtnContext**)&context,
+                               contextID, cb ) ;
+      if ( SDB_OK != rc )
+      {
+         context = NULL ;
+         PD_LOG ( PDERROR, "Failed to create new context" ) ;
+         goto error ;
+      }
+
+      rc = context->open( selector, BSONObj() ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to open dump context:%d", rc ) ;
+         goto error ;
+      }
+
+      {
+      rtnDataSet ds( aggrContextID, cb ) ;
+      do
+      {
+         rc = ds.next( obj ) ;
+         if ( SDB_OK == rc )
+         {
+            rc = context->monAppend( obj ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "failed to append obj to context:%d", rc ) ;
+               goto error ;
+            }
+         }
+         else if ( SDB_DMS_EOC == rc )
+         {
+            aggrContextID = -1 ;
+            rc = SDB_OK ;
+            break ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "failed to get next obj:%d", rc ) ;
+            goto error ;
+         }
+      } while ( TRUE ) ;
+      }
+   done:
+      if ( -1 != aggrContextID )
+      {
+         rtnCB->contextDelete ( aggrContextID, cb ) ;
+         aggrContextID = -1 ;
+      }
+      return rc ;
+   error:
+      if ( -1 != contextID )
+      {
+         rtnCB->contextDelete ( contextID, cb ) ;
+         contextID = -1 ;
+      }
+      goto done ;
+   }
+
 
    INT32 rtnCoordCMDSnapshotDataBase::appendAggrObjs( CHAR *&pOutputBuffer,
                                                       INT32 &bufferSize,

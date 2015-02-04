@@ -38,7 +38,8 @@
 #include "pmd.hpp"
 #include "omagent.hpp"
 #include "omagentTask.hpp"
-#include "omagentCommand.hpp"
+#include "omagentSubTask.hpp"
+#include "omagentAsyncCmd.hpp"
 #include "rtnBackgroundJob.hpp"
 #include <string>
 #include <vector>
@@ -47,11 +48,11 @@ using namespace bson ;
 
 namespace engine
 {
+/*
    class _omaInsDBBusTask ;
 
-   /*
-      add host job
-   */
+
+
    class _omaAddHostJob : public _rtnBaseJob
    {
       public:
@@ -70,9 +71,8 @@ namespace engine
    } ; 
 
 
-   /*
-      rollback host job
-   */
+
+
    class _omaRbHostJob : public _rtnBaseJob
    {
       public:
@@ -90,11 +90,8 @@ namespace engine
          _omaAddHostTask*                   _pTask ;
    } ; 
 
-   /*
-      start add host task job
-      it's just a backgroud thread to arrange
-      a backgroud task to do the actual add host job
-   */
+
+
    class _omaStartAddHostTaskJob : public _rtnBaseJob
    {
       public:
@@ -120,9 +117,8 @@ namespace engine
          _omaAddHostTask*            _pTask ;
    } ;
  
-   /*
-      create standalone job
-   */
+
+
    class _omaCreateStandaloneJob : public _rtnBaseJob
    {
       public:
@@ -158,9 +154,8 @@ namespace engine
          _omaInsDBBusTask*                   _pTask ;
    } ;
 
-   /*
-      create catalog job
-   */
+
+      
    class _omaCreateCatalogJob : public _rtnBaseJob
    {
       public:
@@ -196,9 +191,8 @@ namespace engine
          _omaInsDBBusTask*                   _pTask ;
    } ;
 
-   /*
-      create coord job
-   */
+
+
    class _omaCreateCoordJob : public _rtnBaseJob
    {
       public:
@@ -235,9 +229,8 @@ namespace engine
          _omaInsDBBusTask*                   _pTask ;
    } ;
 
-   /*
-      create data job
-   */
+
+
    class _omaCreateDataJob : public _rtnBaseJob
    {
       public:
@@ -275,9 +268,8 @@ namespace engine
          _omaInsDBBusTask*                   _pTask ;
    } ;
 
-   /*
-      start install db business task job
-   */
+
+
    class _omaStartInsDBBusTaskJob : public _rtnBaseJob
    {
       public:
@@ -304,9 +296,8 @@ namespace engine
          _omaInsDBBusTask*           _pTask ;
    } ;
 
-   /*
-      start remove db business task job
-   */
+
+
    class _omaStartRmDBBusTaskJob : public _rtnBaseJob
    {
       public:
@@ -334,9 +325,8 @@ namespace engine
          _omaRmDBBusTask*            _pTask ;
    } ;
 
-   /*
-      install db business task rollback internal job
-   */
+
+
    class _omaInsDBBusTaskRbJob : public _rtnBaseJob
    {
       public:
@@ -368,9 +358,8 @@ namespace engine
          _omaInsDBBusTask*                   _pTask ;
    } ;
 
-   /*
-      create remove virtual coord job
-   */
+
+
    class _omaRemoveVirtualCoordJob : public _rtnBaseJob
    {
       public:
@@ -414,9 +403,39 @@ namespace engine
    INT32 startRemoveVirtualCoordJob ( const CHAR *vCoordSvcName,
                                       _omaInsDBBusTask *pTask,
                                       EDUID *pEDUID ) ;
+*/
+
+   /*
+      omagent job
+   */
+   class _omagentJob : public _rtnBaseJob
+   {
+      public:
+         _omagentJob ( _omaTask *pTask, const BSONObj &info, void *ptr ) ;
+         virtual ~_omagentJob () ;
+
+      public:
+         virtual RTN_JOB_TYPE type () const ;
+         virtual const CHAR*  name () const ;
+         virtual BOOLEAN      muteXOn ( const _rtnBaseJob *pOther ) ;
+         virtual INT32        doit () ;
+
+      private:
+         _omaTask   *_pTask ;
+         BSONObj    _info ;
+         void       *_pointer ;
+         string     _jobName ;
+   } ;
+
+
+   INT32 startOmagentJob ( OMA_TASK_TYPE taskType, INT64 taskID,
+                           const BSONObj &info, void *ptr = NULL ) ;
+   
+   _omaTask* getTaskByType( OMA_TASK_TYPE taskType, INT64 taskID ) ;
+
 
 }
 
 
 
-#endif
+#endif // OMAGENT_JOB_HPP_

@@ -21,7 +21,7 @@
    2014-7-26 Zhaobo Tan  Init
 */
 var errMsg = "" ;
-// directories make in remote host /tmp
+// directories make in target host /tmp
 var dirs = [ OMA_PATH_TEMP_OMA_DIR_L,
              OMA_PATH_TEMP_BIN_DIR_L,
              OMA_PATH_TEMP_CONF_DIR_L,

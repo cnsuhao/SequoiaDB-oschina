@@ -337,12 +337,12 @@ namespace engine
          if( 0 == ossStrcasecmp( modeTemp.c_str(),
                                  SDB_RUN_MODE_TYPE_LOCAL_STR ) )
          {
-            modeFilter = LOCAL ;
+            modeFilter = RUN_MODE_LOCAL ;
          }
          else if( 0 == ossStrcasecmp( modeTemp.c_str(),
                                       SDB_RUN_MODE_TYPE_RUN_STR ) )
          {
-            modeFilter = RUN ;
+            modeFilter = RUN_MODE_RUN ;
          }
          else
          {
@@ -402,7 +402,7 @@ namespace engine
       BOOLEAN expand       = FALSE ;
       BOOLEAN showLong     = FALSE ;
       INT32 roleFilter     =  -1 ;
-      INT32 modeFilter     = RUN ;
+      INT32 modeFilter     = RUN_MODE_RUN ;
       CHAR rootPath[OSS_MAX_PATHSIZE + 1] = { 0 } ;
       CHAR localPath[OSS_MAX_PATHSIZE + 1] = { 0 } ;
 
@@ -446,7 +446,7 @@ namespace engine
       utilListNodes( listNodes, typeFilter, NULL, OSS_INVALID_PID,
                      roleFilter ) ;
 
-      if ( RUN == modeFilter )
+      if ( RUN_MODE_RUN == modeFilter )
       {
          UTIL_VEC_NODES::iterator it = listNodes.begin() ;
          while( it != listNodes.end() && listServices.size() > 0 )

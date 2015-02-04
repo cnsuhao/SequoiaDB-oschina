@@ -56,13 +56,6 @@ namespace engine
 {
    class _pmdEDUCB ;
 
-   #define OM_TASK_STATUS_IDLE            0
-   #define OM_TASK_STATUS_DOING           1
-   #define OM_TASK_STATUS_ERROR_ROLLBACK  2
-   #define OM_TASK_STATUS_ERROR_FINISH    3
-   #define OM_TASK_STATUS_FINISH          4
-
-
    /*
       omAgentInfo define
    */
@@ -148,10 +141,10 @@ namespace engine
                                                pmdEDUCB *cb ) ;
          void              _readAgentPort() ;
 
-         INT32             _restoreTask() ;
-
          INT32             _onAgentQueryTaskReq( NET_HANDLE handle, 
                                                  MsgHeader *pMsg ) ;
+         INT32             _onAgentUpdateTaskReq( NET_HANDLE handle, 
+                                                  MsgHeader *pMsg ) ;
          BOOLEAN           _isCommand( const CHAR *pCheckName ) ;
          void              _sendRes2Agent( NET_HANDLE handle, 
                                            MsgHeader *pSrcMsg, 

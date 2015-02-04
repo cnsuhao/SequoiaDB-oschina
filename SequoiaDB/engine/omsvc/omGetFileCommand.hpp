@@ -209,7 +209,7 @@ namespace engine
          agentPort       = "" ;
          isNeedUninstall = false ;
       }
-      
+
       omScanHostInfo( const omScanHostInfo &right )
       {
          hostName        = right.hostName ;
@@ -244,6 +244,7 @@ namespace engine
                                          const string &arrayKeyName, 
                                          BSONObj &result ) ;
          void            _sendResult2Web( list<BSONObj> &hostResult ) ;
+         INT32           _notifyAgentTask( INT64 taskID ) ;
          INT32           _sendMsgToLocalAgent( omManager *om,
                                                pmdRemoteSession *remoteSession, 
                                                MsgHeader *pMsg ) ;
@@ -314,6 +315,11 @@ namespace engine
                                              BSONObj &bsonRequest ) ;
          INT32           _uninstallAgent( list<omScanHostInfo> &hostInfoList ) ;
 
+         void            _updateAgentService( 
+                                            list<omScanHostInfo> &hostInfoList, 
+                                            const string &ip, 
+                                            const string &port ) ;
+
          void            _eraseFromList( list<omScanHostInfo> &hostInfoList, 
                                          BSONObj &oneHost ) ;
          void            _eraseFromListByIP( list<omScanHostInfo> &hostInfoList, 
@@ -350,31 +356,29 @@ namespace engine
                                            list<BSONObj> &hostInfo ) ;
 
       private:
-         void            _transactionRollBack( INT32 transactionID ) ;
-         INT32           _storeHostInfo( const string &clusterName, 
-                                         list<BSONObj> &hostInfoList ) ;
          void            _generateTableField( BSONObjBuilder &builder, 
                                               const string &newFieldName,
                                               BSONObj &bsonOld,
                                               const string &oldFiledName ) ;
-         INT32           _addHost( const string &clusterName, 
-                                   list<BSONObj> &hostInfoList, 
-                                   INT32 &transationID ) ;
-         INT32           _generateAddHostReq( const string &clusterName,
-                                              list<BSONObj> &hostInfoList, 
-                                              BSONObj &bsonRequest ) ;
          INT32           _getClusterInstallPath( const string &clusterName, 
                                                  string &installPath ) ;
          INT32           _getPacketFullPath( char *path ) ;
          INT32           _checkHostExistence( list<BSONObj> &hostInfoList ) ;
 
-         INT32           _addHost2( const string &clusterName, 
-                                    list<BSONObj> &hostInfoList, 
-                                    UINT64 &taskID ) ;
-         INT32           _generateAddHostConf( const string &clusterName,
-                                               list<BSONObj> &hostInfoList, 
-                                               BSONObj &conf ) ;
-         INT32           _addHostByAgent( BSONObj &conf, UINT64 taskID ) ;
+         INT32           _generateTaskInfo( const string &clusterName, 
+                                            list<BSONObj> &hostInfoList, 
+                                            BSONObj &taskInfo,
+                                            BSONArray &resultInfo ) ;
+         INT64           _generateTaskID() ;
+
+         INT32           _saveTask( INT64 taskID, const BSONObj &taskInfo, 
+                                    const BSONArray &resultInfo ) ;
+
+         INT32           _removeTask( INT64 taskID ) ;
+
+         INT32           _checkTaskExistence( list<BSONObj> &hostInfoList ) ;
+
+         BOOLEAN         _isHostExistInTask( const string &hostName ) ;
    };
 
    class omListHostCommand : public omCreateClusterCommand
@@ -542,20 +546,15 @@ namespace engine
          void           _clearSession( omManager *om, 
                                        pmdRemoteSession *remoteSession) ;
          INT32          _getRestInfo( BSONObj &bsonConfValue ) ;
+
+         INT32          _generateTaskInfo( const BSONObj &bsonConfValue, 
+                                           BSONObj &taskInfo, 
+                                           BSONArray &resultInfo ) ;
+
+         INT32          _notifyAgentTask( INT64 taskID ) ;
       private:
          string         _localAgentHost ;
          string         _localAgentService ;
-   } ;
-
-   class omQueryInstallProgress : public omCreateClusterCommand
-   {
-      public:
-         omQueryInstallProgress( restAdaptor *pRestAdaptor, 
-                                 pmdRestSession *pRestSession ) ;
-         virtual ~omQueryInstallProgress() ;
-
-      public:
-         virtual INT32  doCommand() ;
    } ;
 
    class omListTaskCommand : public omAuthCommand
@@ -584,7 +583,7 @@ namespace engine
          virtual INT32  doCommand() ;
 
       private:
-         INT32          _getTaskInfo( UINT64 taskID, BSONObj &task ) ;
+         void           _sendTaskInfo2Web( list<BSONObj> &tasks ) ;
    } ;
 
    class omListNodeCommand : public omAuthCommand
@@ -746,17 +745,14 @@ namespace engine
 
          INT32          _getHostNameInfo( const string &businessName,
                                        map<string, simpleHostInfo> &mapHosts) ;
-         INT32          _removeBusinessByAgent( BSONObj &request,
-                                                UINT64 taskID  ) ;
-         INT32          _removeBusiness( const string &businessName,
-                                         BSONObj &request, 
-                                         BOOLEAN isExistNode,
-                                         UINT64 &taskID ) ;
-         INT32          _deleteConfigureRecord( const string &businessName ) ;
-         INT32          _deleteBusinessRecord( const string &businessName ) ;
          INT32          _generateRequest( string businessName,
                                           BSONObj &nodeInfos, 
                                           BSONObj &request ) ;
+
+         INT32          _generateTaskInfo( string businessName,
+                                           BSONObj &nodeInfos, 
+                                           BSONObj &taskInfo,
+                                           BSONArray &resultInfo ) ;
    } ;
 
    class omQueryHostStatusCommand : public omStartBusinessCommand
@@ -865,29 +861,6 @@ namespace engine
 
          map < string, string > _publicAccessFiles ;
    };
-
-
-
-   class agentQueryTaskReq : public omAgentReqBase
-   {
-      public:
-         agentQueryTaskReq( BSONObj &request, omTaskManager *taskManager ) ;
-         virtual ~agentQueryTaskReq() ;
-
-      public:
-         virtual INT32         doCommand() ;
-
-      private:
-         void                  _generateResponse( list<omTaskInfo> &taskList ) ;
-
-      private:
-         omTaskManager         *_taskManager ;
-   } ;
-
-
-
-
-
 }
 
 #endif /* OM_GETFILECOMMAND_HPP__ */

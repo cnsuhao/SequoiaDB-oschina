@@ -226,6 +226,7 @@ namespace engine
    #define ENGINE_NAME                 "sequoiadb.exe"
    #define PMD_OPTION_AS_PROC          "asproc"
    #endif // _LINUX
+   #define PMD_OPTION_HELPFULL         "helpfull"
    #define PMD_OPTION_TYPE             "type"
    #define PMD_OPTION_MODE             "mode"
    #define PMD_OPTION_DETAIL           "detail"
@@ -255,8 +256,8 @@ namespace engine
    */
    enum SDB_RUN_MODE_TYPE
    {
-      LOCAL = 1,
-      RUN
+      RUN_MODE_LOCAL = 1,
+      RUN_MODE_RUN
    } ;
 
    #define ENGINE_NPIPE_MSG_PID        "$pid"

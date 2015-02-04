@@ -129,26 +129,6 @@ namespace engine
          typedef map<string, omClusterNotifier*>::iterator _MAP_CLUSTER_ITER ;
          typedef map<string, omClusterNotifier*>::value_type _MAP_CLUSTER_VALUE ;
    } ;
-
-   /*
-      install task job etc...
-   */
-   class omTaskJob : public _rtnBaseJob
-   {
-      public:
-         omTaskJob( omManager *om, omTaskManager *pTaskManager ) ;
-         virtual ~omTaskJob() ;
-
-      public:
-         virtual RTN_JOB_TYPE type() const ;
-         virtual const CHAR*  name() const ;
-         virtual BOOLEAN      muteXOn( const _rtnBaseJob *pOther ) ;
-         virtual INT32        doit() ;
-
-      private:
-         omManager            *_om ;
-         omTaskManager        *_taskManager ;
-   } ;
 }
 
 #endif  /* OMMANAGER_JOB_HPP_ */

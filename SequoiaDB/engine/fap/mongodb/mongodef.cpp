@@ -39,6 +39,8 @@
 mongoParser::mongoParser()
    : withCmd( FALSE ),
      withIndex( FALSE ),
+     opInsert( FALSE ),
+     opCreateCL( FALSE ),
      nsLen( 0 ),
      _dataStart( NULL ),
      _dataEnd( NULL ),
@@ -51,10 +53,17 @@ mongoParser::mongoParser()
 
 mongoParser::~mongoParser( )
 {
+   reset() ;
+}
+
+void mongoParser::reset()
+{
    ossMemset( csName, 0, CS_NAME_SIZE + 1 ) ;
    ossMemset( fullName, 0, CL_FULL_NAME_SIZE + 1 ) ;
    withCmd    = FALSE ;
    withIndex  = FALSE ;
+   opInsert   = FALSE ;
+   opCreateCL = FALSE ;
    nsLen      = 0 ;
    _dataStart = NULL ;
    _dataEnd   = NULL ;
@@ -155,6 +164,8 @@ void mongoParser::setEndian( BOOLEAN bigEndian )
 
 void mongoParser::init( const CHAR *in, const INT32 inLen )
 {
+   reset() ;
+
    len = inLen ;
    _dataStart = in ;
    _dataEnd = _dataStart + inLen ;

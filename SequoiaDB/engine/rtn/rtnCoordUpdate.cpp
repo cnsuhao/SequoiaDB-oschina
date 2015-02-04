@@ -585,6 +585,13 @@ namespace engine
          while ( iter.more() )
          {
             BSONElement beTmp = iter.next() ;
+            if ( beTmp.type() != Object )
+            {
+               rc = SDB_INVALIDARG;
+               PD_LOG( PDERROR, "updator's element must be an Object type:"
+                       "updator=%s", boUpdator.toString().c_str() ) ;
+               goto error;
+            }
             BSONObj boTmp = beTmp.Obj() ;
             BSONObjBuilder bobFields;
             BSONObjIterator iterField( boTmp ) ;

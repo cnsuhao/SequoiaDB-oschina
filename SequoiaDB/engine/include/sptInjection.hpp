@@ -151,8 +151,12 @@ namespace engine
 
    #define JS_DECLARE_CLASS( className )\
            public: \
-           static className *crtInstance(){ return SDB_OSS_NEW className();}\
-           static void releaseInstance( className *instance ){ SAFE_OSS_DELETE(instance); } \
+           static className *crtInstance(){ return SDB_OSS_NEW className();} \
+           static void releaseInstance( void *instance ) \
+           { \
+              className *p = ( className* )instance ; \
+              SAFE_OSS_DELETE(p); \
+           } \
            class __objDesc : public _sptObjDesc\
            { \
            public: \

@@ -75,6 +75,7 @@ namespace engine
 #endif // _WINDOWS
 
    #define COMMANDS_HIDE_OPTIONS \
+      ( PMD_OPTION_HELPFULL, "help all configs" ) \
       ( PMD_OPTION_CURUSER, "use current user" ) \
       ( PMD_OPTION_STANDALONE, "use standalone mode to start" ) \
       ( PMD_OPTION_ALIVE_TIME, po::value<int>(), "alive time out" ) \
@@ -145,6 +146,11 @@ namespace engine
       if ( vm.count( PMD_OPTION_HELP ) )
       {
          displayArg( desc ) ;
+         goto done ;
+      }
+      if ( vm.count( PMD_OPTION_HELPFULL ) )
+      {
+         displayArg( all ) ;
          goto done ;
       }
       if ( vm.count( PMD_OPTION_VERSION ) )

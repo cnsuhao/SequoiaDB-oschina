@@ -127,6 +127,13 @@ namespace engine
             goto error ;
          }
       }
+      else
+      {
+         PD_LOG( PDERROR, "invalid element type of $slice:%s",
+                 e.toString( FALSE, TRUE ).c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
 
       action.setAttribute( MTH_S_ATTR_PROJECTION ) ;
       action.setFunc( &mthSliceBuild,

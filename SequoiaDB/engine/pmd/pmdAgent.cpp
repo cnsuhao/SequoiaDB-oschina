@@ -56,7 +56,6 @@
 #include "pmdTrace.hpp"
 #include "pmdCB.hpp"
 #include "pmdProcessor.hpp"
-#include "../fap/mongodb/pmdMongoSession.hpp"
 
 using namespace bson ;
 

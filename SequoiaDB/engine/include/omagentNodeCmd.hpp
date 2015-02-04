@@ -33,7 +33,7 @@
 #ifndef OMAGENT_NODECMD_HPP__
 #define OMAGENT_NODECMD_HPP__
 
-#include "omagentCommand.hpp"
+#include "omagentCmdBase.hpp"
 #include <string>
 
 using namespace bson ;

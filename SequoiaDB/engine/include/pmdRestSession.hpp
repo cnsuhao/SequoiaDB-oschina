@@ -226,10 +226,7 @@ namespace engine
    #define REST_CMD_NAME_INSERT        "insert"
    #define REST_CMD_NAME_UPDATE        "update"
    #define REST_CMD_NAME_DELETE        "delete"
-   
-   #define REST_KEY_NAME_ORDER         "Order"
-   #define REST_KEY_NAME_SELECTOR      "Selector"
-   #define REST_KEY_NAME_MATCHER       "Matcher"
+
    #define REST_KEY_NAME_FLAG          "Flag"
    #define REST_KEY_NAME_INSERTOR      "Insertor"
    #define REST_KEY_NAME_UPDATOR       "Updator"

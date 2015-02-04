@@ -41,29 +41,29 @@
 INT32 mongoConverter::convert( std::vector<msgBuffer*> &out )
 {
    INT32 rc = SDB_OK ;
-   parser.init( _msgdata, _msglen ) ;
+   _parser.init( _msgdata, _msglen ) ;
 
-   if ( dbInsert == parser.opCode )
+   if ( dbInsert == _parser.opCode )
    {
       _cmd = commandMgr::instance()->findCommand( "insert" ) ;
    }   
-   else if ( dbDelete == parser.opCode )
+   else if ( dbDelete == _parser.opCode )
    {
       _cmd = commandMgr::instance()->findCommand( "delete" ) ;
    }
-   else if ( dbUpdate == parser.opCode )
+   else if ( dbUpdate == _parser.opCode )
    {
       _cmd = commandMgr::instance()->findCommand( "update" ) ;
    }
-   else if ( dbQuery == parser.opCode )
+   else if ( dbQuery == _parser.opCode )
    {
       _cmd = commandMgr::instance()->findCommand( "query" ) ;
    }
-   else if ( dbGetMore == parser.opCode )
+   else if ( dbGetMore == _parser.opCode )
    {
       _cmd = commandMgr::instance()->findCommand( "getMore" ) ;
    }
-   else if ( dbKillCursors == parser.opCode )
+   else if ( dbKillCursors == _parser.opCode )
    {
       _cmd = commandMgr::instance()->findCommand( "killCursors" ) ;
    }
@@ -73,7 +73,7 @@ INT32 mongoConverter::convert( std::vector<msgBuffer*> &out )
       goto error ;
    }
 
-   rc = _cmd->convertRequest( parser, out ) ;
+   rc = _cmd->convertRequest( _parser, out ) ;
    if ( SDB_OK != rc )
    {
       goto error ;

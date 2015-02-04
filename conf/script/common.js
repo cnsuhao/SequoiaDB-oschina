@@ -16,21 +16,29 @@
 
 *******************************************************************************/
 /*
-@description: js class for the js files in current document
+@description: Js class for the js files in current document
 @modify list:
    2014-7-26 Zhaobo Tan  Init
 */
 
-function installTmpCMResult()
+function scanHostResult()
+{
+   this.errno                     = SDB_OK ;
+   this.detail                    = "" ;
+   this.Status                    = "" ;
+   this.IP                        = "" ;
+   this.HostName                  = "" ;
+}
+
+function preCheckResult()
 {
    this.errno                     = SDB_OK ;
    this.detail                    = "" ;
    this.IP                        = "" ;
-   this.AgentPort                 = OMA_PORT_INVALID + "" ;
-   this.IsNeedUninstall           = false ;
+   this.AgentService              = "" ;
 }
 
-function uninstallTmpCMResult()
+function postCheckResult()
 {
    this.errno                     = SDB_OK ;
    this.detail                    = "" ;
@@ -42,7 +50,7 @@ function addHostResult()
    this.errno                     = SDB_OK ;
    this.detail                    = "" ;
    this.IP                        = "" ;
-   this.HasInstall                = false ;
+   //this.HasInstall                = false ;
 }
 
 function checkAddHostInfoResult()

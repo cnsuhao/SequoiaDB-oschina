@@ -68,6 +68,8 @@ namespace engine
       RTN_JOB_INSDBBUSTASKRB     = 21, // install db business task rollback
       RTN_JOB_STARTADDHOSTTASK   = 22, // start add host task
 
+      RTN_JOB_OMAGENT            = 23,  // omagent job
+
       RTN_JOB_MAX
    } ;
 

@@ -394,13 +394,20 @@ namespace engine
       virtual INT32 generateAggrObjs( CHAR *pInputBuffer,
                                     CHAR *&pOutputBuffer,
                                     INT32 &objNum,
-                                    CHAR *&pCLName );
+                                    CHAR *&pCLName,
+                                    BSONObj &selector );
       virtual INT32 appendAggrObjs( CHAR *&pOutputBuffer,
                                     INT32 &bufferSize,
                                     INT32 &addObjNum,
                                     INT32 &bufUsed ) = 0;
 
       virtual const CHAR *getIntrCMDName() = 0;
+
+      INT32 openContext( BSONObj &objs,
+                         INT32 objNum,
+                         const BSONObj &selector,
+                         pmdEDUCB *cb,
+                         SINT64 &contextID ) ;
    };
    class rtnCoordCMDSnapshotDataBase: public rtnCoordCMDSnapShotBase
    {

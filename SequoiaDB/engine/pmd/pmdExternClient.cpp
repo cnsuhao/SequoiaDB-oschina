@@ -226,6 +226,11 @@ namespace engine
       return _isAuthed ;
    }
 
+   void _pmdExternClient::setAuthed( BOOLEAN authed )
+   {
+      _isAuthed = authed ;
+   }
+
    BOOLEAN _pmdExternClient::isClosed() const
    {
       if ( _pSocket )

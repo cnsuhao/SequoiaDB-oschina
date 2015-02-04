@@ -34,6 +34,7 @@
 #include "pd.hpp"
 #include "ossUtil.hpp"
 #include "sptBsonobj.hpp"
+#include "sptBsonobjArray.hpp"
 
 using namespace bson ;
 
@@ -43,7 +44,7 @@ namespace engine
    :_value( 0 ),
     _type( EOO )
    {
-
+      _pReleaseFunc = NULL ;
    }
 
    _sptProperty::_sptProperty( const _sptProperty &other )
@@ -64,6 +65,7 @@ namespace engine
       else
       {
          _value = other._value ;
+         _pReleaseFunc = other._pReleaseFunc ;
       }
    }
 
@@ -79,7 +81,6 @@ namespace engine
       }
 
       _type = EOO ;
-      
    }
 
    _sptProperty &_sptProperty::operator=( const _sptProperty &other )
@@ -101,6 +102,7 @@ namespace engine
       else
       {
          _value = other._value ;
+         _pReleaseFunc = other._pReleaseFunc ;
       }
 
       return *this ;
@@ -172,6 +174,7 @@ namespace engine
                                       const bson::BSONObj &value )
    {
       INT32 rc = SDB_OK ;
+      releaseObj() ;
 
       _sptBsonobj *bs = SDB_OSS_NEW _sptBsonobj( value ) ;
       if ( NULL == bs )
@@ -180,8 +183,35 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
+      _pReleaseFunc = (SPT_RELEASE_OBJ_FUNC)_sptBsonobj::releaseInstance ;
 
       rc = assignUsrObject( name, bs ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _sptProperty::assignBsonArray( const CHAR *name,
+                                        const std::vector < BSONObj > &vecObj )
+   {
+      INT32 rc = SDB_OK ;
+      releaseObj() ;
+
+      _sptBsonobjArray *bsonarray = SDB_OSS_NEW _sptBsonobjArray( vecObj ) ;
+      if ( NULL == bsonarray )
+      {
+         PD_LOG( PDERROR, "failed to allocate mem for bsonarray") ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+      _pReleaseFunc = (SPT_RELEASE_OBJ_FUNC)_sptBsonobjArray::releaseInstance ;
+
+      rc = assignUsrObject( name, bsonarray ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -238,5 +268,6 @@ namespace engine
       SDB_ASSERT( String == _type, "type must be string" ) ;
       return ( CHAR * )_value ;
    }
+
 }
 

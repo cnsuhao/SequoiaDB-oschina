@@ -38,6 +38,9 @@
 
 namespace engine
 {
+   /*
+      _sptBsonobj define
+   */
    class _sptBsonobj : public SDBObject
    {
    JS_DECLARE_CLASS( _sptBsonobj )
@@ -63,8 +66,9 @@ namespace engine
    private:
       bson::BSONObj _obj ;
    } ;
-   typedef class _sptUsrBsonobj sptUsrBsonobj ;
+   typedef _sptBsonobj sptBsonobj ;
+
 }
 
-#endif
+#endif // SPT_BSONOBJ_HPP_
 

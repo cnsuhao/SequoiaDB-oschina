@@ -38,7 +38,8 @@
 #include "ossUtil.hpp"
 #include "ossTypes.hpp"
 #include "../bson/bson.hpp"
-#include "omagentCommand.hpp"
+#include "omagentSyncCmd.hpp"
+#include "omagentAsyncCmd.hpp"
 
 using namespace bson ;
 

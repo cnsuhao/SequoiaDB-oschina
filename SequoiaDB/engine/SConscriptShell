@@ -28,6 +28,7 @@ spt2Files = [
       "spt/sptSPScope.cpp",
       "spt/sptConvertor2.cpp",
       "spt/sptBsonobj.cpp",
+      "spt/sptBsonobjArray.cpp",
       "spt/sptLibssh2Session.cpp",
       "spt/sptSshSession.cpp",
       "spt/usrdef/sptUsrSsh.cpp",
@@ -184,6 +185,11 @@ ssh2Files = [
       "ssh2/version.c"
       ]
 
+pmdFiles = [
+      "cls/clsUtil.cpp",
+      "pmd/pmdOptionsMgr.cpp"
+      ]
+
 #Client Driver
 shellEnv.StaticLibrary('clientc', clientCFiles)
 #Operating System Services
@@ -199,17 +205,19 @@ shellEnv.StaticLibrary('util', utilFiles)
 shellEnv.StaticLibrary('util2', util2Files)
 #Mdocml
 shellEnv.StaticLibrary('mdocml', mdocmlFiles)
+#Process Model
+shellEnv.StaticLibrary('pmd', pmdFiles)
 
 #Shell Executable
 sdb = shellEnv.Program("sdb", shellMain,
-      LIBDEPS=["spt","oss","pd","util","clientc", "mdocml", "ssh2", "util2", "spt2"],
+      LIBDEPS=["spt","oss","pd","util","clientc", "mdocml", "ssh2", "util2", "spt2", "pmd"],
       _LIBDEPS='$_LIBDEPS_OBJS' )
 
 shellEnv.Install( '#/bin', sdb )
 
 #Shell Backend  Executable
 sdbbp = shellEnv.Program("sdbbp", shellBpMain,
-      LIBDEPS=["spt","oss","pd","util","clientc", "mdocml","ssh2", "util2", "spt2"],
+      LIBDEPS=["spt","oss","pd","util","clientc", "mdocml","ssh2", "util2", "spt2", "pmd"],
       _LIBDEPS='$_LIBDEPS_OBJS' )
 
 shellEnv.Install( '#/bin', sdbbp )

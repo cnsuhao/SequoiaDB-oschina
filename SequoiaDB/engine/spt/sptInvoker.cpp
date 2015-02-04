@@ -106,7 +106,7 @@ namespace engine
    }
 
    INT32 _sptInvoker::_callbackDone( JSContext *cx, JSObject *obj,
-                                     const _sptReturnVal &rval,
+                                     _sptReturnVal &rval,
                                      const bson::BSONObj &detail,
                                      jsval *rvp )
    {
@@ -127,6 +127,7 @@ namespace engine
          {
             PD_LOG( PDERROR, "faile to new js object" ) ;
             rc = SDB_OOM ;
+            rval.releaseObj() ;
             goto error ;
          }
 

@@ -78,6 +78,8 @@ namespace engine
          virtual const CHAR*  getUsername() const ;
          virtual const CHAR*  getPassword() const ;
 
+         void                 setAuthed( BOOLEAN authed ) ;
+
       public:
          ossSocket*           getSocket() { return _pSocket ; }
 

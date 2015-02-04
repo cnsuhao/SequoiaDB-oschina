@@ -373,15 +373,9 @@ namespace engine
          }
       }
 
-      rc = ossSeek( &_file, readOffset, OSS_SEEK_SET ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to seek file[%lld], rc: %d",
-                 readOffset, rc ) ;
-         goto error ;
-      }
-
-      rc = ossReadN( &_file, t.size, ( CHAR * )( t.buf ), readFromFile ) ;
+      rc = ossSeekAndReadN( &_file, readOffset,
+                            t.size, ( CHAR * )( t.buf ),
+                            readFromFile ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to read page[%d], rc: %d",
@@ -430,15 +424,8 @@ namespace engine
          }
       }
 
-      rc = ossSeek( &_file, offset, OSS_SEEK_SET ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to seek file[%lld], rc: %d",
-                 offset, rc ) ;
-         goto error ;
-      }
-
-      rc = ossReadN( &_file, len, buf, readFromFile ) ;
+      rc = ossSeekAndReadN( &_file, offset,
+                            len, buf, readFromFile ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to read data[offset: %lld, len: %d], rc: %d",

@@ -80,6 +80,7 @@ namespace engine
 
 
    #define COMMANDS_HIDE_OPTIONS \
+      ( PMD_OPTION_HELPFULL, "help all configs" ) \
       ( PMD_OPTION_CURUSER, "inherite the current user" ) \
 
 
@@ -139,6 +140,12 @@ namespace engine
       if ( vm.count ( PMD_OPTION_HELP ) )
       {
          displayArg ( desc ) ;
+         rc = SDB_PMD_HELP_ONLY ;
+         goto done ;
+      }
+      if ( vm.count( PMD_OPTION_HELPFULL ) )
+      {
+         displayArg( all ) ;
          rc = SDB_PMD_HELP_ONLY ;
          goto done ;
       }

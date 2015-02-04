@@ -32,6 +32,7 @@
 
 #include "sptReturnVal.hpp"
 #include "sptBsonobj.hpp"
+#include "sptBsonobjArray.hpp"
 #include "ossUtil.hpp"
 #include "pd.hpp"
 
@@ -97,5 +98,23 @@ namespace engine
    error:
       goto done ;
    }
+
+   INT32 _sptReturnVal::setBSONArray( const CHAR *name,
+                                      const std::vector< BSONObj > &vecObj )
+   {
+      INT32 rc = SDB_OK ;
+      rc = _property.assignBsonArray( name, vecObj ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      _classDef = _sptBsonobjArray::__desc.getClassDef() ;
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
 }
 

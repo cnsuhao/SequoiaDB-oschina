@@ -128,6 +128,8 @@ class mongoParser : public mongoMsgHeader
 public:
    BOOLEAN withCmd ;
    BOOLEAN withIndex ;
+   BOOLEAN opInsert ;
+   BOOLEAN opCreateCL ;
    INT32 nsLen ;
    CHAR csName[ CS_NAME_SIZE + 1 ] ;
    CHAR fullName[ CL_FULL_NAME_SIZE + 1 ] ;
@@ -137,6 +139,7 @@ public:
    ~mongoParser() ;
 
    void init( const CHAR *in, const INT32 inLen ) ;
+
    void setEndian( BOOLEAN bigEndian ) ;
 
    void nextObj( bson::BSONObj &obj ) ;
@@ -158,12 +161,13 @@ public:
 
    void reparse()
    {
-      _offset = 0 ;
-      _nextObj = NULL ;
       init( _dataStart, len ) ;
    }
 
    void readNumber( const UINT32 size, CHAR *out ) ;
+
+private:
+   void reset() ;
    void extractMsg() ;
 
 private:

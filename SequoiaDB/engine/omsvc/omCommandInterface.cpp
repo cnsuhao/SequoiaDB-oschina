@@ -479,11 +479,11 @@ namespace engine
          goto error ;
       }
 
-      ele = oneHost.getField( OM_BSON_FIELD_OM ) ;
+      ele = oneHost.getField( OM_BSON_FIELD_OMA ) ;
       if ( ele.type() != Object )
       {
          PD_LOG_MSG( PDERROR, "field is not Object type:field=%s,type=%d", 
-                     OM_BSON_FIELD_OM, ele.type() ) ;
+                     OM_BSON_FIELD_OMA, ele.type() ) ;
          goto error ;
       }
 

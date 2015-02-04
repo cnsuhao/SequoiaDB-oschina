@@ -70,6 +70,8 @@ namespace engine
    #define OM_CONF_DETAIL_PCNUM              PMD_OPTION_NUMPAGECLEANERS
    #define OM_CONF_DETAIL_PCINTERVAL         PMD_OPTION_PAGECLEANINTERVAL
 
+   #define OM_CONF_DETAIL_DATAGROUPNAME      "datagroupname"
+
    /*
       OM Field Define
    */
@@ -97,7 +99,7 @@ namespace engine
    #define OM_HOST_FIELD_TIME                "Time"
    #define OM_HOST_FIELD_OS                  "OS"
 
-   #define OM_HOST_FIELD_OM                  "OM"
+   #define OM_HOST_FIELD_OMA                 "OMA"
    #define OM_HOST_FIELD_OM_HASINSTALL       "HasInstalled"
    #define OM_HOST_FIELD_OM_VERSION          "Version"
    #define OM_HOST_FIELD_OM_PATH             "Path"
@@ -123,7 +125,7 @@ namespace engine
    #define OM_HOST_FIELD_SERVICE             "Service"
    #define OM_HOST_FIELD_SAFETY              "Safety"
    #define OM_HOST_FIELD_INSTALLPATH         OM_CLUSTER_FIELD_INSTALLPATH
-   #define OM_HOST_FIELD_AGENT_PORT          "AgentPort"
+   #define OM_HOST_FIELD_AGENT_PORT          "AgentService"
    #define OM_HOST_FIELD_SSHPORT             "SshPort"
 
    #define OM_CS_DEPLOY_CL_HOSTIDX1          "{name:\"SYSDEPLOY_HOST_IDX1\",key: {"\
@@ -153,19 +155,66 @@ namespace engine
 
    #define OM_CS_DEPLOY_CL_TASKINFO          OM_CS_DEPLOY".SYSTASKINFO"
 
-   #define OM_TASKINFO_FIELD_TASKID          "TaskID"
+   #define OM_TASKINFO_FIELD_TASKID          FIELD_NAME_TASKID
    #define OM_TASKINFO_FIELD_TYPE            "Type"
+   #define OM_TASKINFO_FIELD_TYPE_DESC       "TypeDesc"
+   #define OM_TASKINFO_FIELD_NAME            "TaskName"
+   #define OM_TASKINFO_FIELD_CREATE_TIME     "CreateTime"
+   #define OM_TASKINFO_FIELD_END_TIME        "EndTime"
+   #define OM_TASKINFO_FIELD_STATUS          "Status"
+   #define OM_TASKINFO_FIELD_STATUS_DESC     "StatusDesc"
    #define OM_TASKINFO_FIELD_AGENTHOST       "AgentHost"
    #define OM_TASKINFO_FIELD_AGENTPORT       OM_HOST_FIELD_AGENT_PORT
    #define OM_TASKINFO_FIELD_INFO            "Info"
+   #define OM_TASKINFO_FIELD_ERRNO           OP_ERRNOFIELD
+   #define OM_TASKINFO_FIELD_DETAIL          OP_ERR_DETAIL
    #define OM_TASKINFO_FIELD_PROGRESS        "Progress"
-   #define OM_TASKINFO_FIELD_DETAIL          "ErrMsg"
-   #define OM_TASKINFO_FIELD_STATUS          "Status"
-   #define OM_TASKINFO_FIELD_ISFINISH        "IsFinish"
-   #define OM_TASKINFO_FIELD_ISENABLE        "IsEnable"
+   #define OM_TASKINFO_FIELD_RESULTINFO      "ResultInfo"
+
+   /*
+      addHost's ResultInfo:
+      {
+        IP,HostName,Status,StatusDesc,errno,detail,Flow
+      }
+   */
+   #define OM_TASKINFO_FIELD_FLOW            "Flow"
 
    #define OM_CS_DEPLOY_CL_TASKINFOIDX1      "{name:\"SYSDEPLOY_TASKINFO_IDX1\",key: {"\
                                              OM_TASKINFO_FIELD_TASKID":1}, unique: true, enforced: true } "
+
+   enum omTaskType
+   {
+      OM_TASK_TYPE_ADD_HOST        = 0,
+      OM_TASK_TYPE_ADD_BUSINESS    = 1,
+      OM_TASK_TYPE_REMOVE_BUSINESS = 2,
+
+      OM_TASK_TYPE_END
+   } ;
+
+   #define OM_TASK_TYPE_ADD_HOST_STR          "ADD_HOST"
+   #define OM_TASK_TYPE_ADD_BUSINESS_STR      "ADD_BUSINESS"
+   #define OM_TASK_TYPE_REMOVE_BUSINESS_STR   "REMOVE_BUSINESS"
+
+   const CHAR *getTaskTypeStr( INT32 taskType ) ;
+
+   enum omTaskStatus
+   {
+      OM_TASK_STATUS_INIT      = 0,
+      OM_TASK_STATUS_RUNNING   = 1,
+      OM_TASK_STATUS_ROLLBACK  = 2,
+      OM_TASK_STATUS_CANCEL    = 3,
+      OM_TASK_STATUS_FINISH    = 4,
+
+      OM_TASK_STATUS_END
+   } ;
+
+   #define OM_TASK_STATUS_INIT_STR       "INIT"
+   #define OM_TASK_STATUS_RUNNING_STR    "RUNNING"
+   #define OM_TASK_STATUS_ROLLBACK_STR   "ROLLBACK"
+   #define OM_TASK_STATUS_CANCEL_STR     "CANCEL"
+   #define OM_TASK_STATUS_FINISH_STR     "FINISH"
+
+   const CHAR *getTaskStatusStr( INT32 taskStatus ) ;
 
    #define  OM_REST_LOGIN_HTML               "login.html"
    #define  OM_REST_INDEX_HTML               "index.html"
@@ -246,6 +295,10 @@ namespace engine
 
    #define  OM_BSON_FIELD_AGENT_PORT         OM_HOST_FIELD_AGENT_PORT
 
+   #define  OM_BSON_FIELD_SCAN_STATUS        "Status"
+
+   #define  OM_SCAN_HOST_STATUS_FINISH       "finish"
+
    #define  OM_MSG_TIMEOUT_TWO_HOUR          (2 * 3600 * 1000)
    #define  OM_BASICCHECK_INTERVAL           OM_MSG_TIMEOUT_TWO_HOUR
    #define  OM_INSTALL_AGET_INTERVAL         OM_MSG_TIMEOUT_TWO_HOUR
@@ -262,8 +315,8 @@ namespace engine
    #define  OM_PRE_CHECK_HOST                "pre-check host"
    #define  OM_POST_CHECK_HOST               "post-check host"
 
-   #define  OM_BSON_FIELD_OS                 "OS"
-   #define  OM_BSON_FIELD_OM                 "OM"
+   #define  OM_BSON_FIELD_OS                 OM_HOST_FIELD_OS
+   #define  OM_BSON_FIELD_OMA                OM_HOST_FIELD_OMA
    #define  OM_BSON_FIELD_MEMORY             "Memory"
    #define  OM_BSON_FIELD_DISK               OM_HOST_FIELD_DISK
    #define  OM_BSON_FIELD_DISK_NAME          OM_HOST_FIELD_DISK_NAME
@@ -288,14 +341,13 @@ namespace engine
 
    #define  OM_ADD_HOST_REQ                  "add host"
 
-   #define  OM_ROLLBACK_TRANSACTION_REQ      "rollback transaction"
-
    #define  OM_BSON_FIELD_INSTALL_PATH       OM_HOST_FIELD_INSTALLPATH
-   #define  OM_BSON_FIELD_TRANSACTION_ID     "TransactionID"
 
    #define  OM_BSON_FIELD_PATCKET_PATH       "InstallPacket"
 
    #define  OM_PACKET_SUBPATH                "packet"
+
+   #define  OM_NOTIFY_TASK                   "notify task"
 
    #define  OM_LIST_HOST_REQ                 "list host"
 
@@ -360,7 +412,7 @@ namespace engine
    #define  OM_BSON_PROPERTY_WEBNAME         "WebName"
 
 
-   #define  OM_CONFIG_BUSINESS_REQ           "config business"
+   #define  OM_CONFIG_BUSINESS_REQ           "get business config"
 
    #define  OM_CONFIG_ITEM_FILE_NAME         "_config"
    #define  OM_XML_CONFIG                    "config"
@@ -377,26 +429,6 @@ namespace engine
    #define  OM_BSON_TASKID                   "TaskID"
    #define  OM_BSON_TASKTYPE                 "TaskType"
 
-   #define  OM_QUERY_PROGRESS                "query progress"
-
-   #define  OM_REST_TASKID                   OM_BSON_TASKID
-
-   #define  OM_BSON_TASK_ISENABLE            OM_TASKINFO_FIELD_ISENABLE
-   #define  OM_BSON_TASK_ISFINISHED          OM_TASKINFO_FIELD_ISFINISH
-   #define  OM_BSON_TASK_STATUS              OM_TASKINFO_FIELD_STATUS
-   #define  OM_BSON_TASK_INFO                OM_TASKINFO_FIELD_INFO
-   #define  OM_BSON_TASK_PROGRESS            OM_TASKINFO_FIELD_PROGRESS
-   #define  OM_BSON_TASK_DETAIL              OM_TASKINFO_FIELD_DETAIL
-   #define  OM_BSON_TASK_TASKLIST            "Tasks"
-   #define  OM_BSON_ITEM_NAME                "Name"
-   #define  OM_BSON_TOTAL_COUNT              "TotalCount"
-   #define  OM_BSON_INSTALLED_COUNT          "InstalledCount"
-   #define  OM_BSON_ITEM_DESC                "Desc"
-
-   #define  OM_TASK_STATUS_INSTALL           "install"
-   #define  OM_TASK_STATUS_ROLLBACK          "rollback"
-   #define  OM_TASK_STATUS_UNINSTALL         "uninstall"
-   #define  OM_TASK_STATUS_ADDHOST           "addhost"
 
    #define  OM_LIST_NODE_REQ                 "list node"
 
@@ -404,7 +436,7 @@ namespace engine
    #define  OM_BSON_FIELD_SVCNAME            FIELD_NAME_SERVICE_NAME
    #define  OM_BSON_FIELD_ROLE               FIELD_NAME_ROLE
 
-   #define  OM_QUERY_NODE_CONF_REQ           "query node configure"
+   #define  OM_GET_NODE_CONF_REQ             "get node configure"
 
    #define  OM_REST_BUSINESS_NAME            OM_BSON_BUSINESS_NAME
    #define  OM_REST_SVCNAME                  FIELD_NAME_SERVICE_NAME
@@ -434,18 +466,20 @@ namespace engine
    #define  OM_SDB_AUTH_PASSWD               "AuthPasswd"
 
 
-   #define  OM_UPDATE_HOSTNAME_REQ            "update hostname"
+   #define  OM_UPDATE_HOSTNAME_REQ           "update hostname"
 
-   #define  OM_PREDICT_CAPACITY_REQ           "predict capacity"
+   #define  OM_PREDICT_CAPACITY_REQ          "predict capacity"
 
-   #define  OM_BSON_FIELD_VALID_SIZE          "ValidSize"
-   #define  OM_BSON_FIELD_TOTAL_SIZE          "TotalSize"
-   #define  OM_BSON_FIELD_REDUNDANCY_RATE     "RedundancyRate"
+   #define  OM_BSON_FIELD_VALID_SIZE         "ValidSize"
+   #define  OM_BSON_FIELD_TOTAL_SIZE         "TotalSize"
+   #define  OM_BSON_FIELD_REDUNDANCY_RATE    "RedundancyRate"
 
    #define  OM_LIST_TASK_REQ                 "list task"
 
    #define  OM_QUERY_TASK_REQ                "query task"
 
+
+   #define  OM_AGENT_UPDATE_TASK             "update task"
 
 
    #define  OM_DEFAULT_LOCAL_HOST            "localhost"

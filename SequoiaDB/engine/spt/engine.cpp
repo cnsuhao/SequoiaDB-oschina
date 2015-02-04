@@ -93,7 +93,7 @@ namespace engine {
 
    BOOLEAN ScriptEngine::init()
    {
-      _runtime = JS_NewRuntime( 8 * 1024 * 1024 );
+      _runtime = JS_NewRuntime( 32 * 1024 * 1024 );
       return _runtime ? TRUE : FALSE ;
    }
 
@@ -152,7 +152,7 @@ namespace engine {
       SDB_ASSERT( globalEngine, "Script engine has not been initialized" );
       SDB_ASSERT( ! _context && ! _global, "Can't init a scope twice" );
 
-      _context = JS_NewContext( globalEngine->_runtime, 8 * 1024 );
+      _context = JS_NewContext( globalEngine->_runtime, 1024 * 1024 ) ;
       VERIFY( _context );
 
       JS_SetOptions( _context, JSOPTION_VAROBJFIX );

@@ -40,8 +40,9 @@
 #include "catCommon.hpp"
 #include "ossProc.hpp"
 #include "rtn.hpp"
-#include "omManagerJob.hpp"
+#include "rtnBackgroundJob.hpp"
 #include "pmdController.hpp"
+#include "omManagerJob.hpp"
 #include "../omsvc/omGetFileCommand.hpp"
 
 using namespace bson ;
@@ -56,6 +57,7 @@ namespace engine
    */
    BEGIN_OBJ_MSG_MAP( _omManager, _pmdObjBase )
       ON_MSG( MSG_BS_QUERY_REQ, _onAgentQueryTaskReq )
+      ON_MSG( MSG_OM_UPDATE_TASK_REQ, _onAgentUpdateTaskReq )
    END_OBJ_MSG_MAP()
 
    /*
@@ -66,15 +68,15 @@ namespace engine
     _msgHandler( &_rsManager ),
     _netAgent( &_msgHandler )
    {
-      _hwRouteID.value     = MSG_INVALID_ROUTEID ;
-      _hwRouteID.columns.groupID = 2 ;
-      _hwRouteID.columns.nodeID  = 0 ;
+      _hwRouteID.value             = MSG_INVALID_ROUTEID ;
+      _hwRouteID.columns.groupID   = 2 ;
+      _hwRouteID.columns.nodeID    = 0 ;
       _hwRouteID.columns.serviceID = MSG_ROUTE_LOCAL_SERVICE ;
 
       _pKrcb               = NULL ;
       _pDmsCB              = NULL ;
       _hostVersion         = SDB_OSS_NEW omHostVersion() ;
-      _taskManager         = SDB_OSS_NEW omTaskManager( this ) ;
+      _taskManager         = SDB_OSS_NEW omTaskManager() ;
    }
 
    _omManager::~_omManager()
@@ -112,10 +114,6 @@ namespace engine
 
       rc = _initOmTables();
       PD_RC_CHECK ( rc, PDERROR, "Failed to initial the om tables rc = %d", 
-                    rc ) ;
-
-      rc = _restoreTask() ;
-      PD_RC_CHECK ( rc, PDERROR, "Failed to restore task:rc=%d", 
                     rc ) ;
 
       rc = _createJobs() ;
@@ -171,20 +169,6 @@ namespace engine
          goto error ;
       }
 
-      pJob = SDB_OSS_NEW omTaskJob( this, this->getTaskManager() ) ;
-      if ( !pJob )
-      {
-         rc = SDB_OOM ;
-         PD_LOG ( PDERROR, "failed to create omTaskJob:rc=%d", rc ) ;
-         goto error ;
-      }
-      rc = rtnGetJobMgr()->startJob( pJob, RTN_JOB_MUTEX_NONE, &jobID,
-                                     returnResult ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "create omTaskJob failed:rc=%d", rc ) ;
-         goto error ;
-      }
    done:
       return rc ;
    error:
@@ -686,22 +670,6 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omManager::_restoreTask()
-   {
-      INT32 rc         = SDB_OK ;
-      rc = _taskManager->restoreTask() ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "restore task failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
    BOOLEAN _omManager::_isCommand( const CHAR *pCheckName )
    {
       if ( pCheckName && '$' == pCheckName[0] )
@@ -772,7 +740,7 @@ namespace engine
       }
    }
 
-   INT32 _omManager::_onAgentQueryTaskReq( NET_HANDLE handle, MsgHeader *pMsg )
+   INT32 _omManager::_onAgentUpdateTaskReq( NET_HANDLE handle, MsgHeader *pMsg )
    {
       INT32 rc = SDB_OK ;
       INT32 flags               = 0 ;
@@ -783,9 +751,8 @@ namespace engine
       CHAR *pHintBuffer         = NULL ;
       SINT64 numToSkip          = -1 ;
       SINT64 numToReturn        = -1 ;
-      SINT64 contextID          = -1 ;
-      pmdEDUCB *pEduCB          = pmdGetThreadEDUCB() ;
-      rtnContextBuf buffObj ;
+      BSONObj response ;
+
       rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pCollectionName,
                              &numToSkip, &numToReturn, &pQuery,
                              &pFieldSelector, &pOrderByBuffer, &pHintBuffer ) ;
@@ -798,53 +765,32 @@ namespace engine
       }
 
       PD_LOG( PDEVENT, "receive agent's command:%s", pCollectionName ) ;
-      if ( !_isCommand( pCollectionName ) )
+      if ( _isCommand( pCollectionName ) )
       {
-         rtnContextBase *pContext = NULL ;
-         try
+         if ( ossStrcasecmp( OM_AGENT_UPDATE_TASK, 
+                                            ( pCollectionName + 1 ) ) == 0 )
          {
-            BSONObj matcher( pQuery ) ;
-            BSONObj selector( pFieldSelector ) ;
-            BSONObj orderBy( pOrderByBuffer ) ;
-            BSONObj hint( pHintBuffer ) ;
-            PD_LOG ( PDDEBUG, "Query: matcher: %s\nselector: "
-                     "%s\norderBy: %s\nhint:%s",
-                     matcher.toString().c_str(), selector.toString().c_str(),
-                     orderBy.toString().c_str(), hint.toString().c_str() ) ;
+            BSONObj updateReq( pQuery ) ;
+            BSONObj taskUpdateInfo ;
+            INT64 taskID ;
 
-            rc = rtnQuery( pCollectionName, selector, matcher, orderBy, hint, 
-                           flags, pEduCB, numToSkip, numToReturn, 
-                           _pDmsCB, _pRtnCB, contextID, &pContext, TRUE ) ;
-            if ( rc )
+            BSONElement ele = updateReq.getField( OM_TASKINFO_FIELD_TASKID ) ;
+            taskID = ele.numberLong() ;
+
+            BSONObj filter = BSON( OM_TASKINFO_FIELD_TASKID << 1 ) ;
+            taskUpdateInfo = updateReq.filterFieldsUndotted( filter, false ) ;
+            rc = _taskManager->updateTask( taskID, taskUpdateInfo) ;
+            if ( SDB_OK != rc )
             {
+               PD_LOG_MSG( PDERROR, "update task failed:rc=%d", rc ) ;
                goto error ;
             }
-
-            if ( NULL != pContext )
-            {
-               rc = pContext->getMore( -1, buffObj, pEduCB ) ;
-               if ( rc || pContext->eof() )
-               {
-                  _pRtnCB->contextDelete( contextID, pEduCB ) ;
-                  contextID = -1 ;
-               }
-
-               if ( SDB_DMS_EOC == rc )
-               {
-                  rc = SDB_OK ;
-               }
-               else if ( rc )
-               {
-                  PD_LOG_MSG( PDERROR, "failed to query, rc: %d", rc ) ;
-                  goto error ;
-               }
-            }
          }
-         catch ( std::exception &e )
+         else
          {
-            PD_LOG_MSG( PDERROR, "Failed to create matcher and "
-                        "selector for QUERY: %s", e.what () ) ;
             rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "unreconigzed agent request:command=%s", 
+                        pCollectionName ) ;
             goto error ;
          }
       }
@@ -857,24 +803,87 @@ namespace engine
       }
 
    done:
-      
+
       if ( SDB_OK == rc )
       {
-         _sendRes2Agent( handle, pMsg, rc, buffObj ) ;
+         _sendRes2Agent( handle, pMsg, rc, response ) ;
       }
       else
       {
-         BSONObj response ;
          string errorInfo = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          response = BSON( OP_ERR_DETAIL << errorInfo ) ;
          _sendRes2Agent( handle, pMsg, rc, response ) ;
       }
 
-      if ( -1 != contextID )
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 _omManager::_onAgentQueryTaskReq( NET_HANDLE handle, MsgHeader *pMsg )
+   {
+      INT32 rc = SDB_OK ;
+      INT32 flags               = 0 ;
+      CHAR *pCollectionName     = NULL ;
+      CHAR *pQuery              = NULL ;
+      CHAR *pFieldSelector      = NULL ;
+      CHAR *pOrderByBuffer      = NULL ;
+      CHAR *pHintBuffer         = NULL ;
+      SINT64 numToSkip          = -1 ;
+      SINT64 numToReturn        = -1 ;
+      BSONObj response ;
+      rc = msgExtractQuery ( (CHAR *)pMsg, &flags, &pCollectionName,
+                             &numToSkip, &numToReturn, &pQuery,
+                             &pFieldSelector, &pOrderByBuffer, &pHintBuffer ) ;
+      if ( rc )
       {
-         _pRtnCB->contextDelete( contextID, pEduCB ) ;
-         contextID = -1 ;
+         PD_LOG_MSG( PDERROR, "extract omAgent's command msg failed:rc=%d", 
+                     rc ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
       }
+
+      PD_LOG( PDEVENT, "receive agent's command:%s", pCollectionName ) ;
+      try
+      {
+         BSONObj matcher( pQuery ) ;
+         BSONObj selector( pFieldSelector ) ;
+         BSONObj orderBy( pOrderByBuffer ) ;
+         BSONObj hint( pHintBuffer ) ;
+         PD_LOG ( PDDEBUG, "Query: matcher: %s\nselector: "
+                  "%s\norderBy: %s\nhint:%s",
+                  matcher.toString().c_str(), selector.toString().c_str(),
+                  orderBy.toString().c_str(), hint.toString().c_str() ) ;
+
+         rc = _taskManager->queryOneTask( selector, matcher, orderBy, hint, 
+                                          response ) ;
+         if( SDB_OK != rc )
+         {
+            PD_LOG_MSG( PDERROR, "query task failed:rc=%d", rc ) ;
+            goto error ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to create matcher and "
+                     "selector for QUERY: %s", e.what () ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+   done:
+
+      if ( SDB_OK == rc )
+      {
+         _sendRes2Agent( handle, pMsg, rc, response ) ;
+      }
+      else
+      {
+         string errorInfo = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+         response = BSON( OP_ERR_DETAIL << errorInfo ) ;
+         _sendRes2Agent( handle, pMsg, rc, response ) ;
+      }
+
       return rc ;
    error:
       goto done ;

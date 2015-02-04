@@ -47,6 +47,173 @@ using namespace boost::property_tree;
 
 namespace engine
 {
+   static INT32 getMaxTaskID( INT64 &taskID ) ;
+   static INT32 createTask( INT32 taskType, INT64 taskID, 
+                            const string &taskName, const string &agentHost, 
+                            const string &agentService, const BSONObj &taskInfo, 
+                            const BSONArray &resultInfo ) ;
+
+   static INT32 removeTask( INT64 taskID ) ;
+
+   INT32 getMaxTaskID( INT64 &taskID )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj selector ;
+      BSONObj matcher ;
+      BSONObj orderBy ;
+      BSONObj hint ;
+      SINT64 contextID   = -1 ;
+      pmdEDUCB *cb       = pmdGetThreadEDUCB() ;
+      pmdKRCB *pKRCB     = pmdGetKRCB() ;
+      _SDB_DMSCB *pdmsCB = pKRCB->getDMSCB() ;
+      _SDB_RTNCB *pRtnCB = pKRCB->getRTNCB() ;
+
+      taskID = 0 ;
+
+      selector    = BSON( OM_TASKINFO_FIELD_TASKID << 1 ) ;
+      orderBy     = BSON( OM_TASKINFO_FIELD_TASKID << -1 ) ;
+      rc = rtnQuery( OM_CS_DEPLOY_CL_TASKINFO, selector, matcher, orderBy, 
+                     hint, 0, cb, 0, 1, pdmsCB, pRtnCB, contextID ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "get taskid failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      {
+         BSONElement ele ;
+         rtnContextBuf buffObj ;
+         rc = rtnGetMore ( contextID, 1, buffObj, cb, pRtnCB ) ;
+         if ( rc )
+         {
+            if ( SDB_DMS_EOC == rc )
+            {
+               rc = SDB_OK ;
+               goto done ;
+            }
+
+            PD_LOG( PDERROR, "failed to get record from table:%s,rc=%d", 
+                    OM_CS_DEPLOY_CL_TASKINFO, rc ) ;
+            goto error ;
+         }
+
+         BSONObj result( buffObj.data() ) ;
+         ele    = result.getField( OM_TASKINFO_FIELD_TASKID ) ;
+         taskID = ele.numberLong() ;
+      }
+
+   done:
+      if ( -1 != contextID )
+      {
+         pRtnCB->contextDelete( contextID, cb ) ;
+         contextID = -1 ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 createTask( INT32 taskType, INT64 taskID, const string &taskName,
+                     const string &agentHost, const string &agentService,
+                     const BSONObj &taskInfo, const BSONArray &resultInfo )
+   {
+      INT32 rc     = SDB_OK ;
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      BSONObj record ;
+
+      BSONObjBuilder builder ;
+      time_t now = time( NULL ) ;
+      builder.append( OM_TASKINFO_FIELD_TASKID, taskID ) ;
+      builder.append( OM_TASKINFO_FIELD_TYPE, taskType ) ;
+      builder.append( OM_TASKINFO_FIELD_TYPE_DESC, 
+                      getTaskTypeStr( taskType ) ) ;
+      builder.append( OM_TASKINFO_FIELD_NAME, taskName ) ;
+      builder.appendTimestamp( OM_TASKINFO_FIELD_CREATE_TIME, 
+                               (unsigned long long)now * 1000, 0 ) ;
+      builder.appendTimestamp( OM_TASKINFO_FIELD_END_TIME, 
+                               (unsigned long long)now * 1000, 0 ) ;
+      builder.append( OM_TASKINFO_FIELD_STATUS, OM_TASK_STATUS_INIT ) ;
+      builder.append( OM_TASKINFO_FIELD_STATUS_DESC, 
+                      getTaskStatusStr( OM_TASK_STATUS_INIT ) ) ;
+      builder.append( OM_TASKINFO_FIELD_AGENTHOST, agentHost ) ;
+      builder.append( OM_TASKINFO_FIELD_AGENTPORT, agentService ) ;
+      builder.append( OM_TASKINFO_FIELD_INFO, taskInfo ) ;
+      builder.append( OM_TASKINFO_FIELD_ERRNO, SDB_OK ) ;
+      builder.append( OM_TASKINFO_FIELD_DETAIL, "" ) ;
+      builder.append( OM_TASKINFO_FIELD_PROGRESS, 0 ) ;
+      builder.append( OM_TASKINFO_FIELD_RESULTINFO, resultInfo ) ;
+
+      record = builder.obj() ;
+      rc = rtnInsert( OM_CS_DEPLOY_CL_TASKINFO, record, 1, 0, cb ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "insert task failed:rc=%d", rc ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 removeTask( INT64 taskID )
+   {
+      INT32 rc = SDB_OK ;
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      BSONObj deletor ;
+      BSONObj hint ;
+      deletor = BSON( OM_TASKINFO_FIELD_TASKID << taskID ) ;
+      rc = rtnDelete( OM_CS_DEPLOY_CL_TASKINFO, deletor, hint, 0, cb ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "rtnDelete task failed:taskID="OSS_LL_PRINT_FORMAT
+                 ",rc=%d", taskID, rc ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   const CHAR *getTaskStatusStr( INT32 status )
+   {
+      static CHAR *s_taskStatusStr[ OM_TASK_STATUS_END ] = 
+                                                    { 
+                                                       "INIT", 
+                                                       "RUNNING", 
+                                                       "ROLLBACK", 
+                                                       "CANCEL", 
+                                                       "FINISH" 
+                                                    } ;
+      if ( status < OM_TASK_STATUS_END )
+      {
+         return s_taskStatusStr[status] ;
+      }
+      else
+      {
+         return "unknown" ;
+      }
+   }
+
+   const CHAR *getTaskTypeStr( INT32 type )
+   {
+      static CHAR *s_taskTypeStr[ OM_TASK_TYPE_END ] = 
+                                                   { 
+                                                       "ADD_HOST", 
+                                                       "ADD_BUSINESS",
+                                                       "REMOVE_BUSINESS"
+                                                    } ;
+      if ( type < OM_TASK_TYPE_END )
+      {
+         return s_taskTypeStr[type] ;
+      }
+      else
+      {
+         return "unknown" ;
+      }
+   }
+
    omAuthCommand::omAuthCommand( restAdaptor *pRestAdaptor, 
                                  pmdRestSession *pRestSession )
    {
@@ -259,8 +426,6 @@ namespace engine
          {
             if ( SDB_DMS_EOC == rc )
             {
-               _errorDetail = string( "cluster is not exist:cluster=" ) 
-                              + clusterName ;
                PD_LOG_MSG( PDERROR, "cluster is not exist:cluster=%s,rc=%d", 
                            clusterName.c_str(), rc ) ;
                goto error ;
@@ -830,12 +995,13 @@ namespace engine
       {
          if ( _isHostExist( *iter ) )
          {
-            BSONObj tmp = BSON( OM_BSON_FIELD_HOST_IP
-                               << iter->ip
-                               << OM_BSON_FIELD_HOST_NAME
-                               << iter->hostName
-                               << OM_REST_RES_RETCODE << SDB_IXM_DUP_KEY
-                               << OM_REST_RES_DETAIL << "host is exist" ) ;
+            BSONObj tmp = BSON( OM_REST_RES_RETCODE << SDB_IXM_DUP_KEY
+                                << OM_REST_RES_DETAIL << "host is exist"
+                                << OM_BSON_FIELD_HOST_IP << iter->ip
+                                << OM_BSON_FIELD_SCAN_STATUS 
+                                << OM_SCAN_HOST_STATUS_FINISH
+                                << OM_BSON_FIELD_HOST_NAME << iter->hostName ) ;
+                               
             hostResult.push_back( tmp ) ;
             hostInfoList.erase( iter++ ) ;
             continue ;
@@ -1156,6 +1322,73 @@ namespace engine
       }
    }
 
+   INT32 omScanHostCommand::_notifyAgentTask( INT64 taskID )
+   {
+      INT32 rc          = SDB_OK ;
+      SINT32 flag       = SDB_OK ;
+      CHAR *pContent    = NULL ;
+      INT32 contentSize = 0 ;
+      MsgHeader *pMsg   = NULL ;
+      omManager *om     = NULL ;
+      pmdRemoteSession *remoteSession = NULL ;
+      BSONObj bsonRequest ;
+      BSONObj result ;
+
+      bsonRequest = BSON( OM_TASKINFO_FIELD_TASKID << taskID ) ;
+      rc = msgBuildQueryMsg( &pContent, &contentSize, 
+                             CMD_ADMIN_PREFIX OM_NOTIFY_TASK, 
+                             0, 0, 0, -1, &bsonRequest, NULL, NULL, NULL ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "build msg failed:cmd=%s,rc=%d", OM_NOTIFY_TASK,
+                     rc ) ;
+         goto error ;
+      }
+
+      om            = sdbGetOMManager() ;
+      remoteSession = om->getRSManager()->addSession( _cb, 
+                                                      OM_WAIT_SCAN_RES_INTERVAL,
+                                                      NULL ) ;
+      if ( NULL == remoteSession )
+      {
+         rc = SDB_OOM ;
+         PD_LOG_MSG( PDERROR, "create remote session failed:rc=%d", rc ) ;
+         SDB_OSS_FREE( pContent ) ;
+         goto error ;
+      }
+
+      pMsg = (MsgHeader *)pContent ;
+      rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "send message to agent failed:rc=%d", rc ) ;
+         SDB_OSS_FREE( pContent ) ;
+         remoteSession->clearSubSession() ;
+         goto error ;
+      }
+
+      rc = _receiveFromAgent( remoteSession, flag, result ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "receive from agent failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      if ( SDB_OK != flag )
+      {
+         rc = flag ;
+         string tmpError = result.getStringField( OM_REST_RES_DETAIL ) ;
+         PD_LOG_MSG( PDERROR, "agent process failed:detail=(%s),rc=%d", 
+                     tmpError.c_str(), rc ) ;
+         goto error ;
+      }
+   done:
+      _clearSession( om, remoteSession ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 omScanHostCommand::_sendMsgToLocalAgent( omManager *om,
                                              pmdRemoteSession *remoteSession, 
                                              MsgHeader *pMsg )
@@ -1281,7 +1514,7 @@ namespace engine
       if ( NULL == remoteSession )
       {
          SDB_OSS_FREE( pContent ) ;
-         
+
          rc = SDB_OOM ;
          PD_LOG_MSG( PDERROR, "create remove session failed:rc=%d", rc ) ;
          _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
@@ -1362,6 +1595,23 @@ namespace engine
          if ( iter->ip == ip )
          {
             hostInfoList.erase( iter ) ;
+            return ;
+         }
+         iter++ ;
+      }
+   }
+
+   void omCheckHostCommand::_updateAgentService( 
+                                            list<omScanHostInfo> &hostInfoList, 
+                                            const string &ip, 
+                                            const string &port )
+   {
+      list<omScanHostInfo>::iterator iter = hostInfoList.begin() ;
+      while ( iter != hostInfoList.end() )
+      {
+         if ( iter->ip == ip )
+         {
+            iter->agentPort = port ;
             return ;
          }
          iter++ ;
@@ -1484,12 +1734,8 @@ namespace engine
          {
             BSONElement ele   = iter.next() ;
             BSONObj oneResult = ele.embeddedObject() ;
-            INT32 rc = oneResult.getIntField( OM_REST_RES_RETCODE ) ;
-
-            bool isNeedUninstall ;
-            isNeedUninstall = oneResult.getBoolField( 
-                                                 OM_BSON_FIELD_NEEDUNINSTALL ) ;
-            string ip = oneResult.getStringField( OM_BSON_FIELD_HOST_IP ) ;
+            INT32 rc    = oneResult.getIntField( OM_REST_RES_RETCODE ) ;
+            string ip   = oneResult.getStringField( OM_BSON_FIELD_HOST_IP ) ;
             string port = oneResult.getStringField( OM_BSON_FIELD_AGENT_PORT ) ;
             if ( SDB_OK != rc )
             {
@@ -1498,7 +1744,7 @@ namespace engine
             }
             else
             {
-               _updateUninstallFlag( hostInfoList, ip, port, isNeedUninstall ) ;
+               _updateAgentService( hostInfoList, ip, port ) ;
             }
          }
       }
@@ -2107,7 +2353,7 @@ namespace engine
             host.passwd    = pGlobalPasswd ;
             host.sshPort   = pGlobalSshPort ;
             host.agentPort = pGlobalAgentPort ;
-            host.isNeedUninstall = false ;
+            host.isNeedUninstall = true ;
 
             if ( oneHost.hasField( OM_BSON_FIELD_HOST_USER ) )
             {
@@ -2264,6 +2510,7 @@ namespace engine
          BSONObjIterator i( element.embeddedObject() ) ;
          while ( i.more() )
          {
+            string hostName ;
             BSONObjBuilder builder ;
             BSONObj tmp ;
             BSONElement ele = i.next() ;
@@ -2312,70 +2559,6 @@ namespace engine
             hostInfo.push_back( tmp ) ;
          }
       }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omAddHostCommand::_generateAddHostReq( const string &clusterName,
-                                                list<BSONObj> &hostInfoList, 
-                                                BSONObj &bsonRequest )
-   {
-      BSONObjBuilder builder ;
-      BSONArrayBuilder arrayBuilder ;
-      list<BSONObj>::iterator ite ;
-
-      INT32 rc = SDB_OK ;
-      string sdbUser ;
-      string sdbPasswd ;
-      string sdbUserGroup ;
-      CHAR packetPath[ OSS_MAX_PATHSIZE ] = "" ;
-      rc = _getPacketFullPath( packetPath ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "get packet path failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-      rc = _getSdbUsrInfo( clusterName, sdbUser, sdbPasswd, sdbUserGroup ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "_getSdbUsrInfo failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-      ite = hostInfoList.begin() ;
-      while ( ite != hostInfoList.end() )
-      {
-         BSONObjBuilder innerBuilder ;
-         BSONObj temp ;
-         innerBuilder.append( OM_BSON_FIELD_HOST_IP, 
-                         ite->getStringField( OM_BSON_FIELD_HOST_IP ) ) ;
-         innerBuilder.append( OM_BSON_FIELD_HOST_NAME, 
-                         ite->getStringField( OM_BSON_FIELD_HOST_NAME ) ) ;
-         innerBuilder.append( OM_BSON_FIELD_HOST_USER, 
-                         ite->getStringField( OM_BSON_FIELD_HOST_USER ) ) ;
-         innerBuilder.append( OM_BSON_FIELD_HOST_PASSWD, 
-                         ite->getStringField( OM_BSON_FIELD_HOST_PASSWD ) ) ;
-         innerBuilder.append( OM_BSON_FIELD_HOST_SSHPORT, 
-                         ite->getStringField( OM_BSON_FIELD_HOST_SSHPORT ) ) ;
-         innerBuilder.append( OM_BSON_FIELD_AGENT_PORT, 
-                         ite->getStringField( OM_BSON_FIELD_AGENT_PORT ) ) ;
-         innerBuilder.append( OM_BSON_FIELD_INSTALL_PATH, 
-                         ite->getStringField( OM_BSON_FIELD_INSTALL_PATH ) ) ;
-         temp = innerBuilder.obj() ;
-         arrayBuilder.append( temp ) ;
-         ite++ ;
-      }
-
-      builder.append( OM_BSON_FIELD_SDB_USER, sdbUser ) ;
-      builder.append( OM_BSON_FIELD_SDB_PASSWD, sdbPasswd ) ;
-      builder.append( OM_BSON_FIELD_SDB_USERGROUP, sdbUserGroup ) ;
-      builder.append( OM_BSON_FIELD_PATCKET_PATH, packetPath ) ;
-      builder.appendArray( OM_REST_FIELD_HOST_INFO, arrayBuilder.arr() );
-      bsonRequest = builder.obj() ;
 
    done:
       return rc ;
@@ -2471,15 +2654,128 @@ namespace engine
       goto done ;
    }
 
-   INT32 omAddHostCommand::_generateAddHostConf( const string &clusterName,
-                                                 list<BSONObj> &hostInfoList, 
-                                                 BSONObj &conf )
-   {
-      BSONObjBuilder builder ;
-      BSONArrayBuilder arrayBuilder ;
-      list<BSONObj>::iterator ite ;
+   void omAddHostCommand::_generateTableField( BSONObjBuilder &builder, 
+                                               const string &newFieldName,
+                                               BSONObj &bsonOld,
+                                               const string &oldFiledName ) 
+   {  
+      BSONElement element = bsonOld.getField( oldFiledName ) ;
+      if ( !element.eoo() )
+      {
+         builder.appendAs( element, newFieldName ) ;
+      }
+   }
 
+   BOOLEAN omAddHostCommand::_isHostExistInTask( const string &hostName )
+   {
+      BSONObjBuilder bsonBuilder ;
+      BOOLEAN isExist = TRUE ;
+      BSONObj selector ;
+      BSONObj matcher ;
+      BSONObj order ;
+      BSONObj hint ;
+      SINT64 contextID = -1 ;
+      INT32 rc         = SDB_OK ;
+      rtnContextBuf buffObj ;
+
+      BSONObj hostNameObj = BSON( OM_HOST_FIELD_NAME << hostName ) ;
+      BSONObj elemMatch   = BSON( "$elemMatch" << hostNameObj ) ;
+
+      BSONArrayBuilder arrBuilder ;
+      arrBuilder.append( OM_TASK_STATUS_FINISH ) ;
+      arrBuilder.append( OM_TASK_STATUS_CANCEL ) ;
+      BSONObj status = BSON( "$nin" << arrBuilder.arr() ) ;
+
+      matcher = BSON( OM_TASKINFO_FIELD_RESULTINFO << elemMatch
+                      << OM_TASKINFO_FIELD_STATUS << status ) ;
+      rc = rtnQuery( OM_CS_DEPLOY_CL_TASKINFO, selector, matcher, order, hint, 
+                     0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to query host:rc=%d,host=%s", rc, 
+                 matcher.toString().c_str() ) ;
+         goto done ;
+      }
+
+      rc = rtnGetMore ( contextID, 1, buffObj, _cb, _pRTNCB ) ;
+      if ( rc )
+      {
+         if ( SDB_DMS_EOC != rc )
+         {
+            PD_LOG( PDERROR, "Failed to retreive record, rc = %d", rc ) ;
+            goto done ;
+         }
+
+         isExist = FALSE ;
+         goto done ;
+      }
+      {
+         BSONObj result( buffObj.data() ) ;
+         BSONElement eleID = result.getField( OM_TASKINFO_FIELD_TASKID ) ;
+         PD_LOG( PDERROR, "host[%s] is exist in task["OSS_LL_PRINT_FORMAT"]",
+                 hostName.c_str(), eleID.numberLong() ) ;
+      }
+
+      _pRTNCB->contextDelete( contextID, _cb ) ;
+
+   done:
+      return isExist;
+   }
+   
+   INT32 omAddHostCommand::_checkTaskExistence( list<BSONObj> &hostInfoList )
+   {
       INT32 rc = SDB_OK ;
+      list<BSONObj>::iterator iter = hostInfoList.begin() ;
+      while ( iter != hostInfoList.end() )
+      {
+         string hostName = iter->getStringField( OM_BSON_FIELD_HOST_NAME ) ;
+         if ( _isHostExistInTask( hostName ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "host is exist in task:host=%s", 
+                        hostName.c_str() ) ;
+            goto error ;
+         }
+         iter++ ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 omAddHostCommand::_checkHostExistence( list<BSONObj> &hostInfoList )
+   {
+      INT32 rc = SDB_OK ;
+      set<string> hostNameSet ;
+      list<BSONObj>::iterator iter = hostInfoList.begin() ;
+      while ( iter != hostInfoList.end() )
+      {
+         string host = iter->getStringField( OM_BSON_FIELD_HOST_NAME ) ;
+         if ( _isHostNameExist( host ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "host is exist:host=%s", host.c_str() ) ;
+            goto error ;
+         }
+         iter++ ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 omAddHostCommand::_generateTaskInfo( const string &clusterName, 
+                                              list<BSONObj> &hostInfoList, 
+                                              BSONObj &taskInfo,
+                                              BSONArray &resultInfo )
+   {
+      INT32 rc = SDB_OK ;
+      BSONArrayBuilder resultArrBuilder ;
+      BSONArrayBuilder arrayBuilder ;
+      list<BSONObj>::iterator iter ;
       string sdbUser ;
       string sdbPasswd ;
       string sdbUserGroup ;
@@ -2498,418 +2794,124 @@ namespace engine
          goto error ;
       }
 
-      ite = hostInfoList.begin() ;
-      while ( ite != hostInfoList.end() )
-      {
-         BSONObjBuilder innerBuilder ;
-         BSONObj temp ;
-         innerBuilder.append( OM_BSON_FIELD_HOST_IP, 
-                         ite->getStringField( OM_BSON_FIELD_HOST_IP ) ) ;
-         innerBuilder.append( OM_BSON_FIELD_HOST_NAME, 
-                         ite->getStringField( OM_BSON_FIELD_HOST_NAME ) ) ;
-         innerBuilder.append( OM_BSON_FIELD_HOST_USER, 
-                         ite->getStringField( OM_BSON_FIELD_HOST_USER ) ) ;
-         innerBuilder.append( OM_BSON_FIELD_HOST_PASSWD, 
-                         ite->getStringField( OM_BSON_FIELD_HOST_PASSWD ) ) ;
-         innerBuilder.append( OM_BSON_FIELD_HOST_SSHPORT, 
-                         ite->getStringField( OM_BSON_FIELD_HOST_SSHPORT ) ) ;
-         innerBuilder.append( OM_BSON_FIELD_AGENT_PORT, 
-                         ite->getStringField( OM_BSON_FIELD_AGENT_PORT ) ) ;
-         innerBuilder.append( OM_BSON_FIELD_INSTALL_PATH, 
-                         ite->getStringField( OM_BSON_FIELD_INSTALL_PATH ) ) ;
-         temp = innerBuilder.obj() ;
-         arrayBuilder.append( temp ) ;
-         ite++ ;
-      }
-
-      builder.append( OM_BSON_FIELD_CLUSTER_NAME , clusterName ) ;
-      builder.append( OM_BSON_FIELD_SDB_USER, sdbUser ) ;
-      builder.append( OM_BSON_FIELD_SDB_PASSWD, sdbPasswd ) ;
-      builder.append( OM_BSON_FIELD_SDB_USERGROUP, sdbUserGroup ) ;
-      builder.append( OM_BSON_FIELD_PATCKET_PATH, packetPath ) ;
-      builder.appendArray( OM_REST_FIELD_HOST_INFO, arrayBuilder.arr() );
-      conf = builder.obj() ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omAddHostCommand::_addHostByAgent( BSONObj &conf, UINT64 taskID )
-   {
-      INT32 rc = SDB_OK ;
-      SINT32 flag       = SDB_OK ;
-      CHAR *pContent    = NULL ;
-      INT32 contentSize = 0 ;
-      MsgHeader *pMsg   = NULL ;
-      omManager *om     = sdbGetOMManager() ;
-      pmdRemoteSession *remoteSession = NULL ;
-      BSONObj result ;
-
-      BSONObjBuilder builder ;
-      builder.append( OM_BSON_TASKID, (long long)taskID ) ;
-      builder.appendElements( conf ) ;
-      BSONObj request = builder.obj() ;
-      rc = msgBuildQueryMsg( &pContent, &contentSize, 
-                             CMD_ADMIN_PREFIX OM_ADD_HOST_REQ, 
-                             0, 0, 0, -1, &request, NULL, NULL, NULL ) ;
-      if ( SDB_OK != rc )
-      {
-         _errorDetail = string( "build msg failed:cmd=" ) + OM_ADD_HOST_REQ ;
-         PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
-         goto error ;
-      }
-
-      remoteSession = om->getRSManager()->addSession( _cb, 
-                                                      OM_WAIT_SCAN_RES_INTERVAL,
-                                                      NULL ) ;
-      if ( NULL == remoteSession )
-      {
-         rc = SDB_OOM ;
-         _errorDetail = "create remote session failed" ;
-         PD_LOG( PDERROR, "%s:rc=%d", _errorDetail.c_str(), rc ) ;
-         SDB_OSS_FREE( pContent ) ;
-         goto error ;
-      }
-
-      pMsg = (MsgHeader *)pContent ;
-      rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
-      if ( SDB_OK != rc )
-      {
-         _errorDetail = "send message to agent failed" ;
-         PD_LOG( PDERROR, "%s:rc=%d", _errorDetail.c_str(), rc ) ;
-         SDB_OSS_FREE( pContent ) ;
-         remoteSession->clearSubSession() ;
-         goto error ;
-      }
-
-      rc = _receiveFromAgent( remoteSession, flag, result ) ;
-      if ( SDB_OK != rc )
-      {
-         _errorDetail = "receive from agent failed" ;
-         PD_LOG( PDERROR, "%s:rc=%d", _errorDetail.c_str(), rc ) ;
-         goto error ;
-      }
-
-      if ( SDB_OK != flag )
-      {
-         rc = flag ;
-         _errorDetail = result.getStringField( OM_REST_RES_DETAIL ) ;
-         PD_LOG( PDERROR, "agent process failed:detail=%s,rc=%d", 
-                 _errorDetail.c_str(), rc ) ;
-         goto error ;
-      }
-   done:
-      _clearSession( om, remoteSession ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omAddHostCommand::_addHost2( const string &clusterName, 
-                                      list<BSONObj> &hostInfoList, 
-                                      UINT64 &taskID )
-   {
-      INT32 rc          = SDB_OK ;
-      BSONObj conf ;
-      BSONObj result ;
-      BSONElement element ;
-      BSONElement hostElement ;
-      omTaskManager *pTaskManager = sdbGetOMManager()->getTaskManager() ;
-
-      rc = _generateAddHostConf( clusterName, hostInfoList, conf ) ;
-      if ( SDB_OK != rc )
-      {
-         _errorDetail = "failed to generate add host configure" ;
-         PD_LOG( PDERROR, "_generateAddHostReq failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-      rc = pTaskManager->createAddHostTask( _localAgentHost, _localAgentService,
-                                            conf, taskID ) ;
-      if ( SDB_OK != rc )
-      {
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
-         PD_LOG( PDERROR, "create addhost task failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-      rc = _addHostByAgent( conf, taskID ) ;
-      if ( SDB_OK != rc )
-      {
-         pTaskManager->cancelTask( taskID, _errorDetail ) ;
-         PD_LOG( PDERROR, "add host by agent failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-      pTaskManager->enableTask( taskID ) ;
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-
-
-   INT32 omAddHostCommand::_addHost( const string &clusterName, 
-                                     list<BSONObj> &hostInfoList, 
-                                     INT32 &transationID )
-   {
-      INT32 rc          = SDB_OK ;
-      SINT32 flag       = SDB_OK ;
-      CHAR *pContent    = NULL ;
-      INT32 contentSize = 0 ;
-      MsgHeader *pMsg   = NULL ;
-      omManager *om     = NULL ;
-      pmdRemoteSession *remoteSession = NULL ;
-      BSONObj bsonRequest ;
-      BSONObj result ;
-      BSONElement element ;
-      BSONElement hostElement ;
-
-      rc = _generateAddHostReq( clusterName, hostInfoList, bsonRequest ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "_generateAddHostReq failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-      rc = msgBuildQueryMsg( &pContent, &contentSize, 
-                             CMD_ADMIN_PREFIX OM_ADD_HOST_REQ, 
-                             0, 0, 0, -1, &bsonRequest, NULL, NULL, NULL ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG_MSG( PDERROR, "build msg failed:cmd=%s,rc=%d", OM_ADD_HOST_REQ,
-                     rc ) ;
-         goto error ;
-      }
-
-      om            = sdbGetOMManager() ;
-      remoteSession = om->getRSManager()->addSession( _cb, 
-                                                      OM_WAIT_SCAN_RES_INTERVAL,
-                                                      NULL ) ;
-      if ( NULL == remoteSession )
-      {
-         rc = SDB_OOM ;
-         PD_LOG_MSG( PDERROR, "create remote session failed:rc=%d", rc ) ;
-         SDB_OSS_FREE( pContent ) ;
-         goto error ;
-      }
-
-      pMsg = (MsgHeader *)pContent ;
-      rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG_MSG( PDERROR, "send message to agent failed:rc=%d", rc ) ;
-         SDB_OSS_FREE( pContent ) ;
-         remoteSession->clearSubSession() ;
-         goto error ;
-      }
-
-      rc = _receiveFromAgent( remoteSession, flag, result ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG_MSG( PDERROR, "receive from agent failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-      if ( SDB_OK != flag )
-      {
-         rc = flag ;
-         string tmpError = result.getStringField( OM_REST_RES_DETAIL ) ;
-         PD_LOG_MSG( PDERROR, "agent process failed:detail=(%s),rc=%d", 
-                     tmpError.c_str(), rc ) ;
-         goto error ;
-      }
-
-      element = result.getField( OM_BSON_FIELD_TRANSACTION_ID ) ;
-      if ( element.eoo() || NumberInt != element.type() )
-      {
-         rc = SDB_UNEXPECTED_RESULT ;
-         PD_LOG_MSG( PDERROR, "agent's response is unrecognized:type=%d", 
-                     element.type() ) ;
-         goto error ;
-      }
-      transationID = result.getIntField( OM_REST_RES_RETCODE ) ;
-
-   done:
-      _clearSession( om, remoteSession ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   void omAddHostCommand::_generateTableField( BSONObjBuilder &builder, 
-                                               const string &newFieldName,
-                                               BSONObj &bsonOld,
-                                               const string &oldFiledName ) 
-   {  
-      BSONElement element = bsonOld.getField( oldFiledName ) ;
-      if ( !element.eoo() )
-      {
-         builder.appendAs( element, newFieldName ) ;
-      }
-   }
-
-   INT32 omAddHostCommand::_storeHostInfo( const string &clusterName, 
-                                           list<BSONObj> &hostInfoList )
-   {
-      INT32 rc = SDB_OK ;
-      list<BSONObj>::iterator iteRollBack ;
-      list<BSONObj>::iterator ite = hostInfoList.begin() ;
-      while ( ite != hostInfoList.end() )
-      {
-         BSONObjBuilder builder ;
-         BSONObj tmp ;
-
-         _generateTableField( builder, OM_HOST_FIELD_NAME, *ite, 
-                              OM_BSON_FIELD_HOST_NAME ) ;
-         builder.append( OM_HOST_FIELD_CLUSTERNAME, clusterName ) ;
-         _generateTableField( builder, OM_HOST_FIELD_IP, *ite, 
-                              OM_BSON_FIELD_HOST_IP ) ;
-         _generateTableField( builder, OM_HOST_FIELD_USER, *ite, 
-                              OM_BSON_FIELD_HOST_USER ) ;
-         _generateTableField( builder, OM_HOST_FIELD_PASSWORD, *ite, 
-                              OM_BSON_FIELD_HOST_PASSWD ) ;
-         _generateTableField( builder, OM_HOST_FIELD_OS, *ite, 
-                              OM_BSON_FIELD_OS ) ;
-         _generateTableField( builder, OM_HOST_FIELD_OM, *ite, 
-                              OM_BSON_FIELD_OM ) ;
-         _generateTableField( builder, OM_HOST_FIELD_MEMORY, *ite, 
-                              OM_BSON_FIELD_MEMORY ) ;   
-         _generateTableField( builder, OM_HOST_FIELD_DISK, *ite, 
-                              OM_BSON_FIELD_DISK ) ;
-         _generateTableField( builder, OM_HOST_FIELD_CPU, *ite, 
-                              OM_BSON_FIELD_CPU ) ;
-         _generateTableField( builder, OM_HOST_FIELD_NET, *ite, 
-                              OM_BSON_FIELD_NET ) ;
-         _generateTableField( builder, OM_HOST_FIELD_PORT, *ite, 
-                              OM_BSON_FIELD_PORT ) ;
-         _generateTableField( builder, OM_HOST_FIELD_SERVICE, *ite, 
-                              OM_BSON_FIELD_SERVICE ) ;
-         _generateTableField( builder, OM_HOST_FIELD_SAFETY, *ite, 
-                              OM_BSON_FIELD_SAFETY ) ;
-         _generateTableField( builder, OM_HOST_FIELD_INSTALLPATH, *ite, 
-                              OM_BSON_FIELD_INSTALL_PATH ) ;
-         _generateTableField( builder, OM_HOST_FIELD_AGENT_PORT, *ite, 
-                              OM_BSON_FIELD_AGENT_PORT ) ;
-         _generateTableField( builder, OM_HOST_FIELD_SSHPORT, *ite, 
-                              OM_BSON_FIELD_HOST_SSHPORT ) ;
-
-         tmp = builder.obj() ;
-         rc = rtnInsert( OM_CS_DEPLOY_CL_HOST, tmp, 1, 0, _cb ) ;
-         {
-            if ( rc )
-            {
-               PD_LOG_MSG( PDERROR, "failed to store host's info into table:"
-                           "%s,rc=%d", OM_CS_DEPLOY_CL_HOST, rc ) ;
-               goto error ;
-            }
-         }
-
-         ite++ ;
-      }
-
-   done:
-      return rc ;
-   error:
-      iteRollBack = hostInfoList.begin() ;
-      while ( iteRollBack != ite )
-      {
-         BSONObjBuilder builder ;
-         BSONObj tmp ;
-         _generateTableField( builder, OM_HOST_FIELD_NAME, *iteRollBack, 
-                              OM_BSON_FIELD_HOST_NAME ) ;
-         tmp = builder.obj() ;
-         rtnDelete( OM_CS_DEPLOY_CL_HOST, tmp, BSONObj(), 0, _cb ) ;
-         iteRollBack++ ;
-      }
-      goto done ;
-   }
-
-   void omAddHostCommand::_transactionRollBack( INT32 transactionID )
-   {
-      INT32 rc          = SDB_OK ;
-      CHAR *pContent    = NULL ;
-      INT32 contentSize = 0 ;
-      MsgHeader *pMsg   = NULL ;
-      omManager *om     = NULL ;
-      pmdRemoteSession *remoteSession = NULL ;
-      BSONObj bsonRequest ;
-      BSONObjBuilder builder ;
-
-      builder.append( OM_BSON_FIELD_TRANSACTION_ID, transactionID ) ;
-      bsonRequest = builder.obj() ;
-      rc = msgBuildQueryMsg( &pContent, &contentSize, 
-                             CMD_ADMIN_PREFIX OM_ROLLBACK_TRANSACTION_REQ, 
-                             0, 0, 0, -1, &bsonRequest, NULL, NULL, NULL ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "build query msg failed:rc=%d", rc ) ;
-         goto error ;
-      }
-
-      om            = sdbGetOMManager() ;
-      remoteSession = om->getRSManager()->addSession( _cb, 
-                                                      OM_WAIT_SCAN_RES_INTERVAL,
-                                                      NULL ) ;
-      if ( NULL == remoteSession )
-      {
-         rc = SDB_OOM ;
-         PD_LOG( PDERROR, "addSession failed" ) ;
-         SDB_OSS_FREE( pContent ) ;
-         goto error ;
-      }
-
-      pMsg = (MsgHeader *)pContent ;
-      rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "send message to agent failed:rc=%d", rc ) ;
-         SDB_OSS_FREE( pContent ) ;
-         remoteSession->clearSubSession() ;
-         goto error ;
-      }
-
-      remoteSession->waitReply( TRUE ) ;
-
-   done:
-      _clearSession( om, remoteSession ) ;
-      return ;
-   error:
-      goto done ;
-   }
-
-   INT32 omAddHostCommand::_checkHostExistence( list<BSONObj> &hostInfoList )
-   {
-      INT32 rc = SDB_OK ;
-      list<BSONObj>::iterator iter = hostInfoList.begin() ;
+      iter = hostInfoList.begin() ;
       while ( iter != hostInfoList.end() )
       {
-         string host  = iter->getStringField( OM_BSON_FIELD_HOST_NAME ) ;
-         if ( _isHostNameExist( host ) )
+         BSONObjBuilder innerBuilder ;
+         BSONObj tmp ;
+
+         _generateTableField( innerBuilder, OM_HOST_FIELD_NAME, *iter, 
+                              OM_BSON_FIELD_HOST_NAME ) ;
+         innerBuilder.append( OM_HOST_FIELD_CLUSTERNAME, clusterName ) ;
+         _generateTableField( innerBuilder, OM_HOST_FIELD_IP, *iter, 
+                              OM_BSON_FIELD_HOST_IP ) ;
+         _generateTableField( innerBuilder, OM_HOST_FIELD_USER, *iter, 
+                              OM_BSON_FIELD_HOST_USER ) ;
+         _generateTableField( innerBuilder, OM_HOST_FIELD_PASSWORD, *iter, 
+                              OM_BSON_FIELD_HOST_PASSWD ) ;
+         _generateTableField( innerBuilder, OM_HOST_FIELD_OS, *iter, 
+                              OM_BSON_FIELD_OS ) ;
+         _generateTableField( innerBuilder, OM_HOST_FIELD_OMA, *iter, 
+                              OM_BSON_FIELD_OMA ) ;
+         _generateTableField( innerBuilder, OM_HOST_FIELD_MEMORY, *iter, 
+                              OM_BSON_FIELD_MEMORY ) ;   
+         _generateTableField( innerBuilder, OM_HOST_FIELD_DISK, *iter, 
+                              OM_BSON_FIELD_DISK ) ;
+         _generateTableField( innerBuilder, OM_HOST_FIELD_CPU, *iter, 
+                              OM_BSON_FIELD_CPU ) ;
+         _generateTableField( innerBuilder, OM_HOST_FIELD_NET, *iter, 
+                              OM_BSON_FIELD_NET ) ;
+         _generateTableField( innerBuilder, OM_HOST_FIELD_PORT, *iter, 
+                              OM_BSON_FIELD_PORT ) ;
+         _generateTableField( innerBuilder, OM_HOST_FIELD_SERVICE, *iter, 
+                              OM_BSON_FIELD_SERVICE ) ;
+         _generateTableField( innerBuilder, OM_HOST_FIELD_SAFETY, *iter, 
+                              OM_BSON_FIELD_SAFETY ) ;
+         _generateTableField( innerBuilder, OM_HOST_FIELD_INSTALLPATH, *iter, 
+                              OM_BSON_FIELD_INSTALL_PATH ) ;
+         _generateTableField( innerBuilder, OM_HOST_FIELD_AGENT_PORT, *iter, 
+                              OM_BSON_FIELD_AGENT_PORT ) ;
+         _generateTableField( innerBuilder, OM_HOST_FIELD_SSHPORT, *iter, 
+                              OM_BSON_FIELD_HOST_SSHPORT ) ;
+
+         tmp = innerBuilder.obj() ;
+         arrayBuilder.append( tmp ) ;
+
+         BSONObjBuilder itemBuilder ;
+         itemBuilder.append( OM_HOST_FIELD_IP, 
+                             iter->getStringField( OM_HOST_FIELD_IP ) ) ;
+         itemBuilder.append( OM_HOST_FIELD_NAME, 
+                             iter->getStringField( OM_HOST_FIELD_NAME ) ) ;
+         itemBuilder.append( OM_TASKINFO_FIELD_STATUS, OM_TASK_STATUS_INIT ) ;
+         itemBuilder.append( OM_TASKINFO_FIELD_STATUS_DESC, 
+                             getTaskStatusStr( OM_TASK_STATUS_INIT ) ) ;
+         itemBuilder.append( OM_REST_RES_RETCODE, SDB_OK ) ;
+         itemBuilder.append( OM_REST_RES_DETAIL, "" ) ;
          {
-            rc = SDB_INVALIDARG ;
-            PD_LOG_MSG( PDERROR, "host is exist:host=%s", host.c_str() ) ;
-            goto error ;
+            BSONArrayBuilder tmpEmptyBuilder ;
+            itemBuilder.append( OM_TASKINFO_FIELD_FLOW, 
+                                tmpEmptyBuilder.arr() ) ;
          }
+         
+
+         BSONObj resultItem = itemBuilder.obj() ;
+         resultArrBuilder.append( resultItem ) ;
 
          iter++ ;
       }
 
+      taskInfo = BSON( OM_BSON_FIELD_CLUSTER_NAME << clusterName 
+                       << OM_BSON_FIELD_SDB_USER << sdbUser 
+                       << OM_BSON_FIELD_SDB_PASSWD << sdbPasswd
+                       << OM_BSON_FIELD_SDB_USERGROUP << sdbUserGroup
+                       << OM_BSON_FIELD_PATCKET_PATH << packetPath
+                       << OM_BSON_FIELD_HOST_INFO << arrayBuilder.arr() ) ;
+
+      resultInfo = resultArrBuilder.arr() ;
    done:
       return rc ;
    error:
       goto done ;
    }
 
+   INT64 omAddHostCommand::_generateTaskID()
+   {
+      INT64 taskID = 0 ;
+      getMaxTaskID( taskID ) ;
+
+      return ++taskID ;
+   }
+
+   INT32 omAddHostCommand::_saveTask( INT64 taskID, const BSONObj &taskInfo, 
+                                      const BSONArray &resultInfo )
+   {
+      INT32 rc = SDB_OK ;
+
+      rc = createTask( OM_TASK_TYPE_ADD_HOST, taskID, 
+                       getTaskTypeStr( OM_TASK_TYPE_ADD_HOST ), 
+                       _localAgentHost, _localAgentService, taskInfo, 
+                       resultInfo ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "create task failed:rc=%d", rc ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 omAddHostCommand::_removeTask( INT64 taskID )
+   {
+      return removeTask( taskID ) ;
+   }
+
    INT32 omAddHostCommand::doCommand()
    {
+      INT64 taskID ;
       list<BSONObj> hostInfoList ;
       string clusterName ;
-      INT32 transactionID = -1 ;
       INT32 rc = SDB_OK ;
       BSONObjBuilder bsonBuilder ;
 
@@ -2931,29 +2933,61 @@ namespace engine
          goto error ;
       }
 
-      rc = _addHost( clusterName, hostInfoList, transactionID ) ;
+      rc = _checkTaskExistence( hostInfoList ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "fail to add host:rc=%d", rc ) ;
+         PD_LOG( PDERROR, "fail to _checkTaskExistence:rc=%d", rc ) ;
          _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
 
-      rc = _storeHostInfo( clusterName, hostInfoList ) ;
+      {
+         BSONObj taskInfo ;
+         BSONArray resultInfo ;
+         rc = _generateTaskInfo( clusterName, hostInfoList, taskInfo, 
+                                 resultInfo ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "generate task info failed:rc=%d", rc ) ;
+            _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+            _sendErrorRes2Web( rc, _errorDetail ) ;
+            goto error ;
+         }
+
+         taskID = _generateTaskID() ;
+
+         rc = _saveTask( taskID, taskInfo, resultInfo ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "fail to save task:taskID="OSS_LL_PRINT_FORMAT
+                    ",rc=%d", taskID, rc ) ;
+            _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+            _sendErrorRes2Web( rc, _errorDetail ) ;
+            goto error ;
+         }
+
+
+      }
+
+      rc = _notifyAgentTask( taskID ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "fail to store host:rc=%d", rc ) ;
-         _transactionRollBack( transactionID ) ;
+         _removeTask( taskID ) ;
+         PD_LOG( PDERROR, "fail to notify task:taskID="OSS_LL_PRINT_FORMAT
+                 ",rc=%d", taskID, rc ) ;
          _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
 
+      {
+         BSONObj result = BSON( OM_BSON_TASKID << (long long)taskID ) ;
+         _restAdaptor->appendHttpBody( _restSession, result.objdata(), 
+                                       result.objsize(), 1 ) ;
+         _sendOKRes2Web() ;
+      }
 
-
-      sdbGetOMManager()->updateClusterVersion( clusterName ) ;
-      _sendOKRes2Web() ;
    done:
       return rc ;
    error:
@@ -4458,6 +4492,73 @@ namespace engine
       goto done ;
    }
 
+   INT32 omInstallBusinessReq::_notifyAgentTask( INT64 taskID )
+   {
+      INT32 rc          = SDB_OK ;
+      SINT32 flag       = SDB_OK ;
+      CHAR *pContent    = NULL ;
+      INT32 contentSize = 0 ;
+      MsgHeader *pMsg   = NULL ;
+      omManager *om     = NULL ;
+      pmdRemoteSession *remoteSession = NULL ;
+      BSONObj bsonRequest ;
+      BSONObj result ;
+
+      bsonRequest = BSON( OM_TASKINFO_FIELD_TASKID << taskID ) ;
+      rc = msgBuildQueryMsg( &pContent, &contentSize, 
+                             CMD_ADMIN_PREFIX OM_NOTIFY_TASK, 
+                             0, 0, 0, -1, &bsonRequest, NULL, NULL, NULL ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "build msg failed:cmd=%s,rc=%d", OM_NOTIFY_TASK,
+                     rc ) ;
+         goto error ;
+      }
+
+      om            = sdbGetOMManager() ;
+      remoteSession = om->getRSManager()->addSession( _cb, 
+                                                      OM_WAIT_SCAN_RES_INTERVAL,
+                                                      NULL ) ;
+      if ( NULL == remoteSession )
+      {
+         rc = SDB_OOM ;
+         PD_LOG_MSG( PDERROR, "create remote session failed:rc=%d", rc ) ;
+         SDB_OSS_FREE( pContent ) ;
+         goto error ;
+      }
+
+      pMsg = (MsgHeader *)pContent ;
+      rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "send message to agent failed:rc=%d", rc ) ;
+         SDB_OSS_FREE( pContent ) ;
+         remoteSession->clearSubSession() ;
+         goto error ;
+      }
+
+      rc = _receiveFromAgent( remoteSession, flag, result ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "receive from agent failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      if ( SDB_OK != flag )
+      {
+         rc = flag ;
+         string tmpError = result.getStringField( OM_REST_RES_DETAIL ) ;
+         PD_LOG_MSG( PDERROR, "agent process failed:detail=(%s),rc=%d", 
+                     tmpError.c_str(), rc ) ;
+         goto error ;
+      }
+   done:
+      _clearSession( om, remoteSession ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 omInstallBusinessReq::_sendMsgToLocalAgent( omManager *om,
                                                 pmdRemoteSession *remoteSession, 
                                                 MsgHeader *pMsg )
@@ -4633,10 +4734,7 @@ namespace engine
          hostMap[ host.hostName ] = host ;
       }
 
-      BSONObj condition ;
-      BSONObjBuilder conditionBuilder ;
-      conditionBuilder.append( OM_BSON_FIELD_CONFIG, "" ) ;
-      condition = conditionBuilder.obj() ;
+      BSONObj condition = BSON( OM_BSON_FIELD_CONFIG << "" ) ;
 
       BSONArrayBuilder arrayBuilder ;
       BSONObj configs = bsonConfValue.filterFieldsUndotted( condition, true ) ;
@@ -4748,6 +4846,48 @@ namespace engine
       goto done ;
    }
 
+   INT32 omInstallBusinessReq::_generateTaskInfo( const BSONObj &bsonConfValue, 
+                                                  BSONObj &taskInfo, 
+                                                  BSONArray &resultInfo )
+   {
+      INT32 rc = SDB_OK ;
+      taskInfo = bsonConfValue.copy() ;
+      BSONArrayBuilder arrayBuilder ;
+      BSONObj condition = BSON( OM_BSON_FIELD_HOST_NAME << "" 
+                                << OM_CONF_DETAIL_SVCNAME << "" 
+                                << OM_CONF_DETAIL_ROLE << "" 
+                                << OM_CONF_DETAIL_DATAGROUPNAME << "" ) ;
+
+      BSONObj nodes = bsonConfValue.getObjectField( OM_BSON_FIELD_CONFIG ) ;
+      BSONObjIterator iter( nodes ) ;
+      while ( iter.more() )
+      {
+         BSONElement ele = iter.next() ;
+         BSONObj oneNode = ele.embeddedObject() ;
+
+         BSONObj tmp = oneNode.filterFieldsUndotted( condition, true ) ;
+
+         BSONObjBuilder builder ;
+         builder.appendElements( tmp ) ;
+         builder.append( OM_TASKINFO_FIELD_STATUS, OM_TASK_STATUS_INIT ) ;
+         builder.append( OM_TASKINFO_FIELD_STATUS_DESC,
+                         getTaskStatusStr( OM_TASK_STATUS_INIT ) ) ;
+         builder.append( OM_REST_RES_RETCODE, SDB_OK ) ;
+         builder.append( OM_REST_RES_DETAIL, "" ) ;
+         {
+            BSONArrayBuilder tmpEmptyBuilder ;
+            builder.append( OM_TASKINFO_FIELD_FLOW, tmpEmptyBuilder.arr() ) ;
+         }
+
+         BSONObj result = builder.obj() ;
+         arrayBuilder.append( result ) ;
+      }
+
+      resultInfo = arrayBuilder.arr() ;
+
+      return rc ;
+   }
+
    INT32 omInstallBusinessReq::doCommand()
    {
       INT32 rc = SDB_OK ;
@@ -4756,8 +4896,7 @@ namespace engine
       BSONObj bsonConfValue ;
       BSONObj bsonHostInfo ;
       BSONObj bsonAllConf ;
-      UINT64 taskID ;
-      omTaskManager *taskManager = sdbGetOMManager()->getTaskManager() ;
+      INT64 taskID ;
 
       _setFileLanguageSep() ;
 
@@ -4809,109 +4948,49 @@ namespace engine
       }
 
       _compeleteConfValue( bsonHostInfo, bsonConfValue ) ;
-      rc = taskManager->createInstallTask( _localAgentHost, _localAgentService,
-                                           bsonConfValue, taskID ) ;
+
+      {
+         BSONObj taskInfo ;
+         BSONArray resultInfo ;
+         rc = _generateTaskInfo( bsonConfValue, taskInfo, resultInfo ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "generate task info failed:rc=%d", rc ) ;
+            _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+            _sendErrorRes2Web( rc, _errorDetail ) ;
+            goto error ;
+         }
+
+         getMaxTaskID( taskID ) ;
+         taskID++ ;
+
+         rc = createTask( OM_TASK_TYPE_ADD_BUSINESS, taskID, 
+                          getTaskTypeStr( OM_TASK_TYPE_ADD_BUSINESS ), 
+                          _localAgentHost, _localAgentService,
+                          taskInfo, resultInfo ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "fail to _saveTask:rc=%d", rc ) ;
+            _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+            _sendErrorRes2Web( rc, _errorDetail ) ;
+            goto error ;
+         }
+      }
+
+      rc = _notifyAgentTask( taskID ) ;
       if ( SDB_OK != rc )
       {
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR );
-          PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
-         _sendErrorRes2Web( rc, _errorDetail ) ;
-         goto error ;
-      }
-
-      rc = _applyInstallRequest( bsonConfValue, taskID ) ;
-      if ( SDB_OK != rc )
-      {
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
-         taskManager->cancelTask( taskID, _errorDetail ) ;
-         PD_LOG( PDERROR, "_applyInstallRequest failed:rc=%d", rc ) ;
-         _sendErrorRes2Web( rc, _errorDetail ) ;
-         goto error ;
-      }
-
-      rc = taskManager->enableTask( taskID ) ;
-      if ( SDB_OK != rc )
-      {
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
-         PD_LOG( PDERROR, "enable task failed:taskID="OSS_LL_PRINT_FORMAT
-                 "rc=%d", taskID, rc ) ;
-         taskManager->cancelTask( taskID, _errorDetail ) ;
-         _sendErrorRes2Web( rc, _errorDetail ) ;
-         goto error ;
-      }
-      {
-         BSONObj appendInfo = BSON( OM_BSON_TASKID << (long long)taskID) ;
-         _restAdaptor->appendHttpBody( _restSession, appendInfo.objdata(), 
-                                       appendInfo.objsize(), 1 ) ;
-         _sendOKRes2Web() ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   omQueryInstallProgress::omQueryInstallProgress( restAdaptor *pRestAdaptor, 
-                                                  pmdRestSession *pRestSession )
-                          :omCreateClusterCommand( pRestAdaptor, pRestSession )
-   {
-   }
-
-   omQueryInstallProgress::~omQueryInstallProgress()
-   {
-   }
-
-   INT32 omQueryInstallProgress::doCommand()
-   {
-      omTaskManager *tm = NULL ;
-      UINT64 uTaskID ;
-      string taskType ;
-      bool isEnable ;
-      bool isFinished ;
-      string status ;
-      BSONObj progress ;
-      string detail ;
-
-      BSONObj restTask ;
-      INT32 rc          = SDB_OK ;
-      const CHAR *pTask = NULL ;
-      _restAdaptor->getQuery( _restSession, OM_REST_TASKID, &pTask ) ;
-      if ( NULL == pTask )
-      {
-         _errorDetail = "rest field:" + string( OM_REST_TASKID )
-                        + " is null" ;
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
-         _sendErrorRes2Web( rc, _errorDetail ) ;
-         goto error ;
-      }
-
-      uTaskID = ossAtoll( pTask ) ;
-
-      tm = sdbGetOMManager()->getTaskManager() ;
-      rc = tm->getProgress( uTaskID, taskType, isEnable, isFinished, status, 
-                            progress, detail ) ;
-      if ( SDB_OK != rc )
-      {
+         removeTask( taskID ) ;
+         PD_LOG( PDERROR, "fail to _notifyAgentTask:rc=%d", rc ) ;
          _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
 
       {
-         BSONObjBuilder opBuilder ;
-         BSONObj op ;
-         opBuilder.append( OM_BSON_TASKID, (long long)uTaskID ) ;
-         opBuilder.append( OM_BSON_TASKTYPE, taskType ) ;
-         opBuilder.append( OM_BSON_TASK_ISENABLE, isEnable ) ;
-         opBuilder.append( OM_BSON_TASK_ISFINISHED, isFinished ) ;
-         opBuilder.append( OM_BSON_TASK_STATUS, status ) ;
-         opBuilder.appendArray( OM_BSON_TASK_PROGRESS, progress ) ;
-         opBuilder.append( OM_BSON_TASK_DETAIL, detail ) ;
-         op = opBuilder.obj() ;
-         _restAdaptor->appendHttpBody( _restSession, op.objdata(), 
-                                       op.objsize(), 1 ) ;
+         BSONObj result = BSON( OM_BSON_TASKID << (long long)taskID ) ;
+         _restAdaptor->appendHttpBody( _restSession, result.objdata(), 
+                                       result.objsize(), 1 ) ;
          _sendOKRes2Web() ;
       }
 
@@ -4940,8 +5019,10 @@ namespace engine
       BSONObj hint ;
       SINT64 contextID = -1 ;
 
-      selector = BSON( OM_TASKINFO_FIELD_TASKID << "" 
-                       << OM_TASKINFO_FIELD_TYPE <<"" ) ;
+      selector = BSON( OM_TASKINFO_FIELD_TASKID << 1 
+                       << OM_TASKINFO_FIELD_TYPE << 1
+                       << OM_TASKINFO_FIELD_TYPE_DESC << 1
+                       << OM_TASKINFO_FIELD_NAME << 1 ) ;
       rc = rtnQuery( OM_CS_DEPLOY_CL_TASKINFO, selector, matcher, order, hint, 
                      0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
@@ -5030,93 +5111,73 @@ namespace engine
    {
    }
 
-   INT32 omQueryTaskCommand::_getTaskInfo( UINT64 taskID, BSONObj &task )
+   void omQueryTaskCommand::_sendTaskInfo2Web( list<BSONObj> &tasks )
+   {
+      string clusterName ;
+      string businessName ;
+      BSONObj filter = BSON( OM_TASKINFO_FIELD_INFO << "" ) ;
+
+      list<BSONObj>::iterator iter = tasks.begin() ;
+      while ( iter != tasks.end() )
+      {
+         BSONElement clusterEle ;
+         clusterEle = iter->getFieldDotted( 
+                         OM_TASKINFO_FIELD_INFO"."OM_BSON_FIELD_CLUSTER_NAME ) ;
+         clusterName  = clusterEle.String() ;
+
+         BSONElement businessEle ;
+         businessEle = iter->getFieldDotted( 
+                         OM_TASKINFO_FIELD_INFO"."OM_BSON_BUSINESS_NAME ) ;
+         businessName = businessEle.String() ;
+
+         BSONObj info = BSON( OM_BSON_FIELD_CLUSTER_NAME << clusterName 
+                              << OM_BSON_BUSINESS_NAME << businessName ) ;
+
+         BSONObj tmp = iter->filterFieldsUndotted( filter, false ) ;
+         BSONObjBuilder resultBuilder ;
+         resultBuilder.appendElements( tmp ) ;
+         resultBuilder.append( OM_TASKINFO_FIELD_INFO, info ) ;
+
+         BSONObj result = resultBuilder.obj() ;
+         _restAdaptor->appendHttpBody( _restSession, result.objdata(), 
+                                       result.objsize(), 1 ) ;
+         iter++ ;
+      }
+
+      _sendOKRes2Web() ;
+
+      return ;
+   }
+
+   INT32 omQueryTaskCommand::doCommand()
    {
       INT32 rc = SDB_OK ;
       BSONObj selector ;
       BSONObj matcher ;
       BSONObj order ;
       BSONObj hint ;
-      SINT64 contextID = -1 ;
+      list<BSONObj> tasks ;
 
-      matcher = BSON( OM_TASKINFO_FIELD_TASKID << (long long)taskID ) ;
-      rc = rtnQuery( OM_CS_DEPLOY_CL_TASKINFO, selector, matcher, order, hint, 
-                     0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
-      if ( rc )
-      {
-         _errorDetail = string( "fail to query table:" ) 
-                        + OM_CS_DEPLOY_CL_TASKINFO ;
-         PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
-         goto error ;
-      }
-
-      while ( TRUE )
-      {
-         rtnContextBuf buffObj ;
-         rc = rtnGetMore ( contextID, 1, buffObj, _cb, _pRTNCB ) ;
-         if ( rc )
-         {
-            if ( SDB_DMS_EOC == rc )
-            {
-               rc = SDB_OK ;
-               break ;
-            }
-
-            contextID = -1 ;
-            _errorDetail = string( "failed to get record from table:" )
-                           + OM_CS_DEPLOY_CL_TASKINFO ;
-            PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
-            goto error ;
-         }
-
-         BSONObj record( buffObj.data() ) ;
-         task = record.copy() ;
-         break ;
-      }
-   done:
-      if ( -1 != contextID )
-      {
-         _pRTNCB->contextDelete ( contextID, _cb ) ;
-      }
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omQueryTaskCommand::doCommand()
-   {
-      UINT64 uTaskID ;
-      INT32 rc          = SDB_OK ;
-      const CHAR *pTask = NULL ;
-      BSONObj task ;
-      _restAdaptor->getQuery( _restSession, OM_REST_TASKID, &pTask ) ;
-      if ( NULL == pTask )
-      {
-         _errorDetail = "rest field:" + string( OM_REST_TASKID ) + " is null" ;
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
-         _sendErrorRes2Web( rc, _errorDetail ) ;
-         goto error ;
-      }
-
-      uTaskID = ossAtoll( pTask ) ;
-      rc = _getTaskInfo( uTaskID, task ) ;
+      rc = _getQueryPara( selector, matcher, order, hint ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "get task info failed:rc=%d", rc ) ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+         PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
 
+      rc = _queryTable( OM_CS_DEPLOY_CL_TASKINFO, selector, matcher, order, 
+                        hint, 0, 0, -1, tasks ) ;
+      if ( SDB_OK != rc )
       {
-         if ( !task.isEmpty() )
-         {
-            _restAdaptor->appendHttpBody( _restSession, task.objdata(), 
-                                          task.objsize(), 1 ) ;
-         }
-
-         _sendOKRes2Web() ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+         PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+         _sendErrorRes2Web( rc, _errorDetail ) ;
+         goto error ;
       }
+
+      _sendTaskInfo2Web( tasks ) ;
 
    done:
       return rc ;
@@ -6322,199 +6383,16 @@ namespace engine
       goto done ;
    }
 
-   INT32 omRemoveBusinessCommand::_removeBusinessByAgent( BSONObj &request,
-                                                          UINT64 taskID )
-   {
-      INT32 rc          = SDB_OK ;
-      SINT32 flag       = SDB_OK ;
-      CHAR *pContent    = NULL ;
-      INT32 contentSize = 0 ;
-      omManager *om     = NULL ;
-      MsgHeader *pMsg   = NULL ;
-      BSONObj innerReq ;
-      BSONObjBuilder builder ;
-      builder.append( OM_BSON_TASKID, (long long)taskID ) ;
-      builder.appendElements( request ) ;
-      innerReq = builder.obj() ;
-
-      pmdRemoteSession *remoteSession = NULL ;
-      BSONObj bsonResponse ;
-      rc = msgBuildQueryMsg( &pContent, &contentSize, 
-                             CMD_ADMIN_PREFIX OM_REMOVE_BUSINESS_REQ, 
-                             0, 0, 0, -1, &innerReq, NULL, NULL, NULL ) ;
-      if ( SDB_OK != rc )
-      {
-         _errorDetail = string( "build message failed:cmd=" ) 
-                        + OM_REMOVE_BUSINESS_REQ ;
-         PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
-         goto error ;
-      }
-
-      om   = sdbGetOMManager() ;
-      remoteSession = om->getRSManager()->addSession( _cb, 
-                                                      OM_MSG_TIMEOUT_TWO_HOUR,
-                                                      NULL ) ;
-      if ( NULL == remoteSession )
-      {
-         rc = SDB_OOM ;
-         _errorDetail = string( "create remote session failed" ) ;
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
-         SDB_OSS_FREE( pContent ) ;
-         goto error ;
-      }
-
-      pMsg = (MsgHeader *)pContent ;
-      rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
-      if ( SDB_OK != rc )
-      {
-         _errorDetail = string( "send message to agent failed" ) ;
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
-         SDB_OSS_FREE( pContent ) ;
-         remoteSession->clearSubSession() ;
-         goto error ;
-      }
-
-      rc = _receiveFromAgent( remoteSession, flag, bsonResponse ) ;
-      if ( SDB_OK != rc )
-      {
-         _errorDetail = string( "receive from agent failed" ) ;
-         PD_LOG( PDERROR, "%s:rc=%d", _errorDetail.c_str(), rc ) ;
-         goto error ;
-      }
-
-      if ( SDB_OK != flag )
-      {
-         rc = flag ;
-         _errorDetail = string( "agent process failed:" ) 
-                        + bsonResponse.getStringField( OM_REST_RES_DETAIL ) ;
-         PD_LOG( PDERROR, "agent process failed:detail=%s,rc=%d", 
-                 _errorDetail.c_str(), rc ) ;
-         goto error ;
-      }
-
-   done:
-      _clearSession( om, remoteSession ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omRemoveBusinessCommand::_deleteConfigureRecord( 
-                                             const string &businessName )
+   INT32 omRemoveBusinessCommand::_generateTaskInfo( string businessName,
+                                                     BSONObj &nodeInfos, 
+                                                     BSONObj &taskInfo,
+                                                     BSONArray &resultInfo )
    {
       INT32 rc = SDB_OK ;
-      BSONObj condition ;
-      BSONObj hint ;
-
-      condition = BSON( OM_CONFIGURE_FIELD_BUSINESSNAME << businessName ) ;
-      rc = rtnDelete( OM_CS_DEPLOY_CL_CONFIGURE, condition, hint, 0, _cb );
-      if ( rc )
-      {
-         PD_LOG_MSG( PDERROR, "failed to delete record from table:%s,"
-                     "%s=%s,rc=%d", OM_CS_DEPLOY_CL_CONFIGURE, 
-                     OM_CONFIGURE_FIELD_BUSINESSNAME, businessName.c_str(), 
-                     rc ) ;
-         _errorDetail = _cb->getInfo( EDU_INFO_ERROR ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omRemoveBusinessCommand::_deleteBusinessRecord( 
-                                             const string &businessName )
-   {
-      INT32 rc = SDB_OK ;
-      BSONObj condition ;
-      BSONObj hint ;
-
-      condition = BSON( OM_BUSINESS_FIELD_NAME << businessName ) ;
-      rc = rtnDelete( OM_CS_DEPLOY_CL_BUSINESS, condition, hint, 0, _cb );
-      if ( rc )
-      {
-         PD_LOG_MSG( PDERROR, "failed to delete record from table:%s,"
-                     "%s=%s,rc=%d", OM_CS_DEPLOY_CL_BUSINESS, 
-                     OM_BUSINESS_FIELD_NAME, businessName.c_str(), rc ) ;
-         _errorDetail = _cb->getInfo( EDU_INFO_ERROR ) ;
-         goto error ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omRemoveBusinessCommand::_removeBusiness( const string &businessName,
-                                                   BSONObj &request, 
-                                                   BOOLEAN isExistNode,
-                                                   UINT64 &taskID )
-   {
-      INT32 rc = SDB_OK ;
-      omTaskManager *taskManager  = sdbGetOMManager()->getTaskManager() ;
-      rc = taskManager->createUninstallTask( _localAgentHost, 
-                                             _localAgentService, 
-                                             request, taskID ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "createUninstallTask failed:rc=%d", rc ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
-         goto error ;
-      }
-
-      if ( isExistNode )
-      {
-         rc = _removeBusinessByAgent( request, taskID ) ;
-         if ( SDB_OK != rc )
-         {
-            taskManager->cancelTask( taskID, _errorDetail ) ;
-            PD_LOG( PDERROR, "agent remove business failed:business=%s,"
-                    "rc=%d", businessName.c_str(), rc ) ;
-            goto error ;
-         }
-      }
-
-      rc = taskManager->enableTask( taskID ) ;
-      if ( SDB_OK != rc )
-      {
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
-         taskManager->cancelTask( taskID, _errorDetail ) ;
-         PD_LOG_MSG( PDERROR, "enable task failed:taskID="OSS_LL_PRINT_FORMAT
-                     "rc=%d", taskID, rc ) ;
-         goto error ;
-      }
-
-      if ( !isExistNode )
-      {
-         rc = taskManager->finishTask( taskID ) ;
-         if ( SDB_OK != rc )
-         {
-            _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
-            taskManager->cancelTask( taskID, _errorDetail ) ;
-            PD_LOG_MSG( PDERROR, "finish task failed:taskID="OSS_LL_PRINT_FORMAT
-                        "rc=%d", taskID, rc ) ;
-            goto error ;
-         }
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omRemoveBusinessCommand::_generateRequest( string businessName,
-                                                    BSONObj &nodeInfos, 
-                                                    BSONObj &request )
-   {
-      INT32 rc = SDB_OK ;
-      BSONObjBuilder builder ;
-      builder.appendElements( nodeInfos ) ;
-      builder.append( OM_SDB_AUTH_USER, "" ) ;
-      builder.append( OM_SDB_AUTH_PASSWD, "" ) ;
+      BSONObjBuilder taskInfoBuilder ;
+      taskInfoBuilder.appendElements( nodeInfos ) ;
+      taskInfoBuilder.append( OM_SDB_AUTH_USER, "" ) ;
+      taskInfoBuilder.append( OM_SDB_AUTH_PASSWD, "" ) ;
 
       BSONObj businessInfo ;
       string clusterName ;
@@ -6533,11 +6411,44 @@ namespace engine
       type        = businessInfo.getStringField( OM_BUSINESS_FIELD_TYPE ) ;
       deployMod   = businessInfo.getStringField( OM_BUSINESS_FIELD_DEPLOYMOD ) ;
 
-      builder.append( OM_BSON_FIELD_CLUSTER_NAME, clusterName ) ;
-      builder.append( OM_BSON_BUSINESS_TYPE, type ) ;
-      builder.append( OM_BSON_BUSINESS_NAME, businessName ) ;
-      builder.append( OM_BSON_DEPLOY_MOD, deployMod ) ;
-      request = builder.obj() ;
+      taskInfoBuilder.append( OM_BSON_FIELD_CLUSTER_NAME, clusterName ) ;
+      taskInfoBuilder.append( OM_BSON_BUSINESS_TYPE, type ) ;
+      taskInfoBuilder.append( OM_BSON_BUSINESS_NAME, businessName ) ;
+      taskInfoBuilder.append( OM_BSON_DEPLOY_MOD, deployMod ) ;
+      taskInfo = taskInfoBuilder.obj() ;
+
+      {
+         BSONArrayBuilder arrayBuilder ;
+         BSONObj filter = BSON( OM_BSON_FIELD_HOST_NAME << ""
+                                << OM_CONF_DETAIL_SVCNAME << "" 
+                                << OM_CONF_DETAIL_ROLE << "" 
+                                << OM_CONF_DETAIL_DATAGROUPNAME << "" ) ;
+         BSONObj nodes = nodeInfos.getObjectField( OM_BSON_FIELD_CONFIG ) ;
+         BSONObjIterator iter( nodes ) ;
+         while ( iter.more() )
+         {
+            BSONElement ele = iter.next() ;
+            BSONObj oneNode = ele.embeddedObject() ;
+
+            BSONObj tmp = oneNode.filterFieldsUndotted( filter, true ) ;
+            BSONObjBuilder builder ;
+            builder.appendElements( tmp ) ;
+            builder.append( OM_TASKINFO_FIELD_STATUS, OM_TASK_STATUS_INIT ) ;
+            builder.append( OM_TASKINFO_FIELD_STATUS_DESC,
+                            getTaskStatusStr( OM_TASK_STATUS_INIT ) ) ;
+            builder.append( OM_REST_RES_RETCODE, SDB_OK ) ;
+            builder.append( OM_REST_RES_DETAIL, "" ) ;
+            {
+               BSONArrayBuilder tmpEmptyBuilder ;
+               builder.append( OM_TASKINFO_FIELD_FLOW, tmpEmptyBuilder.arr() ) ;
+            }
+
+            BSONObj result = builder.obj() ;
+            arrayBuilder.append( result ) ;
+         }
+
+         resultInfo = arrayBuilder.arr() ;
+      }
    done:
       return rc ;
    error:
@@ -6547,8 +6458,7 @@ namespace engine
    INT32 omRemoveBusinessCommand::doCommand()
    {
       BSONObj nodeInfos ;
-      BSONObj request ;
-      UINT64 taskID ;
+      INT64 taskID ;
       BOOLEAN isBusinessExist     = FALSE ;
       BOOLEAN isBusinessExistNode = FALSE ;
       INT32 rc                    = SDB_OK ;
@@ -6589,28 +6499,49 @@ namespace engine
          goto error ;
       }
 
-      rc = _generateRequest( pBusinessName, nodeInfos, request ) ;
+      {
+         BSONObj taskInfo ;
+         BSONArray resultInfo ;
+         rc = _generateTaskInfo( pBusinessName, nodeInfos, taskInfo,
+                                 resultInfo ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "generate task info failed:rc=%d", rc ) ;
+            _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+            _sendErrorRes2Web( rc, _errorDetail ) ;
+            goto error ;
+         }
+
+         getMaxTaskID( taskID ) ;
+         taskID++ ;
+
+         rc = createTask( OM_TASK_TYPE_ADD_BUSINESS, taskID, 
+                          getTaskTypeStr( OM_TASK_TYPE_ADD_BUSINESS ), 
+                          _localAgentHost, _localAgentService,
+                          taskInfo, resultInfo ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "fail to _saveTask:rc=%d", rc ) ;
+            _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+            _sendErrorRes2Web( rc, _errorDetail ) ;
+            goto error ;
+         }
+      }
+
+      rc = _notifyAgentTask( taskID ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "_generateRequest failed:rc=%d", rc ) ;
+         removeTask( taskID ) ;
+         PD_LOG( PDERROR, "fail to _notifyAgentTask:rc=%d", rc ) ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
 
-      rc = _removeBusiness( pBusinessName, request, isBusinessExistNode,
-                            taskID ) ;
-      if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "remove business failed:business=%s,rc=%d", 
-                 pBusinessName, rc ) ;
-         _sendErrorRes2Web( rc, _errorDetail ) ;
-         goto error ;
-      }
-
-      {
-         BSONObj appendInfo = BSON( OM_BSON_TASKID << (long long)taskID) ;
-         _restAdaptor->appendHttpBody( _restSession, appendInfo.objdata(), 
-                                       appendInfo.objsize(), 1 ) ;
+         BSONObj result = BSON( OM_BSON_TASKID << (long long)taskID ) ;
+         _restAdaptor->appendHttpBody( _restSession, result.objdata(), 
+                                       result.objsize(), 1 ) ;
          _sendOKRes2Web() ;
       }
 
@@ -7802,68 +7733,6 @@ namespace engine
       }
 
       return true ;
-   }
-
-   agentQueryTaskReq::agentQueryTaskReq( BSONObj &request,
-                                         omTaskManager *taskManager )
-                     :omAgentReqBase( request ), _taskManager( taskManager )
-   {
-   }
-
-   agentQueryTaskReq::~agentQueryTaskReq()
-   {
-   }
-
-   void agentQueryTaskReq::_generateResponse( list<omTaskInfo> &taskList )
-   {
-      BSONArrayBuilder arrayBuilder ;
-      list<omTaskInfo>::iterator iter = taskList.begin() ;
-      while ( iter != taskList.end() )
-      {
-         BSONObj oneTask = BSON( OM_BSON_TASKID << (long long)iter->taskID 
-                                 << OM_BSON_TASKTYPE << iter->taskType 
-                                 << OM_BSON_TASK_STATUS << iter->taskStatus
-                                 << OM_BSON_TASK_INFO << iter->taskInfo ) ;
-         arrayBuilder.append( oneTask ) ;
-         iter++ ;
-      }
-
-      _response = BSON( OM_BSON_TASK_TASKLIST << arrayBuilder.arr() ) ;
-   }
-
-   INT32 agentQueryTaskReq::doCommand()
-   {
-      INT32 rc = SDB_OK ;
-      string agentHostName ;
-      string agentPort ;
-      rc = rtnGetSTDStringElement( _request, OM_BSON_FIELD_HOST_NAME, 
-                                   agentHostName ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "get string failed:field=%s", 
-                 OM_BSON_FIELD_HOST_NAME ) ;
-         goto error ;
-      }
-
-      rc = rtnGetSTDStringElement( _request, OM_BSON_FIELD_AGENT_PORT, 
-                                   agentPort ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "get string failed:field=%s", 
-                 OM_BSON_FIELD_AGENT_PORT ) ;
-         goto error ;
-      }
-
-      {
-         list<omTaskInfo> taskList ;
-         _taskManager->getTaskInfo( agentHostName, agentPort, taskList ) ;
-         _generateResponse( taskList ) ;
-      }
-
-   done:
-      return rc ;
-   error:
-      goto done ;
    }
 }
 

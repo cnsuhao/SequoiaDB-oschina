@@ -37,6 +37,8 @@
 #include "oss.hpp"
 #include "ossUtil.hpp"
 #include "ossLatch.hpp"
+#include "ossEvent.hpp"
+#include "omagentTaskBase.hpp"
 #include "../bson/bson.h"
 #include "omagent.hpp"
 #include <map>
@@ -46,8 +48,6 @@
 using namespace std ;
 using namespace bson ;
 
-#define OMA_INVALID_TASKID     (0)
-
 #define OMA_TASK_NAME_ADD_HOST                "add host task"
 #define OMA_TASK_NAME_INSTALL_DB_BUSINESS     "install db business task"
 #define OMA_TASK_NAME_REMOVE_DB_BUSINESS      "remove db business task"
@@ -55,164 +55,83 @@ using namespace bson ;
 
 namespace engine
 {
-   enum OMA_TASK_TYPE
-   {
-      OMA_TASK_ADD_HOST           = 0, // add host
-      OMA_TASK_INSTALL_DB         = 1, // install db business
-      OMA_TASK_REMOVE_DB          = 2, // remove db business
-
-      OMA_TASK_UNKNOW             = 255
-   } ;
-
-   enum OMA_TASK_STATUS
-   {
-      OMA_TASK_STATUS_READY       = 0, // when initially created
-      OMA_TASK_STATUS_RUN         = 1, // when starts running
-      OMA_TASK_STATUS_FINISH      = 2, // when finish doing something
-      OMA_TASK_STATUS_FAIL        = 3, // when error happen
-
-      OMA_TASK_STATUS_END         = 10 // nothing should have this status
-   } ;
-
-   /*
-      omagent task
-   */
-   class _omaTask : public SDBObject
-   {
-      public:
-         _omaTask ( UINT64 taskID ) : _taskID ( taskID )
-         {
-            _status = OMA_TASK_STATUS_READY ;
-         }
-         virtual ~_omaTask () {}
-
-         UINT64          taskID () const { return _taskID ; }
-
-         OMA_TASK_STATUS status () ;
-
-         void setStatus( OMA_TASK_STATUS status ) ;
-
-         INT32 setJobStatus( string &name, OMA_JOB_STATUS status ) ;
-
-         INT32 getJobStatus( string &name, OMA_JOB_STATUS &status ) ;
-
-         virtual INT32 queryProgress( BSONObj &progress ) { return SDB_OK ; }
-
-      public:
-         virtual OMA_TASK_TYPE taskType () const = 0 ;
-
-         virtual const CHAR*   taskName () const = 0 ;
-
-      private:
-         ossSpinSLatch                        _latch ;
-
-      protected:
-         UINT64                               _taskID ;
-         OMA_TASK_STATUS                      _status ;
-         map< string, OMA_JOB_STATUS >        _jobStatus ;
-   } ;
-   typedef _omaTask omaTask ;
-
-   /*
-      task manager
-   */
-   class _omaTaskMgr : public SDBObject
-   {
-      public:
-         _omaTaskMgr ( UINT64 taskID = OMA_INVALID_TASKID ) ;
-         ~_omaTaskMgr () ;
-
-         UINT64     getTaskID () ;
-         void       setTaskID ( UINT64 taskID ) ;
-
-      public:
-         INT32      addTask ( _omaTask *pTask,
-                              UINT64 taskID = OMA_INVALID_TASKID ) ;
-         INT32      removeTask ( _omaTask *pTask ) ;
-         INT32      removeTask ( UINT64 taskID ) ;
-         INT32      removeTask ( const CHAR *pTaskName ) ;
-         _omaTask*  findTask ( UINT64 taskID ) ;
-
-      private:
-         std::map<UINT64, _omaTask*>         _taskMap ;
-         ossSpinSLatch                       _taskLatch ;
-         UINT64                              _taskID ;
-   } ;
-   typedef _omaTaskMgr omaTaskMgr ;
-
-   /*
-      get task manager
-   */
-   _omaTaskMgr* getTaskMgr() ;
-
-
    /*
       add host task
    */
    class _omaAddHostTask : public _omaTask
    {
       public:
-         _omaAddHostTask ( UINT64 taskID ) ;
+         _omaAddHostTask ( INT64 taskID ) ;
          virtual ~_omaAddHostTask () ;
 
       public:
-         virtual OMA_TASK_TYPE taskType () const { return _taskType ; }
-         virtual const CHAR*   taskName () const { return _taskName.c_str() ; }
-
-      public:
-         INT32 init( BSONObj &addHostRawInfo,
-                     vector<AddHostInfo> addHostInfo ) ;
+         INT32 init( const BSONObj &info, void *ptr = NULL ) ;
          INT32 doit() ;
-         
-      public:
-         virtual INT32 queryProgress( BSONObj &progress ) ;
 
       public:
-         void setTaskStage( OMA_OPT_STAGE stage ) ;
-         void setIsTaskFail( BOOLEAN isFail ) ;
-         BOOLEAN getIsTaskFail() ;
-         void setIsAddHostFail( BOOLEAN isFail ) ;
-         BOOLEAN getIsAddHostFail() ;
-         void setIsTaskFinish( BOOLEAN isFinish ) ;
-
-      public:
+         BOOLEAN regSubTask( string subTaskName ) ;
          AddHostInfo* getAddHostItem() ;
-         AddHostInfo* getRbHostItem() ;
-         BOOLEAN registerJob( string jobName ) ;
-         INT32 updateJobStatus( string jobName, OMA_JOB_STATUS status ) ;
-         INT32 updateProgressStatus( INT32 serialNum, AddHostPS ps,
-                                     BOOLEAN isFinish = FALSE ) ;
-
+         INT32 updateProgressToTask( INT32 serialNum,
+                                     AddHostResultInfo &resultInfo ) ;
+         void notifyUpdateProgress() ;
+         
       private:
+         INT32 _initAddHostInfo( BSONObj &info ) ;
+         void _initAddHostResult() ;
          INT32 _checkHostInfo() ;
          INT32 _addHost() ;
-         INT32 _rollback() ;
-         void _getRollbackInfo() ;
-         void _buildErrMsg() ;
-         BOOLEAN _hasUninstallHost() ;
-         void _collectProgressInfo() ;
+         INT32 _waitAndUpdateProgress() ;
+         void _buildUpdateTaskObj( BSONObj &retObj ) ; 
+         INT32 _updateProgressToOM() ;
+         BOOLEAN _isTaskFinish() ;
+         void _setRetErr( INT32 errNum ) ;
 
       private:
-         BSONObj                      _addHostRawInfo ;
-         vector<AddHostInfo>          _addHostInfo ;
-         vector<AddHostInfo>          _rollbackInfo ;
+         BSONObj                           _addHostRawInfo ;
+         vector<AddHostInfo>               _addHostInfo ;
+         map< INT32, AddHostResultInfo >   _addHostResult ;
 
-         ossSpinSLatch                _taskLatch ;
+         ossSpinSLatch                     _taskLatch ;
+         ossEvent                          _taskEvent ;
+         UINT64                            _eventID ; 
 
-         string                       _taskName ;
-         OMA_TASK_TYPE                _taskType ;
-         OMA_OPT_STAGE                _stage ;
-         BOOLEAN                      _isTaskFinish ;
-         BOOLEAN                      _isAddHostFail ;
-         BOOLEAN                      _isTaskFail ;
-         CHAR                         _detail[OMA_BUFF_SIZE + 1] ; 
+         INT32                             _progress ;
+         INT32                             _errno ;
+         CHAR                              _detail[OMA_BUFF_SIZE + 1] ;
    } ;
    typedef _omaAddHostTask omaAddHostTask ;
-   
+
 
    /*
-      install database business
+      install db business task
    */
+   class _omaInstDBBusTask: public _omaTask
+   {
+      public:
+         _omaInstDBBusTask( INT64 taskID ) ;
+         virtual ~_omaInstDBBusTask () ;
+
+      public:
+         INT32 init( const BSONObj &info, void *ptr = NULL ) ;
+         INT32 doit() ;
+
+      private:
+
+      private:
+         BSONObj                           _instDBBusRawInfo ;
+         
+         ossSpinSLatch                     _taskLatch ;
+         ossEvent                          _taskEvent ;
+         UINT64                            _eventID ; 
+
+         INT32                             _progress ;
+         INT32                             _errno ;
+         CHAR                              _detail[OMA_BUFF_SIZE + 1] ;
+         
+   } ;
+   typedef _omaInstDBBusTask omaInstDBBusTask ;
+   
+/*
    class _omaInsDBBusTask : public _omaTask
    {
       public:
@@ -315,9 +234,7 @@ namespace engine
    } ;
    typedef _omaInsDBBusTask omaInsDBBusTask ;
 
-   /*
-      remove database business
-   */
+
    class _omaRmDBBusTask : public _omaTask
    {
       public:
@@ -397,7 +314,7 @@ namespace engine
          CHAR                                 _detail[OMA_BUFF_SIZE + 1] ;
    } ;
    typedef _omaRmDBBusTask omaRmDBBusTask ;
-
+*/
 }
 
 

@@ -185,6 +185,7 @@ namespace engine
       addJsFile ( FILE_DEFINE ) ;
       addJsFile ( FILE_ERROR ) ;
       addJsFile ( FILE_COMMON ) ;
+      addJsFile ( FILE_LOG ) ;
       addJsFile ( FILE_FUNC ) ;
       return SDB_OK ;
    }
@@ -220,13 +221,13 @@ namespace engine
                          "", 1, SPT_EVAL_FLAG_NONE, rval, detail ) ;
       if ( rc )
       {
-         PD_LOG_MSG ( PDERROR, "%s", _scope->getLastErrMsg() ) ;
+         string errmsg = _scope->getLastErrMsg() ;
+         PD_LOG_MSG ( PDERROR, "%s", errmsg.c_str() ) ;
          PD_LOG ( PDDEBUG, "Failed to eval js file for command[%s]: "
-                  "%s, rc = %d", name(),
-                  _scope->getLastErrMsg(), rc ) ;
+                  "%s, rc = %d", name(), errmsg.c_str(), rc ) ;
          rc = _scope->getLastError() ;
          BSONObjBuilder bob ;
-         bob.append( OMA_FIELD_DETAIL, _scope->getLastErrMsg() ) ;
+         bob.append( OMA_FIELD_DETAIL, errmsg.c_str() ) ;
          retObj = bob.obj() ;
          goto error ;
       }
@@ -255,12 +256,16 @@ namespace engine
       rc = omaGetObjElement( rval, "", subObj ) ;
       if ( rc )
       {
-         PD_LOG ( PDWARNING, "Get field[%s] failed, rc: %d", "", rc ) ;
+         PD_LOG ( PDERROR, "Failed to get the nameless field from the js"
+                  "return object, rc: %d", rc ) ;
+         goto error ;
       }
       bob.appendElements( subObj ) ;
       retObj = bob.obj() ;
-
-      return SDB_OK ;
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    /*
@@ -1185,7 +1190,7 @@ namespace engine
       pTask = _taskMgr->findTask( _taskID ) ;
       if ( NULL == pTask )
       {
-         rc = SDB_CAT_TASK_NOTFOUND ;
+         rc = SDB_OM_TASK_NOT_EXIST ;
          PD_LOG_MSG ( PDERROR, "No such task with id[%ld], "
                       "failed to query task's progress", (INT64)_taskID ) ;
          goto error ;

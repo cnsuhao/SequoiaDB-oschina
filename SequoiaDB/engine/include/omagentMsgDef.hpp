@@ -38,19 +38,20 @@
 #include "omDef.hpp"
 #include "omagentDef.hpp"
 
-#define OMA_FIELD_HOSTINFO                         OM_REST_FIELD_HOST_INFO
-#define OMA_FIELD_SSH_PORT                         OM_BSON_FIELD_HOST_SSHPORT
-#define OMA_FIELD_AGENT_PORT                       OM_BSON_FIELD_AGENT_PORT
-#define OMA_FIELD_SDBUSER                          OM_CLUSTER_FIELD_SDBUSER
-#define OMA_FIELD_SDBPASSWD                        OM_CLUSTER_FIELD_SDBPASSWD
-#define OMA_FIELD_SDBUSERGROUP                     OM_CLUSTER_FIELD_SDBUSERGROUP
-#define OMA_FIELD_INSTALLPATH                      OM_HOST_FIELD_INSTALLPATH
-#define OMA_FIELD_TRANSACTION_ID                   OM_BSON_FIELD_TRANSACTION_ID
-#define OMA_FIELD_PACKET_PATH                      OM_BSON_FIELD_PATCKET_PATH
-#define OMA_FIELD_CONFIG                           OM_CONFIGURE_FIELD_CONFIG
-#define OMA_FIELD_STAGE_INSTALL                    OM_TASK_STATUS_INSTALL
-#define OMA_FIELD_STAGE_UNINSTALL                  OM_TASK_STATUS_UNINSTALL
-#define OMA_FIELD_STAGE_ROLLBACK                   OM_TASK_STATUS_ROLLBACK
+#define OMA_FIELD_HOSTINFO                         "HostInfo" /* OM_REST_FIELD_HOST_INFO */
+#define OMA_FIELD_SSH_PORT                         "SshPort" /* OM_BSON_FIELD_HOST_SSHPORT */
+#define OMA_FIELD_AGENT_PORT                       "AgentPort" /* OM_BSON_FIELD_AGENT_PORT */
+#define OMA_FIELD_SDBUSER                          "SdbUser" /* OM_CLUSTER_FIELD_SDBUSER */
+#define OMA_FIELD_SDBPASSWD                        "SdbPasswd" /* OM_CLUSTER_FIELD_SDBPASSWD */
+#define OMA_FIELD_SDBUSERGROUP                     "SdbUserGroup" /* OM_CLUSTER_FIELD_SDBUSERGROUP */
+#define OMA_FIELD_INSTALLPATH                      "InstallPath" /* OM_HOST_FIELD_INSTALLPATH */
+#define OMA_FIELD_TRANSACTION_ID                   "TransactionID" /* OM_BSON_FIELD_TRANSACTION_ID */
+#define OMA_FIELD_PACKET_PATH                      "InstallPacket" /* OM_BSON_FIELD_PATCKET_PATH */
+#define OMA_FIELD_CONFIG                           "Config" /* OM_CONFIGURE_FIELD_CONFIG */
+
+#define OMA_FIELD_STAGE_INSTALL                    "install" /* OM_TASK_STATUS_INSTALL */
+#define OMA_FIELD_STAGE_UNINSTALL                  "uninstall" /* OM_TASK_STATUS_UNINSTALL */
+#define OMA_FIELD_STAGE_ROLLBACK                   "rollback" /* OM_TASK_STATUS_ROLLBACK */
 
 #define OMA_FIELD_HOSTS                            "Hosts"
 #define OMA_FIELD_HOSTNAME                         "HostName"
@@ -59,6 +60,7 @@
 #define OMA_FIELD_PASSWD                           "Passwd"
 #define OMA_FIELD_IP                               "IP"
 #define OMA_FIELD_IP2                              "Ip"
+#define OMA_FIELD_INFO                             "Info"
 
 
 #define OMA_FIELD_PING                             "Ping"
@@ -111,7 +113,8 @@
 #define OMA_FIELD_UNINSTALLSVCNAME                 "UninstallSvcName"
 #define OMA_FIELD_UNINSTALLGROUPNAME               "UninstallGroupName"
 #define OMA_FIELD_UNINSTALLGROUPNAMES              "UninstallGroupNames"
-#define OMA_FIELD_AGENTPORT                        "AgentPort"
+#define OMA_FIELD_AGENTHOST                        "AgentHost"
+#define OMA_FIELD_AGENTSERVICE                     "AgentService"
 #define OMA_FIELD_AUTHUSER                         "AuthUser"
 #define OMA_FIELD_AUTHPASSWD                       "AuthPasswd"
 #define OMA_FIELD_CATAADDR                         "CataAddr"
@@ -119,8 +122,11 @@
 #define OMA_FIELD_SSHPORT                          "SshPort"
 #define OMA_FIELD_HASERROR                         "HasError"
 #define OMA_FIELD_HASFINISH                        "HasFinish"
-#define OMA_FIELD_TASKTYPE                         "TaskType"
+#define OMA_FIELD_TASKTYPE                         "Type"
 #define OMA_FIELD_TASKDETAIL                       "TaskDetail"
+#define OMA_FIELD_RESULTINFO                       "ResultInfo"
+#define OMA_FIELD_STATUSDESC                       "StatusDesc"
+#define OMA_FIELD_FLOW                             "Flow"
 
 
 #define OMA_FIELD_HOST                             "Host"

@@ -316,7 +316,7 @@ namespace engine
                                         jsval &val ) ;
 
       static INT32 _callbackDone( JSContext *cx, JSObject *obj,
-                                  const _sptReturnVal &rval,
+                                  _sptReturnVal &rval,
                                   const bson::BSONObj &detail,
                                   jsval *rvp ) ;
 

@@ -182,7 +182,18 @@ INT32 _pmdMongoSession::run()
                   rc = _processMsg( (*itr)->data(), (*itr)->size() ) ;
                   if ( rc )
                   {
-                     break ;
+                     if ( _converter->isOpInsert() &&
+                          ( SDB_DMS_CS_EXIST != rc || SDB_DMS_EXIST != rc ) )
+                     {
+                     }
+                     else if ( _converter->isOpCreateCL() &&
+                               SDB_DMS_CS_EXIST != rc )
+                     {
+                     }
+                     else
+                     {
+                        break ;
+                     }
                   }
                   if ( SDB_OK != ( rc = pmdEDUMgr->waitEDU( _pEDUCB ) ) )
                   {
@@ -219,7 +230,6 @@ INT32 _pmdMongoSession::_processMsg( const CHAR *pMsg, const INT32 len )
    INT32 rc          = SDB_OK ;
    const CHAR *pBody = NULL ;
    INT32 bodyLen     = 0 ;
-
 
    rc = _onMsgBegin( (MsgHeader *) pMsg ) ;//_inBuffer.data() ) ;
    if ( SDB_OK != rc )
