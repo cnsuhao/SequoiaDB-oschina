@@ -63,22 +63,30 @@
 
 namespace engine
 {
-   std::map<std::string, const _mthSActionParser::parser *> _mthSActionParser::_parsers ;
-   INT32 _mthSActionParser::_initParsers = _mthSActionParser::_registerParsers() ;
-
+   static _mthSActionParser PARSER ;
    _mthSActionParser::_mthSActionParser()
    {
-
+      _registerParsers() ;
    }
 
    _mthSActionParser::~_mthSActionParser()
    {
+      PARSERS::iterator itr = _parsers.begin() ;
+      for ( ; itr != _parsers.end(); ++itr )
+      {
+         SAFE_OSS_DELETE( itr->second ) ;
+      }
+      _parsers.clear() ;
+   }
 
+   const _mthSActionParser *_mthSActionParser::instance()
+   {
+      return &PARSER ;
    }
 
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSACTIONPARSER_GETACTION, "_mthSActionParser::getAction" )
    INT32 _mthSActionParser::parse( const bson::BSONElement &e,
-                                   _mthSAction &action )
+                                   _mthSAction &action ) const
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSACTIONPARSER_GETACTION ) ;
@@ -118,7 +126,7 @@ namespace engine
 
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSACTIONPARSER_BUILDDEFAULTVALUEACTION, "_mthSActionParser::buildDefaultValueAction" )
    INT32 _mthSActionParser::buildDefaultValueAction( const bson::BSONElement &e,
-                                                     _mthSAction &action )
+                                                     _mthSAction &action ) const
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSACTIONPARSER_BUILDDEFAULTVALUEACTION ) ;
@@ -147,7 +155,7 @@ namespace engine
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSACTIONPARSER__BUILDSLICEACTION, "_mthSActionParser::buildSliceAction" )
    INT32 _mthSActionParser::buildSliceAction( INT32 begin,
                                               INT32 limit,
-                                              _mthSAction &action )
+                                              _mthSAction &action ) const
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSACTIONPARSER__BUILDSLICEACTION ) ;
@@ -156,11 +164,8 @@ namespace engine
                       &mthSliceGet ) ;
       action.setName( MTH_S_SLICE ) ;
       action.setSlicePair( begin, limit ) ;
-   done:
       PD_TRACE_EXITRC( SDB__MTHSACTIONPARSER__BUILDSLICEACTION, rc ) ;
       return rc ;
-   error:
-      goto done ;
    }
 
    ///PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSACTIONPARSER__REGISTERPARSERS, "_mthSActionParser::_registerParsers" )

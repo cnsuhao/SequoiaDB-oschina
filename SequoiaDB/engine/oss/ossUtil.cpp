@@ -460,6 +460,9 @@ INT32 ossGetOSInfo( ossOSInfo &info )
    ossSnprintf( info._release, sizeof( info._release ) - 1,
                 "%s", name.release ) ;
    ossSnprintf( arch, sizeof( arch ) - 1, "%s", name.machine ) ;
+#if defined (_PPCLIN64)
+   info._bit = 64 ;
+#else
    if ( 0 == ossStrcmp( arch, "x86_64" ) )
    {
       info._bit = 64 ;
@@ -468,6 +471,7 @@ INT32 ossGetOSInfo( ossOSInfo &info )
    {
       info._bit = 32 ;
    }
+#endif // _PPCLIN64
 #endif // _WINDOWS
    ossSnprintf( info._desp, sizeof( info._desp ) - 1, "%s %s(%s)",
                 info._distributor, info._release, arch ) ;

@@ -50,7 +50,7 @@ namespace engine
    /*
       _IPmdAccessProtocol define
    */
-   class SDB_EXPORT _IPmdAccessProtocol : public SDBObject
+   class _IPmdAccessProtocol : public SDBObject
    {
       public:
          _IPmdAccessProtocol() {}
@@ -69,8 +69,7 @@ namespace engine
          virtual INT32           fini() = 0 ;
 
          virtual const CHAR*     getServiceName() const = 0 ;
-         virtual pmdSession*     getSession( SOCKET fd,
-                                             IProcessor *pProcessor ) = 0 ;
+         virtual pmdSession*     getSession( SOCKET fd ) = 0 ;
          virtual void            releaseSession( pmdSession *pSession ) = 0 ;
 
    } ;

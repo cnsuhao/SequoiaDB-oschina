@@ -97,11 +97,11 @@ namespace engine
       switch( recordHeader->_type )
       {
          case LOG_TYPE_DATA_INSERT :
-            paralla = TRUE ;
+            paralla = FALSE ;
             rc = dpsRecord2Insert( (CHAR *)recordHeader, &fullname, obj ) ;
             break ;
          case LOG_TYPE_DATA_DELETE :
-            paralla = TRUE ;
+            paralla = FALSE ;
             rc = dpsRecord2Delete( (CHAR *)recordHeader, &fullname, obj ) ;
             break ;
          case LOG_TYPE_DATA_UPDATE :
@@ -187,6 +187,28 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Parse dps log[type: %d, lsn: %lld, len: %d]"
                    "falied, rc: %d", recordHeader->_type,
                    recordHeader->_lsn, recordHeader->_length, rc ) ;
+
+      if ( LOG_TYPE_DATA_INSERT == recordHeader->_type ||
+           LOG_TYPE_DATA_DELETE == recordHeader->_type )
+      {
+         dmsStorageUnit *su = NULL ;
+         const CHAR *pShortName = NULL ;
+         dmsStorageUnitID suID = DMS_INVALID_SUID ;
+         rc = rtnResolveCollectionNameAndLock( fullname, _dmsCB, &su,
+                                               &pShortName, suID ) ;
+         if ( SDB_OK == rc )
+         {
+            dmsMBContext *mbContext = NULL ;
+            rc = su->data()->getMBContext( &mbContext, pShortName, SHARED ) ;
+            if ( SDB_OK == rc )
+            {
+               paralla = mbContext->mbStat()->_uniqueIdxNum <= 1 ?
+                         TRUE : FALSE ;
+               su->data()->releaseMBContext( mbContext ) ;
+            }
+            _dmsCB->suUnlock( suID, SHARED ) ;
+         }
+      }
 
       if ( paralla )
       {

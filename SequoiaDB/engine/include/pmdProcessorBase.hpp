@@ -36,7 +36,7 @@
 #include "oss.hpp"
 #include "msg.h"
 #include "sdbInterface.hpp"
-#include "rtnContext.hpp"
+#include "rtnContextBuff.hpp"
 
 namespace engine
 {
@@ -64,8 +64,7 @@ namespace engine
 
       public:
 
-         virtual INT32                 processMsg( MsgHeader *msg, 
-                                                   SDB_DPSCB *dpsCB,
+         virtual INT32                 processMsg( MsgHeader *msg,
                                                    rtnContextBuf &contextBuff,
                                                    INT64 &contextID,
                                                    BOOLEAN &needReply ) = 0 ;
@@ -74,6 +73,10 @@ namespace engine
          virtual SDB_PROCESSOR_TYPE    processorType() const = 0 ;
 
          virtual ISession*             getSession() = 0 ;
+
+      protected:
+         virtual void                  _onAttach () {}
+         virtual void                  _onDetach () {}
 
    } ;
    typedef _IProcessor IProcessor ;

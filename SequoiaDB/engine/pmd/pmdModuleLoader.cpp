@@ -37,123 +37,128 @@
 #include "pmdModuleLoader.hpp"
 #include "pd.hpp"
 
-namespace engine {
-
-_pmdModuleLoader::_pmdModuleLoader() : _loadModule( NULL )
+namespace engine
 {
+   /*
+      _pmdModuleLoader implement
+   */
+   _pmdModuleLoader::_pmdModuleLoader() : _loadModule( NULL )
+   {
+   }
 
-}
-
-_pmdModuleLoader::~_pmdModuleLoader()
-{
-   unload() ;
-}
-
-INT32 _pmdModuleLoader::load( const CHAR *module, const CHAR *path, UINT32 mode )
-{
-   INT32 rc = SDB_OK ;
-   if ( NULL != _loadModule )
+   _pmdModuleLoader::~_pmdModuleLoader()
    {
       unload() ;
    }
 
-   _loadModule = SDB_OSS_NEW ossModuleHandle( module, path, 0 ) ;
-   if ( SDB_OK != rc )
+   INT32 _pmdModuleLoader::load( const CHAR *module,
+                                 const CHAR *path,
+                                 UINT32 mode )
    {
-      PD_LOG( PDERROR, "Failed to alloc module" ) ;
-      rc = SDB_OOM ;
-      goto error ;
+      INT32 rc = SDB_OK ;
+      if ( NULL != _loadModule )
+      {
+         unload() ;
+      }
+
+      _loadModule = SDB_OSS_NEW ossModuleHandle( module, path, 0 ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to alloc module" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      rc = _loadModule->init() ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Init module failed" ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
-   rc = _loadModule->init() ;
-   if ( SDB_OK != rc )
+   void _pmdModuleLoader::unload()
    {
-      PD_LOG( PDERROR, "Init module failed" ) ;
-      goto error ;
+      fini() ;
+
+      if ( NULL != _loadModule )
+      {
+         _loadModule->unload() ;
+         SDB_OSS_DEL _loadModule ;
+         _loadModule = NULL ;
+      }
    }
 
-done:
-   return rc ;
-error:
-   goto done ;
-}
-
-void _pmdModuleLoader::unload()
-{
-   fini() ;
-
-   if ( NULL != _loadModule )
+   INT32 _pmdModuleLoader::getFunction( const CHAR *funcName,
+                                        OSS_MODULE_PFUNCTION *func )
    {
-      _loadModule->unload() ;
-      SDB_OSS_DEL _loadModule ;
-      _loadModule = NULL ;
-   }
-}
+      SDB_ASSERT( NULL != funcName, "Function name cann't be NULL" ) ;
 
-INT32 _pmdModuleLoader::getFunction( const CHAR *funcName, OSS_MODULE_PFUNCTION *func )
-{
-   SDB_ASSERT( NULL != funcName, "Function name cann't be NULL" ) ;
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT( NULL != _loadModule, "module was not loaded" ) ;
 
-   INT32 rc = SDB_OK ;
-   SDB_ASSERT( NULL != _loadModule, "module was not loaded" ) ;
+      rc = _loadModule->resolveAddress( funcName, func ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to get function address" ) ;
+         goto error ;
+      }
 
-   rc = _loadModule->resolveAddress( funcName, func ) ;
-   if ( SDB_OK != rc )
-   {
-      PD_LOG( PDERROR, "Failed to get function address" ) ;
-      goto error ;
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
-done:
-   return rc ;
-error:
-   goto done ;
-}
-
-INT32 _pmdModuleLoader::create( IPmdAccessProtocol *&protocol )
-{
-   INT32 rc = SDB_OK ;
-   SDB_ASSERT( NULL != _loadModule, "Module handle cann't be NULL" ) ;
-
-   rc = _loadModule->resolveAddress( "createAccessProtocol", &_function ) ;
-   if ( SDB_OK != rc )
+   INT32 _pmdModuleLoader::create( IPmdAccessProtocol *&protocol )
    {
-      PD_LOG( PDERROR, "Failed to get export function: " ) ;
-      goto error ;
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT( NULL != _loadModule, "Module handle cann't be NULL" ) ;
+
+      rc = _loadModule->resolveAddress( CREATE_FAP_NAME, &_function ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to get export function: " ) ;
+         goto error ;
+      }
+
+      protocol = (OSS_FAP_CREATE(_function))() ;
+      if ( NULL == protocol )
+      {
+         PD_LOG( PDERROR, "Failed to create protocol" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
-   protocol = (OSS_FAP_CREATE(_function))() ;
-   if ( NULL == protocol )
+   INT32 _pmdModuleLoader::release( IPmdAccessProtocol *protocol )
    {
-      PD_LOG( PDERROR, "Failed to create protocol" ) ;
-      rc = SDB_OOM ;
-      goto error ;
+      INT32 rc = SDB_OK ;
+      SDB_ASSERT( NULL != _loadModule, "Module handle cann't be NULL" ) ;
+
+      rc = _loadModule->resolveAddress( RELEASE_FAP_NAME, &_function ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "Failed to get export function: " ) ;
+         goto error ;
+      }
+
+      (OSS_FAP_RELEASE(_function))( protocol ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
-
-done:
-   return rc ;
-error:
-   goto done ;
-}
-
-INT32 _pmdModuleLoader::release( IPmdAccessProtocol *protocol )
-{
-   INT32 rc = SDB_OK ;
-   SDB_ASSERT( NULL != _loadModule, "Module handle cann't be NULL" ) ;
-
-   rc = _loadModule->resolveAddress( "releaseAccessProtocol", &_function ) ;
-   if ( SDB_OK != rc )
-   {
-      PD_LOG( PDERROR, "Failed to get export function: " ) ;
-      goto error ;
-   }
-
-   (OSS_FAP_RELEASE(_function))( protocol ) ;
-
-done:
-   return rc ;
-error:
-   goto done ;
-}
 
 }

@@ -38,6 +38,9 @@
    #include "clsMgr.hpp"
    #include "omManager.hpp"
    #include "msgAuth.hpp"
+   #include "coordCB.hpp"
+   #include "rtnCoord.hpp"
+   #include "rtnCoordOperator.hpp"
 #endif // SDB_ENGINE
 
 #include "../bson/bson.h"
@@ -146,6 +149,38 @@ namespace engine
       }
       else if ( SDB_ROLE_COORD == pmdGetDBRole() )
       {
+         CHAR *pResult = NULL ;
+         MsgOpReply replayHeader ;
+         BSONObj *pErrObj = NULL ;
+
+         CoordCB *pCoordcb = pmdGetKRCB()->getCoordCB();
+         rtnCoordProcesserFactory *pProcesserFactory =
+            pCoordcb->getProcesserFactory();
+         rtnCoordOperator *pOperator = NULL ;
+         BSONObj *err = NULL ;
+         pOperator = pProcesserFactory->getOperator( pMsg->opCode );
+         rc = pOperator->execute( (CHAR*)pMsg, pMsg->messageLength,
+                                  &pResult, _pEDUCB, replayHeader,
+                                  &pErrObj ) ;
+         SDB_ASSERT( NULL == pErrObj, "ErrObj must be NULL" ) ;
+         SDB_ASSERT( NULL == pResult, "Result must be NULL" ) ;
+         if ( MSG_AUTH_VERIFY_REQ == pMsg->opCode &&
+              SDB_CAT_NO_ADDR_LIST == rc )
+         {
+            rc = SDB_OK ;
+            _isAuthed = TRUE ;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDERROR, "Client[%s] authenticate failed[user: %s, "
+                    "passwd: %s], rc: %d", clientName(),
+                    user.valuestrsafe(), pass.valuestrsafe(), rc ) ;
+            goto error ;
+         }
+         else
+         {
+            _isAuthed = TRUE ;
+         }
       }
       else
       {
@@ -209,6 +244,31 @@ namespace engine
    _isAuthed = TRUE ;
    return SDB_OK ;
 #endif // SDB_ENGINE
+   }
+
+   INT32 _pmdExternClient::authenticate( const CHAR *username,
+                                         const CHAR *password )
+   {
+      INT32 rc = SDB_OK ;
+      CHAR *pBuffer = NULL ;
+      INT32 buffSize = 0 ;
+      
+      rc = msgBuildAuthMsg( &pBuffer, &buffSize, username, password, 0 ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to build auth msg, rc: %d", rc ) ;
+         goto error ;
+      }
+      rc = authenticate( (MsgHeader*)pBuffer ) ;
+   done:
+      if ( pBuffer )
+      {
+         SDB_OSS_FREE( pBuffer ) ;
+         pBuffer = NULL ;
+      }
+      return rc ;
+   error:
+      goto done ;
    }
 
    INT32 _pmdExternClient::disconnect()

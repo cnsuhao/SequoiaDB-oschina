@@ -221,6 +221,6 @@ PowerLinux64:
 
         OpenSSL 1.0.1c:
                 cd crypto/openssl-1.0.1c/
-                ./configure
+                ./Configure linux-ppc64
                 make
                 copy libcrypto.a and libssl.a to crypto/openssl-1.0.1c/lib/ppclinux64/

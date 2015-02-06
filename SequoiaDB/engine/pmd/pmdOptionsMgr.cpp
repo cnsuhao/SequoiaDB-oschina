@@ -1584,6 +1584,7 @@ namespace engine
          _numPreLoaders    = 0 ;
          _maxPrefPool      = 0 ;
          _maxSubQuery      = 0 ;
+         _maxReplSync      = 0 ;
       }
 
    done:

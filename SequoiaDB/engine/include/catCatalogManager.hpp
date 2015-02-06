@@ -65,6 +65,7 @@ namespace engine
    #define CAT_MASK_ISMAINCL        0x00000080
    #define CAT_MASK_AUTOASPLIT      0x00000100
    #define CAT_MASK_AUTOREBALAN     0x00000200
+   #define CAT_MASK_AUTOINDEXID     0x00000400
 
    struct _catCollectionInfo
    {
@@ -83,6 +84,7 @@ namespace engine
       const CHAR * _gpSpecified ;
       INT32       _version ;
       INT32       _assignType ;
+      BOOLEAN     _autoIndexId ;
       
       std::vector<std::string>   _subCLList;
 
@@ -102,6 +104,7 @@ namespace engine
          _gpSpecified         = NULL ;
          _version             = 0 ;
          _assignType          = ASSIGN_RANDOM ;
+         _autoIndexId         = TRUE ;
       }
    };
    typedef _catCollectionInfo catCollectionInfo ;

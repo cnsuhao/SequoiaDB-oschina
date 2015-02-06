@@ -40,6 +40,7 @@
 #include "rtnCommand.hpp"
 #include "../omsvc/omGetFileCommand.hpp"
 #include "rtn.hpp"
+#include "msgAuth.hpp"
 
 #include "../bson/bson.h"
 
@@ -60,7 +61,6 @@ namespace engine
       pAdptor->setOPResult( pRestSession, rc, _errorInfo ) ;
       pAdptor->sendResponse( pRestSession, HTTP_OK ) ;
    }
-
 
    #define PMD_REST_SESSION_SNIFF_TIMEOUT    ( 10 * OSS_ONE_SEC )
 
@@ -109,7 +109,6 @@ namespace engine
       _pFixBuff         = NULL ;
       _pSessionInfo     = NULL ;
       _pRTNCB           = NULL ;
-      _pDPSCB           = NULL ;
 
       _wwwRootPath      = pmdGetOptionCB()->getWWWPath() ;
       _pRestTransfer    = SDB_OSS_NEW RestToMSGTransfer( this ) ;
@@ -227,11 +226,11 @@ namespace engine
                PD_LOG( PDINFO, "Rest session: %s", pSessionID ) ;
                _pSessionInfo = sdbGetPMDController()->attachSessionInfo(
                                   pSessionID ) ;
-               _client.setAuthed( TRUE ) ;
             }
 
             if ( _pSessionInfo )
             {
+               _client.setAuthed( TRUE ) ;
                restoreSession() ;
             }
          }
@@ -266,7 +265,7 @@ namespace engine
             break ;
          }
 
-         rc = _processRestMsg( httpCommon, pFilePath ) ;
+         rc = _processMsg( httpCommon, pFilePath ) ;
          if ( rc )
          {
             break ;
@@ -298,129 +297,28 @@ namespace engine
       goto done ;
    }
 
-   INT32 _pmdRestSession::run1()
-   {
-      INT32 rc                        = SDB_OK ;
-      pmdEDUMgr *pEDUMgr              = NULL ;
-      HTTP_PARSE_COMMON httpCommon    = COM_GETFILE ;
-      CHAR *pFilePath                 = NULL ;
-      INT32 bodySize                  = 0 ;
-      restAdaptor *pAdptor            = sdbGetPMDController()->getRestAdptor() ;
 
-      if ( !_pEDUCB )
+   INT32 _pmdRestSession::_translateMSG( restAdaptor *pAdaptor, 
+                                         HTTP_PARSE_COMMON command, 
+                                         const CHAR *pFilePath,
+                                         MsgHeader **msg )
+   {
+      INT32 rc = SDB_OK ;
+      if ( NULL == msg )
       {
-         rc = SDB_SYS ;
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "msg can't be null" ) ;
          goto error ;
       }
 
-      pEDUMgr = _pEDUCB->getEDUMgr() ;
-
-      while ( !_pEDUCB->isDisconnected() && !_socket.isClosed() )
-      {
-         rc = sniffData( _pSessionInfo ? OSS_ONE_SEC :
-                         PMD_REST_SESSION_SNIFF_TIMEOUT ) ;
-         if ( rc < 0 )
-         {
-            break ;
-         }
-
-         if ( _pEDUCB->isInterrupted( TRUE ) )
-         {
-            INT64 contextID = -1 ;
-            while ( -1 != ( contextID = _pEDUCB->contextPeek() ) )
-            {
-               _pRTNCB->contextDelete( contextID, NULL ) ;
-            }
-
-            break ;
-         }
-
-         _pEDUCB->resetInterrupt() ;
-         _pEDUCB->resetInfo( EDU_INFO_ERROR ) ;
-         _pEDUCB->resetLsn() ;
-
-         rc = pAdptor->recvRequestHeader( this ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Session[%s] failed to recv rest header, "
-                    "rc: %d", sessionName(), rc ) ;
-            if ( SDB_REST_EHS == rc )
-            {
-               pAdptor->sendResponse( this, HTTP_BADREQ ) ;
-            }
-            else if ( SDB_APP_FORCED != rc )
-            {
-               _sendOpError2Web( rc, pAdptor, this, _pEDUCB ) ;
-            }
-            break ;
-         }
-
-         rc = pAdptor->recvRequestBody( this, httpCommon, &pFilePath, bodySize ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Session[%s] failed to recv rest body, "
-                    "rc: %d", sessionName(), rc ) ;
-            if ( SDB_REST_EHS == rc )
-            {
-               pAdptor->sendResponse( this, HTTP_BADREQ ) ;
-            }
-            else if ( SDB_APP_FORCED != rc )
-            {
-               _sendOpError2Web( rc, pAdptor, this, _pEDUCB ) ;
-            }
-            break ;
-         }
-
-         _pEDUCB->incEventCount() ;
-
-         if ( SDB_OK != ( rc = pEDUMgr->activateEDU( _pEDUCB ) ) )
-         {
-            PD_LOG( PDERROR, "Session[%s] activate edu failed, rc: %d",
-                    sessionName(), rc ) ;
-            break ;
-         }
-
-         rc = _processRestMsg1( pAdptor, httpCommon, pFilePath ) ;
-         if ( rc )
-         {
-            break ;
-         }
-
-         if ( SDB_OK != ( rc = pEDUMgr->waitEDU( _pEDUCB ) ) )
-         {
-            PD_LOG( PDERROR, "Session[%s] wait edu failed, rc: %d",
-                    sessionName(), rc ) ;
-            break ;
-         }
-
-         if ( pFilePath )
-         {
-            releaseBuff( pFilePath, bodySize ) ;
-            pFilePath = NULL ;
-         }
-         rc = SDB_OK ;
-      } // end while
+      rc = _pRestTransfer->trans( pAdaptor, command, pFilePath, msg ) ;
 
    done:
-      if ( pFilePath )
-      {
-         releaseBuff( pFilePath, bodySize ) ;
-      }
-      disconnect() ;
       return rc ;
    error:
       goto done ;
    }
 
-   MsgHeader* _pmdRestSession::_translateMSG( restAdaptor *pAdaptor, 
-                                              HTTP_PARSE_COMMON command, 
-                                              const CHAR *pFilePath )
-   {
-      MsgHeader *msg = NULL ;
-      _pRestTransfer->trans( pAdaptor, command, pFilePath, &msg ) ;
-
-      return msg ;
-   }
 
    INT32 _pmdRestSession::_fetchOneContext( SINT64 &contextID, 
                                             rtnContextBuf &contextBuff )
@@ -450,25 +348,63 @@ namespace engine
       return rc ;
    }
 
-   INT32 _pmdRestSession::_processRestMsg1( restAdaptor *pAdaptor, 
-                                            HTTP_PARSE_COMMON command, 
-                                            const CHAR *pFilePath ) 
+   INT32 _pmdRestSession::_processMsg( HTTP_PARSE_COMMON command, 
+                                       const CHAR *pFilePath )
+   {
+      INT32 rc = SDB_OK ;
+      restAdaptor *pAdaptor = sdbGetPMDController()->getRestAdptor() ;
+      const CHAR *pSubCommand = NULL ;
+      pAdaptor->getQuery( this, OM_REST_FIELD_COMMAND, &pSubCommand ) ;
+      if ( NULL != pSubCommand )
+      {
+         if ( ossStrcasecmp( pSubCommand, OM_LOGOUT_REQ ) == 0 )
+         {
+            doLogout() ;
+            pAdaptor->sendResponse( this, HTTP_OK ) ;
+            goto done ;
+         }
+      }
+
+      rc = _processBusinessMsg( pAdaptor, command, pFilePath ) ;
+      if ( SDB_UNKNOWN_MESSAGE == rc )
+      {
+         if ( pmdGetKRCB()->isCBValue( SDB_CB_OMSVC ) )
+         {
+            rc = _processOMRestMsg( command, pFilePath ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "translate message failed:rc=%d", rc ) ;
+            _sendOpError2Web( rc, pAdaptor, this, _pEDUCB ) ;
+         }
+      }
+
+   done:
+      return rc ;
+   }
+   INT32 _pmdRestSession::_processBusinessMsg( restAdaptor *pAdaptor, 
+                                               HTTP_PARSE_COMMON command, 
+                                               const CHAR *pFilePath ) 
    {
       INT32 rc        = SDB_OK ;
       INT64 contextID = -1 ;
       rtnContextBuf contextBuff ;
       BOOLEAN needReplay = FALSE ;
-      MsgHeader *msg = _translateMSG( pAdaptor, command, pFilePath ) ;
-      if ( NULL == msg )
+      MsgHeader *msg = NULL ;
+      rc = _translateMSG( pAdaptor, command, pFilePath, &msg ) ;
+      if ( SDB_OK != rc )
       {
-         rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "unrecognized command" ) ;
-         _sendOpError2Web( rc, pAdaptor, this, _pEDUCB ) ;
+         if ( SDB_UNKNOWN_MESSAGE != rc )
+         {
+            PD_LOG( PDERROR, "translate message failed:rc=%d", rc ) ;
+            _sendOpError2Web( rc, pAdaptor, this, _pEDUCB ) ;
+         }
+
          goto error ;
       }
 
-      rc = _processor->processMsg( msg, _pDPSCB, contextBuff, contextID, 
-                                   needReplay ) ;
+      rc = getProcessor()->processMsg( msg, contextBuff, contextID, 
+                                       needReplay ) ;
       if ( SDB_OK != rc )
       {
          BSONObjBuilder builder ;
@@ -553,6 +489,7 @@ namespace engine
          }
       }
 
+      _dealWithLoginReq( rc ) ;
       pAdaptor->sendResponse( this, HTTP_OK ) ;
 
       rc = SDB_OK ;
@@ -573,19 +510,41 @@ namespace engine
       goto done ;
    }
 
-   INT32 _pmdRestSession::attachProcessor( _IProcessor *processor )
+   INT32 _pmdRestSession::_dealWithLoginReq( INT32 result )
    {
-      _processor = processor ;
-      return SDB_OK ;
-   }
+      INT32 rc = SDB_OK ;
+      const CHAR *pSubCommand = NULL ;
+      restAdaptor *pAdaptor   = sdbGetPMDController()->getRestAdptor() ;
 
-   void _pmdRestSession::detachProcessor()
-   {
-      _processor = NULL ;
-   }
+      if ( SDB_OK != result )
+      {
+         goto done ;
+      }
 
-   INT32 _pmdRestSession::_processRestMsg( HTTP_PARSE_COMMON command, 
-                                           const CHAR *pFilePath )
+      pAdaptor->getQuery( this, OM_REST_FIELD_COMMAND, &pSubCommand ) ;
+      if ( NULL != pSubCommand )
+      {
+         if ( ossStrcasecmp( pSubCommand, OM_LOGIN_REQ ) == 0 )
+         {
+            const CHAR* pUser = NULL ;
+            pAdaptor->getQuery( this, OM_REST_FIELD_LOGIN_NAME , &pUser ) ;
+            SDB_ASSERT( ( NULL != pUser ), "" ) ;
+            rc = doLogin( pUser, socket()->getLocalIP() ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "login failed:rc=%d", rc ) ;
+            }
+            pAdaptor->appendHttpHeader( this, OM_REST_HEAD_SESSIONID, 
+                                        getSessionID() ) ;
+
+         }
+      }
+
+   done:
+      return rc ;
+   }
+   INT32 _pmdRestSession::_processOMRestMsg( HTTP_PARSE_COMMON command, 
+                                             const CHAR *pFilePath )
    {
       restAdaptor *pAdptor          = NULL ;
       omRestCommandBase *pOmCommand = NULL ;
@@ -661,14 +620,6 @@ namespace engine
             goto error ;
          }
 
-         if ( ossStrcasecmp( pSubCommand, OM_LOGIN_REQ ) == 0 )
-         {
-            commandIf = SDB_OSS_NEW omAuthCommand( pAdptor, this ) ;
-         }
-         else if( ossStrcasecmp( pSubCommand, OM_LOGOUT_REQ ) == 0 )
-         {
-            commandIf = SDB_OSS_NEW omLogoutCommand( pAdptor, this ) ;
-         }
          else if ( ossStrcasecmp( pSubCommand, OM_CHANGE_PASSWD_REQ ) == 0 )
          {
             commandIf = SDB_OSS_NEW omChangePasswdCommand( pAdptor, this ) ;
@@ -802,12 +753,6 @@ namespace engine
    {
       pmdKRCB *krcb = pmdGetKRCB() ;
       _pRTNCB = krcb->getRTNCB() ;
-      _pDPSCB = krcb->getDPSCB() ;
-
-      if ( _pDPSCB && !_pDPSCB->isLogLocal() )
-      {
-         _pDPSCB = NULL ;
-      }
 
       if ( NULL != sdbGetPMDController()->getRSManager() )
       {
@@ -817,24 +762,6 @@ namespace engine
 
    void _pmdRestSession::_onDetach()
    {
-      if ( DPS_INVALID_TRANS_ID != eduCB()->getTransID() )
-      {
-         INT32 rc = rtnTransRollback( eduCB(), _pDPSCB ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Session[%s] rollback trans info failed, rc: %d",
-                    sessionName(), rc ) ;
-         }
-      }
-
-      INT64 contextID = -1 ;
-      while ( -1 != ( contextID = eduCB()->contextPeek() ) )
-      {
-         _pRTNCB->contextDelete( contextID, NULL ) ;
-      }
-
-      eduCB()->setClientSock( NULL ) ;
-
       if ( _pSessionInfo )
       {
          saveSession() ;
@@ -959,6 +886,7 @@ namespace engine
       const CHAR *pSubCommand = NULL ;
       if ( COM_GETFILE == command )
       {
+         rc = SDB_UNKNOWN_MESSAGE ;
          PD_LOG_MSG( PDERROR, "unsupported command:command=%d", command ) ;
          goto error ;
       }
@@ -966,6 +894,7 @@ namespace engine
       pAdaptor->getQuery( _restSession, OM_REST_FIELD_COMMAND, &pSubCommand ) ;
       if ( NULL == pSubCommand )
       {
+         rc = SDB_UNKNOWN_MESSAGE ;
          PD_LOG_MSG( PDERROR, "can't resolve field:field=%s", 
                      OM_REST_FIELD_COMMAND ) ;
          goto error ;
@@ -1019,10 +948,14 @@ namespace engine
       {
          rc = _convertGetCount( pAdaptor, msg ) ;
       }
+      else if ( ossStrcasecmp( pSubCommand, OM_LOGIN_REQ ) == 0 )
+      {
+         rc = _convertLogin( pAdaptor, msg ) ;
+      }
       else
       {
          PD_LOG_MSG( PDERROR, "unsupported command:command=%s", pSubCommand ) ;
-         rc = -1 ;
+         rc = SDB_UNKNOWN_MESSAGE ;
       }
 
    done:
@@ -1850,6 +1783,50 @@ namespace engine
       {
          PD_LOG_MSG( PDERROR, "build command failed:command=%s, rc=%d", 
                      pCommand, rc ) ;
+         goto error ;
+      }
+
+      *msg = ( MsgHeader * )pBuff ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 RestToMSGTransfer::_convertLogin( restAdaptor *pAdaptor,
+                                           MsgHeader **msg )
+   {
+      INT32 rc              = SDB_OK ;
+      CHAR *pBuff           = NULL ;
+      INT32 buffSize        = 0 ;
+      const CHAR *pUser     = NULL ;
+      const CHAR *pPasswd   = NULL ;
+
+      pAdaptor->getQuery( _restSession, OM_REST_FIELD_LOGIN_NAME, 
+                          &pUser ) ;
+      if ( NULL == pUser )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get login name failed:field=%s", 
+                     OM_REST_FIELD_LOGIN_NAME ) ;
+         goto error ;
+      }
+
+      pAdaptor->getQuery( _restSession, OM_REST_FIELD_LOGIN_PASSWD, 
+                          &pPasswd ) ;
+      if ( NULL == pPasswd )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get passwd failed:field=%s", 
+                     OM_REST_FIELD_LOGIN_PASSWD ) ;
+         goto error ;
+      }
+
+      rc = msgBuildAuthMsg( &pBuff, &buffSize, pUser, pPasswd, 0 ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "buildAuthMsg failed:rc=%d", rc ) ;
          goto error ;
       }
 

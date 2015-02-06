@@ -113,7 +113,7 @@ namespace engine
          ossSocket               *_pMongoListener ;
 
       private:
-         _pmdModuleLoader         *_fapMongo ;
+         _pmdModuleLoader        *_fapMongo ;
          IPmdAccessProtocol      *_protocol ;
 
       private:

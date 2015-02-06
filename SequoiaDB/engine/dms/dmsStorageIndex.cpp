@@ -109,6 +109,26 @@ namespace engine
 
    INT32 _dmsStorageIndex::_onMapMeta( UINT64 curOffSet )
    {
+      for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; i++ )
+      {
+         if ( DMS_IS_MB_INUSE ( _pDataSu->_dmsMME->_mbList[i]._flag ) )
+         {
+            for ( UINT32 j = 0 ; j < DMS_COLLECTION_MAX_INDEX ; ++j )
+            {
+               if ( DMS_INVALID_EXTENT ==
+                    _pDataSu->_dmsMME->_mbList[i]._indexExtent[ j ] )
+               {
+                  break ;
+               }
+               ixmIndexCB indexCB( _pDataSu->_dmsMME->_mbList[i]._indexExtent[ j ],
+                                   this, NULL ) ;
+               if ( !indexCB.isInitialized() && indexCB.unique() )
+               {
+                  _pDataSu->_mbStatInfo[i]._uniqueIdxNum++ ;
+               }
+            }
+         }
+      }
       return SDB_OK ;
    }
 
@@ -294,6 +314,11 @@ namespace engine
             ixmExtent idx( rootExtentID, context->mbID(), this ) ;
          }
          indexCB.setRoot ( rootExtentID ) ;
+
+         if ( indexCB.unique() )
+         {
+            context->mbStat()->_uniqueIdxNum++ ;
+         }
       }
 
       context->mb()->_indexExtent[indexID] = extentID ;
@@ -554,15 +579,6 @@ namespace engine
             goto error ;
          }
 
-         rc = indexCB.truncate ( TRUE ) ;
-         if ( rc )
-         {
-            PD_LOG ( PDERROR, "Failed to truncate index, rc: %d", rc ) ;
-            goto error ;
-         }
-         indexCB.setFlag ( IXM_INDEX_FLAG_DROPPING ) ;
-         indexCB.clearLogicID() ;
-
          if ( dpscb )
          {
             indexDef = indexCB.getDef().getOwned() ;
@@ -584,6 +600,20 @@ namespace engine
                logRecSize = 0 ;
                goto error ;
             }
+         }
+
+         rc = indexCB.truncate ( TRUE ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Failed to truncate index, rc: %d", rc ) ;
+            goto error ;
+         }
+         indexCB.setFlag ( IXM_INDEX_FLAG_DROPPING ) ;
+         indexCB.clearLogicID() ;
+
+         if ( indexCB.unique() )
+         {
+            context->mbStat()->_uniqueIdxNum-- ;
          }
 
          rc = releaseExtent ( context->mb()->_indexExtent[indexID] ) ;

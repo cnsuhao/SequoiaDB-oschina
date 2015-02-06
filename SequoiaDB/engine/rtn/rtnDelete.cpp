@@ -122,6 +122,14 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to get collection[%s] mb context, "
                    "rc: %d", pCollectionName, rc ) ;
 
+      if ( OSS_BIT_TEST( mbContext->mb()->_attributes,
+                         DMS_MB_ATTR_NOIDINDEX ) )
+      {
+         PD_LOG( PDERROR, "can not delete data when autoIndexId is false" ) ;
+         rc = SDB_RTN_AUTOINDEXID_IS_FALSE ;
+         goto error ;
+      }
+
       apm = su->getAPM() ;
       SDB_ASSERT ( apm, "apm shouldn't be NULL" ) ;
 

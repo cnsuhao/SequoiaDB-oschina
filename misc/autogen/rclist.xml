@@ -2242,5 +2242,13 @@
         </description>
       </code>
 
+      <code>
+         <name>SDB_RTN_AUTOINDEXID_IS_FALSE</name>
+         <description>
+            <en>can not update/delete data when autoindexid is false</en>
+            <cn>建立集合时如果指定autoindexid为false，则无法进行update/delete</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

@@ -37,6 +37,7 @@
 #include "oss.hpp"
 #include "ossSocket.hpp"
 #include "sdbInterface.hpp"
+#include "pmdProcessorBase.hpp"
 #include "pmdExternClient.hpp"
 
 #include <string>
@@ -45,6 +46,8 @@ namespace engine
 {
 
    class _pmdEDUCB ;
+   class _dpsLogWrapper ;
+   class _pmdProcessor ;
 
    /*
       _pmdSession define
@@ -59,6 +62,7 @@ namespace engine
 
          virtual const CHAR*     sessionName() const ;
          virtual IClient*        getClient() { return &_client ; }
+         virtual IProcessor*     getProcessor() ;
 
          virtual INT32           run() = 0 ;
 
@@ -70,6 +74,11 @@ namespace engine
 
          void        attach( _pmdEDUCB * cb ) ;
          void        detach() ;
+
+         void        attachProcessor( _pmdProcessor *pProcessor ) ;
+         void        detachProcessor() ;
+
+         _dpsLogWrapper* getDPSCB() { return _pDPSCB ; }
 
          CHAR*       getBuff( INT32 len ) ;
          INT32       getBuffLen () const { return _buffLen ; }
@@ -98,6 +107,8 @@ namespace engine
          ossSocket                        _socket ;
          std::string                      _sessionName ;
          pmdExternClient                  _client ;
+         _pmdProcessor                    *_processor ;
+         _dpsLogWrapper                   *_pDPSCB ;
 
       protected:
          CHAR                             *_pBuff ;
@@ -105,6 +116,33 @@ namespace engine
 
    } ;
    typedef _pmdSession pmdSession ;
+
+   /*
+      _pmdProcessor define
+   */
+   class _pmdProcessor : public _IProcessor
+   {
+      friend class _pmdSession ;
+      public:
+         _pmdProcessor() ;
+         virtual ~_pmdProcessor() ;
+
+         virtual ISession*             getSession() { return _pSession ; }
+
+      protected:
+         void     attachSession( pmdSession *pSession ) ;
+         void     detachSession() ;
+
+         _dpsLogWrapper*   getDPSCB() ;
+         _IClient*         getClient() ;
+         _pmdEDUCB*        eduCB() ;
+         EDUID             eduID () const ;
+
+      protected:
+         pmdSession                 *_pSession ;
+
+   } ;
+   typedef _pmdProcessor pmdProcessor ;
 
 }
 

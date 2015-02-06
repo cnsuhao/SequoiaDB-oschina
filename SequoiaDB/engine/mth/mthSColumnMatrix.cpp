@@ -37,6 +37,7 @@
 #include "pdTrace.hpp"
 #include "utilStr.hpp"
 #include "mthCommon.hpp"
+#include "mthSActionParser.hpp"
 
 using namespace bson ;
 
@@ -208,7 +209,16 @@ namespace engine
       PD_TRACE_ENTRY( SDB__MTHSCOLUMNMATRIX__LOADOBJ ) ;
 
       _mthSAction *action = NULL ;
+      const _mthSActionParser *parser = _mthSActionParser::instance() ;
       BSONObjIterator i( obj ) ;
+
+      if ( NULL == parser )
+      {
+         PD_LOG( PDERROR, "failed to get mthSActionParser::instance" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
       while ( i.more() )
       {
          if ( NULL == action )
@@ -223,7 +233,7 @@ namespace engine
 
          action->clear() ;
 
-         rc = _parser.parse( i.next(), *action ) ;
+         rc = parser->parse( i.next(), *action ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to get action:%d", rc ) ;
@@ -266,6 +276,14 @@ namespace engine
       PD_TRACE_ENTRY( SDB__MTHSCOLUMNMATRIX__LOADDEFAULTVALUE ) ;
       mthSAction *action = NULL ;
       mthSColumn *column = NULL ;
+      const _mthSActionParser *parser = _mthSActionParser::instance() ;
+
+      if ( NULL == parser )
+      {
+         PD_LOG( PDERROR, "failed to get mthSActionParser::instance" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
 
       rc = _actionPool.allocate( action ) ;
       if ( SDB_OK != rc )
@@ -282,7 +300,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _parser.buildDefaultValueAction( e, *action ) ;
+      rc = parser->buildDefaultValueAction( e, *action ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to build default value action:%d", rc ) ;
@@ -415,6 +433,15 @@ namespace engine
       PD_TRACE_ENTRY( SDB__MTHSCOLUMNMATRIX__ADDMIDDLEACTION ) ;
       INT32 elemNumber = 0 ;
       mthSAction *action = NULL ;
+      const _mthSActionParser *parser = _mthSActionParser::instance() ;
+
+      if ( NULL == parser )
+      {
+         PD_LOG( PDERROR, "failed to get mthSActionParser::instance" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
       rc = mthConvertSubElemToNumeric( desc, elemNumber ) ;
       if ( SDB_OK != rc )
       {
@@ -429,7 +456,7 @@ namespace engine
          goto error ;
       }
 
-      rc = _parser.buildSliceAction( elemNumber, 1, *action ) ;
+      rc = parser->buildSliceAction( elemNumber, 1, *action ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to build default value action:%d", rc ) ;

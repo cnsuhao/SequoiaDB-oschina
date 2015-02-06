@@ -136,29 +136,23 @@ namespace engine
 
       pmdRestSession restSession( s ) ;
       restSession.attach( cb ) ;
-      if ( SDB_ROLE_OM == pmdGetDBRole() )
-      {
-         rc = restSession.run() ;
-      }
-      else if ( SDB_ROLE_STANDALONE == pmdGetDBRole() 
-                || SDB_ROLE_DATA == pmdGetDBRole() )
-      {
-         _pmdDataProcessor processor ;
-         restSession.attachProcessor( &processor ) ;
-         processor.attachSession( &restSession ) ;
-         rc = restSession.run1() ;
-         processor.detachSession() ;
-         restSession.detachProcessor() ;
-      }
-      else if ( SDB_ROLE_COORD == pmdGetDBRole() )
+
+
+      if ( SDB_ROLE_COORD == pmdGetDBRole() )
       {
          _pmdCoordProcessor processor ;
          restSession.attachProcessor( &processor ) ;
-         processor.attachSession( &restSession ) ;
-         rc = restSession.run1() ;
-         processor.detachSession() ;
+         rc = restSession.run() ;
          restSession.detachProcessor() ;
       }
+      else
+      {
+         _pmdDataProcessor processor ;
+         restSession.attachProcessor( &processor ) ;
+         rc = restSession.run() ;
+         restSession.detachProcessor() ;
+      }
+
       restSession.detach() ;
 
       return rc ;

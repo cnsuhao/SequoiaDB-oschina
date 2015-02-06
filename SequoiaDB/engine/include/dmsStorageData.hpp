@@ -171,6 +171,7 @@ namespace engine
       DMS MB ATTRIBUTE DEFINE
    */
    #define DMS_MB_ATTR_COMPRESSED         0x00000001
+   #define DMS_MB_ATTR_NOIDINDEX          0x00000002
 
 #pragma pack(4)
    /*
@@ -364,6 +365,7 @@ namespace engine
       UINT64      _totalDataFreeSpace ;
       UINT64      _totalIndexFreeSpace ;
       UINT32      _totalLobPages ;
+      UINT32      _uniqueIdxNum ;
 
       void reset()
       {
@@ -373,6 +375,7 @@ namespace engine
          _totalDataFreeSpace     = 0 ;
          _totalIndexFreeSpace    = 0 ;
          _totalLobPages          = 0 ;
+         _uniqueIdxNum           = 0 ;
       }
       _dmsMBStatInfo ()
       {

@@ -46,6 +46,8 @@
 using namespace bson;
 using namespace std;
 
+INT32 msgCheckBuffer ( CHAR **ppBuffer, INT32 *bufferSize,
+                       INT32 packetLength ) ;
 INT32 extractRC ( BSONObj &obj ) ;
 string routeID2String( MsgRouteID routeID ) ;
 string routeID2String( UINT64 nodeID ) ;

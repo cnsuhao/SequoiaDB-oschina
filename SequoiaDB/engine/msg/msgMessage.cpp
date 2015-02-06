@@ -46,20 +46,20 @@
 using namespace engine;
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_MSGCHKBUFF, "msgCheckBuffer" )
-static INT32 msgCheckBuffer ( CHAR **ppBuffer, INT32 *bufferSize,
-                              INT32 packetLength )
+INT32 msgCheckBuffer ( CHAR **ppBuffer, INT32 *bufferSize,
+                       INT32 packetLength )
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_MSGCHKBUFF );
-   PD_TRACE2 ( SDB_MSGCHKBUFF, PD_PACK_INT(*bufferSize), PD_PACK_INT(packetLength) );
+   PD_TRACE2 ( SDB_MSGCHKBUFF, PD_PACK_INT(*bufferSize),
+               PD_PACK_INT(packetLength) );
    if ( packetLength > *bufferSize )
    {
       CHAR *pOrigMem = *ppBuffer ;
       INT32 newSize = ossRoundUpToMultipleX ( packetLength, SDB_PAGE_SIZE ) ;
       if ( newSize < 0 )
       {
-         pdLog ( PDERROR, __FUNC__, __FILE__, __LINE__,
-                 "new buffer overflow" ) ;
+         PD_LOG ( PDERROR, "new buffer overflow" ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }

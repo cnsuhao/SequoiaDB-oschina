@@ -34,12 +34,8 @@
 #include "pmdEDU.hpp"
 #include "pmdEnv.hpp"
 #include "msgMessage.hpp"
-#include "rtn.hpp"
 #include "pmd.hpp"
-#include "pmdCB.hpp"
-#include "msgAuth.hpp"
-#include "rtnLob.hpp"
-#include "pmdProcessor.hpp"
+#include "rtn.hpp"
 
 using namespace bson ;
 
@@ -54,9 +50,6 @@ namespace engine
       ossMemset( (void*)&_replyHeader, 0, sizeof(_replyHeader) ) ;
       _needReply = TRUE ;
       _needRollback = FALSE ;
-      _pDMSCB = NULL ;
-      _pDPSCB = NULL ;
-      _pRTNCB = NULL ;
    }
 
    _pmdLocalSession::~_pmdLocalSession()
@@ -80,49 +73,10 @@ namespace engine
 
    void _pmdLocalSession::_onAttach ()
    {
-      pmdKRCB *krcb = pmdGetKRCB() ;
-      _pDMSCB = krcb->getDMSCB() ;
-      _pDPSCB = krcb->getDPSCB() ;
-      _pRTNCB = krcb->getRTNCB() ;
-
-      if ( _pDPSCB && !_pDPSCB->isLogLocal() )
-      {
-         _pDPSCB = NULL ;
-      }
-   }
-
-   INT32 _pmdLocalSession::attachProcessor( _IProcessor *processor )
-   {
-      SDB_ASSERT( NULL != processor, "" ) ;
-      _processor = processor ;
-      return SDB_OK ;
-   }
-
-   void _pmdLocalSession::detachProcessor()
-   {
-      SDB_ASSERT( NULL != _processor, "" ) ;
-      _processor = NULL ;
    }
 
    void _pmdLocalSession::_onDetach ()
    {
-      if ( DPS_INVALID_TRANS_ID != eduCB()->getTransID() )
-      {
-         INT32 rc = rtnTransRollback( eduCB(), _pDPSCB ) ;
-         if ( rc )
-         {
-            PD_LOG( PDERROR, "Session[%s] rollback trans info failed, rc: %d",
-                    sessionName(), rc ) ;
-         }
-      }
-
-      INT64 contextID = -1 ;
-      while ( -1 != ( contextID = eduCB()->contextPeek() ) )
-      {
-         _pRTNCB->contextDelete( contextID, NULL ) ;
-      }
-
-      eduCB()->setClientSock( NULL ) ;
    }
 
    INT32 _pmdLocalSession::run()
@@ -353,7 +307,7 @@ namespace engine
       rc = _onMsgBegin( msg ) ;
       if ( SDB_OK == rc )
       {
-         rc = _processor->processMsg( msg, _pDPSCB, contextBuff, 
+         rc = _processor->processMsg( msg, contextBuff,
                                       _replyHeader.contextID,
                                       _needReply ) ;
          pBody     = contextBuff.data() ;
@@ -364,7 +318,7 @@ namespace engine
          {
             if ( _needRollback )
             {
-               INT32 rcTmp = rtnTransRollback( eduCB(), _pDPSCB ) ;
+               INT32 rcTmp = rtnTransRollback( eduCB(), getDPSCB() ) ;
                if ( rcTmp )
                {
                   PD_LOG( PDERROR, "Session[%s] failed to rollback trans "

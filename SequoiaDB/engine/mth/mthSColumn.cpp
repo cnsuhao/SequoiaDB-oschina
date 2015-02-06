@@ -504,7 +504,6 @@ namespace engine
       rc = _attribute.set( attribute ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "failed to set column's attribute:%d", rc ) ;
          goto error ;
       }
 
@@ -513,7 +512,6 @@ namespace engine
          rc = _father->_setAttribute( attribute ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG( PDERROR, "failed to set father's attribute:%d", rc ) ;
             goto error ;
          }
       }

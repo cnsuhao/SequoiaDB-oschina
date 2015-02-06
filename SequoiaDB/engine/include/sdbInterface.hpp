@@ -222,6 +222,8 @@ namespace engine
          virtual const CHAR*     clientName() const = 0 ;
 
          virtual INT32        authenticate( MsgHeader *pMsg ) = 0 ;
+         virtual INT32        authenticate( const CHAR *username,
+                                            const CHAR *password ) = 0 ;
          virtual INT32        disconnect() = 0 ;
 
          virtual BOOLEAN      isAuthed() const = 0 ;

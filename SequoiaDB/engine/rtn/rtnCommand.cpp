@@ -506,6 +506,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       BOOLEAN enSureIndex = TRUE ;
       BOOLEAN isCompressed = FALSE ;
+      BOOLEAN autoIndexId = TRUE ;
       PD_TRACE_ENTRY ( SDB__RTNCREATECL_INIT ) ;
       BSONObj matcher ( pMatcherBuff ) ;
       rc = rtnGetStringElement ( matcher, FIELD_NAME_NAME,
@@ -540,7 +541,17 @@ namespace engine
       rtnGetBooleanElement ( matcher, FIELD_NAME_COMPRESSED,
                              isCompressed ) ;
       if ( isCompressed )
+      {
          _attributes |= DMS_MB_ATTR_COMPRESSED ;
+      }
+
+      rc = rtnGetBooleanElement( matcher, FIELD_NAME_AUTO_INDEX_ID,
+                                 autoIndexId ) ;
+      if ( SDB_OK == rc && !autoIndexId )
+      {
+         _attributes |= DMS_MB_ATTR_NOIDINDEX ;
+      }
+      rc = SDB_OK ;
    done :
       PD_TRACE_EXITRC ( SDB__RTNCREATECL_INIT, rc ) ;
       return rc ;

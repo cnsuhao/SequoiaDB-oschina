@@ -34,6 +34,7 @@
 #include "pmdEDU.hpp"
 #include "pmdEnv.hpp"
 #include "pmd.hpp"
+#include "dpsLogWrapper.hpp"
 
 namespace engine
 {
@@ -44,7 +45,9 @@ namespace engine
    */
    _pmdSession::_pmdSession( SOCKET fd )
    :_socket( &fd, SESSION_SOCKET_DFT_TIMEOUT ),
-    _client( &_socket )
+    _client( &_socket ),
+    _processor( NULL ),
+    _pDPSCB( NULL )
    {
       _pEDUCB  = NULL ;
       _eduID   = PMD_INVALID_EDUID ;
@@ -70,6 +73,11 @@ namespace engine
       clear() ;
    }
 
+   _IProcessor* _pmdSession::getProcessor()
+   {
+      return _processor ;
+   }
+
    void _pmdSession::clear ()
    {
       if ( _pBuff )
@@ -86,6 +94,13 @@ namespace engine
 
       PD_LOG( PDINFO, "Session[%s] attach edu[%d]", sessionName(),
               cb->getID() ) ;
+
+      _pDPSCB = pmdGetKRCB()->getDPSCB() ;
+      if ( SDB_ROLE_COORD != pmdGetDBRole() &&
+           _pDPSCB && !_pDPSCB->isLogLocal() )
+      {
+         _pDPSCB = NULL ;
+      }
 
       _pEDUCB = cb ;
       _eduID  = cb->getID() ;
@@ -106,7 +121,22 @@ namespace engine
       clear() ;
       _client.detachCB() ;
       _pEDUCB->detachSession() ;
+      _pEDUCB->setClientSock( NULL ) ;
       _pEDUCB = NULL ;
+   }
+
+   void _pmdSession::attachProcessor( pmdProcessor *pProcessor )
+   {
+      SDB_ASSERT( pProcessor, "Processor can't be NULL" ) ;
+      _processor = pProcessor ;
+      _processor->attachSession( this ) ;
+   }
+
+   void _pmdSession::detachProcessor()
+   {
+      SDB_ASSERT( _processor, "Processor can't be NULL" ) ;
+      _processor->detachSession() ;
+      _processor = NULL ;
    }
 
    const CHAR* _pmdSession::sessionName () const
@@ -266,6 +296,69 @@ namespace engine
 
       return _socket.recv( buff, sizeof( buff ), recvLen,
                            timeout, MSG_PEEK ) ;
+   }
+
+   /*
+      _pmdProcessor implement
+   */
+   _pmdProcessor::_pmdProcessor()
+   {
+      _pSession = NULL ;
+   }
+
+   _pmdProcessor::~_pmdProcessor()
+   {
+      _pSession = NULL ;
+   }
+
+   void _pmdProcessor::attachSession( pmdSession *pSession )
+   {
+      SDB_ASSERT( pSession, "Session can't be NULL" ) ;
+      _pSession = pSession ;
+      _onAttach() ;
+   }
+
+   void _pmdProcessor::detachSession()
+   {
+      SDB_ASSERT( _pSession, "Session can't be NULL" ) ;
+      _onDetach() ;
+      _pSession = NULL ;
+   }
+
+   _dpsLogWrapper* _pmdProcessor::getDPSCB()
+   {
+      if ( _pSession )
+      {
+         return _pSession->getDPSCB() ;
+      }
+      return NULL ;
+   }
+
+   _IClient* _pmdProcessor::getClient()
+   {
+      if ( _pSession )
+      {
+         return _pSession->getClient() ;
+      }
+      return NULL ;
+   }
+
+   _pmdEDUCB* _pmdProcessor::eduCB()
+   {
+      if ( _pSession )
+      {
+         return _pSession->eduCB() ;
+      }
+      return NULL ;
+   }
+
+   EDUID _pmdProcessor::eduID() const
+   {
+      if ( _pSession )
+      {
+         return _pSession->eduID() ;
+      }
+      return PMD_INVALID_EDUID ;
    }
 
 }

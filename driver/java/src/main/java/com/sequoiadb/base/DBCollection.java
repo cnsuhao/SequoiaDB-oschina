@@ -162,7 +162,7 @@ public class DBCollection {
 	}
 
 	/**
-	 * @fn Object insert(BSONObject obj)
+	 * @fn Object insert(BSONObject insertor)
 	 * @brief Insert a document into current collection, if the document
 	 *        does not contain field "_id", it will be added.
 	 * @param insertor
@@ -292,7 +292,7 @@ public class DBCollection {
 	 *            The List instance of insertor, can't be null or empty
 	 * @exception com.sequoiadb.exception.BaseException 
 	 *            1.while the input argument is null or the List instance is empty
-	 * 			  2.while the type is not support, throw BaseException with the type "SDB_INVALIDARG"
+	 *            2.while the type is not support, throw BaseException with the type "SDB_INVALIDARG"
 	 *            3.while offer main keys by setMainKeys(), and try to update "_id" field,
 	 *              it may get a BaseException with the type of "SDB_IXM_DUP_KEY" when the "_id" field you
 	 *              want to update to had been existing in database 
@@ -712,10 +712,6 @@ public class DBCollection {
 	 *            the ordered rule, never sort if null
 	 * @param hint
 	 *            the hint, automatically match the optimal hint if null
-	 * @param skipRows
-	 *            skip the first numToSkip documents, never skip if this parameter is 0
-	 * @param returnRows
-	 *            only return returnRows documents, return all if this parameter is -1
 	 * @return a DBCursor instance of the result or null if no any matched document
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
@@ -1192,7 +1188,7 @@ public class DBCollection {
 
 	/**
 	 * @fn void split(String sourceGroupName, String destGroupName,
-	 * 				 BSONObject splitCondition, BSONObject splitEndCondition)
+	 *                BSONObject splitCondition, BSONObject splitEndCondition)
 	 * @brief Split the specified collection from source group to target group by range.
 	 * @param sourceGroupName
 	 *            the source group name
@@ -1203,9 +1199,9 @@ public class DBCollection {
      * @param splitEndCondition
 	 *            the split end condition or null
 	 *            eg:If we create a collection with the option {ShardingKey:{"age":1},ShardingType:"Hash",Partition:2^10},
-     *				 we can fill {age:30} as the splitCondition, and fill {age:60} as the splitEndCondition. when split, 
-     *			 	 the targe group will get the records whose age's hash value are in [30,60). If splitEndCondition is null,
-     *			 	 they are in [30,max).
+     *               we can fill {age:30} as the splitCondition, and fill {age:60} as the splitEndCondition. when split, 
+     *               the target group will get the records whose age's hash value are in [30,60). If splitEndCondition is null,
+     *               they are in [30,max).
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	public void split(String sourceGroupName, String destGroupName,
@@ -1273,7 +1269,7 @@ public class DBCollection {
 	
 	/**
 	 * @fn long splitAsync(String sourceGroupName, String destGroupName,
-	 * 				       BSONObject splitCondition, BSONObject splitEndCondition)
+	 *                     BSONObject splitCondition, BSONObject splitEndCondition)
 	 * @brief Split the specified collection from source group to target group by range asynchronously.
 	 * @param sourceGroupName
 	 *            the source group name
@@ -1284,9 +1280,9 @@ public class DBCollection {
      * @param splitEndCondition
 	 *            the split end condition or null
 	 *            eg:If we create a collection with the option {ShardingKey:{"age":1},ShardingType:"Hash",Partition:2^10},
-     *				 we can fill {age:30} as the splitCondition, and fill {age:60} as the splitEndCondition. when split, 
-     *			 	 the targe group will get the records whose age's hash values are in [30,60). If splitEndCondition is null,
-     *			 	 they are in [30,max).
+     *               we can fill {age:30} as the splitCondition, and fill {age:60} as the splitEndCondition. when split, 
+     *               the targe group will get the records whose age's hash values are in [30,60). If splitEndCondition is null,
+     *               they are in [30,max).
      * @return return the task id, we can use the return id to manage the sharding which is run backgroup.
 	 * @exception com.sequoiadb.exception.BaseException
 	 * @see listTask, cancelTask

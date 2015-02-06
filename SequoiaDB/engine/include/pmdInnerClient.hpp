@@ -69,6 +69,8 @@ namespace engine
          virtual const CHAR*     clientName() const ;
 
          virtual INT32        authenticate( MsgHeader *pMsg ) ;
+         virtual INT32        authenticate( const CHAR *username,
+                                            const CHAR *password ) ;
          virtual INT32        disconnect() ;
 
          virtual BOOLEAN      isAuthed() const ;

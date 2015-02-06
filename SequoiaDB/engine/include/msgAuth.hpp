@@ -88,6 +88,11 @@ namespace engine
 
    INT32 extractAuthMsg( MsgHeader *header, BSONObj &obj ) ;
 
+   INT32 msgBuildAuthMsg( CHAR **ppBuffer, INT32 *bufferSize,
+                          const CHAR *username,
+                          const CHAR *password,
+                          UINT64 reqID ) ;
+
 }
 
 #endif

@@ -1,6 +1,6 @@
 <?php
 $isfirst = true ;
-$cscl_list = '{"name":"数据库","child":{"name":"集合空间","child":[' ;
+//$cscl_list = '{"name":"数据库","child":{"name":"集合空间","child":[' ;
 //$db -> install ( "{ install : false }" ) ;
 
 $array_1 = array() ;
@@ -20,7 +20,7 @@ if ( !empty ( $cursor ) )
 $cursor = $db -> getSnapshot ( SDB_LIST_COLLECTIONSPACES ) ;
 if ( !empty ( $cursor ) )
 {
-	if ( $arr = $cursor -> getNext() )
+	while ( $arr = $cursor -> getNext() )
 	{
 		array_push( $array_2, $arr ) ;
 	}

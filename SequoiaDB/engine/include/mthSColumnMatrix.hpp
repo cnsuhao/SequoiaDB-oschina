@@ -35,7 +35,6 @@
 #define MTH_SCOLUMNMATRIX_HPP_
 
 #include "mthSColumn.hpp"
-#include "mthSActionParser.hpp"
 #include "mthNodePool.hpp"
 
 #define MTH_SCOLUMN_POOL_SZ 16
@@ -93,8 +92,6 @@ namespace engine
 
       _mthNodePool<mthSColumn> _columnPool ;
       _mthNodePool<mthSAction> _actionPool ;
-
-      _mthSActionParser _parser ;
    } ;
    typedef class _mthSColumnMatrix mthSColumnMatrix ;
 }

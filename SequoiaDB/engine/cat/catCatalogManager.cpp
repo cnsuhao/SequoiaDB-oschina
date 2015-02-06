@@ -1178,6 +1178,15 @@ namespace engine
             clInfo._autoRebalance = eleTmp.Bool() ;
             fieldMask |= CAT_MASK_AUTOREBALAN ;
          }
+         else if ( 0 == ossStrcmp( eleTmp.fieldName(),
+                                   CAT_AUTO_INDEX_ID ) )
+         {
+            PD_CHECK( Bool == eleTmp.type(), SDB_INVALIDARG, error,
+                      PDERROR, "Field[%s] type[%d] error",
+                      CAT_AUTO_INDEX_ID, eleTmp.type() ) ;
+            clInfo._autoIndexId = eleTmp.Bool() ;
+            fieldMask |= CAT_MASK_AUTOINDEXID ;
+         }
          else
          {
             PD_RC_CHECK ( SDB_INVALIDARG, PDERROR,
@@ -1607,8 +1616,13 @@ namespace engine
       {
          builder.appendBool ( CAT_DOMAIN_AUTO_REBALANCE, clInfo._autoRebalance ) ;
       }
-      catRecord = builder.obj () ;
 
+      if ( mask & CAT_MASK_AUTOINDEXID )
+      {
+         builder.appendBool( CAT_AUTO_INDEX_ID, clInfo._autoIndexId ) ;
+      }
+
+      catRecord = builder.obj () ;
    done:
       PD_TRACE_EXITRC ( SDB_CATALOGMGR_BUILDCATALOGRECORD, rc ) ;
       return rc ;

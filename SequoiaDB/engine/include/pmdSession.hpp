@@ -37,7 +37,6 @@
 #include "msg.h"
 #include "pmdDef.hpp"
 #include "rtnContext.hpp"
-#include "pmdProcessorBase.hpp"
 
 #include <map>
 #include "../bson/bson.h"
@@ -47,9 +46,6 @@ using namespace bson ;
 namespace engine
 {
 
-   class _SDB_DMSCB ;
-   class _dpsLogWrapper ;
-   class _SDB_RTNCB ;
    class _rtnContextBuf ;
 
    /*
@@ -66,9 +62,6 @@ namespace engine
          virtual SDB_SESSION_TYPE sessionType() const ;
 
          virtual INT32     run() ;
-
-         INT32          attachProcessor( _IProcessor *processor ) ;
-         void           detachProcessor() ;
 
       protected:
          INT32          _processMsg( MsgHeader *msg ) ;
@@ -89,17 +82,11 @@ namespace engine
       protected:
 
       protected:
-         _SDB_DMSCB           *_pDMSCB ;
-         _dpsLogWrapper       *_pDPSCB ;
-         _SDB_RTNCB           *_pRTNCB ;
-
          MsgOpReply           _replyHeader ;
          BOOLEAN              _needReply ;
          BOOLEAN              _needRollback ;
 
          BSONObj              _errorInfo ;
-
-         _IProcessor          *_processor ;
 
    } ;
    typedef _pmdLocalSession pmdLocalSession ;

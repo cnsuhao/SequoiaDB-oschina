@@ -36,33 +36,32 @@
 #include "pmd.hpp"
 #include "rtnCB.hpp"
 #include "dmsCB.hpp"
-#include "pmdProcessorBase.hpp"
+#include "dpsLogWrapper.hpp"
+#include "pmdSessionBase.hpp"
 
 namespace engine
 {
    /*
       _pmdDataProcessor define
    */
-   class _pmdDataProcessor : public _IProcessor
+   class _pmdDataProcessor : public _pmdProcessor
    {
       public:
          _pmdDataProcessor() ;
          virtual ~_pmdDataProcessor() ;
 
       public:
-         virtual INT32           processMsg( MsgHeader *msg, 
-                                             SDB_DPSCB *dpsCB,
-                                             rtnContextBuf &contextBuff, 
+         virtual INT32           processMsg( MsgHeader *msg,
+                                             rtnContextBuf &contextBuff,
                                              INT64 &contextID,
                                              BOOLEAN &needReply ) ;
 
          virtual const CHAR*           processorName() const ;
          virtual SDB_PROCESSOR_TYPE    processorType() const ;
-         virtual ISession*             getSession() ;
 
-      public:
-         virtual INT32           attachSession( ISession *pSession ) ;
-         virtual void            detachSession() ;
+      protected:
+         virtual void                  _onAttach () ;
+         virtual void                  _onDetach () ;
 
       protected:
          INT32                   _onMsgReqMsg( MsgHeader * msg ) ;
@@ -102,9 +101,6 @@ namespace engine
 
       protected:
          _SDB_KRCB *             _pKrcb ;
-         _ISession *             _pSession ;
-         _IClient*               _pClient ;
-         _pmdEDUCB *             _pEDUCB ;
          _SDB_DMSCB *            _pDMSCB ;
          _SDB_RTNCB *            _pRTNCB ;
    } ;
@@ -120,21 +116,17 @@ namespace engine
          virtual ~_pmdCoordProcessor() ;
 
       public:
-         virtual INT32           processMsg( MsgHeader *msg, 
-                                             SDB_DPSCB *dpsCB,
-                                             rtnContextBuf &contextBuff, 
+         virtual INT32           processMsg( MsgHeader *msg,
+                                             rtnContextBuf &contextBuff,
                                              INT64 &contextID,
                                              BOOLEAN &needReply ) ;
 
          virtual const CHAR*           processorName() const ;
          virtual SDB_PROCESSOR_TYPE    processorType() const ;
-         virtual ISession*             getSession() ;
-
-      public:
-         virtual INT32           attachSession( ISession *pSession ) ;
-         virtual void            detachSession() ;
 
       protected:
+         virtual void                  _onAttach () ;
+         virtual void                  _onDetach () ;
 
       protected:
          MsgOpReply              _replyHeader ;
@@ -144,8 +136,7 @@ namespace engine
       private:
          INT32                   _processCoordMsg( MsgHeader *msg, 
                                                    MsgOpReply &replyHeader,
-                                                   rtnContextBuf &contextBuff 
-                                                 ) ;
+                                                   rtnContextBuf &contextBuff ) ;
    } ;
 
    typedef _pmdCoordProcessor pmdCoordProcessor ;

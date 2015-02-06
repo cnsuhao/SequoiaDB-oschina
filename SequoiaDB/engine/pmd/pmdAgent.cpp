@@ -66,7 +66,6 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_PMDLOCALAGENTENTPNT );
-      pmdCoordProcessor coordProcessor ;
 
       SOCKET s = *(( SOCKET *) &arg ) ;
       pmdLocalSession localSession( s ) ;
@@ -74,20 +73,17 @@ namespace engine
 
       if ( pmdGetDBRole() == SDB_ROLE_COORD )
       {
-         coordProcessor.attachSession( &localSession ) ;
+         pmdCoordProcessor coordProcessor ;
          localSession.attachProcessor( &coordProcessor ) ;
          rc = localSession.run() ;
          localSession.detachProcessor() ;
-         coordProcessor.detachSession() ;
       }
       else
       {
          pmdDataProcessor dataProcessor ;
-         dataProcessor.attachSession( &localSession ) ;
          localSession.attachProcessor( &dataProcessor ) ;
          rc = localSession.run() ;
          localSession.detachProcessor() ;
-         dataProcessor.detachSession() ;
       }
 
       localSession.detach() ;

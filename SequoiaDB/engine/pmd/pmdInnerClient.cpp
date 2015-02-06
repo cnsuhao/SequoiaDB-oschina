@@ -130,6 +130,17 @@ namespace engine
       goto done ;
    }
 
+   INT32 _pmdInnerClient::authenticate( const CHAR *username,
+                                        const CHAR *password )
+   {
+      if ( !username || !password )
+      {
+         return SDB_INVALIDARG ;
+      }
+      _isAuthed = TRUE ;
+      return SDB_OK ;
+   }
+
    INT32 _pmdInnerClient::disconnect()
    {
       return SDB_OK ;

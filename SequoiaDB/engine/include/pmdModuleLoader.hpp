@@ -44,48 +44,59 @@
 
 #define OSS_FAP_CREATE  ( IPmdAccessProtocol*(*)() )
 #define OSS_FAP_RELEASE ( void(*)( IPmdAccessProtocol *) )
+#define CREATE_FAP_NAME "createAccessProtocol"
+#define RELEASE_FAP_NAME "releaseAccessProtocol"
 
-namespace engine {
-
-class _pmdEDUParam : public SDBObject
+namespace engine
 {
-public:
-   _pmdEDUParam() : pSocket( NULL ), protocol( NULL )
-   {}
-
-   virtual ~_pmdEDUParam()
+   /*
+      _pmdEDUParam define
+   */
+   class _pmdEDUParam : public SDBObject
    {
-      pSocket = NULL ;
-      protocol = NULL ;
-   }
+   public:
+      _pmdEDUParam() : pSocket( NULL ), protocol( NULL )
+      {}
 
-   void               *pSocket ;
-   IPmdAccessProtocol *protocol ;
-};
-typedef _pmdEDUParam pmdEDUParam ;
+      virtual ~_pmdEDUParam()
+      {
+         pSocket = NULL ;
+         protocol = NULL ;
+      }
 
-class _pmdModuleLoader : public SDBObject
-{
-public:
-   _pmdModuleLoader() ;
-   virtual ~_pmdModuleLoader() ;
+      void               *pSocket ;
+      IPmdAccessProtocol *protocol ;
+   };
+   typedef _pmdEDUParam pmdEDUParam ;
 
-   virtual INT32 init()   { return SDB_OK ; }
-   virtual INT32 active() { return SDB_OK ; }
-   virtual INT32 fini()   { return SDB_OK ; }
+   /*
+      _pmdModuleLoader define
+   */
+   class _pmdModuleLoader : public SDBObject
+   {
+   public:
+      _pmdModuleLoader() ;
+      virtual ~_pmdModuleLoader() ;
 
-   INT32 getFunction( const CHAR *funcName, OSS_MODULE_PFUNCTION *function ) ;
-   INT32 create ( IPmdAccessProtocol *&protocol ) ;
-   INT32 release( IPmdAccessProtocol *protocol ) ;
+      virtual INT32 init()   { return SDB_OK ; }
+      virtual INT32 active() { return SDB_OK ; }
+      virtual INT32 fini()   { return SDB_OK ; }
 
-   INT32 load( const CHAR *mudule, const CHAR *path, UINT32 mode = 0 ) ;
-   void  unload() ;
+      INT32 getFunction( const CHAR *funcName,
+                         OSS_MODULE_PFUNCTION *function ) ;
+      INT32 create ( IPmdAccessProtocol *&protocol ) ;
+      INT32 release( IPmdAccessProtocol *protocol ) ;
 
-protected:
-   OSS_MODULE_PFUNCTION  _function ;
-   ossModuleHandle      *_loadModule ;
-};
+      INT32 load( const CHAR *mudule, const CHAR *path,
+                  UINT32 mode = 0 ) ;
+      void  unload() ;
 
-typedef _pmdModuleLoader pmdModuleLoader ;
+   protected:
+      OSS_MODULE_PFUNCTION  _function ;
+      ossModuleHandle      *_loadModule ;
+   };
+
+   typedef _pmdModuleLoader pmdModuleLoader ;
 }
-#endif
+
+#endif // _SDB_MODULE_LOADER_HPP_
