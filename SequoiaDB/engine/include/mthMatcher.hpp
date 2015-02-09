@@ -327,6 +327,9 @@ namespace engine
       INT32 _loadPattern ( const BSONObj &matchPattern,
                            BOOLEAN predicatable ) ;
       INT32 _getDollarNumber ( const CHAR *pFieldName, INT32 &number ) ;
+
+      INT32 _createBsonBuilder( BSONObjBuilder **builder ) ;
+
       friend class _mthMatcher::_MatchElement ;
    public:
       _mthMatcher ()

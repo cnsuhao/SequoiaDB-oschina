@@ -237,7 +237,8 @@ namespace engine
          virtual INT32  _checkVersion( dmsStorageUnitHeader *pHeader ) = 0 ;
          virtual INT32  _onCreate( OSSFILE *file, UINT64 curOffSet ) = 0 ;
          virtual INT32  _onMapMeta( UINT64 curOffSet ) = 0 ;
-         virtual void   _onClosed() { return ;}
+         virtual void   _onClosed() {}
+         virtual void   _onOpened() {}
          virtual UINT32 _extendThreshold() const ;
          virtual UINT32 _getSegmentSize() const ;
          virtual void   _initHeaderPageSize( dmsStorageUnitHeader *pHeader,

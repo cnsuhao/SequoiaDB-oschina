@@ -17,7 +17,7 @@
 *******************************************************************************/
 /*
 @description: check whether target host has installed valid db packet or not,
-              then record the result to a file in /tmp/omatmp/temp
+              then record the result to a file in /tmp/omatmp/tmp
 @modify list:
    2015-1-6 Zhaobo Tan  Init
 @parameter
@@ -42,7 +42,7 @@ function _init()
 {
    if ( SYS_LINUX == SYS_TYPE )
    {
-      expect_programs = [ "sequoiadb", "sdb", "sdbcm", "sdbcmd", "sdbcmart", "sdbcmtop"] ;
+      expect_programs = [ "sequoiadb", "sdb", "sdbcm", "sdbcmd", "sdbcmart", "sdbcmtop" ] ;
    }
    else
    {

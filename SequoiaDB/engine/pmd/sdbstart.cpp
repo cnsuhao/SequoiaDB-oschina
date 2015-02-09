@@ -458,7 +458,7 @@ namespace engine
                {
                   ossPrintf( "%s: %u bytes out==>%s%s%s<=="OSS_NEWLINE,
                              info._svcname.c_str(),
-                             outString.length() + ossStrlen( OSS_NEWLINE ) * 2,
+                             (UINT32)(outString.length() + ossStrlen( OSS_NEWLINE ) * 2 ),
                              OSS_NEWLINE,
                              outString.c_str(),
                              OSS_NEWLINE ) ;

@@ -54,11 +54,13 @@ namespace engine
    enum OMA_TASK_TYPE
    {
       OMA_TASK_ADD_HOST           = 0, // add host
-      OMA_TASK_ADD_HOST_SUB       = 1,
-      OMA_TASK_INSTALL_DB         = 2, // install db business
-      OMA_TASK_REMOVE_DB          = 3, // remove db business
+      OMA_TASK_INSTALL_DB         = 1, // install db business
+      OMA_TASK_REMOVE_DB          = 2, // remove db business
 
-      OMA_TASK_UNKNOW             = 255
+
+      OMA_TASK_ADD_HOST_SUB       = 10, // add host bus task
+
+      OMA_TASK_END
    } ;
 
    enum OMA_TASK_STATUS
@@ -93,7 +95,7 @@ namespace engine
          {
             _taskID           = taskID ;
             _taskStatus       = OMA_TASK_STATUS_INIT ;
-            _subTaskSerailNum = 0 ;
+            _subTaskSerialNum = 0 ;
          }
          virtual ~_omaTask () {}
 
@@ -105,7 +107,7 @@ namespace engine
          void setTaskStatus( OMA_TASK_STATUS status ) ;
          INT32 setSubTaskStatus( string &name, OMA_TASK_STATUS status ) ;
          INT32 getSubTaskStatus( string &name, OMA_TASK_STATUS &status ) ;
-         INT32 getSubTaskSerailNum() ;
+         INT32 getSubTaskSerialNum() ;
 
       public:
          virtual INT32 init( const BSONObj &info, void *ptr = NULL ) = 0 ;
@@ -118,7 +120,7 @@ namespace engine
          string                           _taskName ;
          OMA_TASK_STATUS                  _taskStatus ;
          map< string, OMA_TASK_STATUS >   _subTaskStatus ;
-         INT32                            _subTaskSerailNum ;
+         INT32                            _subTaskSerialNum ;
    } ;
    typedef _omaTask omaTask ;
 

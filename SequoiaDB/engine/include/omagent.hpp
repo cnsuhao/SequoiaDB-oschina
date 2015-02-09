@@ -68,6 +68,7 @@ namespace engine
    } ;
    typedef struct _InstallInfo InstallInfo ;
 
+
    struct _InstalledNode
    {
       string _role ;
@@ -201,6 +202,7 @@ namespace engine
    } ;
    typedef struct _AddHostInfo AddHostInfo ;
 
+/*
    struct _AddHostResult
    {
       INT64             _taskID ;
@@ -209,7 +211,47 @@ namespace engine
       map< INT32, AddHostResultInfo > _map_result ;
    } ;
    typedef struct _AddHostResult AddHostResult ;
+*/
 
+
+   struct _InstDBInfo
+   {
+      string _hostName ;
+      string _svcName ;
+      string _dbPath ;
+      string _confPath ;
+      string _dataGroupName ;
+      string _sdbUser ;
+      string _sdbPasswd ;
+      string _sdbUserGroup ;
+      string _user ;
+      string _passwd ;
+      string _sshPort ;
+      BSONObj _conf ;
+   } ;
+   typedef struct _InstDBInfo InstDBInfo ;
+
+   struct _InstDBResult
+   {
+      INT32          _errno ;
+      string         _detail ;
+      string         _hostName ;
+      string         _svcName ;
+      string         _role ;
+      string         _groupName ;
+      INT32          _status ;
+      string         _statusDesc ;
+      vector<string> _flow ;
+   } ;
+   typedef struct _InstDBResult InstDBResult ;
+
+   struct _InstDBBusInfo
+   {
+      INT32          _nodeSerialNum ;
+      InstDBInfo     _instInfo ;
+      InstDBResult   _instResult ;
+   } ;
+   typedef struct _InstDBBusInfo InstDBBusInfo ;
    
 }
 

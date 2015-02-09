@@ -115,11 +115,47 @@ namespace engine
          INT32 init( const BSONObj &info, void *ptr = NULL ) ;
          INT32 doit() ;
 
-      private:
+      public:
+         INT32 updateProgressToTask( INT32 serialNum, InstDBResult &instResult,
+                                     BOOLEAN needToNotify = FALSE ) ;
 
       private:
-         BSONObj                           _instDBBusRawInfo ;
+         INT32 _initInstInfo( BSONObj &info ) ;
+         INT32 _initInstAndResultInfo( BSONObj &hostInfo,
+                                       InstDBBusInfo &info ) ;
+         INT32 _restoreResultInfo() ;
+         INT32 _waitAndUpdateProgress() ;
+         void  _buildResultInfo( vector<InstDBBusInfo> &info,
+                                 BSONArrayBuilder &bab ) ;
+         void  _buildUpdateTaskObj( BSONObj &retObj ) ;
+         INT32 _updateProgressToOM() ;
+         BOOLEAN _isTaskFinish() ;
          
+
+      private:
+         INT32 _saveTmpCoordInfo( BSONObj &info ) ;
+         INT32 _installTmpCoord() ;
+         INT32 _installStandalone() ;
+         INT32 _rollback() ;
+         INT32 _rollbackStandalone() ;
+/*
+         INT32 _installCatalog() ;
+         INT32 _installCoord() ;
+         INT32 _installData() ;
+*/
+
+      private:
+         BSONObj                                _instDBBusRawInfo ;
+         vector<InstDBBusInfo>                  _standalone ;
+         vector<InstDBBusInfo>                  _catalog ;
+         vector<InstDBBusInfo>                  _coord ;
+         map< string, vector<InstDBBusInfo> >   _mapGroups ;
+         
+         string                            _tmpCoordSvcName ;
+
+         BOOLEAN                           _isStandalone ;
+         
+         INT32                             _nodeSerialNum ;
          ossSpinSLatch                     _taskLatch ;
          ossEvent                          _taskEvent ;
          UINT64                            _eventID ; 

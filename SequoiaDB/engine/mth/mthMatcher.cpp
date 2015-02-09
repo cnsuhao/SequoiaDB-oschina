@@ -651,6 +651,43 @@ namespace engine
       goto done ;
    }
 
+   INT32 _mthMatcher::_createBsonBuilder( BSONObjBuilder **builder )
+   {
+      SDB_ASSERT( NULL != builder, "builder should not be null" ) ;
+
+      INT32 rc = SDB_OK ;
+      BSONObjBuilder *b = SDB_OSS_NEW BSONObjBuilder () ;
+      if ( !b )
+      {
+         PD_LOG ( PDERROR, "Failed to allocate memory for BSONObjBuilder" ) ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+      try
+      {
+         _builderList.push_back ( b ) ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG ( PDERROR, "Failed to push builder to builder list: %s",
+                  e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      *builder = b ;
+
+   done:
+      return rc ;
+   error:
+      if ( b )
+      {
+         SDB_OSS_DEL b ;
+         b = NULL ;
+      }
+      goto done ;
+   }
+
    PD_TRACE_DECLARE_FUNCTION ( SDB__MTHMACH__ADDOP, "_mthMatcher::_addOperator" )
    INT32 _mthMatcher::_addOperator ( const BSONElement &ele,
                                      const BSONElement &embEle,
@@ -704,29 +741,14 @@ namespace engine
       case BSONObj::Equality:
       {
 
-         BSONObjBuilder *b = SDB_OSS_NEW BSONObjBuilder () ;
-         if ( !b )
+         BSONObjBuilder *b = NULL ;
+         rc = _createBsonBuilder( &b ) ;
+         if ( SDB_OK != rc )
          {
-            PD_LOG ( PDERROR, "Failed to allocate memory for BSONObjBuilder" ) ;
-            rc = SDB_OOM ;
+            PD_LOG ( PDERROR, "Failed to create bson builder:rc=%d", rc ) ;
             goto error ;
          }
-         try
-         {
-            _builderList.push_back ( b ) ;
-         }
-         catch( std::exception &e )
-         {
-            if ( b )
-            {
-               SDB_OSS_DEL b ;
-               b = NULL ;
-            }
-            PD_LOG ( PDERROR, "Failed to push builder to builder list: %s",
-                     e.what() ) ;
-            rc = SDB_SYS ;
-            goto error ;
-         }
+
          b->appendAs ( embEle, ele.fieldName() ) ;
          rc = _injectElement ( b->done().firstElement(),
                                ( BSONObj::MatchType )op,
@@ -774,10 +796,32 @@ namespace engine
                     "Failed to create LogicMatchElement" ) ;
             goto error ;
          }
-         clme->_me = SDB_OSS_NEW MatchElement( ele,
-                                              (BSONObj::MatchType)op,
-                                               embEle.embeddedObject()
-                                              ) ;
+         if ( ele.isABSONObj() && ele.embeddedObject().nFields() > 1 )
+         {
+            BSONObj tmpObj ;
+            BSONObjBuilder *tmpBuilder = NULL ;
+            rc = _createBsonBuilder( &tmpBuilder ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG ( PDERROR, "Failed to create bson builder:rc=%d", rc ) ;
+               goto error ;
+            }
+
+            tmpObj = BSON( embEle.fieldName() << embEle.embeddedObject() ) ;
+            tmpBuilder->append( ele.fieldName(), tmpObj ) ;
+
+            clme->_me = SDB_OSS_NEW MatchElement( 
+                                             tmpBuilder->done().firstElement(),
+                                             ( BSONObj::MatchType )op,
+                                             embEle.embeddedObject() ) ;
+
+         }
+         else
+         {
+            clme->_me = SDB_OSS_NEW MatchElement( ele, ( BSONObj::MatchType )op,
+                                                  embEle.embeddedObject() ) ;
+         }
+         
          if ( !clme->_me )
          {
             PD_LOG ( PDERROR, "Failed to allocate memory for MatchElement" ) ;
@@ -978,11 +1022,6 @@ namespace engine
          _setWeight ( _rlme ) ;
          _sortLME ( _rlme ) ;
          _checkTotallyConverted( _rlme ) ;
-         if ( !_predicateSet.isValid() )
-         {
-            rc = SDB_RTN_INVALID_PREDICATES ;
-            goto error ;
-         }
       }
       catch ( std::exception &e )
       {

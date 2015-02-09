@@ -109,6 +109,11 @@ namespace engine
 
    INT32 _dmsStorageIndex::_onMapMeta( UINT64 curOffSet )
    {
+      return SDB_OK ;
+   }
+
+   void _dmsStorageIndex::_onOpened()
+   {
       for ( UINT16 i = 0 ; i < DMS_MME_SLOTS ; i++ )
       {
          if ( DMS_IS_MB_INUSE ( _pDataSu->_dmsMME->_mbList[i]._flag ) )
@@ -129,7 +134,6 @@ namespace engine
             }
          }
       }
-      return SDB_OK ;
    }
 
    void _dmsStorageIndex::_onClosed()

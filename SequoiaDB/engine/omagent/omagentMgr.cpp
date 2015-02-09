@@ -1016,7 +1016,7 @@ namespace engine
             _mapTaskQuery.erase ( it ) ;
          }
 
-         PD_LOG ( PDINFO, "The query task[%lld] has %d jobs", msg->requestID,
+         PD_LOG ( PDINFO, "The query[%lld] task has %d jobs", msg->requestID,
                   numReturned ) ;
 
          {
@@ -1179,7 +1179,7 @@ namespace engine
    INT32 _omAgentMgr::_startTask( const BSONObj &obj )
    {
       INT32 rc       = SDB_OK ;
-      INT32 taskType = OMA_TASK_UNKNOW ;
+      INT32 taskType = OMA_TASK_END ;
       INT64 taskID   = 0 ;
       BSONElement ele ;
       BSONObj data ;

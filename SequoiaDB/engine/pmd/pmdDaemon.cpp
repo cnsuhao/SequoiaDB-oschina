@@ -264,6 +264,11 @@ namespace engine
 
    void iPmdDMNChildProc::freeSHM()
    {
+      if ( _procInfo )
+      {
+         _procInfo->szTag[ 0 ] = 0 ;
+         _procInfo->init() ;
+      }
       ossSHMFree( _shmMid, (CHAR **)(&_procInfo) );
    }
 
@@ -415,6 +420,8 @@ namespace engine
             }
             ossSleep( 2 * OSS_ONE_SEC ) ;
          }
+         _procInfo->szTag[ 0 ] = 0 ;
+         _procInfo->init() ;
       }
       else
       {

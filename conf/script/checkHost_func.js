@@ -28,7 +28,7 @@ var dirs = [ OMA_PATH_TEMP_OMA_DIR_L,
              OMA_PATH_TEMP_LOG_DIR_L,
              OMA_PATH_TEMP_SPT_DIR_L,
              OMA_PATH_TEMP_TEMP_DIR_L,
-             OMA_PATH_VCOORD_PATH_L ] ;
+             OMA_PATH_TMP_COORD_PATH ] ;
              
 // tool programs used to start remote sdbcm in remote
 var programs = [ "sdblist", "sdbcmd", "sdbcm", "sdbcmart", "sdbcmtop" ] ;

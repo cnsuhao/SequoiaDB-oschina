@@ -136,10 +136,10 @@ namespace engine
       goto done ;
    }
 
-   INT32 _omaTask::getSubTaskSerailNum()
+   INT32 _omaTask::getSubTaskSerialNum()
    {
       ossScopedLock lock ( &_latch, EXCLUSIVE ) ;
-      return _subTaskSerailNum++ ;
+      return _subTaskSerialNum++ ;
    }
 
    /*

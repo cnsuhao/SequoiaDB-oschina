@@ -131,6 +131,12 @@ namespace engine
          _startKey._inclusive = _stopKey._inclusive = TRUE ;
          _equality = 1 ;
       }
+      rtnStartStopKey( INT32 imPossibleCondition )
+      {
+         _startKey._bound = _stopKey._bound = maxKey.firstElement() ;
+         _startKey._inclusive = _stopKey._inclusive = FALSE ;
+         _equality = 1 ;
+      }
       string toString() const ;
       BSONObj toBson () const ;
       BOOLEAN fromBson ( BSONObj &ob ) ;
@@ -233,7 +239,6 @@ namespace engine
       INT32 matchLevelForIndex ( const BSONObj &keyPattern ) const ;
       INT32 addPredicate ( const CHAR *fieldName, const BSONElement &e,
                            BOOLEAN isNot ) ;
-      BOOLEAN isValid() ;
       void clear()
       {
          _predicates.clear() ;

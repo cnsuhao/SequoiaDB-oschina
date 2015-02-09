@@ -37,6 +37,8 @@ var RET_JSON       = new checkAddHostInfoResult() ;
 var rc             = SDB_OK ;
 var errMsg         = "" ;
 
+var task_dir       = "" ;
+
 
 /* *****************************************************************************
 @discretion: init
@@ -61,6 +63,26 @@ function _init()
               sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
       exception_handle( SDB_SYS, errMsg ) ;
    }
+   // 2. try to remove exist task log directory
+   try
+   {
+      task_dir = adaptPath( LOG_FILE_PATH + Task ) + task_id ;
+println("task dir is: " + task_dir) ;
+
+      if ( false == File.exist( task_dir ) )
+         File.mkdir( task_dir ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = sprintf( "Failed to initialize add host task[?]'s log directory", task_id ) ;
+      PD_LOG( arguments, PDWARNING, FILE_NAME_CHECK_ADD_HOST_INFO,
+              sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+// println
+/*
    // 2. try to remove task log file
    try
    {
@@ -73,12 +95,13 @@ println("task log file is: " + task_log_file) ;
    catch( e )
    {
       SYSEXPHANDLE( e ) ;
-      PD_LOG2( task_id, arguments, PDWARNING, FILE_NAME_CHECK_ADD_HOST_INFO,
-               sprintf( "Try to remove task[?]'s log file failed, rc: ?, detail: ?",
-                        task_id, GETLASTERROR(), GETLASTERRMSG() ) ) ;
+      PD_LOG( arguments, PDWARNING, FILE_NAME_CHECK_ADD_HOST_INFO,
+              sprintf( "Try to remove task[?]'s log file failed, rc: ?, detail: ?",
+                       task_id, GETLASTERROR(), GETLASTERRMSG() ) ) ;
    }
+*/
    
-   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_CHECK_ADD_HOST_INFO, "Begin to check add host info" ) ;
+   PD_LOG( arguments, PDEVENT, FILE_NAME_CHECK_ADD_HOST_INFO, "Begin to check add host info" ) ;
 }
 
 /* *****************************************************************************
@@ -89,7 +112,7 @@ println("task log file is: " + task_log_file) ;
 ***************************************************************************** */
 function _final()
 {
-   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_CHECK_ADD_HOST_INFO, "Finish checking add host info" ) ;
+   PD_LOG( arguments, PDEVENT, FILE_NAME_CHECK_ADD_HOST_INFO, "Finish checking add host info" ) ;
 }
 
 
@@ -128,8 +151,8 @@ function checkAddHostInfo()
       SYSEXPHANDLE( e ) ;
       errMsg = sprintf( "Failed to get db install info in localhost[?]", localIP ) ;
       rc = GETLASTERROR() ;
-      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
-               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
+              sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
       exception_handle( rc, errMsg ) ;
    }
 
@@ -147,16 +170,16 @@ function checkAddHostInfo()
       SYSEXPHANDLE( e ) ;
       errMsg = "Js receive invalid argument" ;
       rc = GETLASTERROR() ;
-      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
-               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
+              sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
       exception_handle( SDB_INVALIDARG, errMsg ) ; 
    }
    if ( 0 == hostNum )
    {
       errMsg = "Not specified any host's info to check" ;
       rc = SDB_INVALIDARG ;
-      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
-               sprintf( errMsg + ", rc: ?", rc ) ) ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
+              sprintf( errMsg + ", rc: ?", rc ) ) ;
       exception_handle( rc, errMsg ) ;
    }
       
@@ -180,8 +203,8 @@ function checkAddHostInfo()
          {
             errMsg = "When installing db packet in localhost[" + localIP + "], sdb admin user[" + sdbUser  + "] needs to match current one[" + adminUser + "]" ;
             rc = SDB_INVALIDARG ;
-            PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
-                     sprintf( errMsg + ", rc: ?", rc ) ) ;
+            PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
+                    sprintf( errMsg + ", rc: ?", rc ) ) ;
             exception_handle( rc, errMsg ) ; 
          }
          else
@@ -197,8 +220,8 @@ function checkAddHostInfo()
                SYSEXPHANDLE( e ) ;
                errMsg = "When installing db packet in localhost[" + localIP + "], sdb admin password needs to match current one" ;
                rc = GETLASTERROR() ;
-               PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
-                        sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+               PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
+                       sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
                exception_handle( SDB_INVALIDARG, errMsg ) ; 
             }
          }
@@ -208,8 +231,8 @@ function checkAddHostInfo()
          {
             errMsg = "When installing db packet in localhost[" + localIP + "], agent service[" + port  + "] needs to match current one[" + localAgentPort  + "]" ;
             rc = SDB_INVALIDARG ;
-            PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
-                     sprintf( errMsg + ", rc: ?", rc ) ) ;
+            PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
+                    sprintf( errMsg + ", rc: ?", rc ) ) ;
             exception_handle( rc, errMsg ) ; 
          }
          // thirdly, check install path
@@ -219,8 +242,8 @@ function checkAddHostInfo()
          {
             errMsg = "When installing db packet in localhost[" + localIP + "], install path[" + path  + "] needs to match current one[" + installPath  + "]" ;
             rc = SDB_INVALIDARG ;
-            PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
-                     sprintf( errMsg + ", rc: ?", rc ) ) ;
+            PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
+                    sprintf( errMsg + ", rc: ?", rc ) ) ;
             exception_handle( rc, errMsg ) ; 
          }
       }
@@ -242,8 +265,8 @@ function main()
       SYSEXPHANDLE( e ) ;
       errMsg = "Failed to check add host's information" ;
       rc = GETLASTERROR() ;
-      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
-               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
+              sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
       RET_JSON[Errno] = rc ;
       RET_JSON[Detail] = errMsg ;
    }

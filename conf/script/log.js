@@ -60,13 +60,13 @@ catch( e )
 if( "LINUX" == OS_TYPE_IN_JS_LOG )
 {
    LOG_NEW_LINE  = "\n" ;
-   LOG_FILE_PATH = "../conf/log/" ;
+   LOG_FILE_PATH = "../web/log/" ;
    JS_LOG_FILE   = LOG_FILE_PATH + LOG_FILE_NAME ;
 }
 else
 {
    LOG_NEW_LINE = "\r\n" ;
-   LOG_FILE_PATH = "..\\conf\\log\\" ;
+   LOG_FILE_PATH = "..\\web\\log\\" ;
    JS_LOG_FILE   = LOG_FILE_PATH + LOG_FILE_NAME ;
 }
 
@@ -242,12 +242,6 @@ function _getJsLogFile( type )
    default:
       if ( "number" == typeof(type) && 0 <= type )
       {
-         /*
-         if ( "LINUX" == OS_TYPE_IN_JS_LOG )
-            return "../conf/log/" + TaskLog + type + ".log" ;
-         else
-            return "..\\conf\\log\\" + TaskLog + type + ".log" ;
-         */
          return LOG_FILE_PATH + LOG_FILE_NAME ;
       }
       else

@@ -547,7 +547,7 @@ namespace engine
          ~_omaRunRollbackStandaloneJob () ;
 
       public:
-         virtual const CHAR* name () { return OMA_JOB_ROLLBACK_STANDALONE ; }
+         virtual const CHAR* name () { return OMA_ROLLBACK_STANDALONE ; }
          virtual INT32 init ( const CHAR *pInstallInfo ) ;
 
       private:

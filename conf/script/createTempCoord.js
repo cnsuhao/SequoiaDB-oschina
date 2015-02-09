@@ -82,7 +82,7 @@ function main()
       omaSvcName    = Oma.getAOmaSvcName( "localhost" ) ;
       vCoordSvcName = getAUsablePortFromLocal( osInfo ) + "" ;
       cataAddr      = getCatalogAddress( BUS_JSON ) ;
-      dataPath      = OMA_PATH_VCOORD_PATH_L + vCoordSvcName ;
+      dataPath      = OMA_PATH_TMP_COORD_PATH + vCoordSvcName ;
       oma           = new Oma( omaHostName, omaSvcName ) ;
       // create virtual coord
       oma.createCoord( vCoordSvcName, dataPath, cataAddr ) ;

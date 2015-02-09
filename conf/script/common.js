@@ -67,6 +67,18 @@ function addHostRollbackResult()
    this.HasUninstall              = false ;
 }
 
+function installNodeResult()
+{
+   this.errno                     = SDB_OK ;
+   this.detail                    = "" ;
+}
+
+function rollbackNodeResult()
+{
+   this.errno                     = SDB_OK ;
+   this.detail                    = "" ;
+}
+
 function removeHostResult()
 {
    this.errno                     = SDB_OK ;

@@ -715,8 +715,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNPRED_RTNPRED ) ;
       _isInitialized = FALSE ;
       INT32 op = e.getGtLtOp() ;
-      if ( ( !isNot && !e.eoo() && e.type() != RegEx && op == BSONObj::opIN )
-           || ( e.type() == Array && op == BSONObj::Equality ) )
+      if ( ( !isNot && !e.eoo() && e.type() != RegEx && op == BSONObj::opIN ) )
       {
          set<BSONElement, element_lt> vals ;
          vector<rtnPredicate> regexes ;
@@ -867,7 +866,27 @@ namespace engine
       switch(op)
       {
       case BSONObj::Equality:
-         startKey = stopKey = e ;
+         if ( e.type() == Array )
+         {
+            BSONObjIterator i ( e.embeddedObject()) ;
+            while ( i.more() )
+            {
+               BSONElement x = i.next() ;
+               if ( x.type() == Object &&
+                    x.embeddedObject().firstElement().getGtLtOp() ==
+                    BSONObj::opELEM_MATCH )
+                  continue ;
+               if ( x.type() != RegEx )
+               {
+                  startKey = stopKey = x ;
+                  break ;
+               }
+            }
+         }
+         else
+         {
+            startKey = stopKey = e ;
+         }
          break ;
       case BSONObj::NE:
       {
@@ -1093,24 +1112,6 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDSET_ISVALID, "_rtnPredicateSet::isValid" )
-   BOOLEAN _rtnPredicateSet::isValid()
-   {
-      PD_TRACE_ENTRY ( SDB__RTNPREDSET_ISVALID ) ;
-      BOOLEAN ret = TRUE ;
-      map<string, rtnPredicate>::const_iterator f ;
-      for ( f = _predicates.begin(); f != _predicates.end(); ++f )
-      {
-         if ( (*f).second._startStopKeys.size() == 0 )
-         {
-            ret = FALSE ;
-            break ;
-         }
-      }
-      PD_TRACE_EXIT ( SDB__RTNPREDSET_ISVALID ) ;
-      return ret ;
-   }
-
    PD_TRACE_DECLARE_FUNCTION ( SDB__RTNPREDLIST__RTNPREDLIST, "_rtnPredicateList::_rtnPredicateList" )
    _rtnPredicateList::_rtnPredicateList ( const rtnPredicateSet &predSet,
                                           const _ixmIndexCB *indexCB,
@@ -1119,11 +1120,19 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__RTNPREDLIST__RTNPREDLIST ) ;
       _direction = direction>0?1:-1 ;
       _keyPattern = indexCB->keyPattern() ;
+      static rtnStartStopKey s_emptyStartStopKey( 0 ) ;
       BSONObjIterator i(_keyPattern) ;
       while ( i.more() )
       {
          BSONElement e = i.next() ;
          const rtnPredicate &pred = predSet.predicate ( e.fieldName() ) ;
+         if ( pred.isEmpty() )
+         {
+            rtnPredicate emptyPred ;
+            emptyPred._startStopKeys.push_back( s_emptyStartStopKey ) ;
+            _predicates.push_back( emptyPred ) ;
+            break ;
+         }
          INT32 num = (INT32)e.number() ;
          BOOLEAN forward = ((num>=0?1:-1)*(direction>=0?1:-1)>0) ;
          if ( forward )

@@ -177,12 +177,12 @@ function isInLocalHost( ssh )
 }
 
 /* *****************************************************************************
-@discretion: adapt path with "\"(linux) or "//"(window) in the end
+@discretion: adapt path with "/"(linux) or "\\"(window) in the end
 @author: Tanzhaobo
 @parameter
    path[string]: a path
 @return
-   [string]: a path with "\" or "//" in the end
+   [string]: a path with "/" or "\\" in the end
 ***************************************************************************** */
 function adaptPath( path )
 {
@@ -257,6 +257,42 @@ function isReservedPort( port )
 }
 
 /* *****************************************************************************
+@discretion: mimic "sprintf" in "C" simply 
+@author: Tanzhaobo
+@parameter
+   format[string]: e.g. "a = ?, b = ?, is it right/? "
+@return
+   newStr[string]: e.g. "a = 1, b = 2, is it right? "
+@usage
+   var str = sprintf( "a = ?, b = ?, is it right/? ", 1, 2, '?' ) ;
+***************************************************************************** */
+function sprintf( format )
+{
+   var len = arguments.length ;
+   var strLen = format.length ;
+   var newStr = '' ;
+   for ( var i = 0, k = 1; i < strLen; i++ )
+   {
+      var char = format.charAt( i ) ;
+      if ( char == '\\' && (i + 1 < strLen) && format.charAt(i + 1) == '?' )
+      {
+         newStr += '?' ;
+         i++ ;
+      }
+      else if ( char == '?' && k < len )
+      {
+         newStr += ( '' + arguments[k] ) ;
+         ++k ;
+      }
+      else
+      {
+         newStr += char ;
+      }
+   }
+   return newStr ;
+}
+
+/* *****************************************************************************
 @discretion: create temporary directory in remote host
 @author: Tanzhaobo
 @parameter
@@ -271,10 +307,15 @@ function createTmpDir( ssh )
                 OMA_PATH_TEMP_BIN_DIR_L,
                 OMA_PATH_TEMP_PACKET_DIR_L,
                 OMA_PATH_TEMP_CONF_DIR_L,
+                OMA_PATH_TEMP_DATA_DIR,
+                OMA_PATH_TMP_WEB_DIR,
                 OMA_PATH_TEMP_LOG_DIR_L,
+                OMA_PATH_TEMP_LOCAL_DIR_L,
                 OMA_PATH_TEMP_SPT_DIR_L,
                 OMA_PATH_TEMP_TEMP_DIR_L,
-                OMA_PATH_VCOORD_PATH_L ] ;
+                OMA_PATH_TMP_COORD_PATH,
+                OMA_PATH_TMP_COORD_BACKUP_DIR,
+                OMA_PATH_TMP_WEB_LOG_DIR ] ;
    try
    {
       if ( SYS_LINUX == SYS_TYPE )
@@ -317,11 +358,11 @@ function createTmpDir( ssh )
         // mkdir /tmp/omatmp/conf/script
         cmd = "mkdir " + OMA_PATH_TEMP_SPT_DIR_L ;
         ssh.exec( cmd ) ;
-        // mkdir /tmp/omatmp/temp
+        // mkdir /tmp/omatmp/tmp
         cmd = "mkdir " + OMA_PATH_TEMP_TEMP_DIR_L ;
         ssh.exec( cmd ) ;
         // mkdir /tmp/omatmp/data/vCoord
-        cmd = "mkdir -p " + OMA_PATH_VCOORD_PATH_L ;
+        cmd = "mkdir -p " + OMA_PATH_TMP_COORD_PATH ;
         ssh.exec( cmd ) ;
       }
       else
@@ -388,8 +429,7 @@ function removeTmpDir2( ssh )
    var dirs = [ OMA_PATH_TEMP_BIN_DIR_L,
                 OMA_PATH_TEMP_PACKET_DIR_L,
                 OMA_PATH_TEMP_SPT_DIR_L,
-                OMA_PATH_TEMP_LOCAL_DIR_L,
-                OMA_PATH_TEMP_DATA_DIR ] ;
+                OMA_PATH_TEMP_LOCAL_DIR_L ] ;
    try
    {
       if ( SYS_LINUX == SYS_TYPE )
@@ -823,8 +863,11 @@ function changeDirOwner( ssh, path, user, userGroup )
       catch ( e )
       {
          SYSEXPHANDLE( e ) ;
-         errMsg = "Failed to create path [" + path + "] in " + "[" + ssh.getPeerIP() + "]" ;
-         exception_handle( e, errMsg ) ;
+         rc = GETLASTERROR() ;
+         errMsg = sprintf( "Failed to create path[?] in host[?]", path, ssh.getPeerIP() ) ;
+         PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
+                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
       }
       path = getThePlaceToChangeOwner( path ) ;
       str = user + ":" + userGroup ;
@@ -836,8 +879,12 @@ function changeDirOwner( ssh, path, user, userGroup )
       catch ( e )
       {
          SYSEXPHANDLE( e ) ;
-         errMsg = "Failed to change path [" + path + "]'s owner in " + "[" + ssh.getPeerIP() + "]" ;
-         exception_handle( e, errMsg ) ;
+         rc = GETLASTERROR() ;
+         errMsg = sprintf( "Failed to change path[?]'s owner to [?] in host[?]",
+                           path, str, ssh.getPeerIP() ) ;
+         PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
+                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
       }
    }
    else
@@ -867,6 +914,7 @@ function changeFileOrDirMode( ssh, path, mode )
       }
       catch( e )
       {
+         SYSEXPHANDLE( e ) ;
          errMsg = "Failed to change file or directory[" + path + "]'s mode to mode[" + mode + "]" ;
          rc = GETLASTERROR() ;
          PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
@@ -903,27 +951,39 @@ function isCatalogRunning( db )
 }
 
 /* *****************************************************************************
-@discretion: get remote or local sdbcm port from local sdbcm config file
+@discretion: get the port of OM Agent in specified host from local sdbcm config file
 @parameter
    hostName[string]: install host name
 @return
-   retPort[string]: the sdbcm port in remote or in local
+   retPort[string]: the OM Agent's port in target host, defaul to be 11790
 ***************************************************************************** */
-function getAgentPort( hostname )
+function getOMASvcFromCfgFile( hostname )
 {
    var retPort = null ;
-   var localhostname = System.getHostName() ;
-   if ( hostname == localhostname )
+   try
    {
-      retPort = Oma.getAOmaSvcName( hostname ) ;
+      var localhostname = System.getHostName() ;
+      if ( hostname == localhostname )
+      {
+         retPort = Oma.getAOmaSvcName( hostname ) ;
+      }
+      else
+      {
+         var key = hostname + OMA_MISC_CONFIG_PORT ;
+         var obj =  eval ( '(' + Oma.getOmaConfigs() + ')' ) ;
+         var retPort = obj[key]
+         if ( "undefined" == typeof(retPort) )
+            retPort = OMA_PORT_DEFAULT_SDBCM_PORT + "" ;
+      }
    }
-   else
+   catch( e )
    {
-      var key = hostname + OMA_MISC_CONFIG_PORT ;
-      var obj =  eval ( '(' + Oma.getOmaConfigs() + ')' ) ;
-      var retPort = obj[key]
-      if ( "undefined" == typeof(retPort) )
-         retPort = OMA_PORT_DEFAULT_SDBCM_PORT + "" ;
+      SYSEXPHANDLE( e ) ;
+      errMsg = sprintf( "Failed to get OM Agent's port of host [?] from local sdbcm's config file", hostname ) ;
+      rc = GETLASTERROR() ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
+              errMsg + "rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
+      exception_handle( rc, errMsg ) ;
    }
    return retPort + "" ;
 }
@@ -1043,38 +1103,59 @@ function stopRemoteSdbcmProgram( ssh )
 }
 
 /* *****************************************************************************
-@discretion: mimic "sprintf" in "C" simply 
+@discretion: get task id
 @author: Tanzhaobo
 @parameter
-   format[string]: e.g. "a = ?, b = ?, is it right/? "
+   obj[object]: object, e.g. { "TaskID":1 }
 @return
-   newStr[string]: e.g. "a = 1, b = 2, is it right? "
-@usage
-   var str = sprintf( "a = ?, b = ?, is it right/? ", 1, 2, '?' ) ;
+   task_id[number]: return the task id
 ***************************************************************************** */
-function sprintf( format )
+function getTaskID( obj )
 {
-   var len = arguments.length ;
-   var strLen = format.length ;
-   var newStr = '' ;
-   for ( var i = 0, k = 1; i < strLen; i++ )
+   var task_id = null ;
+   try
    {
-      var char = format.charAt( i ) ;
-      if ( char == '\\' && (i + 1 < strLen) && format.charAt(i + 1) == '?' )
-      {
-         newStr += '?' ;
-         i++ ;
-      }
-      else if ( char == '?' && k < len )
-      {
-         newStr += ( '' + arguments[k] ) ;
-         ++k ;
-      }
-      else
-      {
-         newStr += char ;
-      }
+      task_id = obj[TaskID] ;
+      if ( "number" != typeof(task_id) )
+         exception_handle( SDB_SYS, "Task id is not a number: " + task_id ) ;
    }
-   return newStr ;
+   catch ( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = "Failed to get task id" ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
+              sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
+      exception_handle( SDB_SYS, errMsg ) ;
+   }
+   return task_id ;
+}
+
+/* *****************************************************************************
+@discretion: name the name of the task log after ip
+@author: Tanzhaobo
+@parameter
+   task_id[number]:
+   host_ip[string]: ip used to name a log file, e.g. 192.168.20.42.log
+@return void
+***************************************************************************** */
+function setTaskLogFileName( task_id, host_ip )
+{
+   try
+   {
+      var task_dir = adaptPath( LOG_FILE_PATH + Task ) + task_id ;
+      if ( false == File.exist( task_dir ) )
+         File.mkdir( task_dir ) ;
+      LOG_FILE_NAME = adaptPath( adaptPath( Task ) + task_id ) + host_ip + ".log" ;
+      PD_LOG( arguments, PDDEBUG, FILE_NAME_FUNC,
+              sprintf( "Js log file's name of task[?] is: ?", task_id, LOG_FILE_NAME ) ) ;
+   }
+   catch ( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = sprintf( "Failed to create js log file for task[?]", task_id ) ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
+              sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
+      exception_handle( SDB_SYS, errMsg ) ;
+   }   
 }
 

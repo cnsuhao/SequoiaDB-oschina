@@ -408,7 +408,6 @@ namespace engine
    INT32 _omaAddHost2::init( const CHAR *pAddHostInfo )
    {
       INT32 rc = SDB_OK ;
-      EDUID startaddHostTaskJobID = PMD_INVALID_EDUID ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to start add hosts task "
@@ -483,7 +482,6 @@ namespace engine
    INT32 _omaInsDBBus::init( const CHAR *pInstallInfo )
    {
       INT32 rc = SDB_OK ;
-      EDUID startDBTaskJobID = PMD_INVALID_EDUID ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to start install db business task "
@@ -513,7 +511,6 @@ namespace engine
    INT32 _omaUninsDBBus::init( const CHAR *pUninstallInfo )
    {
       INT32 rc = SDB_OK ;
-      EDUID removeDBTaskJobID = PMD_INVALID_EDUID ;
       if ( rc )
       {
          PD_LOG( PDERROR, "Failed to start remove db business task "
@@ -531,15 +528,15 @@ namespace engine
       return SDB_OK ;
    }
 
-   _omaCreateVirtualCoord::_omaCreateVirtualCoord ()
+   _omaCreateTmpCoord::_omaCreateTmpCoord ()
    {
    }
 
-   _omaCreateVirtualCoord::~_omaCreateVirtualCoord ()
+   _omaCreateTmpCoord::~_omaCreateTmpCoord ()
    {
    }
 
-   INT32 _omaCreateVirtualCoord::init ( const CHAR *pInstallInfo )
+   INT32 _omaCreateTmpCoord::init ( const CHAR *pInstallInfo )
    {
       INT32 rc = SDB_OK ;
       try
@@ -558,13 +555,13 @@ namespace engine
          }
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
-         PD_LOG ( PDDEBUG, "Create temp coord passes argument: %s",
+         PD_LOG ( PDDEBUG, "Create temporary coord passes argument: %s",
                   _jsFileArgs ) ;
-         rc = addJsFile( FILE_CREATE_TEMP_COORD, _jsFileArgs ) ;
+         rc = addJsFile( FILE_CREATE_TMP_COORD, _jsFileArgs ) ;
          if ( rc )
          {
             PD_LOG_MSG ( PDERROR, "Failed to add js file[%s], rc = %d ",
-                         FILE_CREATE_TEMP_COORD, rc ) ;
+                         FILE_CREATE_TMP_COORD, rc ) ;
             goto error ;
          }
       }
@@ -582,20 +579,20 @@ namespace engine
      goto done ;
    }
 
-   INT32 _omaCreateVirtualCoord::createVirtualCoord( BSONObj &retObj )
+   INT32 _omaCreateTmpCoord::createTmpCoord( BSONObj &retObj )
    {
       INT32 rc = SDB_OK ;
       rc = init( NULL ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to init for creating "
-                  "temp coord, rc = %d", rc ) ;
+         PD_LOG ( PDERROR, "Failed to init to create "
+                  "temporary coord, rc = %d", rc ) ;
          goto error ;
       }
       rc = doit( retObj ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to create temp coord, rc = %d", rc ) ;
+         PD_LOG ( PDERROR, "Failed to create temporary coord, rc = %d", rc ) ;
          goto error ;
       }     
    done:
@@ -604,33 +601,31 @@ namespace engine
       goto done ;
    }
 
-   _omaRemoveVirtualCoord::_omaRemoveVirtualCoord (
-                                              const CHAR *pVCoordSvcName )
+   _omaRemoveTmpCoord::_omaRemoveTmpCoord ( const CHAR *pTmpCoordSvcName )
    {
-      ossStrncpy( _vCoordSvcName, pVCoordSvcName, OSS_MAX_SERVICENAME ) ;
+      ossStrncpy( _tmpCoordSvcName, pTmpCoordSvcName, OSS_MAX_SERVICENAME ) ;
    }
 
-   _omaRemoveVirtualCoord::~_omaRemoveVirtualCoord ()
+   _omaRemoveTmpCoord::~_omaRemoveTmpCoord ()
    {
    }
 
-   INT32 _omaRemoveVirtualCoord::init ( const CHAR *pInstallInfo )
+   INT32 _omaRemoveTmpCoord::init ( const CHAR *pInstallInfo )
    {
       INT32 rc = SDB_OK ;
       try
       {
-         BSONObj sys = BSON (
-                 OMA_FIELD_VCOORDSVCNAME << _vCoordSvcName ) ;
+         BSONObj sys = BSON ( OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName ) ;
 
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
-         PD_LOG ( PDDEBUG, "Remove temp coord passes argument: %s",
+         PD_LOG ( PDDEBUG, "Remove temporary coord passes argument: %s",
                   _jsFileArgs ) ;
-         rc = addJsFile( FILE_REMOVE_TEMP_COORD, _jsFileArgs ) ;
+         rc = addJsFile( FILE_REMOVE_TMP_COORD, _jsFileArgs ) ;
          if ( rc )
          {
             PD_LOG_MSG ( PDERROR, "Failed to add js file[%s], rc = %d ",
-                         FILE_REMOVE_TEMP_COORD, rc ) ;
+                         FILE_REMOVE_TMP_COORD, rc ) ;
             goto error ;
          }
       }
@@ -647,20 +642,20 @@ namespace engine
      goto done ;
    }
 
-   INT32 _omaRemoveVirtualCoord::removeVirtualCoord( BSONObj &retObj )
+   INT32 _omaRemoveTmpCoord::removeTmpCoord( BSONObj &retObj )
    {
       INT32 rc = SDB_OK ;
       rc = init( NULL ) ;
       if ( rc )
       {
-         PD_LOG ( PDERROR, "Failed to init for creating temp coord, "
+         PD_LOG ( PDERROR, "Failed to init to remove temporary coord, "
                   "rc = %d", rc ) ;
          goto error ;
       }
       rc = doit( retObj ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "Failed to create temp coord, rc = %d", rc ) ;
+         PD_LOG( PDERROR, "Failed to remove temporary coord, rc = %d", rc ) ;
          goto error ;
       }
    done:

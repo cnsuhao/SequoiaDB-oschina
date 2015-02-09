@@ -41,7 +41,10 @@ var RET_JSON           = null ;
 var rc                 = SDB_OK ;
 var errMsg             = "" ;
 
+var host_ip            = "" ;
+var task_dir           = "" ;
 var task_id            = 0 ;
+
 
 var remote_precheck_result_file = "" ;
 var result_file                 = "" ;
@@ -73,17 +76,38 @@ function _init()
               sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
       exception_handle( SDB_SYS, errMsg ) ;
    }
-   // 2. try to remove task log file
+  
+   // 2. specify log file's name
+   try
+   {
+// println
+// TODO: need to use setTaskLogFileName
+      host_ip = BUS_JSON[HostInfo][IP] ;
+      task_dir = adaptPath( LOG_FILE_PATH + Task ) + task_id ;      
+      if ( false == File.exist( task_dir ) )
+         File.mkdir( task_dir ) ;
+      LOG_FILE_NAME = adaptPath( adaptPath( Task ) + task_id ) + host_ip + ".log" ;
+      PD_LOG( arguments, PDDEBUG, FILE_NAME_ADD_HOST,
+              sprintf( "Log file name is: ?", LOG_FILE_NAME ) ) ;
+   }
+   catch ( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = sprintf( "Failed to create js log file for adding host[?]", host_ip ) ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_ADD_HOST,
+              sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
+      exception_handle( SDB_SYS, errMsg ) ;
+   }   
+/*
+   // 2. create 
    try
    {
       LOG_FILE_NAME = TaskLog + task_id + ".log" ;
-// println
-/*
-      var task_log_file = LOG_FILE_PATH + LOG_FILE_NAME ;
-println("task log file is: " + task_log_file) ;
-      if ( File.exist( task_log_file ) )
-         File.remove( task_log_file ) ;
-*/
+//      var task_log_file = LOG_FILE_PATH + LOG_FILE_NAME ;
+//println("task log file is: " + task_log_file) ;
+//      if ( File.exist( task_log_file ) )
+//         File.remove( task_log_file ) ;
+
    }
    catch( e )
    {
@@ -92,6 +116,7 @@ println("task log file is: " + task_log_file) ;
                sprintf( "Try to remove task[?]'s log file failed, rc: ?, detail: ?",
                         task_id, GETLASTERROR(), GETLASTERRMSG() ) ) ;
    }
+*/
    
    // 3. set local and remote pre-check result file name
    if( SYS_LINUX == SYS_TYPE )

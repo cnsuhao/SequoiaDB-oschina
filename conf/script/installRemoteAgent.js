@@ -66,11 +66,11 @@ function createTmpDir( ssh, osInfo )
      // mkdir /tmp/omatmp/conf/script
      cmd = "mkdir " + OMA_PATH_TEMP_SPT_DIR_L ;
      ssh.exec( cmd ) ;
-     // mkdir /tmp/omatmp/temp
+     // mkdir /tmp/omatmp/tmp
      cmd = "mkdir " + OMA_PATH_TEMP_TEMP_DIR_L ;
      ssh.exec( cmd ) ;
-     //  mkdir /tmp/omatmp/data/vCoord
-     cmd = "mkdir -p " + OMA_PATH_VCOORD_PATH_L ;
+     //  mkdir /tmp/omatmp/data/tmpCoord
+     cmd = "mkdir -p " + OMA_PATH_TMP_COORD_PATH ;
      ssh.exec( cmd ) ;
      // change mode
      cmd = "chmod -R 777 " + OMA_PATH_TEMP_OMA_DIR_L ;

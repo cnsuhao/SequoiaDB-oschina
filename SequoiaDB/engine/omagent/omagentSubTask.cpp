@@ -69,7 +69,7 @@ namespace engine
                      "add host sub task" ) ;
          goto error ;
       }
-      ss << _taskName << "[" << _pTask->getSubTaskSerailNum() << "]" ;
+      ss << _taskName << "[" << _pTask->getSubTaskSerialNum() << "]" ;
       _taskName = ss.str() ;
       
       done:

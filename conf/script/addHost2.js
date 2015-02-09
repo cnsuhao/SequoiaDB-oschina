@@ -88,7 +88,7 @@ function createTmpDir( ssh, osInfo )
          cmd = "mkdir -p " + OMA_PATH_TEMP_PACKET_DIR_L ; 
          ssh.exec( cmd ) ;
          // mkdir  /tmp/omatmp/data/vCoord
-         cmd = "mkdir -p " + OMA_PATH_VCOORD_PATH_L ;
+         cmd = "mkdir -p " + OMA_PATH_TMP_COORD_PATH ;
          ssh.exec( cmd ) ;
          // chmod
          // TODO: 

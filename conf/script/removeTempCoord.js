@@ -38,10 +38,10 @@ var errMsg       = "" ;
 
 function backupVCoordDiaglog ( svcName )
 {
-   var src = OMA_PATH_VCOORD_PATH_L + svcName + "/diaglog/sdbdiag.log" ;
-   var dst = OMA_PATH_VCOORD_BACKUP_PATH_L + "/diaglog/sdbdiag.log" + "." + genTimeStamp() ;
+   var src = OMA_PATH_TMP_COORD_PATH + svcName + "/diaglog/sdbdiag.log" ;
+   var dst = OMA_PATH_TMP_COORD_BACKUP_DIR + "/diaglog/sdbdiag.log" + "." + genTimeStamp() ;
    // mkdir director
-   File.mkdir( OMA_PATH_VCOORD_BACKUP_PATH_L + "diaglog/" ) ;
+   File.mkdir( OMA_PATH_TMP_COORD_BACKUP_DIR + "diaglog/" ) ;
    // backup sdbdiag.log
    File.copy( src, dst ) ;
 }

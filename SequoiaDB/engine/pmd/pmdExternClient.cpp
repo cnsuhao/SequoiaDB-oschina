@@ -157,7 +157,6 @@ namespace engine
          rtnCoordProcesserFactory *pProcesserFactory =
             pCoordcb->getProcesserFactory();
          rtnCoordOperator *pOperator = NULL ;
-         BSONObj *err = NULL ;
          pOperator = pProcesserFactory->getOperator( pMsg->opCode );
          rc = pOperator->execute( (CHAR*)pMsg, pMsg->messageLength,
                                   &pResult, _pEDUCB, replayHeader,
