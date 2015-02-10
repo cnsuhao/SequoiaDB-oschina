@@ -164,3 +164,18 @@ error :
 #endif
 }
 
+INT32 ossOnceRun(ossOnce* control, void (*func)(void))
+{
+#ifdef _WINDOWS
+   if ( !InterlockedExchange ( &control->value, 1 ) )
+   {
+      func() ;
+   }
+
+   return 0 ;
+
+#else /* Linux */
+   return pthread_once ( control, func ) ;
+#endif
+}
+

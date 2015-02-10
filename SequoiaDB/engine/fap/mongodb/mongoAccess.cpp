@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program. If not, see <http://www.gnu.org/license/>.
 
-   Source File Name = aggrGroup.hpp
+   Source File Name = mongoAccess.cpp
 
    Descriptive Name =
 
@@ -40,10 +40,10 @@
 #include "mongoSession.hpp"
 
 namespace engine {
-   PMD_EXPORT_ACCESSPROTOCOL_DLL( pmdMongoAccess )
+   PMD_EXPORT_ACCESSPROTOCOL_DLL( mongoAccess )
 }
 
-INT32 _pmdMongoAccess::init( engine::IResource *pResource )
+INT32 _mongoAccess::init( engine::IResource *pResource )
 {
    UINT16 basePort = 0 ;
    if ( NULL != pResource )
@@ -61,47 +61,45 @@ INT32 _pmdMongoAccess::init( engine::IResource *pResource )
    return SDB_OK ;
 }
 
-INT32 _pmdMongoAccess::active()
+INT32 _mongoAccess::active()
 {
    return SDB_OK ;
 }
 
-INT32 _pmdMongoAccess::deactive()
+INT32 _mongoAccess::deactive()
 {
    return SDB_OK ;
 }
 
-INT32 _pmdMongoAccess::fini()
+INT32 _mongoAccess::fini()
 {
    return SDB_OK ;
 }
 
-const CHAR * _pmdMongoAccess::getServiceName() const
+const CHAR * _mongoAccess::getServiceName() const
 {
    SDB_ASSERT( '\0' != _serviceName[0], "service name should not be empty" ) ;
    return _serviceName ;
 }
 
-engine::pmdSession * _pmdMongoAccess::getSession( SOCKET fd )
+engine::pmdSession * _mongoAccess::getSession( SOCKET fd )
 {
-   pmdMongoSession *session = NULL ;
-   session = SDB_OSS_NEW pmdMongoSession( fd ) ;
+   mongoSession *session = NULL ;
+   session = SDB_OSS_NEW mongoSession( fd, _resource ) ;
    return session ;
 }
 
-void _pmdMongoAccess::releaseSession( engine::pmdSession *pSession )
+void _mongoAccess::releaseSession( engine::pmdSession *pSession )
 {
-   pmdMongoSession *session = dynamic_cast< pmdMongoSession *>( pSession ) ;
+   mongoSession *session = dynamic_cast< mongoSession *>( pSession ) ;
    if ( NULL == session )
    {
       SDB_OSS_DEL session ;
       session = NULL ;
    }
-
-   _release() ;
 }
 
-void _pmdMongoAccess::_release()
+void _mongoAccess::_release()
 {
    ossMemset( _serviceName, 0, OSS_MAX_SERVICENAME + 1 ) ;
 

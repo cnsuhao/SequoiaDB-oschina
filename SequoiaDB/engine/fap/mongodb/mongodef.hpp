@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program. If not, see <http://www.gnu.org/license/>.
 
-   Source File Name = aggrGroup.hpp
+   Source File Name = mongodef.hpp
 
    Descriptive Name =
 
@@ -101,6 +101,7 @@ enum authState
    AUTH_FINISHED = 1 << 31,
 } ;
 
+#pragma pack(1)
 struct mongoMsgHeader
 {
    INT32 len ;
@@ -111,26 +112,57 @@ struct mongoMsgHeader
    CHAR _version ;
    INT32 reservedFlags ;
 };
+#pragma pack()
 
-struct mongoMsgReply : mongoMsgHeader
+#pragma pack(1)
+struct mongoMsgReply
 {
-   SINT64 cursorId;
-   INT32 startingFrom;
-   INT32 nReturned;
+   mongoMsgHeader header ;
+   SINT64 cursorId ;
+   INT32 startingFrom ;
+   INT32 nReturned ;
 };
+#pragma pack()
 
 #define CS_NAME_SIZE       DMS_COLLECTION_SPACE_NAME_SZ
 #define CL_FULL_NAME_SIZE  DMS_COLLECTION_SPACE_NAME_SZ +   \
                            DMS_COLLECTION_NAME_SZ + 1
+
+enum
+{
+   OP_INVALID = -1,
+
+   OP_INSERT  = 0,
+   OP_REMOVE,
+   OP_UPDATE,
+   OP_QUERY,
+   OP_GETMORE,
+   OP_KILLCURSORS,
+   OP_ENSURE_INDEX,
+
+   OP_COMMAND_BEGIN,       // command begin
+   OP_CMD_CREATE,          // create collection, need special deal
+   OP_CMD_DROP,            // drop collection
+   OP_CMD_GETLASTERROR,    // will not process msg
+   OP_CMD_DROP_INDEX,
+   OP_CMD_GET_INDEX,
+   OP_CMD_COUNT,
+   OP_CMD_AGGREGATE,
+
+   OP_CMD_GETNONCE,
+   OP_CMD_ISMASTER,
+
+   OP_COMMAND_END,
+};
 
 class mongoParser : public mongoMsgHeader
 {
 public:
    BOOLEAN withCmd ;
    BOOLEAN withIndex ;
-   BOOLEAN opInsert ;
    BOOLEAN opCreateCL ;
    INT32 nsLen ;
+   INT32 opType ;
    CHAR csName[ CS_NAME_SIZE + 1 ] ;
    CHAR fullName[ CL_FULL_NAME_SIZE + 1 ] ;
 
@@ -149,14 +181,10 @@ public:
       _offset += size ;
    }
 
-   void bsonReadBegin()
+   BOOLEAN more()
    {
       _nextObj = _dataStart + _offset ;
-   }
-
-   BOOLEAN more() const
-   {
-      return ( NULL != _nextObj ) ;
+      return ( ( NULL != _nextObj ) || ( _nextObj < _dataEnd ) ) ;
    }
 
    void reparse()

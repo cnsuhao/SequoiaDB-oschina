@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program. If not, see <http://www.gnu.org/license/>.
 
-   Source File Name = aggrGroup.hpp
+   Source File Name = mongodef.cpp
 
    Descriptive Name =
 
@@ -39,9 +39,8 @@
 mongoParser::mongoParser()
    : withCmd( FALSE ),
      withIndex( FALSE ),
-     opInsert( FALSE ),
-     opCreateCL( FALSE ),
      nsLen( 0 ),
+     opType( OP_INVALID ),
      _dataStart( NULL ),
      _dataEnd( NULL ),
      _nextObj( NULL ),
@@ -62,9 +61,8 @@ void mongoParser::reset()
    ossMemset( fullName, 0, CL_FULL_NAME_SIZE + 1 ) ;
    withCmd    = FALSE ;
    withIndex  = FALSE ;
-   opInsert   = FALSE ;
-   opCreateCL = FALSE ;
    nsLen      = 0 ;
+   opType     = OP_INVALID ;
    _dataStart = NULL ;
    _dataEnd   = NULL ;
    _nextObj   = NULL ;
@@ -73,16 +71,12 @@ void mongoParser::reset()
 
 void mongoParser::nextObj( bson::BSONObj &obj )
 {
-   if ( NULL != _nextObj )
+   obj = bson::BSONObj( _nextObj ) ;
+   _nextObj += obj.objsize() ;
+   _offset += obj.objsize() ;
+   if ( _nextObj >= _dataEnd )
    {
-      obj = bson::BSONObj( _nextObj ) ;
-      _nextObj += obj.objsize() ;
-      _offset += obj.objsize() ;
-
-      if ( _nextObj >= _dataEnd )
-      {
-         _nextObj = NULL ;
-      }
+      _nextObj = NULL ;
    }
 }
 
@@ -135,7 +129,7 @@ void mongoParser::extractMsg()
    if ( NULL != ptr )
    {
       withCmd = TRUE ;
-      ossMemcpy( csName, dbName, ptr - csName ) ;
+      ossMemcpy( csName, dbName, ptr - dbName ) ;
    }
    else
    {

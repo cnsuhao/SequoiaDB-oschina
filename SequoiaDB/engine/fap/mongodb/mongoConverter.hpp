@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program. If not, see <http://www.gnu.org/license/>.
 
-   Source File Name = aggrGroup.hpp
+   Source File Name = mongoConverter.hpp
 
    Descriptive Name =
 
@@ -79,14 +79,14 @@ public:
       _cmd = NULL ;
    }
 
-   BOOLEAN isOpInsert() const
+   const INT32 getOpType() const
    {
-      return _parser.opInsert ;
+      return _parser.opType ;
    }
 
-   BOOLEAN isOpCreateCL() const
+   const mongoParser& getParser() const
    {
-      return _parser.opCreateCL ;
+      return _parser ;
    }
 
    virtual INT32 convert( std::vector<msgBuffer*> &out ) ;

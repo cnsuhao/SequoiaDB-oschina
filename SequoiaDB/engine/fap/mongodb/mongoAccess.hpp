@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program. If not, see <http://www.gnu.org/license/>.
 
-   Source File Name = aggrGroup.hpp
+   Source File Name = mongoAccess.hpp
 
    Descriptive Name =
 
@@ -45,13 +45,13 @@
 #define PORT_OFFSET 7
 
 /*
-   _pmdMongoAccess define
+   _mongoAccess define
 */
-class _pmdMongoAccess : public engine::IPmdAccessProtocol
+class _mongoAccess : public engine::IPmdAccessProtocol
 {
 public:
-   _pmdMongoAccess() {}
-   virtual ~_pmdMongoAccess() {}
+   _mongoAccess() {}
+   virtual ~_mongoAccess() { _release() ; }
 
    virtual const CHAR *name() const
    {
@@ -77,6 +77,6 @@ private:
    CHAR _serviceName[ OSS_MAX_SERVICENAME + 1 ] ;
 };
 
-typedef _pmdMongoAccess pmdMongoAccess ;
+typedef _mongoAccess mongoAccess ;
 
 #endif // _SDB_MONGO_ACCESS_HPP_

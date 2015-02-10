@@ -410,6 +410,43 @@ namespace engine
       goto done ;
    }
 
+   INT32 _optAccessPlan::_checkOrderBy()
+   {
+      INT32 rc = SDB_OK ;
+      BSONObjIterator iter( _orderBy ) ;
+      while ( iter.more() )
+      {
+         BSONElement ele = iter.next() ;
+         INT32 value ;
+         if ( ossStrcasecmp( ele.fieldName(), "" ) == 0 )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "orderBy's fieldName can't be empty:rc=%d", rc ) ;
+            goto error ;
+         }
+
+         if ( !ele.isNumber() )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "orderBy's value must be numberic:rc=%d", rc ) ;
+            goto error ;
+         }
+
+         value = ele.numberInt() ;
+         if ( value != 1 && value != -1 )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG( PDERROR, "orderBy's value must be 1 or -1:rc=%d", rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    PD_TRACE_DECLARE_FUNCTION ( SDB__OPTACCPLAN_OPT, "_optAccessPlan::optimize" )
    INT32 _optAccessPlan::optimize()
    {
@@ -417,6 +454,9 @@ namespace engine
       dmsMBContext *mbContext = NULL ;
 
       PD_TRACE_ENTRY ( SDB__OPTACCPLAN_OPT ) ;
+
+      rc = _checkOrderBy() ;
+      PD_RC_CHECK( rc, PDERROR, "failed to check orderby", rc ) ;
 
       rc = _matcher.loadPattern ( _query ) ;
       PD_RC_CHECK ( rc, (SDB_RTN_INVALID_PREDICATES==rc) ? PDINFO : PDERROR,

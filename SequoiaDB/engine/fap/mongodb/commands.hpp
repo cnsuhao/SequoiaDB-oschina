@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program. If not, see <http://www.gnu.org/license/>.
 
-   Source File Name = aggrGroup.hpp
+   Source File Name = commands.hpp
 
    Descriptive Name =
 
@@ -136,8 +136,7 @@ DECLARE_COMMAND( query )
 DECLARE_COMMAND( getMore )
 DECLARE_COMMAND( killCursors )
 
-DECLARE_COMMAND( getnonce )
-DECLARE_COMMAND( createCS )   // create collection space
+DECLARE_COMMAND( createCS )   // create collection space, NOT in mongodb
 DECLARE_COMMAND( create )     // create collection
 DECLARE_COMMAND( drop )       // drop   collection
 DECLARE_COMMAND( count )
@@ -148,5 +147,6 @@ DECLARE_COMMAND( dropIndexes )
 DECLARE_COMMAND( getIndexes )
 
 DECLARE_COMMAND( getLastError )
+DECLARE_COMMAND( ismaster )
 
 #endif

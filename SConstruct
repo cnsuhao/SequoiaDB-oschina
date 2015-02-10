@@ -154,7 +154,7 @@ def get_variant_dir():
     return s
 
 # build options
-add_option( "all", "build engine/tools/testcases/shell/client/fmp", 0, False)
+add_option( "all", "build engine/tools/testcases/shell/client/fmp/fap", 0, False)
 add_option( "engine", "build engine", 0, False)
 add_option( "tool", "build tools", 0, False)
 add_option( "testcase", "build testcases", 0, False)
@@ -447,9 +447,10 @@ if guess_os == "linux":
         env.Append( CPPDEFINES=[ "XP_UNIX" ] )
         env.Append( LIBS=['js_static'] )
     # SSL
+    env.Append( LIBS=['ssl'] )
     env.Append( LIBS=['crypto'] )
     ssllib_file = join(ssllib_dir, 'libcrypto.a')
-    ssllib_file1 = join(ssllib_dir, 'libcrypto.a')
+    ssllib_file1 = join(ssllib_dir, 'libssl.a')
     nix = True
 
 elif "win32" == guess_os:
@@ -504,6 +505,7 @@ elif "win32" == guess_os:
         env.Append( LIBS=['mozjs185-1.0'] )
         env.Append( CPPDEFINES=["JS_HAVE_STDINT_H"] )
     # SSL
+    env.Append( LIBS=['ssleay32'] )
     env.Append( LIBS=['libeay32'] )
     ssllib_file = join(ssllib_dir, 'libeay32.dll')
     ssllib_file1 = join(ssllib_dir, 'ssleay32.dll')

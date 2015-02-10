@@ -9,6 +9,7 @@ fapMongoFiles = [
       "fap/mongodb/commands.cpp",
       "fap/mongodb/msgBuffer.cpp",
       "fap/mongodb/mongodef.cpp",
+      "fap/mongodb/mongoReplyHelper.cpp"
       ]
 
 fapmongo = fapEnv.SharedLibrary( 'fapmongo', fapMongoFiles )

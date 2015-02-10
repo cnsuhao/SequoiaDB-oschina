@@ -210,7 +210,21 @@ namespace engine
          }
          else
          {
-            if ( id.value < _groupInfo->local.value )
+            UINT8 weight = pmdGetOptionCB()->weight() ;
+            const UINT8 remoteWeight = itrInfo->second.beat.weight ;
+            if ( weight < remoteWeight )
+            {
+               goto accept ;
+            }
+            else if ( remoteWeight < weight )
+            {
+               goto accepterr ;
+            }
+            else if ( itrInfo->second.beat.weight < pmdGetOptionCB()->weight() )
+            {
+               goto accepterr ;
+            }
+            else if ( id.value < _groupInfo->local.value )
             {
                goto accepterr ;
             }

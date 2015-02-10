@@ -829,6 +829,10 @@ namespace engine
             PD_CHECK( pCataSet->isSharding(), SDB_COLLECTION_NOTSHARD, error,
                       PDERROR, "Collection[%s] is not sharding, can't split",
                       clFullName ) ;
+
+            PD_CHECK( !pCataSet->isMainCL(), SDB_MAIN_CL_OP_ERR, error, 
+                      PDERROR, "Collection[%s] is MainCL, can't split", 
+                      clFullName ) ;
          }
 
          switch ( opCode )

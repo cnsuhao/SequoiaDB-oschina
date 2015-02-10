@@ -106,6 +106,38 @@ OSSTID ossGetCurrentThreadID();
 UINT32 ossGetLastError();
 void ossSleep(UINT32 milliseconds);
 void ossPanic () ;
+
+#if defined (_WINDOWS)
+#include <windows.h>
+#define ossMutex                  CRITICAL_SECTION
+#define ossMutexInit              InitializeCriticalSection
+#define ossMutexLock              EnterCriticalSection
+#define ossMutexUnlock            LeaveCriticalSection
+#define ossMutexDestroy           DeleteCriticalSection
+
+typedef struct ossOnce
+{
+   long value;
+} ossOnce;
+
+#define OSS_ONCE_INIT {0}
+
+#else /* Linux */
+#include <pthread.h>
+#define ossMutex                  pthread_mutex_t
+#define ossMutexInit(_n)          pthread_mutex_init((_n), NULL)
+#define ossMutexLock              pthread_mutex_lock
+#define ossMutexUnlock            pthread_mutex_unlock
+#define ossMutexDestroy           pthread_mutex_destroy
+
+typedef pthread_once_t ossOnce;
+
+#define OSS_ONCE_INIT PTHREAD_ONCE_INIT
+
+#endif
+
+INT32 ossOnceRun(ossOnce* control, void (*func)(void));
+
 SDB_EXTERN_C_END
 #endif // OSS_H_
 

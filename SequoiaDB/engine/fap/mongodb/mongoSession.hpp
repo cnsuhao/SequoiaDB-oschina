@@ -15,7 +15,7 @@
    You should have received a copy of the GNU Affero General Public License
    along with this program. If not, see <http://www.gnu.org/license/>.
 
-   Source File Name = aggrGroup.hpp
+   Source File Name = mongoSession.hpp
 
    Descriptive Name =
 
@@ -41,17 +41,18 @@
 #include "dpsLogWrapper.hpp"
 #include "rtnContextBuff.hpp"
 #include "pmdSession.hpp"
+#include "mongodef.hpp"
 
 class mongoConverter ;
 
 /*
-   _pmdMongoSession define
+   _mongoSession define
 */
-class _pmdMongoSession : public engine::pmdSession
+class _mongoSession : public engine::pmdSession
 {
 public:
-   _pmdMongoSession( SOCKET fd ) ;
-   virtual ~_pmdMongoSession() ;
+   _mongoSession( SOCKET fd, engine::IResource *resource ) ;
+   virtual ~_mongoSession() ;
 
    virtual UINT64 identifyID() ;
    virtual INT32 getServiceType() const ;
@@ -60,6 +61,9 @@ public:
    virtual INT32 run() ;
 
 protected:
+   BOOLEAN _preProcessMsg( const mongoParser &parser,
+                           engine::IResource *resource,
+                           msgBuffer &msg ) ;
    INT32 _processMsg( const CHAR *pMsg, const INT32 len ) ;
    INT32 _onMsgBegin( MsgHeader *msg ) ;
    INT32 _onMsgEnd( INT32 result, MsgHeader *msg ) ;
@@ -68,7 +72,7 @@ protected:
    virtual void  _onDetach() ;
 
 private:
-   void  _zeroStream() ;
+   void  resetBuffers() ;
 
 private:
    mongoConverter         *_converter ;
@@ -78,10 +82,10 @@ private:
    BSONObj                 _errorInfo ;
 
    std::vector< msgBuffer* > _inBufferVec ;
-   msgBuffer               _inBuffer ;
    msgBuffer               _outBuffer ;
+   engine::IResource      *_resource ;
 } ;
 
-typedef _pmdMongoSession pmdMongoSession ;
+typedef _mongoSession mongoSession ;
 
 #endif // _SDB_MONGO_MSG_CONVERTER_HPP_

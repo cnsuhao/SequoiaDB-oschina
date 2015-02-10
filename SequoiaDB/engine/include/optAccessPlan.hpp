@@ -131,6 +131,8 @@ namespace engine
                         const rtnPredicateSet &predSet,
                         const _estimateDetail &detail ) ;
 
+      INT32 _checkOrderBy() ;
+
    public :
       _optAccessPlan ( _dmsStorageUnit *su, const CHAR *collectionName,
                        const BSONObj &query, const BSONObj &orderBy,

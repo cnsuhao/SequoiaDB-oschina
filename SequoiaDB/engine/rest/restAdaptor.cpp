@@ -909,7 +909,6 @@ namespace engine
       CHAR httpBodySize[256] = { 0 } ;
       httpConnection *pHttpCon = pSession->getRestConn() ;
       std::vector<httpResponse>::iterator it ;
-      const CHAR *pFileType = NULL ;
       httpResponse httpRe ;
 
       if( TRUE == pHttpCon->_isChunk )

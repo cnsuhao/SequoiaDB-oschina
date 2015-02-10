@@ -123,20 +123,22 @@ namespace engine
    public :
       DPS_LSN                 endLsn ;
       _MsgRouteID             identity ;
-      UINT64                  timeStamp ;
+      UINT8                   weight ;
+      CHAR                    pad[7] ;
       CLS_GROUP_VERSION       version ;
       CLS_GROUP_ROLE          role ;         // self role
       CLS_SYNC_STATUS         syncStatus ;
       UINT32                  beatID ;
       CLS_NODE_SERVICE_STATUS serviceStatus ;
 
-      _clsGroupBeat():timeStamp( 0 ),
-                       version( 0 ),
+      _clsGroupBeat(): version( 0 ),
                        role( CLS_GROUP_ROLE_SECONDARY ),
                        syncStatus( CLS_SYNC_STATUS_NONE ),
                        beatID( 0 ),
                        serviceStatus( SERVICE_UNKNOWN )
       {
+         UINT64 *p = ( UINT64 *)(&weight) ;
+         *p = 0 ;
       }
 
       BOOLEAN isValidID( const UINT32 &id )

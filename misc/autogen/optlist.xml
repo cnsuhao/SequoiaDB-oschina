@@ -814,4 +814,14 @@
      <hidden>true</hidden>
    </opt>
 
+   <opt>
+      <name>PMD_OPTION_WEIGHT</name>
+      <long>weight</long>
+      <description>
+         <en>The weight of election, default is 10, range [1, 100]</en>
+         <cn>节点选举权重, 默认值为10, 取值范围[1, 100]</cn>
+      </description>
+      <default>10</default>
+      <type>int</type>
+   </opt>
 </optlist>

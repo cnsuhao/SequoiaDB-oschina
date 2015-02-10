@@ -1707,7 +1707,7 @@
       </code>
 
       <code>
-         <name>SDB_TOO_MANY_TRACE_BP</anem>
+         <name>SDB_TOO_MANY_TRACE_BP</name>
          <description>
             <en>Too many break points are specified</en>
             <cn>跟踪断点数量过多</cn>

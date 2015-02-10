@@ -96,8 +96,6 @@ namespace engine
       pmdOptionsCB *pOptCB = pmdGetOptionCB() ;
       UINT16 port = 0 ;
       UINT16 protocolPort = 0 ;
-      const CHAR *moduleName = NULL ;
-      const CHAR *modulePath = NULL ;
 
 
       port = pOptCB->getServicePort() ;
@@ -135,6 +133,25 @@ namespace engine
                    "rc: %d", port, rc ) ;
       PD_LOG( PDEVENT, "Http Listerning on port[%d]", port ) ;
 
+      if ( FALSE )
+      {
+         protocolPort = ossAtoi( _protocol->getServiceName() ) ;
+         _pMongoListener = SDB_OSS_NEW ossSocket( protocolPort ) ;
+         if ( !_pMongoListener )
+         {
+            PD_LOG( PDERROR, "Failed to alloc socket" ) ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+         rc = _pMongoListener->initSocket() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to init FAP listener socket[%d], "
+                      "rc: %d", protocolPort, rc ) ;
+
+         rc = _pMongoListener->bind_listen() ;
+         PD_RC_CHECK( rc, PDERROR, "Failed to bind FAP listener socket[%d], "
+                      "rc: %d", protocolPort, rc ) ;
+         PD_LOG( PDEVENT, "Listerning on port[%d]", protocolPort ) ;
+      }
 
    done:
       return rc ;
@@ -145,6 +162,7 @@ namespace engine
    INT32 _pmdController::active ()
    {
       INT32 rc = SDB_OK ;
+      pmdEDUParam *pProtocolData = NULL ;
       pmdEDUMgr *pEDUMgr = pmdGetKRCB()->getEDUMgr() ;
       EDUID eduID = PMD_INVALID_EDUID ;
 
@@ -174,7 +192,7 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Wait rest Listener active failed, rc: %d",
                    rc ) ;
 
-      
+
       if ( SDB_ROLE_COORD != pmdGetDBRole() )
       {
          UINT32 pageTaskNum = pmdGetOptionCB()->getPageCleanNum() ;
@@ -572,7 +590,7 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
-      rc = _fapMongo->load( MONGO_MODULE_NAME, MONGO_MODULE_PATH ) ;/*need be replaced*/
+      rc = _fapMongo->load( MONGO_MODULE_NAME, MONGO_MODULE_PATH ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to load module: %s, path: %s"
                    " rc: %d", MONGO_MODULE_NAME, MONGO_MODULE_PATH, rc ) ;
       rc = _fapMongo->create( _protocol ) ;
@@ -585,7 +603,6 @@ namespace engine
    error:
       goto done ;
    }
-
 
    /*
       get global pointer
