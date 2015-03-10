@@ -470,7 +470,7 @@ public class DBCollection {
 			hint = dummy;
 		SDBMessage sdbMessage = new SDBMessage();
 
-		sdbMessage.setVersion(0);
+		sdbMessage.setVersion(1);
 		sdbMessage.setW((short) 0);
 		sdbMessage.setPadding((short) 0);
 		sdbMessage.setFlags(0);
@@ -1580,8 +1580,8 @@ public class DBCollection {
 
 		sdbMessage.setCollectionFullName(commandString);
 
-		sdbMessage.setVersion(0);
-		sdbMessage.setW((short) 1);
+		sdbMessage.setVersion(1);
+		sdbMessage.setW((short) 0);
 		sdbMessage.setPadding((short) 0);
 		sdbMessage.setFlags(flag);
 		sdbMessage.setNodeID(SequoiadbConstants.ZERO_NODEID);
@@ -1654,7 +1654,7 @@ public class DBCollection {
 		if (hint == null)
 			hint = dummy;
 		SDBMessage sdbMessage = new SDBMessage();
-		sdbMessage.setVersion(0);
+		sdbMessage.setVersion(1);
 		sdbMessage.setW((short) 0);
 		sdbMessage.setPadding((short) 0);
 		sdbMessage.setFlags(flag);

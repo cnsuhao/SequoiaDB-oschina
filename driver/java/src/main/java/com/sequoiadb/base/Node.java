@@ -219,7 +219,7 @@ public class Node {
 		sdbMessage.setMatcher(obj);
 		sdbMessage.setCollectionFullName(SequoiadbConstants.ADMIN_PROMPT + commandString);
 
-		sdbMessage.setVersion(0);
+		sdbMessage.setVersion(1);
 		sdbMessage.setW((short) 0);
 		sdbMessage.setPadding((short) 0);
 		sdbMessage.setFlags(0);

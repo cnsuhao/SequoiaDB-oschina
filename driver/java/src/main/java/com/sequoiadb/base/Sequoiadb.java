@@ -1886,7 +1886,7 @@ public class Sequoiadb {
 		sdbMessage.setMatcher(cObj);
 		sdbMessage.setCollectionFullName(commandString);
 
-		sdbMessage.setVersion(0);
+		sdbMessage.setVersion(1);
 		sdbMessage.setW((short) 0);
 		sdbMessage.setPadding((short) 0);
 		sdbMessage.setFlags(0);
