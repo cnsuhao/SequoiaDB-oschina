@@ -16,6 +16,6 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef pdTRACE_H__
 #define pdTRACE_H__
-#define SDB_PDLOGFILEWRITE                                 0x20000000603L
-#define SDB_PDLOG                                          0x20000000604L
+#define SDB_PDLOGFILEWRITE                                 0x2000000030dL
+#define SDB_PDLOG                                          0x2000000030eL
 #endif

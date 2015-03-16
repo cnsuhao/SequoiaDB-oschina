@@ -144,8 +144,8 @@ namespace SequoiaDB
         public const int SDB_DMS_EOC = (int) Errors.errors.SDB_DMS_EOC; 
 
         public static readonly byte[] ZERO_NODEID = new byte[12] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-	    public const int DEFAULT_VERSION    = 0;
-	    public const short DEFAULT_W        = 1;
+	    public const int DEFAULT_VERSION    = 1;
+	    public const short DEFAULT_W        = 0;
 	    public const int DEFAULT_FLAGS      = 0;
 	    public const long DEFAULT_CONTEXTID = -1;
     }

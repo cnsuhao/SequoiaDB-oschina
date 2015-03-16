@@ -276,7 +276,21 @@ namespace SequoiaDB
             SDB_MIG_DATA_NON_UTF             = -270,
             SDB_OMA_TASK_FAIL                = -271,
             SDB_LOB_NOT_OPEN                 = -272,
-            SDB_LOB_HAS_OPEN                 = -273
+            SDB_LOB_HAS_OPEN                 = -273,
+            SDBCM_NODE_IS_IN_RESTORING       = -274,
+            SDB_DMS_CS_NOT_EMPTY             = -275,
+            SDB_CAT_LOCALHOST_CONFLICT       = -276,
+            SDB_CAT_NOT_LOCALCONN            = -277,
+            SDB_CAT_IS_NOT_DATAGROUP         = -278,
+            SDB_RTN_AUTOINDEXID_IS_FALSE     = -279,
+            SDB_CLS_CAN_NOT_STEP_UP          = -280,
+            SDB_CAT_IMAGE_ADDR_CONFLICT      = -281,
+            SDB_CAT_GROUP_HASNOT_IMAGE       = -282,
+            SDB_CAT_GROUP_HAS_IMAGE          = -283,
+            SDB_CAT_IMAGE_IS_ENABLED         = -284,
+            SDB_CAT_IMAGE_NOT_CONFIG         = -285,
+            SDB_CAT_DUAL_ACTIVE              = -286,
+            SDB_CAT_CLUSTER_NOT_ACTIVE       = -287
         };
 
         public static readonly string[] descriptions = {
@@ -485,7 +499,7 @@ namespace SequoiaDB
                                                     "Log file size is too large",
                                                     "Unable to remove the last node in a group",
                                                     "Unable to clean up catalog, manual cleanup may be required",
-                                                    "Unable to remove catalog for non-empty database",
+                                                    "Unable to remove primary catalog or catalog group for non-empty database",
                                                     "Group does not exist",
                                                     "Unable to remove non-empty group",
                                                     "End of queue",
@@ -552,7 +566,21 @@ namespace SequoiaDB
                                                     "Data is not in UTF-8 format",
                                                     "Task failed",
                                                     "Lob does not open",
-                                                    "Lob has been open"
+                                                    "Lob has been open",
+                                                    "Node is in restoring",
+                                                    "There are some collections in the collection space",
+                                                    "'localhost' and '127.0.0.1' cannot be used mixed with other hostname and IP address",
+                                                    "If use 'localhost' and '127.0.0.1' for hostname, coord and catalog must in the same host ",
+                                                    "The special group is not data group",
+                                                    "can not update/delete data when autoindexid is false",
+                                                    "can not step up when primary node exists or LSN is not the biggest",
+                                                    "Image address is conflict with the self cluster",
+                                                    "The data group does not have image group",
+                                                    "The data group has image group",
+                                                    "The image is in enabled status",
+                                                    "The cluster's image does not configured",
+                                                    "This cluster and image cluster is both active",
+                                                    "This cluster is not active"
                                                 };
     }
 }

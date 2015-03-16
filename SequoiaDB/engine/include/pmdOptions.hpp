@@ -55,7 +55,7 @@
         ( PMD_COMMANDS_STRING (PMD_OPTION_LOGFILENUM, ",n"), boost::program_options::value<int>(), "Number of log files,default:20, value range:[1,11800]" ) \
         ( PMD_COMMANDS_STRING (PMD_OPTION_TRANSACTIONON, ",e"), boost::program_options::value<string>(), "Turn on transaction, default:FALSE" ) \
         ( PMD_OPTION_NUMPRELOAD, boost::program_options::value<int>(), "The number of pre-loaders, default:0,value range:[0,100]" ) \
-        ( PMD_OPTION_MAX_PREF_POOL, boost::program_options::value<int>(), "The maximum number of prefetchers, default:200, value range:[0,1000]" ) \
+        ( PMD_OPTION_MAX_PREF_POOL, boost::program_options::value<int>(), "The maximum number of prefetchers, default:0, value range:[0,1000]" ) \
         ( PMD_OPTION_MAX_REPL_SYNC, boost::program_options::value<int>(), "The maximum number of repl-sync threads, default:10, value range:[0, 200], 0:disable concurrent repl-sync" ) \
         ( PMD_OPTION_LOGBUFFSIZE, boost::program_options::value<int>(), "The number of pages ( in 64KB ) for replica log memory ( default:1024, value range:[512,1024000] ), the size should be smaller than log space" ) \
         ( PMD_OPTION_DMS_TMPBLKPATH, boost::program_options::value<string>(), "The path of the temp files" ) \
@@ -63,11 +63,14 @@
         ( PMD_OPTION_HJ_BUFSZ, boost::program_options::value<int>(), "Size of the hash join buf(MB), default:128, min value:64" ) \
         ( PMD_OPTION_SYNC_STRATEGY, boost::program_options::value<string>(), "The control strategy of data sync in ReplGroup, value enumeration: none,keepnormal,keepall, default:keepnormal." ) \
         ( PMD_OPTION_PREFINST, boost::program_options::value<string>(), "Prefered instance for read request, default:A, value enum:M,S,A,1-7" ) \
-        ( PMD_OPTION_NUMPAGECLEANERS, boost::program_options::value<int>(), "Number of page cleaners, default 1, value range:[0, 50]" ) \
+        ( PMD_OPTION_NUMPAGECLEANERS, boost::program_options::value<int>(), "Number of page cleaners, default 0, value range:[0, 50]" ) \
         ( PMD_OPTION_PAGECLEANINTERVAL, boost::program_options::value<int>(), "The minimal interval between two cleanup actions for each collection space (in ms, default 10000, min 1000 )" ) \
         ( PMD_OPTION_LOBPATH, boost::program_options::value<string>(), "Large object file path" ) \
         ( PMD_OPTION_DIRECT_IO_IN_LOB, boost::program_options::value<string>(), "Open direct io in large object" ) \
         ( PMD_OPTION_SPARSE_FILE, boost::program_options::value<string>(), "extend the file as a sparse file" ) \
+        ( PMD_OPTION_WEIGHT, boost::program_options::value<int>(), "The weight of election, default is 10, range [1, 100]" ) \
+        ( PMD_OPTION_USESSL, boost::program_options::value<string>(), "allow client to connect with SSL (enterprise edition only), default false" ) \
+        ( PMD_OPTION_AUTH, boost::program_options::value<string>(), "enable authentication. default is true" ) \
 
 #define PMD_HIDDEN_COMMANDS_OPTIONS \
         ( PMD_OPTION_WWWPATH, boost::program_options::value<string>(), "Web service root path" ) \
@@ -83,5 +86,8 @@
         ( PMD_OPTION_SHARINGBRK, boost::program_options::value<int>(), "The timeout period for heartbeat in each replica group ( in ms ), default:5000, value range:[5000,300000] " ) \
         ( PMD_OPTION_INDEX_SCAN_STEP, boost::program_options::value<int>(), "Index scan step, default is 100, range:[1, 10000]" ) \
         ( PMD_OPTION_START_SHIFT_TIME, boost::program_options::value<int>(), "Nodes starting shift time(sec), default:600, value range:[0,7200]" ) \
+        ( PMD_OPTION_CLUSTER_NAME, boost::program_options::value<string>(), "Cluster name which belonging to" ) \
+        ( PMD_OPTION_BUSINESS_NAME, boost::program_options::value<string>(), "Business name which belonging to" ) \
+        ( PMD_OPTION_USERTAG, boost::program_options::value<string>(), "User defined tag" ) \
 
 #endif /* PMDOPTIONS_HPP_ */

@@ -16,11 +16,11 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef authTRACE_H__
 #define authTRACE_H__
-#define SDB_AUTHCB_AUTHENTICATE                            0x1000003caL
-#define SDB_AUTHCB_CREATEUSR                               0x1000003cbL
-#define SDB_AUTHCB_REMOVEUSR                               0x1000003ccL
-#define SDB_AUTHCB_INITAUTH                                0x1000003cdL
-#define SDB_AUTHCB_CHECKNEEDAUTH                           0x1000003ceL
-#define SDB_AUTHCB__CREATEUSR                              0x1000003cfL
-#define SDB_AUTHCB__VALID                                  0x1000003d0L
+#define SDB_AUTHCB_AUTHENTICATE                            0x1000001ecL
+#define SDB_AUTHCB_CREATEUSR                               0x1000001edL
+#define SDB_AUTHCB_REMOVEUSR                               0x1000001eeL
+#define SDB_AUTHCB_INITAUTH                                0x1000001efL
+#define SDB_AUTHCB_CHECKNEEDAUTH                           0x1000001f0L
+#define SDB_AUTHCB__CREATEUSR                              0x1000001f1L
+#define SDB_AUTHCB__VALID                                  0x1000001f2L
 #endif

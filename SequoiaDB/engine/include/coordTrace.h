@@ -16,11 +16,11 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef coordTRACE_H__
 #define coordTRACE_H__
-#define SDB_COORDSN_DISCONN                                0x8000000000feL
-#define SDB_COORDSN_CHECKREMOTEROUTEID                     0x8000000000ffL
-#define SDB_COORDSN_GETALLSR                               0x800000000100L
-#define SDB_COORDSN_ISSUBSNCONN                            0x800000000101L
-#define SDB_COORDSN_GETLASTND                              0x800000000102L
-#define SDB_COORDGI_FRMBSONOBJ                             0x800000000103L
-#define SDB_COORDCB_ADDCATNDADDR                           0x800000000104L
+#define SDB_COORDSN_DISCONN                                0x8000000001f4L
+#define SDB_COORDSN_CHECKREMOTEROUTEID                     0x8000000001f5L
+#define SDB_COORDSN_GETALLSR                               0x8000000001f6L
+#define SDB_COORDSN_ISSUBSNCONN                            0x8000000001f7L
+#define SDB_COORDSN_GETLASTND                              0x8000000001f8L
+#define SDB_COORDGI_FRMBSONOBJ                             0x8000000001f9L
+#define SDB_COORDCB_ADDCATNDADDR                           0x8000000001faL
 #endif

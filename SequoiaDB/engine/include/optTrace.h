@@ -16,11 +16,11 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef optTRACE_H__
 #define optTRACE_H__
-#define SDB__OPTACCPLAN__OPTHINT                           0x10000000000605L
-#define SDB__OPTACCPLAN__OPTHINT2                          0x10000000000606L
-#define SDB__OPTACCPLAN__OPTHINT3                          0x10000000000607L
-#define SDB__OPTACCPLAN__ESTINX                            0x10000000000608L
-#define SDB__OPTACCPLAN__ESTINX2                           0x10000000000609L
-#define SDB__OPTACCPLAN__USEINX                            0x1000000000060aL
-#define SDB__OPTACCPLAN_OPT                                0x1000000000060bL
+#define SDB__OPTACCPLAN__OPTHINT                           0x100000000006a7L
+#define SDB__OPTACCPLAN__OPTHINT2                          0x100000000006a8L
+#define SDB__OPTACCPLAN__OPTHINT3                          0x100000000006a9L
+#define SDB__OPTACCPLAN__ESTINX                            0x100000000006aaL
+#define SDB__OPTACCPLAN__ESTINX2                           0x100000000006abL
+#define SDB__OPTACCPLAN__USEINX                            0x100000000006acL
+#define SDB__OPTACCPLAN_OPT                                0x100000000006adL
 #endif

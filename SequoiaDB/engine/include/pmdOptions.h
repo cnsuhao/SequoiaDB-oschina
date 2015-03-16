@@ -78,4 +78,10 @@
 #define PMD_OPTION_LOBPATH              "lobpath"
 #define PMD_OPTION_DIRECT_IO_IN_LOB     "directioinlob"
 #define PMD_OPTION_SPARSE_FILE          "sparsefile"
+#define PMD_OPTION_CLUSTER_NAME         "clustername"
+#define PMD_OPTION_BUSINESS_NAME        "businessname"
+#define PMD_OPTION_USERTAG              "usertag"
+#define PMD_OPTION_WEIGHT               "weight"
+#define PMD_OPTION_USESSL               "usessl"
+#define PMD_OPTION_AUTH                 "auth"
 #endif

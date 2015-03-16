@@ -1495,8 +1495,8 @@ namespace SequoiaDB
             sdbMessage.Matcher = cObj;
             sdbMessage.CollectionFullName = commandString;
 
-            sdbMessage.Version = 0;
-            sdbMessage.W = 0;
+            sdbMessage.Version = SequoiadbConstants.DEFAULT_VERSION;
+            sdbMessage.W = SequoiadbConstants.DEFAULT_W;
             sdbMessage.Padding = 0;
             sdbMessage.Flags = 0;
             sdbMessage.NodeID = SequoiadbConstants.ZERO_NODEID;
@@ -1530,8 +1530,8 @@ namespace SequoiaDB
             sdbMessage.OperationCode = Operation.OP_QUERY;
             sdbMessage.CollectionFullName = commandString;
 
-            sdbMessage.Version = 0;
-            sdbMessage.W = 0;
+            sdbMessage.Version = SequoiadbConstants.DEFAULT_VERSION;
+            sdbMessage.W = SequoiadbConstants.DEFAULT_W;
             sdbMessage.Padding = 0;
             sdbMessage.Flags = 0;
             sdbMessage.NodeID = SequoiadbConstants.ZERO_NODEID;
@@ -1556,8 +1556,8 @@ namespace SequoiaDB
             SDBMessage sdbMessage = new SDBMessage();
             sdbMessage.OperationCode = Operation.OP_QUERY;
             sdbMessage.CollectionFullName = command;
-            sdbMessage.Version = 0;
-            sdbMessage.W = 0;
+            sdbMessage.Version = SequoiadbConstants.DEFAULT_VERSION;
+            sdbMessage.W = SequoiadbConstants.DEFAULT_W;
             sdbMessage.Padding = 0;
             sdbMessage.Flags = 0;
             sdbMessage.NodeID = SequoiadbConstants.ZERO_NODEID;

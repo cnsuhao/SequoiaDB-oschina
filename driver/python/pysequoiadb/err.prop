@@ -204,7 +204,7 @@
 -203 = Log file size is too large
 -204 = Unable to remove the last node in a group
 -205 = Unable to clean up catalog, manual cleanup may be required
--206 = Unable to remove catalog for non-empty database
+-206 = Unable to remove primary catalog or catalog group for non-empty database
 -207 = Group does not exist
 -208 = Unable to remove non-empty group
 -209 = End of queue
@@ -272,3 +272,17 @@
 -271 = Task failed
 -272 = Lob does not open
 -273 = Lob has been open
+-274 = Node is in restoring
+-275 = There are some collections in the collection space
+-276 = 'localhost' and '127.0.0.1' cannot be used mixed with other hostname and IP address
+-277 = If use 'localhost' and '127.0.0.1' for hostname, coord and catalog must in the same host 
+-278 = The special group is not data group
+-279 = can not update/delete data when autoindexid is false
+-280 = can not step up when primary node exists or LSN is not the biggest
+-281 = Image address is conflict with the self cluster
+-282 = The data group does not have image group
+-283 = The data group has image group
+-284 = The image is in enabled status
+-285 = The cluster's image does not configured
+-286 = This cluster and image cluster is both active
+-287 = This cluster is not active
