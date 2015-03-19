@@ -55,11 +55,14 @@ namespace engine
 
    void CoordSession::setPreferReplType( INT32 type )
    {
-      if ( PREFER_REPL_TYPE_MIN < type
-         && type < PREFER_REPL_TYPE_MAX )
+      if ( PREFER_REPL_TYPE_MIN < type &&
+           type < PREFER_REPL_TYPE_MAX &&
+           type != _preferReplType )
       {
          _preferReplType = type;
+         _lastNodeMap.clear() ;
       }
+      return ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_COORDSN_DISCONN, "CoordSession::disConnect" )
