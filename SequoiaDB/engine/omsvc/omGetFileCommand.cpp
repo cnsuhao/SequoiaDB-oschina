@@ -5120,15 +5120,23 @@ namespace engine
       list<BSONObj>::iterator iter = tasks.begin() ;
       while ( iter != tasks.end() )
       {
+         clusterName  = "" ;
+         businessName = "" ;
          BSONElement clusterEle ;
          clusterEle = iter->getFieldDotted( 
                          OM_TASKINFO_FIELD_INFO"."OM_BSON_FIELD_CLUSTER_NAME ) ;
-         clusterName  = clusterEle.String() ;
+         if ( clusterEle.type() == String )
+         {
+            clusterName  = clusterEle.String() ;
+         }
 
          BSONElement businessEle ;
          businessEle = iter->getFieldDotted( 
                          OM_TASKINFO_FIELD_INFO"."OM_BSON_BUSINESS_NAME ) ;
-         businessName = businessEle.String() ;
+         if ( businessEle.type() == String )
+         {
+            businessName = businessEle.String() ;
+         }
 
          BSONObj info = BSON( OM_BSON_FIELD_CLUSTER_NAME << clusterName 
                               << OM_BSON_BUSINESS_NAME << businessName ) ;
