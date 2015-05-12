@@ -339,9 +339,12 @@ namespace engine
    /*
       _omaInstallCatalog
    */
-   _omaInstallCatalog::_omaInstallCatalog( string &tmpCoordSvcName,
+   _omaInstallCatalog::_omaInstallCatalog( INT64 taskID,
+                                           string &tmpCoordSvcName,
                                            InstDBInfo &info )
    {
+      _taskID              = taskID ;
+      _tmpCoordSvcName     = tmpCoordSvcName ;
       _info._hostName      = info._hostName;
       _info._svcName       = info._svcName ;
       _info._dbPath        = info._dbPath ;
@@ -354,7 +357,6 @@ namespace engine
       _info._passwd        = info._passwd ;
       _info._sshPort       = info._sshPort ;
       _info._conf          = info._conf.copy() ;
-      _tmpCoordSvcName     = tmpCoordSvcName ;
    }
 
    _omaInstallCatalog::~_omaInstallCatalog()
@@ -367,22 +369,23 @@ namespace engine
       try
       {
          BSONObj bus = BSON (
-                 OMA_FIELD_INSTALLHOSTNAME << _info._hostName.c_str() <<
-                 OMA_FIELD_INSTALLSVCNAME  << _info._svcName.c_str() <<
-                 OMA_FIELD_INSTALLPATH2    << _info._dbPath.c_str() <<
-                 OMA_FIELD_INSTALLCONFIG   << _info._conf ) ;
-         BSONObj sys = BSON (
-                 OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() <<
                  OMA_FIELD_SDBUSER         << _info._sdbUser.c_str() <<
                  OMA_FIELD_SDBPASSWD       << _info._sdbPasswd.c_str() <<
                  OMA_FIELD_SDBUSERGROUP    << _info._sdbUserGroup.c_str() <<
                  OMA_FIELD_USER            << _info._user.c_str() <<
                  OMA_FIELD_PASSWD          << _info._passwd.c_str() <<
-                 OMA_FIELD_SSHPORT         << _info._sshPort.c_str() ) ;
+                 OMA_FIELD_SSHPORT         << _info._sshPort.c_str() <<
+                 OMA_FIELD_INSTALLHOSTNAME << _info._hostName.c_str() <<
+                 OMA_FIELD_INSTALLSVCNAME  << _info._svcName.c_str() <<
+                 OMA_FIELD_INSTALLPATH2    << _info._dbPath.c_str() <<
+                 OMA_FIELD_INSTALLCONFIG   << _info._conf ) ;
+         BSONObj sys = BSON (
+                 OMA_FIELD_TASKID << _taskID <<
+                 OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str(),
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
-         PD_LOG ( PDDEBUG, "Create catalog passes argument: %s", _jsFileArgs ) ;
+         PD_LOG ( PDDEBUG, "Install catalog passes argument: %s", _jsFileArgs ) ;
          rc = addJsFile( FILE_INSTALL_CATALOG, _jsFileArgs ) ;
          if ( rc )
          {
@@ -407,9 +410,12 @@ namespace engine
    /*
       _omaInstallCoord
    */
-   _omaInstallCoord::_omaInstallCoord( string &tmpCoordSvcName,
+   _omaInstallCoord::_omaInstallCoord( INT64 taskID,
+                                       string &tmpCoordSvcName,
                                        InstDBInfo &info )
    {
+      _taskID              = taskID ;
+      _tmpCoordSvcName     = tmpCoordSvcName ;
       _info._hostName      = info._hostName;
       _info._svcName       = info._svcName ;
       _info._dbPath        = info._dbPath ;
@@ -422,7 +428,6 @@ namespace engine
       _info._passwd        = info._passwd ;
       _info._sshPort       = info._sshPort ;
       _info._conf          = info._conf.copy() ;
-      _tmpCoordSvcName     = tmpCoordSvcName ;
    }
 
    _omaInstallCoord::~_omaInstallCoord()
@@ -435,22 +440,23 @@ namespace engine
       try
       {
          BSONObj bus = BSON (
-                 OMA_FIELD_INSTALLHOSTNAME << _info._hostName.c_str() <<
-                 OMA_FIELD_INSTALLSVCNAME  << _info._svcName.c_str() <<
-                 OMA_FIELD_INSTALLPATH2    << _info._dbPath.c_str() <<
-                 OMA_FIELD_INSTALLCONFIG   << _info._conf ) ;
-         BSONObj sys = BSON (
-                 OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() <<
                  OMA_FIELD_SDBUSER         << _info._sdbUser.c_str() <<
                  OMA_FIELD_SDBPASSWD       << _info._sdbPasswd.c_str() <<
                  OMA_FIELD_SDBUSERGROUP    << _info._sdbUserGroup.c_str() <<
                  OMA_FIELD_USER            << _info._user.c_str() <<
                  OMA_FIELD_PASSWD          << _info._passwd.c_str() <<
-                 OMA_FIELD_SSHPORT         << _info._sshPort.c_str() ) ;
+                 OMA_FIELD_SSHPORT         << _info._sshPort.c_str() <<
+                 OMA_FIELD_INSTALLHOSTNAME << _info._hostName.c_str() <<
+                 OMA_FIELD_INSTALLSVCNAME  << _info._svcName.c_str() <<
+                 OMA_FIELD_INSTALLPATH2    << _info._dbPath.c_str() <<
+                 OMA_FIELD_INSTALLCONFIG   << _info._conf ) ;
+         BSONObj sys = BSON (
+                 OMA_FIELD_TASKID << _taskID <<
+                 OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str(),
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
-         PD_LOG ( PDDEBUG, "Create coord passes argument: %s", _jsFileArgs ) ;
+         PD_LOG ( PDDEBUG, "Install coord passes argument: %s", _jsFileArgs ) ;
          rc = addJsFile( FILE_INSTALL_COORD, _jsFileArgs ) ;
          if ( rc )
          {
@@ -475,9 +481,12 @@ namespace engine
    /*
       _omaInstallDataNode
    */
-   _omaInstallDataNode::_omaInstallDataNode( string &tmpCoordSvcName,
+   _omaInstallDataNode::_omaInstallDataNode( INT64 taskID,
+                                             string tmpCoordSvcName,
                                              InstDBInfo &info )
    {
+      _taskID              = taskID ;
+      _tmpCoordSvcName     = tmpCoordSvcName ;
       _info._hostName      = info._hostName;
       _info._svcName       = info._svcName ;
       _info._dbPath        = info._dbPath ;
@@ -490,7 +499,6 @@ namespace engine
       _info._passwd        = info._passwd ;
       _info._sshPort       = info._sshPort ;
       _info._conf          = info._conf.copy() ;
-      _tmpCoordSvcName     = tmpCoordSvcName ;
    }
 
    _omaInstallDataNode::~_omaInstallDataNode()
@@ -503,23 +511,24 @@ namespace engine
       try
       {
          BSONObj bus = BSON (
+                 OMA_FIELD_SDBUSER          << _info._sdbUser.c_str() <<
+                 OMA_FIELD_SDBPASSWD        << _info._sdbPasswd.c_str() << 
+                 OMA_FIELD_SDBUSERGROUP     << _info._sdbUserGroup.c_str() <<
+                 OMA_FIELD_USER             << _info._user.c_str() <<
+                 OMA_FIELD_PASSWD           << _info._passwd.c_str() <<
+                 OMA_FIELD_SSHPORT          << _info._sshPort.c_str() <<
                  OMA_FIELD_INSTALLGROUPNAME << _info._dataGroupName.c_str() <<
                  OMA_FIELD_INSTALLHOSTNAME  << _info._hostName.c_str() <<
                  OMA_FIELD_INSTALLSVCNAME   << _info._svcName.c_str() <<
                  OMA_FIELD_INSTALLPATH2     << _info._dbPath.c_str() <<
                  OMA_FIELD_INSTALLCONFIG    << _info._conf ) ;
          BSONObj sys = BSON (
-                 OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() <<
-                 OMA_FIELD_SDBUSER         << _info._sdbUser.c_str() <<
-                 OMA_FIELD_SDBPASSWD       << _info._sdbPasswd.c_str() << 
-                 OMA_FIELD_SDBUSERGROUP    << _info._sdbUserGroup.c_str() <<
-                 OMA_FIELD_USER            << _info._user.c_str() <<
-                 OMA_FIELD_PASSWD          << _info._passwd.c_str() <<
-                 OMA_FIELD_SSHPORT         << _info._sshPort.c_str() ) ;
+                 OMA_FIELD_TASKID << _taskID <<
+                 OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; var %s = %s; ",
                       JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str(),
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
-         PD_LOG ( PDDEBUG, "Create data node passes "
+         PD_LOG ( PDDEBUG, "Install data node passes "
                   "argument: %s", _jsFileArgs ) ;
          rc = addJsFile( FILE_INSTALL_DATANODE, _jsFileArgs ) ;
          if ( rc )
@@ -545,13 +554,13 @@ namespace engine
    /*
       rollback standalone
    */
-   _omaRollbackStandalone::_omaRollbackStandalone ( BSONObj &bus,
-                                                    BSONObj &sys,
-                                                    INT64 taskID )
+   _omaRollbackStandalone::_omaRollbackStandalone ( INT64 taskID,
+                                                    BSONObj &bus,
+                                                    BSONObj &sys )
    {
+      _taskID = taskID ;
       _bus    = bus.copy() ;
       _sys    = sys.copy() ;
-      _taskID = taskID ;
    }
 
    _omaRollbackStandalone::~_omaRollbackStandalone ()
@@ -581,76 +590,28 @@ namespace engine
      goto done ;
    }
 
-   
    /*
-      install db business task run rollback coord job
+      rollback catalog
    */
-
-   _omaRunRollbackCoordJob::_omaRunRollbackCoordJob (
-                                   string &tmpCoordSvcName,
-                                   map< string, vector<InstalledNode> > &info )
-   :_info( info )
+   _omaRollbackCatalog::_omaRollbackCatalog (
+                                   INT64 taskID,
+                                   string &tmpCoordSvcName )
    {
+      _taskID          = taskID ;
       _tmpCoordSvcName = tmpCoordSvcName ;
    }
 
-   _omaRunRollbackCoordJob::~_omaRunRollbackCoordJob ()
+   _omaRollbackCatalog::~_omaRollbackCatalog ()
    {
    }
    
-   INT32 _omaRunRollbackCoordJob::init ( const CHAR *pInstallInfo )
+   INT32 _omaRollbackCatalog::init ( const CHAR *pInstallInfo )
    {
       INT32 rc = SDB_OK ;
       try
       {
          BSONObj sys = BSON (
-                 OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
-         ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
-                      JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
-         PD_LOG ( PDDEBUG, "Rollback coord passes "
-                  "argument: %s", _jsFileArgs ) ;
-         rc = addJsFile( FILE_ROLLBACK_COORD, _jsFileArgs ) ;
-         if ( rc )
-         {
-            PD_LOG_MSG ( PDERROR, "Failed to add js file[%s], rc = %d ",
-                         FILE_ROLLBACK_COORD, rc ) ;
-            goto error ;
-         }
-      }
-      catch ( std::exception &e )
-      {
-         rc = SDB_INVALIDARG ;
-         PD_LOG_MSG ( PDERROR, "Failed to build bson, exception is: %s",
-                      e.what() ) ;
-         goto error ;
-      }
-   done:
-      return rc ;
-   error:
-     goto done ;
-   }
-
-   /*
-      install db business task run rollback catalog job
-   */
-   _omaRunRollbackCatalogJob::_omaRunRollbackCatalogJob (
-                                   string &tmpCoordSvcName,
-                                   map< string, vector<InstalledNode> > &info )
-   : _info( info )
-   {
-      _tmpCoordSvcName = tmpCoordSvcName ;
-   }
-
-   _omaRunRollbackCatalogJob::~_omaRunRollbackCatalogJob ()
-   {
-   }
-   
-   INT32 _omaRunRollbackCatalogJob::init ( const CHAR *pInstallInfo )
-   {
-      INT32 rc = SDB_OK ;
-      try
-      {
-         BSONObj sys = BSON (
+                 OMA_FIELD_TASKID << _taskID <<
                  OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
 
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
@@ -677,44 +638,39 @@ namespace engine
    error:
      goto done ;
    }
-
+   
    /*
-      install db business task run rollback data node job
+      rollback coord
    */
 
-   _omaRunRollbackDataNodeJob::_omaRunRollbackDataNodeJob (
-                                   string &tmpCoordSvcName,
-                                   map< string, vector<InstalledNode> > &info )
-   : _info( info )
+   _omaRollbackCoord::_omaRollbackCoord ( INT64 taskID,
+                                          string &tmpCoordSvcName )
    {
+      _taskID          = taskID ;
       _tmpCoordSvcName = tmpCoordSvcName ;
    }
 
-   _omaRunRollbackDataNodeJob::~_omaRunRollbackDataNodeJob ()
+   _omaRollbackCoord::~_omaRollbackCoord ()
    {
    }
    
-   INT32 _omaRunRollbackDataNodeJob::init ( const CHAR *pInstallInfo )
+   INT32 _omaRollbackCoord::init ( const CHAR *pInstallInfo )
    {
       INT32 rc = SDB_OK ;
       try
       {
-         BSONObjBuilder builder ;
-         BSONObj dataGroupInfo ;
-         BSONObj sys ;
-         _getInstalledDataGroupInfo( dataGroupInfo ) ;
-         builder.append( OMA_FIELD_TMPCOORDSVCNAME, _tmpCoordSvcName.c_str() ) ;
-         builder.appendElements( dataGroupInfo ) ;
-         sys = builder.obj() ;
+         BSONObj sys = BSON (
+                 OMA_FIELD_TASKID << _taskID <<
+                 OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
          ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
-         PD_LOG ( PDDEBUG, "Rollback data group passes "
+         PD_LOG ( PDDEBUG, "Rollback coord passes "
                   "argument: %s", _jsFileArgs ) ;
-         rc = addJsFile( FILE_ROLLBACK_DATANODE, _jsFileArgs ) ;
+         rc = addJsFile( FILE_ROLLBACK_COORD, _jsFileArgs ) ;
          if ( rc )
          {
             PD_LOG_MSG ( PDERROR, "Failed to add js file[%s], rc = %d ",
-                         FILE_ROLLBACK_DATANODE, rc ) ;
+                         FILE_ROLLBACK_COORD, rc ) ;
             goto error ;
          }
       }
@@ -731,15 +687,69 @@ namespace engine
      goto done ;
    }
 
-   void _omaRunRollbackDataNodeJob::_getInstalledDataGroupInfo( BSONObj &obj )
+
+   /*
+      rollback data groups
+   */
+
+   _omaRollbackDataRG::_omaRollbackDataRG ( INT64 taskID,
+                                            string &tmpCoordSvcName,
+                                            set<string> &info )
+   : _info( info )
+   {
+      _taskID          = taskID ;
+      _tmpCoordSvcName = tmpCoordSvcName ;
+   }
+
+   _omaRollbackDataRG::~_omaRollbackDataRG ()
+   {
+   }
+   
+   INT32 _omaRollbackDataRG::init ( const CHAR *pInstallInfo )
+   {
+      INT32 rc = SDB_OK ;
+      try
+      {
+         BSONObj bus ;
+         BSONObj sys ;
+         _getInstalledDataGroupInfo( bus ) ;
+         sys = BSON( OMA_FIELD_TASKID << _taskID <<
+                     OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName.c_str() ) ;
+         ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; var %s = %s;",
+                      JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str(),
+                      JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str()) ;
+         PD_LOG ( PDDEBUG, "Rollback data groups passes "
+                  "argument: %s", _jsFileArgs ) ;
+         rc = addJsFile( FILE_ROLLBACK_DATA_RG, _jsFileArgs ) ;
+         if ( rc )
+         {
+            PD_LOG_MSG ( PDERROR, "Failed to add js file[%s], rc = %d ",
+                         FILE_ROLLBACK_DATA_RG, rc ) ;
+            goto error ;
+         }
+      }
+      catch ( std::exception &e )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG ( PDERROR, "Failed to build bson, exception is: %s",
+                      e.what() ) ;
+         goto error ;
+      }
+   done:
+      return rc ;
+   error:
+     goto done ;
+   }
+
+   void _omaRollbackDataRG::_getInstalledDataGroupInfo( BSONObj &obj )
    {
       BSONObjBuilder bob ;
       BSONArrayBuilder bab ;
-      map< string, vector< InstalledNode > >::iterator it = _info.begin() ;
+      set<string>::iterator it = _info.begin() ;
 
       for( ; it != _info.end(); it++ )
       {
-         string groupname = it->first ;
+         string groupname = *it ;
          bab.append( groupname.c_str() ) ;
       }
       bob.appendArray( OMA_FIELD_UNINSTALLGROUPNAMES, bab.arr() ) ;

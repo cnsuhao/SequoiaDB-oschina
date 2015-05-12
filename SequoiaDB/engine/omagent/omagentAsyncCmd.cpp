@@ -528,11 +528,12 @@ namespace engine
       return SDB_OK ;
    }
 
-   _omaCreateTmpCoord::_omaCreateTmpCoord ()
+   _omaCreateTmpCoord::_omaCreateTmpCoord( INT64 taskID )
    {
+      _taskID = taskID ;
    }
 
-   _omaCreateTmpCoord::~_omaCreateTmpCoord ()
+   _omaCreateTmpCoord::~_omaCreateTmpCoord()
    {
    }
 
@@ -541,27 +542,18 @@ namespace engine
       INT32 rc = SDB_OK ;
       try
       {
-         BSONObj bus ;
-         if ( NULL == pInstallInfo )
-         {
-            BSONObjBuilder bob ;
-            BSONArrayBuilder bab ;
-            bob.appendArray( OMA_FIELD_CATAADDR, bab.arr() ) ;
-            bus = bob.obj() ;
-         }
-         else
-         {
-            bus = BSONObj(pInstallInfo).getOwned() ;
-         }
-         ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
-                      JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
-         PD_LOG ( PDDEBUG, "Create temporary coord passes argument: %s",
+         BSONObj bus = BSONObj(pInstallInfo).copy() ;
+         BSONObj sys = BSON( OMA_FIELD_TASKID << _taskID ) ;
+         ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; var %s = %s;",
+                      JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str(),
+                      JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
+         PD_LOG ( PDDEBUG, "Install temporary coord passes argument: %s",
                   _jsFileArgs ) ;
-         rc = addJsFile( FILE_CREATE_TMP_COORD, _jsFileArgs ) ;
+         rc = addJsFile( FILE_INSTALL_TMP_COORD, _jsFileArgs ) ;
          if ( rc )
          {
             PD_LOG_MSG ( PDERROR, "Failed to add js file[%s], rc = %d ",
-                         FILE_CREATE_TMP_COORD, rc ) ;
+                         FILE_INSTALL_TMP_COORD, rc ) ;
             goto error ;
          }
       }
@@ -579,10 +571,10 @@ namespace engine
      goto done ;
    }
 
-   INT32 _omaCreateTmpCoord::createTmpCoord( BSONObj &retObj )
+   INT32 _omaCreateTmpCoord::createTmpCoord( BSONObj &cfgObj, BSONObj &retObj )
    {
       INT32 rc = SDB_OK ;
-      rc = init( NULL ) ;
+      rc = init( cfgObj.objdata() ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to init to create "
@@ -601,9 +593,11 @@ namespace engine
       goto done ;
    }
 
-   _omaRemoveTmpCoord::_omaRemoveTmpCoord ( const CHAR *pTmpCoordSvcName )
+   _omaRemoveTmpCoord::_omaRemoveTmpCoord( INT64 taskID,
+                                           string &tmpCoordSvcName )
    {
-      ossStrncpy( _tmpCoordSvcName, pTmpCoordSvcName, OSS_MAX_SERVICENAME ) ;
+      _taskID          = taskID ;
+      _tmpCoordSvcName = tmpCoordSvcName ;
    }
 
    _omaRemoveTmpCoord::~_omaRemoveTmpCoord ()
@@ -615,9 +609,11 @@ namespace engine
       INT32 rc = SDB_OK ;
       try
       {
-         BSONObj sys = BSON ( OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName ) ;
+         BSONObj bus = BSON( OMA_FIELD_TMPCOORDSVCNAME << _tmpCoordSvcName ) ;
+         BSONObj sys = BSON( OMA_FIELD_TASKID << _taskID ) ;
 
-         ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
+         ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; var %s = %s;",
+                      JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str(),
                       JS_ARG_SYS, sys.toString(FALSE, TRUE).c_str() ) ;
          PD_LOG ( PDDEBUG, "Remove temporary coord passes argument: %s",
                   _jsFileArgs ) ;
