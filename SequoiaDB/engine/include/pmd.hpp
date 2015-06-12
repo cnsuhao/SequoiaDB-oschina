@@ -123,6 +123,7 @@ namespace engine
 
       virtual void      onConfigChange ( UINT32 changeID ) ;
       virtual INT32     onConfigInit () ;
+      virtual void      onConfigSave () ;
 
    private:
       IControlBlock                 *_arrayCBs[ SDB_CB_MAX ] ;

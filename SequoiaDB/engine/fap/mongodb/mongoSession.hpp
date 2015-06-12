@@ -61,15 +61,19 @@ public:
    virtual INT32 run() ;
 
 protected:
+   virtual void  _onAttach() {}
+   virtual void  _onDetach() {}
+
+protected:
    BOOLEAN _preProcessMsg( const mongoParser &parser,
                            engine::IResource *resource,
-                           msgBuffer &msg ) ;
-   INT32 _processMsg( const CHAR *pMsg, const INT32 len ) ;
+                           bson::BSONObjBuilder &bob ) ;
+   INT32 _processMsg( const CHAR *pMsg,
+                      bson::BSONObjBuilder &bob,
+                      const CHAR *&pBody, INT32 &bodyLen) ;
    INT32 _onMsgBegin( MsgHeader *msg ) ;
    INT32 _onMsgEnd( INT32 result, MsgHeader *msg ) ;
    INT32 _reply( MsgOpReply *replyHeader, const CHAR *pBody, const INT32 len ) ;
-   virtual void  _onAttach() ;
-   virtual void  _onDetach() ;
 
 private:
    void  resetBuffers() ;

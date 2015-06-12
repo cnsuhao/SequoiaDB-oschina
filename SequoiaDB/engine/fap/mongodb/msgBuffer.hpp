@@ -66,7 +66,8 @@ public:
       return 0 == _size ;
    }
 
-   INT32 write( const CHAR *in, const UINT32 inLen ) ;
+   INT32 write( const CHAR *in, const UINT32 inLen,
+                BOOLEAN align = FALSE, INT32 bytes = 4 ) ;
 
    INT32 write( const bson::BSONObj &obj,
                 BOOLEAN align = FALSE, INT32 bytes = 4 ) ;

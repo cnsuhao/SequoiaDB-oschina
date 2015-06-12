@@ -34,6 +34,7 @@
 #define CLS_COMMAND_HPP_
 
 #include "rtnCommand.hpp"
+#include "clsDef.hpp"
 
 using namespace bson ;
 
@@ -195,6 +196,30 @@ namespace engine
                            INT16 w = 1, INT64 *pContextID = NULL ) ;
    } ;
 
+   class _rtnReelect : public _rtnCommand
+   {
+      DECLARE_CMD_AUTO_REGISTER()
+
+   public:
+      _rtnReelect() ;
+      virtual ~_rtnReelect() ;
+
+   public:
+      virtual const CHAR * name () { return NAME_REELECT ; }
+      virtual RTN_COMMAND_TYPE type () { return CMD_REELECT ; }
+      virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                              const CHAR *pMatcherBuff,
+                              const CHAR *pSelectBuff,
+                              const CHAR *pOrderByBuff,
+                              const CHAR *pHintBuff ) ;
+      virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                           _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                           INT16 w = 1, INT64 *pContextID = NULL ) ;
+
+   private:
+      UINT32 _timeout ;
+      CLS_REELECTION_LEVEL _level ;
+   } ;
 }
 
 

@@ -302,7 +302,7 @@ function sprintf( format )
 function createTmpDir( ssh )
 {
    var str = "" ;
-   // directories make in target host /tmp
+   // directories make in target host /tmp   
    var dirs = [ OMA_PATH_TEMP_OMA_DIR_L,
                 OMA_PATH_TEMP_BIN_DIR_L,
                 OMA_PATH_TEMP_PACKET_DIR_L,
@@ -313,8 +313,6 @@ function createTmpDir( ssh )
                 OMA_PATH_TEMP_LOCAL_DIR_L,
                 OMA_PATH_TEMP_SPT_DIR_L,
                 OMA_PATH_TEMP_TEMP_DIR_L,
-                OMA_PATH_TMP_COORD_PATH,
-                OMA_PATH_TMP_COORD_BACKUP_DIR,
                 OMA_PATH_TMP_WEB_LOG_DIR ] ;
    try
    {
@@ -334,42 +332,6 @@ function createTmpDir( ssh )
       {
          // TODO: tanzhaobo
       }
-/*
-      if ( SYS_LINUX == SYS_TYPE )
-      {
-        // rm /tmp/omatmp
-        cmd = "rm " + OMA_PATH_TEMP_OMA_DIR_L + " -rf " ;
-        ssh.exec( cmd ) ;
-        // mkdir /tmp/omatmp
-        cmd = "mkdir " + OMA_PATH_TEMP_OMA_DIR_L ;
-        ssh.exec( cmd ) ;
-        // mkdir /tmp/omatmp/bin
-        cmd = "mkdir " + OMA_PATH_TEMP_BIN_DIR_L ;
-        ssh.exec( cmd ) ;
-        // mkdir /tmp/omatmp/packet
-        cmd = "mkdir -p " + OMA_PATH_TEMP_PACKET_DIR_L ; 
-        ssh.exec( cmd ) ;
-        // mkdir /tmp/omatmp/conf
-        cmd = "mkdir " + OMA_PATH_TEMP_CONF_DIR_L ;
-        ssh.exec( cmd ) ;
-        // mkdir /tmp/omatmp/conf/log
-        cmd = "mkdir " + OMA_PATH_TEMP_LOG_DIR_L ;
-        ssh.exec( cmd ) ;
-        // mkdir /tmp/omatmp/conf/script
-        cmd = "mkdir " + OMA_PATH_TEMP_SPT_DIR_L ;
-        ssh.exec( cmd ) ;
-        // mkdir /tmp/omatmp/tmp
-        cmd = "mkdir " + OMA_PATH_TEMP_TEMP_DIR_L ;
-        ssh.exec( cmd ) ;
-        // mkdir /tmp/omatmp/data/vCoord
-        cmd = "mkdir -p " + OMA_PATH_TMP_COORD_PATH ;
-        ssh.exec( cmd ) ;
-      }
-      else
-      {
-         // TODO: tanzhaobo
-      }
-*/
    }
    catch( e )
    {
@@ -698,17 +660,16 @@ function isSdbcmRunning( ssh, host )
 /* *****************************************************************************
 @discretion: get a usable port from local host
 @author: Tanzhaobo
-@parameter
-   osInfo[string]: os type
+@parameter void
 @return
    retPort[nunber]: return a usable port or OMA_PORT_INVALID
 ***************************************************************************** */
-function getAUsablePortFromLocal( osInfo )
+function getAUsablePortFromLocal()
 {
    var retPort = OMA_PORT_INVALID ;
    var flag = false ;   
 
-   if ( OMA_LINUX == osInfo )
+   if ( SYS_LINUX == SYS_TYPE )
    {
       for ( var port = OMA_PORT_TEMP_AGENT_PORT ;
             port <= OMA_PORT_MAX; port++ )

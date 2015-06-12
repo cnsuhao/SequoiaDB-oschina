@@ -140,13 +140,12 @@ omagentFiles = [
       "omagent/omagentHelper.cpp",
       "omagent/omagentCmdBase.cpp",
       "omagent/omagentSyncCmd.cpp",
-      "omagent/omagentAsyncCmd.cpp",
+      "omagent/omagentBackgroundCmd.cpp",
       "omagent/omagentNodeCmd.cpp",
       "omagent/omagentTaskBase.cpp",
       "omagent/omagentTask.cpp",
       "omagent/omagentSubTask.cpp",
-      "omagent/omagentJob.cpp",
-      "omagent/omagentRunJob.cpp"
+      "omagent/omagentJob.cpp"
       ]
 
 sptFiles = [

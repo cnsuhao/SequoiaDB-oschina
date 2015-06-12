@@ -135,6 +135,9 @@ var Idle                         = "Idle" ;
 var Other                        = "Other" ;
 var CalendarTime                 = "CalendarTime" ;
 var NetCards                     = "NetCards" ;
+var ClusterName                  = "clustername" ;
+var BusinessName                 = "businessname" ;
+var UserTag                      = "usertag" ;
 
 
 var OMA_PATH_TEMP_OMA_DIR_L           = "/tmp/omatmp/" ;
@@ -148,8 +151,6 @@ var OMA_PATH_TEMP_TEMP_DIR_L          = "/tmp/omatmp/tmp/" ;
 var OMA_PATH_TEMP_LOG_DIR_L           = "/tmp/omatmp/conf/log/" ;
 var OMA_PATH_TEMP_LOCAL_DIR_L         = "/tmp/omatmp/conf/local/" ;
 var OMA_PATH_TEMP_SPT_DIR_L           = "/tmp/omatmp/conf/script/" ;
-var OMA_PATH_TMP_COORD_PATH           = "/tmp/omatmp/data/tmpCoord/" ;
-var OMA_PATH_TMP_COORD_BACKUP_DIR     = "/tmp/omatmp/data/tmpCoord/backup/" ;
 var OMA_PATH_TMP_WEB_LOG_DIR          = "/tmp/omatmp/web/log/" ;
 var OMA_PATH_SCRIPT_L                 = "script/" ;
 var OMA_PATH_BIN_L                    = "bin/";

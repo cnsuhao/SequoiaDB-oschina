@@ -21,21 +21,60 @@
    2014-7-26 Zhaobo Tan  Init
 @parameter
    BUS_JSON:
-   SYS_JSON: the format is: { "VCoordSvcName": "10000" } 
+   SYS_JSON: the format is: { "TaskID": 1, "TmpCoordSvcName": "10000" }
    ENV_JSON:
 @return
-   RET_JSON: the format is: {}
+   RET_JSON: the format is: { "errrno": 0, "detail": "" }
 */
 
-var RET_JSON     = new Object() ;
+// println
+// var SYS_JSON = { "TaskID": 2, "TmpCoordSvcName": "10000" } ;
+
+var FILE_NAME_ROLLBACK_COORD = "rollbackCoord.js" ;
+var RET_JSON     = new removeRGResult() ;
+var rc           = SDB_OK ;
 var errMsg       = "" ;
+
+var task_id      = "" ;
+// println:
+var rg_name = OMA_SYS_COORD_RG ;
+
+/* *****************************************************************************
+@discretion: init
+@author: Tanzhaobo
+@parameter void
+@return void
+***************************************************************************** */
+function _init()
+{           
+   // 1. get task id
+   task_id = getTaskID( SYS_JSON ) ;
+
+   setTaskLogFileName( task_id, rg_name ) ;
+   
+   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ROLLBACK_COORD,
+            sprintf( "Begin to rollback coord rg in task[?]", task_id ) ) ;
+}
+
+/* *****************************************************************************
+@discretion: final
+@author: Tanzhaobo
+@parameter void
+@return void
+***************************************************************************** */
+function _final()
+{
+   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ROLLBACK_COORD,
+            sprintf( "Finish rollback coord group in task[?]", task_id ) ) ;
+}
+
 /* *****************************************************************************
 @discretion: remove coord group
 @parameter
    db[object]: Sdb object
 @return void
 ***************************************************************************** */
-function removeCoordGroup( db )
+function _removeCoordGroup( db )
 {
    var rg = null ;
 
@@ -51,8 +90,12 @@ function removeCoordGroup( db )
       }
       else
       {
+         SYSEXPHANDLE( e ) ;
          errMsg = "Failed to get coord group" ;
-         exception_handle( e, errMsg ) ;
+         rc = GETLASTERROR() ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_ROLLBACK_COORD,
+                  errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
+         exception_handle( rc, errMsg ) ;
       }
    }
    // remove
@@ -62,36 +105,82 @@ function removeCoordGroup( db )
    }
    catch ( e )
    {
+      SYSEXPHANDLE( e ) ;
       errMsg = "Failed to remove coord group" ;
-      exception_handle( e, errMsg ) ;
+      rc = GETLASTERROR() ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_ROLLBACK_COORD,
+               errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
+      exception_handle( rc, errMsg ) ;
    }
 }
 
 function main()
 {
-   var vCoordHostName   = System.getHostName() ;
-   var vCoordSvcName    = SYS_JSON[VCoordSvcName] ;
-   var db               = null ;
-   // connect to virtual coord
+   var tmpCoordHostName   = null ;
+   var tmpCoordSvcName    = null ;
+   var db                 = null ;
+   
    try
    {
-      db = new Sdb( vCoordHostName, vCoordSvcName, "", "" ) ;
+      // 1. get arguments
+      try
+      {
+         tmpCoordHostName   = System.getHostName() ;
+         tmpCoordSvcName    = SYS_JSON[TmpCoordSvcName] ;
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         errMsg = "Js receive invalid argument" ;
+         rc = GETLASTERROR() ;
+         // record error message in log
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_ROLLBACK_COORD,
+                  errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
+         // tell to user error happen
+         exception_handle( SDB_INVALIDARG, errMsg ) ;
+      }
+      
+      // 2. connect to temporary coord
+      try
+      {
+         db = new Sdb( tmpCoordHostName, tmpCoordSvcName, "", "" ) ;
+      }
+      catch ( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         errMsg = sprintf( "Failed to connect to temporary coord[?:?]",
+                           tmpCoordHostName, tmpCoordSvcName ) ;
+         rc = GETLASTERROR() ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_ROLLBACK_COORD,
+                  errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
+         exception_handle( rc, errMsg ) ;
+      }
+      
+      // 3. test whether catalog is running or not
+      // if catalog is not running, no need to rollback
+      if ( false == isCatalogRunning( db ) )
+      {
+         _final() ;
+         return RET_JSON ;
+      }
+      
+      // 4. remove coord nodes
+      _removeCoordGroup( db ) ;
    }
-   catch ( e )
+   catch( e )
    {
-      errMsg = "Failed to connect to temporary coord [" + vCoordHostName + ":" + vCoordSvcName  + "]" ;
-      exception_handle( e, errMsg ) ;
+      SYSEXPHANDLE( e ) ;
+      errMsg = GETLASTERRMSG() ; 
+      rc = GETLASTERROR() ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_ROLLBACK_COORD,
+               sprintf( "Failed to remove catalog group, rc:?, detail:?",
+                        rc, errMsg ) ) ;             
+      RET_JSON[Errno] = rc ;
+      RET_JSON[Detail] = errMsg ;
    }
-   // test whether catalog is running or not
-   // if catalog is not running, no need to rollback
-   var flag = isCatalogRunning( db ) ;
-   if ( !flag )
-   {
-      return RET_JSON ;
-   }
-   // remove coord nodes
-   removeCoordGroup( db ) ;
-
+   
+   _final() ;
+println("RET_JSON is: " + JSON.stringify(RET_JSON) ) ;
    return RET_JSON ;
 }
 

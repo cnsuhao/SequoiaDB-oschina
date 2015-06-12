@@ -27,6 +27,7 @@
    RET_JSON: the format is: { "errno":0, "detail":"" }
 */
 
+// println
 //var BUS_JSON = { "SdbUser": "sdbadmin", "SdbPasswd": "sdbadmin", "SdbUserGroup": "sdbadmin_group", "User": "root", "Passwd": "sequoiadb", "SshPort": "22", "InstallHostName": "susetzb", "InstallSvcName": "20000", "InstallPath": "/opt/sequoiadb/database/standalone/20000", "InstallConfig": { "diaglevel": "5", "role": "standalone", "logfilesz": "64", "logfilenum": "10", "transactionon": "false", "preferedinstance": "2", "numpagecleaners": "10", "pagecleaninterval": "1000", "hjbuf": "128", "logbuffsize": "1024", "maxprefpool": "200", "maxreplsync": "10", "numpreload": "0", "sortbuf": "512", "syncstrategy": "none" } };
 
 //var SYS_JSON = { "TaskID": 3 };
@@ -65,12 +66,13 @@ function _init()
       errMsg = "Js receive invalid argument" ;
       PD_LOG( arguments, PDERROR, FILE_NAME_INSTALL_STANDALONE,
               sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
-      exception_handle( SDB_SYS, errMsg ) ;
+      exception_handle( SDB_INVALIDARG, errMsg ) ;
    }
    setTaskLogFileName( task_id, host_name ) ;
    
    PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_STANDALONE,
-            sprintf( "Begin to install standalone[?:?]", host_name, host_svc ) ) ;
+            sprintf( "Begin to install standalone[?:?] in task[?]",
+                     host_name, host_svc, task_id ) ) ;
 }
 
 /* *****************************************************************************
@@ -82,7 +84,24 @@ function _init()
 function _final()
 {
    PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_STANDALONE,
-            sprintf( "Finish installing standalone[?:?]", host_name, host_svc ) ) ;
+            sprintf( "Finish installing standalone[?:?] in task[?]",
+                     host_name, host_svc, task_id ) ) ;
+}
+
+/* *****************************************************************************
+@discretion: check whether node has been installed or not
+@discretion: create standalone
+@parameter
+   hostName[string]: install host name
+   svcName[string]: install svc name
+   installPath[string]: install path
+   config[json]: config info 
+   agentPort[string]: the port of sdbcm in install host
+@return void
+***************************************************************************** */
+function _checkNodeExistOrNot( hostName, svcName, installPath, config, agentPort )
+{
+   
 }
 
 /* *****************************************************************************
@@ -185,9 +204,12 @@ function main()
       }
       // 3. get OM Agent's service in target host from local sdbcm config file
       agentPort = getOMASvcFromCfgFile( installHostName ) ;
-      // change install path owner
+      // 4. check whether node has been installed
+// println
+// TODO:
+      // 5. change install path owner
       changeDirOwner( ssh, installPath, sdbUser, sdbUserGroup ) ;
-      // create standalone
+      // 6. create standalone
       _createStandalone( installHostName, installSvcName,
                          installPath, installConfig, agentPort ) ;
    }
@@ -198,16 +220,13 @@ function main()
       rc = GETLASTERROR() ;
       PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_STANDALONE,
                sprintf( "Failed to install standalone[?:?], rc:?, detail:?",
-               host_name, host_svc, rc, errMsg ) ) ;             
-/*
-      _final() ;
-      exception_handle( rc, errMsg ) ;
-*/
+               host_name, host_svc, rc, errMsg ) ) ;
       RET_JSON[Errno] = rc ;
       RET_JSON[Detail] = errMsg ;
    }
    
    _final() ;
+println("RET_JSON is: " + JSON.stringify(RET_JSON)) ;
    return RET_JSON ;
 }
 

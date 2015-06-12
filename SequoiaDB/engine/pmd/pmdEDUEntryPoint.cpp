@@ -119,7 +119,7 @@ namespace engine
          ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_SYNCCLOCK, TRUE,
                                 pmdSyncClockEntryPoint,
                                 "SyncClockWorker" ),
-         ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_FAPLISTENER, TRUE,
+         ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_FAPLISTENER, FALSE,
                                 pmdFapListenerEntryPoint,
                                 "FAPListener" ),
 

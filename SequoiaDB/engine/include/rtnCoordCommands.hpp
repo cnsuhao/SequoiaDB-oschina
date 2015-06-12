@@ -117,6 +117,11 @@ namespace engine
    #define COORD_CMD_LIST_CL_IN_DOMAIN        CMD_ADMIN_PREFIX CMD_NAME_LIST_CL_IN_DOMAIN
    #define COORD_CMD_INVALIDATE_CACHE         CMD_ADMIN_PREFIX CMD_NAME_INVALIDATE_CACHE
    #define COORD_CMD_LIST_LOBS                CMD_ADMIN_PREFIX CMD_NAME_LIST_LOBS
+   #define COORD_CMD_ATTACH_IMAGE             CMD_ADMIN_PREFIX CMD_NAME_ATTACH_IMAGE
+   #define COORD_CMD_DETACH_IMAGE             CMD_ADMIN_PREFIX CMD_NAME_DETACH_IMAGE
+   #define COORD_CMD_ACTIVE_IMAGE             CMD_ADMIN_PREFIX CMD_NAME_ACTIVE_IMAGE
+   #define COORD_CMD_DEACTIVE_IMAGE           CMD_ADMIN_PREFIX CMD_NAME_DEACTIVE_IMAGE
+   #define COORD_CMD_REELECT                  CMD_ADMIN_PREFIX CMD_NAME_REELECT
 
    class rtnCoordCommand : virtual public rtnCoordOperator
    {
@@ -1214,6 +1219,15 @@ namespace engine
                      CHAR **ppResultBuffer,
                      pmdEDUCB *cb, MsgOpReply &replyHeader,
                      BSONObj **ppErrorObj );
+   } ;
+
+   class rtnCoordCMDReelection : public rtnCoordCommand
+   {
+   public:
+      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
+                     CHAR **ppResultBuffer,
+                     pmdEDUCB *cb, MsgOpReply &replyHeader,
+                     BSONObj **ppErrorObj ) ;
    } ;
 
 }

@@ -5,7 +5,7 @@ $isfirst2 = true ;
 $group_list = '' ;
 $errnode = array() ;
 
-$cursor = $db -> getSnapshot ( SDB_SNAP_DATABASE, NULL, '{ErrNodes:1}' ) ;
+$cursor = $db -> getSnapshot ( 7, '{GroupID:{$gt:0}}', '{ErrNodes:1}' ) ;
 if ( !empty ( $cursor ) )
 {
 	if ( $arr = $cursor -> getNext() )

@@ -28,7 +28,32 @@
 var FILE_NAME_SCAN_HOST = "scanHost.js" ;
 var RET_JSON            = new Object() ;
 RET_JSON[HostInfo]      = [] ;
+var rc                  = SDB_OK ;
 var errMsg              = "" ;
+
+
+/* *****************************************************************************
+@discretion: init
+@author: Tanzhaobo
+@parameter void
+@return void
+***************************************************************************** */
+function _init()
+{              
+   PD_LOG( arguments, PDEVENT, FILE_NAME_SCAN_HOST, "Begin to scan host" ) ;
+}
+
+/* *****************************************************************************
+@discretion: final
+@author: Tanzhaobo
+@parameter void
+@return void
+***************************************************************************** */
+function _final()
+{
+   PD_LOG( arguments, PDEVENT, FILE_NAME_SCAN_HOST, "Finish scanning host" ) ;
+}
+
 /* *****************************************************************************
 @discretion: scan the specified host, to check whether it can been "ping" and "ssh",
              and try to get it's hostname or ip
@@ -138,9 +163,9 @@ function _scanHost( user, passwd, hostname, sshport, ip )
 
 function main()
 {
-   PD_LOG( arguments, PDEVENT, FILE_NAME_SCAN_HOST, "Begin to scan host" ) ;
    var infoArr = null ;
    var arrLen = null ;
+   _init() ;
    try
    {
       infoArr = BUS_JSON[HostInfo] ;
@@ -214,7 +239,7 @@ function main()
       RET_JSON[HostInfo].push( ret ) ;
    }
    
-   PD_LOG( arguments, PDEVENT, FILE_NAME_SCAN_HOST, "Finish scanning host" ) ;
+   _final() ;
    return RET_JSON ;
 }
 

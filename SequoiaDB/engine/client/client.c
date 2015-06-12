@@ -7688,3 +7688,67 @@ error:
    goto done ;
 }
 
+SDB_EXPORT INT32 sdbReelect( sdbReplicaGroupHandle cHandle,
+                             const bson *options )
+{
+   INT32 rc = SDB_OK ;
+   sdbRGStruct *rg = (sdbRGStruct*)cHandle ;
+   BOOLEAN result = FALSE ;
+   SINT64 contextID = -1 ;
+   bson ops ;
+   bson_iterator itr ;
+   bson_init( &ops ) ;
+   HANDLE_CHECK( cHandle, rg, SDB_HANDLE_TYPE_REPLICAGROUP ) ;
+
+   bson_append_string( &ops,
+                       FIELD_NAME_GROUPNAME,
+                       rg->_replicaGroupName ) ;
+
+   if ( NULL != options )
+   {
+      bson_iterator_init( &itr, options ) ;
+      while ( BSON_EOO != bson_iterator_next ( &itr ) )
+      {
+         bson_append_element( &ops, NULL, &itr ) ;
+      }
+   }
+
+   bson_finish( &ops ) ;
+
+   rc = clientBuildQueryMsg( &(rg->_pSendBuffer),
+                             &(rg->_sendBufferSize),
+                             (CMD_ADMIN_PREFIX CMD_NAME_REELECT),
+                             0, 0, 0, -1, &ops, NULL, NULL, NULL,
+                             rg->_endianConvert ) ;
+   if ( SDB_OK != rc )
+   {
+      ossPrintf ( "Failed to build flush msg, rc = %d"OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
+
+   rc = _send ( rg->_connection, rg->_sock,
+                (MsgHeader*)(rg->_pSendBuffer),
+                rg->_endianConvert ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+   rc = _recvExtract ( rg->_connection, rg->_sock,
+                       (MsgHeader**)&rg->_pReceiveBuffer,
+                       &rg->_receiveBufferSize, &contextID,
+                       &result, rg->_endianConvert ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+   CHECK_RET_MSGHEADER( rg->_pSendBuffer, rg->_pReceiveBuffer,
+                        rg->_connection ) ;
+done:
+   bson_destroy( &ops ) ;
+   return rc ;
+error:
+   goto done ;
+}
+

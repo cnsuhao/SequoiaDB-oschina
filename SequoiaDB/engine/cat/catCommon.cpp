@@ -1580,6 +1580,75 @@ namespace engine
       goto done ;
    }
 
+   INT32 catCheckBaseInfoExist( const char *pTypeStr, BOOLEAN &isExist,
+                                BSONObj &obj, pmdEDUCB *cb )
+   {
+      INT32 rc           = SDB_OK ;
+      isExist            = FALSE ;
+
+      BSONObj matcher = BSON( FIELD_NAME_TYPE << pTypeStr ) ;
+      BSONObj dummyObj ;
+
+      rc = catGetOneObj( CAT_SYSBASE_COLLECTION_NAME, dummyObj, matcher,
+                         dummyObj, cb, obj ) ;
+      if ( SDB_DMS_EOC == rc )
+      {
+         isExist = FALSE ;
+         rc = SDB_OK ;
+      }
+      else if ( SDB_OK == rc )
+      {
+         isExist = TRUE ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "Failed to get obj(%s) from %s, rc: %d",
+                 matcher.toString().c_str(), CAT_SYSBASE_COLLECTION_NAME,
+                 rc ) ;
+         goto error ;
+      }
+
+   done :
+      return rc ;
+   error :
+      goto done ;
+   }
+
+   INT32 catUpdateBaseInfoAddr( const CHAR *pAddr, BOOLEAN self,
+                                pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj matcher = BSON( FIELD_NAME_TYPE << CAT_BASE_TYPE_GLOBAL_STR ) ;
+      BSONObj updator ;
+      pmdKRCB *krcb = pmdGetKRCB() ;
+      SDB_DMSCB *dmsCB = krcb->getDMSCB() ;
+      SDB_DPSCB *dpsCB = krcb->getDPSCB() ;
+
+      if ( self )
+      {
+         updator = BSON( "$set" << BSON( FIELD_NAME_DATACENTER"."
+                                         FIELD_NAME_ADDRESS << pAddr )
+                       ) ;
+      }
+      else
+      {
+         updator = BSON( "$set" << BSON( FIELD_NAME_IMAGE"."
+                                         FIELD_NAME_ADDRESS << pAddr )
+                        ) ;
+      }
+
+      rc = rtnUpdate( CAT_SYSBASE_COLLECTION_NAME, matcher, updator,
+                      BSONObj(), 0, cb, dmsCB, dpsCB, w, NULL ) ;
+      PD_RC_CHECK( rc, PDERROR, "Update collection[%s] obj[%s] failed, rc: %d",
+                   CAT_SYSBASE_COLLECTION_NAME, updator.toString().c_str(),
+                   rc ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATREMOVECLEX, "catRemoveCLEx" )
    INT32 catRemoveCLEx( const CHAR * clFullName, pmdEDUCB * cb,
                         SDB_DMSCB * dmsCB, SDB_DPSCB * dpsCB, INT16 w,

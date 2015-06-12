@@ -92,7 +92,8 @@ error:
    goto done ;
 }
 
-INT32 _msgBuffer::write( const CHAR *in, const UINT32 inLen )
+INT32 _msgBuffer::write( const CHAR *in, const UINT32 inLen,
+                         BOOLEAN align , INT32 bytes )
 {
    INT32 rc   = SDB_OK ;
    INT32 size = 0 ;        // new size to realloc
@@ -117,7 +118,14 @@ INT32 _msgBuffer::write( const CHAR *in, const UINT32 inLen )
    }
 
    ossMemcpy( _data + _size, in, inLen ) ;
-   _size += inLen ;
+   if ( align )
+   {
+      _size += ossRoundUpToMultipleX( inLen, bytes );
+   }
+   else
+   {
+      _size += inLen ;
+   }
 
 done:
    return rc ;

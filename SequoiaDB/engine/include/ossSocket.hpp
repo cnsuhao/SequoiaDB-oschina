@@ -71,6 +71,7 @@
 #define OSS_MAX_HOSTNAME            NI_MAXHOST
 #define OSS_MAX_SERVICENAME         NI_MAXSERV
 
+
 /*
    _ossSocket define
 */
@@ -88,6 +89,7 @@ class _ossSocket : public SDBObject
       INT32                _timeout ;
       BOOLEAN              _enableBlock ;
 
+
    protected:
       UINT32   _getPort ( sockaddr_in *addr ) ;
       UINT32   _getIP( sockaddr_in *addr ) ;
@@ -102,13 +104,7 @@ class _ossSocket : public SDBObject
       _ossSocket ( const CHAR *pHostname, UINT32 port, INT32 timeoutMilli = 0 ) ;
       _ossSocket ( SOCKET *sock, INT32 timeoutMilli = 0 ) ;
 
-      ~_ossSocket ()
-      {
-         if ( _closeWhenDestruct )
-         {
-            close () ;
-         }
-      }
+      ~_ossSocket () ;
 
       OSS_INLINE SOCKET native()const{ return _fd ; }
       OSS_INLINE void closeWhenDestruct( BOOLEAN closeWhenDestruct )
@@ -138,7 +134,6 @@ class _ossSocket : public SDBObject
                      INT32 timeout = OSS_SOCKET_DFT_TIMEOUT ) ;
       INT32 disableNagle () ;
       void  quickAck () ;
-
       UINT32 getPeerPort () ;
       INT32  getPeerAddress ( CHAR *pAddress, UINT32 length ) ;
       UINT32 getPeerIP () ;

@@ -92,6 +92,7 @@ namespace engine
 #define NAME_INVALIDATE_CACHE                CMD_NAME_INVALIDATE_CACHE
 #define NAME_FORCE_SESSION                   CMD_NAME_FORCE_SESSION
 #define NAME_LIST_LOBS                       CMD_NAME_LIST_LOBS
+#define NAME_REELECT                         CMD_NAME_REELECT
 
 #define NAME_JSON_LOAD                       CMD_NAME_JSON_LOAD
 
@@ -212,6 +213,7 @@ namespace engine
       CMD_INVALIDATE_CACHE                   = 220,
       CMD_FORCE_SESSION                      = 221,
       CMD_LIST_LOB                           = 222,
+      CMD_REELECT                            = 223,
 
       CMD_UNKNOW                             = 65535
    };

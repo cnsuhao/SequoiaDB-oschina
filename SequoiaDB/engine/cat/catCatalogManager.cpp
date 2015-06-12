@@ -1206,6 +1206,10 @@ namespace engine
          PD_CHECK ( !clInfo._isHash,
                     SDB_INVALID_MAIN_CL_TYPE, error, PDERROR,
                     "the sharding-type of main-collection must be range!" );
+
+         PD_CHECK( !( CAT_MASK_AUTOINDEXID & fieldMask ),
+                   SDB_INVALIDARG, error, PDERROR,
+                   "can not set auto-index-id on main collection" ) ;
       }
       if ( clInfo._autoSplit || clInfo._autoRebalance )
       {

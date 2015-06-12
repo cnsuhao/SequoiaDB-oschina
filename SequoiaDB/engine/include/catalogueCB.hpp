@@ -76,6 +76,7 @@ namespace engine
          virtual INT32  deactive () ;
          virtual INT32  fini () ;
          virtual void   onConfigChange() ;
+         virtual void   onConfigSave() ;
 
          virtual void   onRegistered( const MsgRouteID &nodeID ) ;
          virtual void   onPrimaryChange( BOOLEAN primary,

@@ -56,6 +56,7 @@ namespace engine
       ON_MSG( MSG_CLS_BALLOT_RES, handleMsg )
       ON_MSG( MSG_CAT_PAIMARY_CHANGE_RES, handleMsg )
       ON_MSG( MSG_CLS_GINFO_UPDATED, handleMsg )
+      ON_EVENT( PMD_EDU_EVENT_STEP_DOWN, handleEvent )
    END_OBJ_MSG_MAP ()
 
    const UINT32 CLS_REPL_SEC_TIME = 1000 ;
@@ -80,6 +81,7 @@ namespace engine
      _vote( &_info, _agent),
      _logger( NULL ),
      _sync( _agent, &_info ),
+     _reelection( &_vote, &_sync ),
      _clsCB( NULL ),
      _timerID( CLS_INVALID_TIMERID ),
      _beatTime( 0 ),
@@ -471,6 +473,33 @@ namespace engine
       return ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_HNDEVENT, "_clsReplicateSet::handleEvent" )
+   INT32 _clsReplicateSet::handleEvent( pmdEDUEvent *event )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREPSET_HNDEVENT ) ;
+      if ( PMD_EDU_EVENT_STEP_DOWN == event->_eventType )
+      {
+         rc = _handleStepDown() ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to step down:%d", rc ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         PD_LOG( PDERROR, "unknown event type:%d", event->_eventType ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__CLSREPSET_HNDEVENT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_HNDMSG, "_clsReplicateSet::handleMsg" )
    INT32 _clsReplicateSet::handleMsg( NET_HANDLE handle, MsgHeader* msg )
    {
@@ -617,7 +646,9 @@ namespace engine
       msg.beat.beatID = ++_info.localBeatID ;
       msg.beat.serviceStatus = pmdGetStartup().isOK() ?
                                SERVICE_NORMAL : SERVICE_ABNORMAL ;
-      msg.beat.weight = pmdGetOptionCB()->weight() ;
+      UINT8 weight = pmdGetOptionCB()->weight() ;
+      UINT8 shadowWeight = _vote.getShadowWeight() ;
+      msg.beat.weight = CLS_GET_WEIGHT( weight, shadowWeight ) ;
       map<UINT64, _clsSharingStatus>::iterator itr =
                                         _info.info.begin() ;
       for ( ; itr != _info.info.end(); itr++ )
@@ -778,6 +809,10 @@ namespace engine
                _info.mtx.lock_w() ;
                _info.primary = beat.identity ;
                _info.mtx.release_w() ;
+            }
+            else if ( CLS_ELECTION_WEIGHT_USR_MIN != _vote.getShadowWeight() )
+            {
+               reelectionDone() ;
             }
          }
          else
@@ -955,4 +990,77 @@ namespace engine
       return _agent->resetMon() ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET_REELECT, "_clsReplicateSet::reelect" ) 
+   INT32 _clsReplicateSet::reelect( CLS_REELECTION_LEVEL lvl,
+                                    UINT32 seconds,
+                                    pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREPSET_REELECT ) ;
+      if ( 1 == groupSize() )
+      {
+         goto done ;
+      }
+
+      rc = _reelection.run( lvl, seconds, cb ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to reelect:%d", rc ) ;
+         goto error ;
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__CLSREPSET_REELECT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   void _clsReplicateSet::reelectionDone()
+   {
+      _vote.setShadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ) ;
+      _reelection.signal() ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__HANDLESTEPDOWN, "_clsReplicateSet::_handleStepDown" )
+   INT32 _clsReplicateSet::_handleStepDown()
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREPSET__HANDLESTEPDOWN ) ;
+      _vote.setShadowWeight( CLS_ELECTION_WEIGHT_MIN ) ;
+      _vote.force( CLS_ELECTION_STATUS_SEC ) ;
+      PD_TRACE_EXITRC( SDB__CLSREPSET__HANDLESTEPDOWN, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET_PRIMARYCHECK, "_clsReplicateSet::primaryCheck" )
+   INT32 _clsReplicateSet::primaryCheck( pmdEDUCB *cb, INT16 w )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREPSET_PRIMARYCHECK ) ;
+      rc = _reelection.wait( cb ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to wait:%d", rc ) ;
+         goto error ;
+      }
+      else if ( !primaryIsMe () )
+      {
+         rc = SDB_CLS_NOT_PRIMARY ;
+         goto error ;
+      }
+      else if ( w > 1 && (INT16)(ailves()) < w )
+      {
+         rc = SDB_CLS_NODE_NOT_ENOUGH ;
+         goto error ;
+      }
+      else
+      {
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__CLSREPSET_PRIMARYCHECK, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   } 
 }
+

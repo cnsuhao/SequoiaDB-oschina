@@ -2461,7 +2461,7 @@ namespace sdbclient
       virtual INT32 getConfig (
                        std::map<std::string,std::string> &config ) = 0 ;
 */
-      static _sdb *getObj () ;
+      static _sdb *getObj ( BOOLEAN useSSL = FALSE ) ;
    } ;
 /** \typedef class _sdb _sdb
 */
@@ -2486,8 +2486,8 @@ namespace sdbclient
 /** \fn sdb()
     \brief Default constructor.
 */
-      sdb () :
-      pSDB ( _sdb::getObj() )
+      sdb ( BOOLEAN useSSL = FALSE ) :
+      pSDB ( _sdb::getObj( useSSL ) )
       {
       }
 

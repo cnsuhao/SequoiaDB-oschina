@@ -66,10 +66,10 @@ namespace engine
       public:
          _omaPreCheckHost () ;
          ~_omaPreCheckHost () ;
+         
+      public:
          virtual const CHAR* name () { return OMA_CMD_PRE_CHECK_HOST ; }
-         virtual INT32 init ( const CHAR *pInstallInfo ) ;
-      private:
-         INT32 _getProgPath( CHAR *path, INT32 len ) ;
+         virtual INT32 init ( const CHAR *pInfo ) ;
    } ;
 
    /******************************* check host ********************************/
@@ -100,30 +100,23 @@ namespace engine
          virtual INT32 init ( const CHAR *pInstallInfo ) ;
    } ;
 
-   /******************************* query progress status ********************/
+   /******************************* remove host *******************************/
    /*
-      _omaQueryTaskProgress
+      _omaRemoveHost
    */
-/*
-   class _omaQueryTaskProgress : public _omaCommand
+   class _omaRemoveHost : public _omaCommand
    {
-      DECLARE_OACMD_AUTO_REGISTER ()
+      DECLARE_OACMD_AUTO_REGISTER()
       public:
-         _omaQueryTaskProgress () ;
-         ~_omaQueryTaskProgress () ;
-         virtual const CHAR* name ()
-         { 
-            return OMA_CMD_QUERY_PROGRESS ;
-         }
-         virtual INT32 init ( const CHAR *pInstallInfo ) ;
-         virtual INT32 doit ( BSONObj &retObj ) ;
-      private:
-         UINT64                             _taskID ;
-         _omaTaskMgr*                       _taskMgr ;
-
+         _omaRemoveHost () ;
+         ~_omaRemoveHost () ;
+         
+      public:
+         virtual const CHAR * name () { return OMA_CMD_REMOVE_HOST ; }
+         virtual INT32 init ( const CHAR *pInfo ) ;
    } ;
-*/
-   /***************************** update hosts table info ********************/
+   
+   /***************************** update hosts table info *********************/
    /*
       _omaUpdateHostsInfo
    */
@@ -133,11 +126,9 @@ namespace engine
       public:
          _omaUpdateHostsInfo () ;
          ~_omaUpdateHostsInfo () ;
-      
-         virtual const CHAR * name ()
-         {
-            return OMA_CMD_UPDATE_HOSTS ;
-         }
+         
+      public:
+         virtual const CHAR * name () { return OMA_CMD_UPDATE_HOSTS ; }
          virtual INT32 init ( const CHAR *pInstallInfo ) ;
    } ; 
 

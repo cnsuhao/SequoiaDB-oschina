@@ -202,21 +202,23 @@ namespace engine
       {
       }
 
-      if ( !_pReplSet->primaryIsMe () )
+      rc = _pReplSet->primaryCheck( _pEDUCB, w ) ;
+      if ( SDB_OK != rc )
       {
-         rc = SDB_CLS_NOT_PRIMARY ;
-      }
-      else if ( w > 1 && (INT16)(_pReplSet->ailves()) < w )
-      {
-         rc = SDB_CLS_NODE_NOT_ENOUGH ;
-      }
-      else if ( pmdGetKRCB()->getTransCB()->isDoRollback() )
-      {
-         rc = SDB_DPS_TRANS_DOING_ROLLBACK ;
+         goto error ;
       }
 
+      if ( pmdGetKRCB()->getTransCB()->isDoRollback() )
+      {
+         rc = SDB_DPS_TRANS_DOING_ROLLBACK ;
+         goto error ;
+      }
+
+   done:
       PD_TRACE_EXITRC ( SDB__CLSSHDSESS__CK, rc ) ;
       return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSHDSESS__CKCATA, "_clsShdSession::_checkCata" )

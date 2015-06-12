@@ -53,6 +53,14 @@ function addHostResult()
    //this.HasInstall                = false ;
 }
 
+function removeHostResult()
+{
+   this.errno                     = SDB_OK ;
+   this.detail                    = "" ;
+   this.IP                        = "" ;
+   //this.HasUninstall              = false ;
+}
+
 function checkAddHostInfoResult()
 {
    this.errno                     = SDB_OK ;
@@ -73,16 +81,33 @@ function installNodeResult()
    this.detail                    = "" ;
 }
 
+function removeNodeResult()
+{
+   this.errno                     = SDB_OK ;
+   this.detail                    = "" ;
+}
+
+function removeRGResult()
+{
+   this.errno                     = SDB_OK ;
+   this.detail                    = "" ;
+}
+
 function rollbackNodeResult()
 {
    this.errno                     = SDB_OK ;
    this.detail                    = "" ;
 }
 
-function removeHostResult()
+function installTmpCoordResult()
 {
    this.errno                     = SDB_OK ;
    this.detail                    = "" ;
-   this.IP                        = "" ;
-   this.HasUninstall              = false ;
+   this.TmpCoordSvcName           = "" ;
+}
+
+function removeTmpCoordResult()
+{
+   this.errno                     = SDB_OK ;
+   this.detail                    = "" ;
 }

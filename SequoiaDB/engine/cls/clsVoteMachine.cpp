@@ -90,11 +90,13 @@ namespace engine
 
 
    _clsVoteMachine::_clsVoteMachine( _clsGroupInfo *info,
-                                     _netRouteAgent *agent ):
-                                     _agent( agent ),
-                                     _groupInfo( info )
+                                     _netRouteAgent *agent )
+   :_agent( agent ),
+    _current( NULL ),
+    _groupInfo( info ),
+    _shadowWeight( CLS_ELECTION_WEIGHT_USR_MIN )
    {
-      _current = NULL ;
+
    }
 
    _clsVoteMachine::~_clsVoteMachine()

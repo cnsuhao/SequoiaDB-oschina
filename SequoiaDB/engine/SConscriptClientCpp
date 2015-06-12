@@ -2,6 +2,9 @@ import os
 
 Import("clientCppEnv")
 Import("linux")
+Import("ssllib_file")
+Import("ssllib_file1")
+Import("mergeStaticLibrary")
 
 clientCPPFiles = [
       "client/clientcpp.cpp"
@@ -12,6 +15,9 @@ clientCPPThreadSafe = [
       ]
 clientCPPLibFiles = [
       clientCPPFiles,
+      "oss/ossSSLCertificate.c",
+      "oss/ossSSLWrapper.c",
+      "oss/ossSSLContext.c",
       "oss/oss.cpp",
       "oss/ossUtil.cpp",
       "oss/ossMem.cpp",
@@ -37,14 +43,25 @@ clientCPPLibFiles = [
       "bson/nonce.cpp"
       ]
 
-#Client Library
+#Shared Library
 clientCPPLib = clientCppEnv.SharedLibrary('sdbcpp', clientCPPLibFiles)
-if linux:
-   clientCPPLibStatic = clientCppEnv.StaticLibrary('staticsdbcpp', clientCPPLibFiles)
-
 clientCppEnv.Install( '#/client/lib/', clientCPPLib )
+
+#Static Library
+dir = ''
+def merge(target, source = None, env = clientCppEnv):
+    pureLib = dir + '/libstaticpuresdbcpp.a'
+    clientCPPLibStatic = dir + '/libstaticsdbcpp.a'
+    mergeStaticLibrary(clientCPPLibStatic, ssllib_file, ssllib_file1, pureLib)
+    clientCppEnv.Install( '#/client/lib/', clientCPPLibStatic )
+
 if linux:
-   clientCppEnv.Install( '#/client/lib/', clientCPPLibStatic )
+   staticPureSdbCPPLib = clientCppEnv.StaticLibrary('staticpuresdbcpp', clientCPPLibFiles)
+   dir = os.path.dirname(staticPureSdbCPPLib[0].get_abspath())
+   clientCPPLibStatic = dir + '/libstaticsdbcpp.a'
+   clientCppEnv.AddPostAction(staticPureSdbCPPLib, Action(merge))
+
+#Header files
 clientCppEnv.Install( '#/client/include/', "client/client.hpp" )
 clientCppEnv.Install( '#/client/include/', "include/core.hpp" )
 clientCppEnv.Install( '#/client/include/', "include/ossFeat.hpp" )

@@ -23,8 +23,7 @@
    2014-7-26 Zhaobo Tan  Init
 @parameter
    BUS_JSON: the format is: { "HostInfo": [ { "IP": "192.168.20.42", "HostName": "susetzb", "User": "root", "Passwd": "sequoiadb", "SshPort": "22" }, { "IP": "192.168.20.165", "HostName": "rhel64-test8", "User": "root", "Passwd": "sequoiadb", "SshPort": "22" } ] } ;
-   SYS_JSON: the path where we get the tools processes from,
-             the format is: { "ProgPath": "/opt/sequoiadb/bin/" } ;
+   SYS_JSON:
    ENV_JSON:
 @return
    RET_JSON: the format is: { "HostInfo": [ { "errno": 0, "detail": "", "AgentPort": "10000", "IP": "192.168.20.42" }, { "errno": 0, "detail": "", "AgentPort": "10000", "IP": "192.168.20.165" } ] }
@@ -33,7 +32,8 @@
 //println
 //var BUS_JSON = { "HostInfo": [ { "IP": "192.168.20.42", "HostName": "susetzb", "User": "root", "Passwd": "sequoiadb", "SshPort": "22" }, { "IP": "192.168.20.165", "HostName": "rhel64-test8", "User": "root", "Passwd": "sequoiadb", "SshPort": "22" },{ "IP": "192.168.20.166", "HostName": "rhel64-test9", "User": "root", "Passwd": "sequoiadb", "SshPort": "22" } ] } ;
 
-//var SYS_JSON = { "ProgPath": "/opt/sequoiadb/bin/" } ;
+// var BUS_JSON = { "HostInfo": [ { "IP": "192.168.20.42", "HostName": "susetzb", "User": "root", "Passwd": "sequoiadb", "SshPort": "22" }, { "IP": "192.168.20.165", "HostName": "rhel64-test8", "User": "root", "Passwd": "sequoiadb", "SshPort": "22" } ] } ;
+
 
 var FILE_NAME_PRE_CHECK_HOST = "preCheckHost.js" ;
 var RET_JSON        = new Object() ;
@@ -41,6 +41,27 @@ RET_JSON[HostInfo]  = [] ;
 var rc              = SDB_OK ;
 var errMsg          = "" ;
 
+/* *****************************************************************************
+@discretion: init
+@author: Tanzhaobo
+@parameter void
+@return void
+***************************************************************************** */
+function _init()
+{              
+   PD_LOG( arguments, PDEVENT, FILE_NAME_PRE_CHECK_HOST, "Begin to pre-check host" ) ;
+}
+
+/* *****************************************************************************
+@discretion: final
+@author: Tanzhaobo
+@parameter void
+@return void
+***************************************************************************** */
+function _final()
+{
+   PD_LOG( arguments, PDEVENT, FILE_NAME_PRE_CHECK_HOST, "Finish pre-checking host" ) ;
+}
 
 /* *****************************************************************************
 @discretion: push tool programs and js scripts to target host
@@ -111,61 +132,7 @@ function _pushPacket( ssh )
             src = local_spt_path + js_files[i] ;
             dest = OMA_PATH_TEMP_SPT_DIR_L + js_files[i] ;
             ssh.push( src, dest ) ;
-         }         
-/*
-         // sdblist
-         src = local_prog_path + OMA_PROG_SDBLIST_L ;
-         dest = OMA_PATH_TEMP_BIN_DIR_L + OMA_PROG_SDBLIST_L ;
-         ssh.push( src, dest ) ;
-         // sdbcmtop
-         src = local_prog_path + OMA_PROG_SDBCMTOP_L ;
-         dest = OMA_PATH_TEMP_BIN_DIR_L + OMA_PROG_SDBCMTOP_L ;
-         ssh.push( src, dest ) ;
-         // sdbcm
-         src = local_prog_path + OMA_PROG_SDBCM_L;
-         dest = OMA_PATH_TEMP_BIN_DIR_L + OMA_PROG_SDBCM_L ;
-         ssh.push( src, dest ) ;
-         // sdbcmd
-         src = local_prog_path + OMA_PROG_SDBCMD_L;
-         dest = OMA_PATH_TEMP_BIN_DIR_L + OMA_PROG_SDBCMD_L ;
-         ssh.push( src, dest ) ;
-         // sdbcmart
-         src = local_prog_path + OMA_PROG_SDBCMART_L ;
-         dest = OMA_PATH_TEMP_BIN_DIR_L + OMA_PROG_SDBCMART_L ;
-         ssh.push( src, dest ) ;
-         // sdb
-         src = local_prog_path + OMA_PROG_SDB ;
-         dest = OMA_PATH_TEMP_BIN_DIR_L + OMA_PROG_SDB ;
-         ssh.push( src, dest ) ;
-         // script error.js
-         src = local_spt_path + OMA_FILE_ERROR ;
-         dest = OMA_PATH_TEMP_SPT_DIR_L + OMA_FILE_ERROR ;
-         ssh.push( src, dest ) ;
-         // script common.js
-         src = local_spt_path + OMA_FILE_COMMON ;
-         dest = OMA_PATH_TEMP_SPT_DIR_L + OMA_FILE_COMMON ;
-         ssh.push( src, dest ) ;
-         // script define.js
-         src = local_spt_path + OMA_FILE_DEFINE ;
-         dest = OMA_PATH_TEMP_SPT_DIR_L + OMA_FILE_DEFINE ;
-         ssh.push( src, dest ) ;
-         // script log.js
-         src = local_spt_path + OMA_FILE_LOG ;
-         dest = OMA_PATH_TEMP_SPT_DIR_L + OMA_FILE_LOG ;
-         ssh.push( src, dest ) ;
-         // script func.js
-         src = local_spt_path + OMA_FILE_FUNC ;
-         dest = OMA_PATH_TEMP_SPT_DIR_L + OMA_FILE_FUNC ;
-         ssh.push( src, dest ) ;
-         // script checkHostItem.js
-         src = local_spt_path + OMA_FILE_CHECK_HOST_ITEM ;
-         dest = OMA_PATH_TEMP_SPT_DIR_L + OMA_FILE_CHECK_HOST_ITEM ;
-         ssh.push( src, dest ) ;
-         // script checkHost.js
-         src = local_spt_path + OMA_FILE_CHECK_HOST ;
-         dest = OMA_PATH_TEMP_SPT_DIR_L + OMA_FILE_CHECK_HOST ;
-         ssh.push( src, dest ) ;
-*/
+         }
       }
       else
       {
@@ -182,52 +149,6 @@ function _pushPacket( ssh )
       exception_handle( rc, errMsg ) ;
    }
 }
-
-/* *****************************************************************************
-@discretion: push other pachet to remote host
-@author: Tanzhaobo
-@parameter
-   ssh[object]: ssh object
-@return void
-***************************************************************************** */
-/*
-function _pushPacket2( ssh )
-{
-   var src = "" ;
-   var dest = "" ;
-   try
-   {
-      if ( SYS_LINUX == SYS_TYPE )
-      {
-         // sdbcm
-         src = local_prog_path + OMA_PROG_SDBCM_L;
-         dest = OMA_PATH_TEMP_BIN_DIR_L + OMA_PROG_SDBCM_L ;
-         ssh.push( src, dest ) ;
-         // sdbcmd
-         src = local_prog_path + OMA_PROG_SDBCMD_L;
-         dest = OMA_PATH_TEMP_BIN_DIR_L + OMA_PROG_SDBCMD_L ;
-         ssh.push( src, dest ) ;
-         // sdbcmart
-         src = local_prog_path + OMA_PROG_SDBCMART_L ;
-         dest = OMA_PATH_TEMP_BIN_DIR_L + OMA_PROG_SDBCMART_L ;
-         ssh.push( src, dest ) ;
-      }
-      else
-      {
-         // TODO: tanzhaobo
-      }
-   }
-   catch( e )
-   {
-      SYSEXPHANDLE( e ) ;
-      rc = GETLASTERROR() ;
-      errMsg = "Failed to push programs and js files to host[" + ssh.getPeerIP() + "]" ;
-      PD_LOG( arguments, PDERROR, FILE_NAME_PRE_CHECK_HOST,
-              errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
-      exception_handle( rc, errMsg ) ;
-   }
-}
-*/
 
 /* *****************************************************************************
 @discretion: change mode in temporary directory
@@ -289,7 +210,6 @@ function _startTmpCM( ssh, port, secs )
          cmd2 += " " + OMA_OPTION_SDBCMART_ALIVETIME ;
          cmd2 += " " + secs ;
          cmd = cmd1 + " ; " + cmd2 ;
-println( "start tmp sdbcm execute command: " + cmd ) ;
          ssh.exec( cmd ) ;
       }
       catch ( e )
@@ -344,18 +264,6 @@ function _installTmpCM( ssh, ip )
 {
    var retObj = new preCheckResult() ;
    retObj[IP] = ip ;
-   
-/*
-   // test whether sdbcm has been installed in local,
-   // if so, no need to push packet 
-   var flag = isInLocalHost( ssh ) ;
-   if ( flag )
-   {
-      // get local sdbcm port
-      retObj[AgentPort] = "" + getSdbcmPort( ssh ) ;
-      return retObj ;
-   }
-*/
 
    // 1. build directory in target host
    PD_LOG( arguments, PDDEBUG, FILE_NAME_PRE_CHECK_HOST,
@@ -366,32 +274,11 @@ function _installTmpCM( ssh, ip )
    PD_LOG( arguments, PDDEBUG, FILE_NAME_PRE_CHECK_HOST,
            "push packet to host: " + ssh.getPeerIP() ) ;
    _pushPacket( ssh ) ;
-   
-/*
-   // push other packet to target host
-   PD_LOG( arguments, PDDEBUG, FILE_NAME_PRE_CHECK_HOST,
-           "push packet2 to host: " + ssh.getPeerIP() ) ;
-   _pushPacket2( ssh ) ;
-*/
+
    // 3. change temporary director's mode
    PD_LOG( arguments, PDDEBUG, FILE_NAME_PRE_CHECK_HOST,
            "change the mode of temporary director in host: " + ssh.getPeerIP() ) ;
    _changeModeInTmpDir( ssh ) ;
-
-/*
-   // check whether sdbcm is running in target host
-   PD_LOG( arguments, PDDEBUG, FILE_NAME_PRE_CHECK_HOST,
-           "check whether sdbcm is running in host: " + ssh.getPeerIP() ) ;
-   flag = isSdbcmRunning( ssh ) ;
-   if ( flag )
-   {
-      PD_LOG( arguments, PDDEBUG, FILE_NAME_PRE_CHECK_HOST,
-              "sdbcm is  running in host: " + ssh.getPeerIP() ) ;
-      retObj[AgentPort] = "" + getSdbcmPort( ssh ) ;
-      removeTmpDir( ssh ) ;
-      return retObj ;
-   }
-*/
 
    // 4. get a usable port in target host for installing temporary sdbcm
    PD_LOG( arguments, PDDEBUG, FILE_NAME_PRE_CHECK_HOST,
@@ -418,18 +305,16 @@ function _installTmpCM( ssh, ip )
 }
 
 function main()
-{
-   PD_LOG( arguments, PDEVENT, FILE_NAME_PRE_CHECK_HOST, "Begin to pre-check host" ) ;
-   
+{ 
    var infoArr = null ;
    var arrLen = null ;
-
+   
+   _init() ;
+   
    try
    {
       infoArr = BUS_JSON[HostInfo] ;
       arrLen = infoArr.length ;
-//local_prog_path = SYS_JSON[ProgPath] ;
-//local_prog_path = System.getEWD() ;
    }
    catch( e )
    {
@@ -465,7 +350,6 @@ function main()
          user      = obj[User] ;
          passwd    = obj[Passwd] ;
          sshport   = parseInt(obj[SshPort]) ;
-         ret       = new preCheckResult() ;
          
          ssh = new Ssh( ip, user, passwd, sshport ) ;
          // install
@@ -484,7 +368,7 @@ function main()
       RET_JSON[HostInfo].push( ret ) ;
    }
 
-   PD_LOG( arguments, PDEVENT, FILE_NAME_PRE_CHECK_HOST, "Finish pre-checking host" ) ;
+   _final() ;
 println("RET_JSON is: " + JSON.stringify(RET_JSON)) ;
    return RET_JSON ;
 }

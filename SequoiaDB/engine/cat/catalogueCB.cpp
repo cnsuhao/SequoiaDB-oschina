@@ -222,6 +222,11 @@ namespace engine
    {
    }
 
+   void sdbCatalogueCB::onConfigSave()
+   {
+      _catNodeMgr.updateGlobalAddr() ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATALOGCB_INSERTGROUPID, "sdbCatalogueCB::insertGroupID" )
    void sdbCatalogueCB::insertGroupID( UINT32 grpID, BOOLEAN isActive )
    {

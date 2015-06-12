@@ -504,6 +504,29 @@ namespace engine
          goto error ;
       }
 
+      rc = _createSysCollection( CAT_SYSBASE_COLLECTION_NAME, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _createSysIndex( CAT_SYSBASE_COLLECTION_NAME,
+                            CAT_BASEINFO_TYPE_INDEX, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _createSysCollection( CAT_SYSIMAGE_COLLECTION_NAME, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+      rc = _createSysIndex( CAT_SYSIMAGE_COLLECTION_NAME,
+                            CAT_IMAGE_SRC_INDEX, cb ) ;
+      if ( rc )
+      {
+         goto error ;
+      }
+
    done :
       PD_TRACE_EXITRC ( SDB_CATMAINCT__ENSUREMETADATA, rc ) ;
       return rc ;

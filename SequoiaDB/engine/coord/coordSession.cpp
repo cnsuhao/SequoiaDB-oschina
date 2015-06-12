@@ -197,8 +197,7 @@ namespace engine
             iterMap->second.isConnected = FALSE;
          }
          }
-         PD_LOG( PDERROR,
-               "check remote routeID faled(rc=%d)", rc );
+         PD_LOG( PDERROR, "check remote routeID failed(rc=%d)", rc ) ;
          goto error;
       }
    done:

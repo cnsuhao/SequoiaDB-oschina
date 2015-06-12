@@ -42,6 +42,7 @@
 #include "../bson/bson.h"
 #include "omagent.hpp"
 #include <map>
+#include <set>
 #include <vector>
 #include <string>
 
@@ -69,7 +70,6 @@ namespace engine
          INT32 doit() ;
 
       public:
-         BOOLEAN regSubTask( string subTaskName ) ;
          AddHostInfo* getAddHostItem() ;
          INT32 updateProgressToTask( INT32 serialNum,
                                      AddHostResultInfo &resultInfo ) ;
@@ -118,6 +118,10 @@ namespace engine
       public:
          INT32 updateProgressToTask( INT32 serialNum, InstDBResult &instResult,
                                      BOOLEAN needToNotify = FALSE ) ;
+         string getTmpCoordSvcName() ;
+         void notifyUpdateProgress() ;
+         string getDataRGToInst() ;
+         InstDBBusInfo* getDataNodeInfo( string &groupName ) ;
 
       private:
          INT32 _initInstInfo( BSONObj &info ) ;
@@ -130,19 +134,21 @@ namespace engine
          void  _buildUpdateTaskObj( BSONObj &retObj ) ;
          INT32 _updateProgressToOM() ;
          BOOLEAN _isTaskFinish() ;
-         
+         void  _setRetErr( INT32 errNum ) ;
 
       private:
          INT32 _saveTmpCoordInfo( BSONObj &info ) ;
          INT32 _installTmpCoord() ;
+         INT32 _removeTmpCoord() ;
          INT32 _installStandalone() ;
          INT32 _rollback() ;
          INT32 _rollbackStandalone() ;
-/*
+         INT32 _rollbackCatalog() ;
+         INT32 _rollbackCoord() ;
+         INT32 _rollbackDataRG () ;
          INT32 _installCatalog() ;
          INT32 _installCoord() ;
-         INT32 _installData() ;
-*/
+         INT32 _installDataRG() ;
 
       private:
          BSONObj                                _instDBBusRawInfo ;
@@ -152,205 +158,93 @@ namespace engine
          map< string, vector<InstDBBusInfo> >   _mapGroups ;
          
          string                            _tmpCoordSvcName ;
+         BSONObj                           _tmpCoordCfgObj ;
 
          BOOLEAN                           _isStandalone ;
          
          INT32                             _nodeSerialNum ;
          ossSpinSLatch                     _taskLatch ;
          ossEvent                          _taskEvent ;
-         UINT64                            _eventID ; 
+         UINT64                            _eventID ;
 
          INT32                             _progress ;
          INT32                             _errno ;
          CHAR                              _detail[OMA_BUFF_SIZE + 1] ;
+
+         set<string>                       _existGroups ;
          
    } ;
    typedef _omaInstDBBusTask omaInstDBBusTask ;
    
-/*
-   class _omaInsDBBusTask : public _omaTask
+   /*
+      remove db business task
+   */
+   class _omaRemoveDBBusTask : public _omaTask
    {
       public:
-         _omaInsDBBusTask ( UINT64 taskID ) ;
-         virtual ~_omaInsDBBusTask () ;
+         _omaRemoveDBBusTask ( INT64 taskID ) ;
+         virtual ~_omaRemoveDBBusTask () ;
 
       public:
-         virtual OMA_TASK_TYPE taskType () const
-         {
-            return _taskType ;
-         }
-         virtual const CHAR*   taskName () const
-         {
-            return _taskName.c_str() ;
-         }
-
-      public:
-         INT32 init( BOOLEAN isStandalone,
-                     vector<BSONObj> standalone,
-                     vector<BSONObj> coord,
-                     vector<BSONObj> catalog,
-                     vector<BSONObj> data,
-                     BSONObj &otherInfo ) ;
+         INT32 init( const BSONObj &info, void *ptr = NULL ) ;
          INT32 doit() ;
-         virtual INT32 queryProgress( BSONObj &progress ) ;
 
       public:
-         void setTaskStage( OMA_OPT_STAGE stage ) ;
-         void setIsInstallFinish( BOOLEAN isFinish ) ;
-         void setIsRollbackFinish( BOOLEAN isFinish ) ;
-         void setIsRemoveVCoordFinish( BOOLEAN isFinish ) ;
-         void setIsTaskFinish( BOOLEAN isFinish ) ;
-         void setIsRollbackFail( BOOLEAN isFail ) ;
-         void setIsInstallFail( BOOLEAN isFail ) ;
-         void setIsRemoveVCoordFail( BOOLEAN isFail ) ;
-         void setIsTaskFail( BOOLEAN isFail ) ;
-         BOOLEAN getIsInstallFinish() ;
-         BOOLEAN getIsRollbackFinish() ;
-         BOOLEAN getIsRemoveVCoordFinish() ;
-         BOOLEAN getIsTaskFinish() ;
-         BOOLEAN getIsInstallFail() ;
-         BOOLEAN getIsRollbackFail() ;
-         BOOLEAN getIsRemoveVCoordFail() ;
-         BOOLEAN getIsTaskFail() ;
-         void setErrDetail( const CHAR *pErrDetail ) ;
-         string& getVCoordSvcName() { return _vCoordSvcName ; }
-         vector<BSONObj>& getInstallStandaloneInfo() ;
-         vector<BSONObj>& getInstallCatalogInfo() ;
-         vector<BSONObj>& getInstallCoordInfo() ;
-         INT32 getInstallDataGroupInfo( string &name,
-                                        vector<BSONObj> &dataGroupInstallInfo ) ;
-         INT32 getInstalledNodeResult( const CHAR *pRole,
-                                      map< string, vector<InstalledNode> >& info ) ;
-         INT32 updateInstallStatus( BOOLEAN isFinish,
-                                    INT32 retRc,
-                                    const CHAR *pRole,
-                                    const CHAR *pErrMsg,
-                                    const CHAR *pDesc,
-                                    const CHAR *pGroupName,
-                                    InstalledNode *pNode ) ;
-         INT32 updateInstallJobStatus( string &name, OMA_JOB_STATUS status ) ;
-         INT32 rollbackInternal() ;      
-         INT32 removeVirtualCoord() ;
-         BOOLEAN isInstallFinish() ;
-          
+         INT32 updateProgressToTask( INT32 serialNum, RemoveDBResult &instResult,
+                                     BOOLEAN needToNotify = FALSE ) ;
+         string getTmpCoordSvcName() ;
+
       private:
-         INT32 _saveVCoordInfo( BSONObj &info ) ;
-         INT32 _installVirtualCoord() ;
-         INT32 _installStandalone() ;
-         INT32 _installCatalog() ;
-         INT32 _installCoord() ;
-         INT32 _installData() ;
+         INT32 _initTaskInfo( BSONObj &info ) ;
+         INT32 _initRemoveAndResultInfo( BSONObj &hostInfo,
+                                         RemoveDBBusInfo &info ) ;
+         INT32 _restoreResultInfo() ;
+         void  _getDataRGToRemove( BSONObj &obj ) ;
+         void  _buildResultInfo( vector<RemoveDBBusInfo> &info,
+                                 BSONArrayBuilder &bab ) ;
+         void  _buildUpdateTaskObj( BSONObj &retObj ) ;
+         INT32 _updateProgressToOM() ;
+         void  _setRetErr( INT32 errNum ) ;
 
-         vector<BSONObj>                      _standalone ;
-         vector<BSONObj>                      _catalog ;
-         vector<BSONObj>                      _coord ;
-         map< string, vector<BSONObj> >       _mapGroups ;
-         InstallResult                        _standaloneResult ;
-         InstallResult                        _catalogResult ;
-         InstallResult                        _coordResult ;
-         map< string, InstallResult >         _mapGroupsResult ;
-         string                               _vCoordSvcName ;
-
-         ossSpinSLatch                        _taskLatch ;
-         ossSpinSLatch                        _taskLatch2 ;
-         ossSpinSLatch                        _jobLatch ;
-         OMA_TASK_TYPE                        _taskType ;
-         string                               _taskName ;
-         OMA_OPT_STAGE                        _stage ;
-         BOOLEAN                              _isStandalone ;
-         BOOLEAN                              _isInstallFinish ;
-         BOOLEAN                              _isRollbackFinish ;
-         BOOLEAN                              _isRemoveVCoordFinish ;
-         BOOLEAN                              _isTaskFinish ;
-         BOOLEAN                              _isInstallFail ;
-         BOOLEAN                              _isRollbackFail ;
-         BOOLEAN                              _isRemoveVCoordFail ;
-         BOOLEAN                              _isTaskFail ;
-         CHAR                                 _detail[OMA_BUFF_SIZE + 1] ; 
-   } ;
-   typedef _omaInsDBBusTask omaInsDBBusTask ;
-
-
-   class _omaRmDBBusTask : public _omaTask
-   {
-      public:
-         _omaRmDBBusTask ( UINT64 taskID ) ;
-         virtual ~_omaRmDBBusTask () ;
-
-      public:
-         virtual OMA_TASK_TYPE taskType () const
-         {
-            return _taskType ;
-         }
-         virtual const CHAR*   taskName () const
-         {
-            return _taskName.c_str() ;
-         }
-
-      public:
-         INT32 init( BOOLEAN isStandalone,
-                     map<string, BSONObj> standalone,
-                     map<string, BSONObj> coord,
-                     map<string, BSONObj> catalog,
-                     map<string, BSONObj> data,
-                     BSONObj &otherInfo ) ;
-         INT32 doit() ;
-         virtual INT32 queryProgress( BSONObj &progress ) ;
-
-      public:
-         void setIsUninstallFinish( BOOLEAN isFinish ) ;
-         void setIsRemoveVCoordFinish( BOOLEAN isFinish ) ;
-         void setIsTaskFinish( BOOLEAN isFinish ) ;
-         void setIsUninstallFail( BOOLEAN isFail ) ;
-         void setIsRemoveVCoordFail( BOOLEAN isFail ) ;
-         void setIsTaskFail( BOOLEAN isFail ) ;
-         BOOLEAN getIsUninstallFinish() ;
-         BOOLEAN getIsRemoveVCoordFinish() ;
-         BOOLEAN getIsTaskFinish() ;
-         BOOLEAN getIsUninstallFail() ;
-         BOOLEAN getIsRemoveVCoordFail() ;
-         BOOLEAN getIsTaskFail() ;
-         void setErrDetail( const CHAR *pErrDetail ) ;
-          
       private:
-         BOOLEAN _isRemoveFinish() ;
-         INT32 _updateUninstallStatus( BOOLEAN isFinish,
-                                       INT32 retRc,
-                                       const CHAR *pRole,
-                                       const CHAR *pErrMsg,
-                                       const CHAR *pDesc,
-                                       const CHAR *pGroupName ) ;
-         INT32 _saveVCoordInfo( BSONObj &info ) ;
-         INT32 _installVirtualCoord() ;
-         INT32 _removeVirtualCoord() ;
-         INT32 _uninstallStandalone() ;
-         INT32 _uninstallCatalog() ;
-         INT32 _uninstallCoord() ;
-         INT32 _uninstallData() ;
+         INT32 _updateFlow( const CHAR *pRole, OMA_TASK_STATUS status ) ;
 
-         map<string, BSONObj>                 _standalone ;
-         map<string, BSONObj>                 _catalog ;
-         map<string, BSONObj>                 _coord ;
-         map<string, BSONObj>                 _data ;
-         UninstallResult                      _standaloneResult ;
-         UninstallResult                      _catalogResult ;
-         UninstallResult                      _coordResult ;
-         map< string, UninstallResult >       _mapDataResult ;
-         BSONObj                              _cataAddrInfo ;
-         string                               _vCoordSvcName ;
-         string                               _taskName ;
-         OMA_TASK_TYPE                        _taskType ;
-         BOOLEAN                              _isStandalone ;
-         BOOLEAN                              _isTaskFinish ;
-         BOOLEAN                              _isUninstallFinish ;
-         BOOLEAN                              _isRemoveVCoordFinish ;
-         BOOLEAN                              _isTaskFail ;
-         BOOLEAN                              _isUninstallFail ;
-         BOOLEAN                              _isRemoveVCoordFail ;
-         CHAR                                 _detail[OMA_BUFF_SIZE + 1] ;
+      private:
+         INT32 _saveTmpCoordInfo( BSONObj &info ) ;
+         INT32 _installTmpCoord() ;
+         INT32 _removeTmpCoord() ;
+         INT32 _removeStandalone() ;
+         INT32 _removeCatalog() ;
+         INT32 _removeCoord() ;
+         INT32 _removeDataRG() ;
+
+      private:
+         BSONObj                           _removeDBBusRawInfo ;
+         BOOLEAN                           _isStandalone ;
+         vector<RemoveDBBusInfo>           _standalone ;
+         vector<RemoveDBBusInfo>           _catalog ;
+         vector<RemoveDBBusInfo>           _coord ;
+         vector<RemoveDBBusInfo>           _data ;
+
+      private:
+         string                            _tmpCoordSvcName ;
+         BSONObj                           _tmpCoordCfgObj ;
+         BSONObj                           _authInfo ;
+
+      private:
+         INT32                             _nodeSerialNum ;
+         ossSpinSLatch                     _taskLatch ;
+         ossEvent                          _taskEvent ;
+         UINT64                            _eventID ;
+         
+      private:
+         INT32                             _progress ;
+         INT32                             _errno ;
+         CHAR                              _detail[OMA_BUFF_SIZE + 1] ;
    } ;
-   typedef _omaRmDBBusTask omaRmDBBusTask ;
-*/
+   typedef _omaRemoveDBBusTask omaRemoveDBBusTask ;
+
+
 }
 
 

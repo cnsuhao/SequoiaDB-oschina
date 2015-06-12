@@ -1989,6 +1989,17 @@ SDB_EXPORT INT32 sdbListLobs( sdbCollectionHandle cHandle,
 SDB_EXPORT INT32 sdbListLobPieces( sdbCollectionHandle cHandle,
                                    sdbCursorHandle *cursor ) ;
 
+
+/** \fn INT32 sdbReelect( sdbReplicaGroupHandle cHandle,
+ *                        const bson *options )
+ *  \param [in] cHandle The shard handle
+ *  \param [in] options The options of reelection
+ *  \retval SDB_OK Operation Success
+ *  \retval Others Operation Fail
+ */
+SDB_EXPORT INT32 sdbReelect( sdbReplicaGroupHandle cHandle,
+                             const bson *options ) ;
+
 SDB_EXTERN_C_END
 #endif
 

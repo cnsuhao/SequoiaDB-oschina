@@ -16,147 +16,139 @@
 
 *******************************************************************************/
 /*
-@description: add host to cluster( install db patcket and start sdbcm )
+@description: add host to cluster( install db packet and start sdbcm )
 @modify list:
    2014-7-26 Zhaobo Tan  Init
 @parameter
-   BUS_JSON: the format is: {"SdbUser":"sdbadmin","SdbPasswd":"sdbadmin","SdbUserGroup":"sdbadmin_group","InstallPacket":"/home/users/tanzhaobo/sequoiadb/bin/../packet/sequoiadb-1.8-linux_x86_64-installer.run","HostInfo":[{"IP":"192.168.20.42","HostName":"susetzb","User":"root","Passwd":"sequoiadb","SshPort":"22","AgentPort":"11790","InstallPath":"/opt/sequoiadb"},{"IP":"192.168.20.165","HostName":"rhel64-test8","User":"root","Passwd":"sequoiadb","SshPort":"22","AgentPort":"11790","InstallPath":"/opt/sequoiadb"},{"IP":"192.168.20.166","HostName":"rhel64-test9","User":"root","Passwd":"sequoiadb","SshPort":"22","AgentPort":"11790","InstallPath":"/opt/sequoiadb"}]}
-   SYS_JSON: {}
+   BUS_JSON: the format is: {"SdbUser":"sdbadmin","SdbPasswd":"sdbadmin","SdbUserGroup":"sdbadmin_group","InstallPacket":"/opt/sequoiadb/packet/sequoiadb-1.10-linux_x86_64-installer.run","HostInfo":{"IP":"192.168.20.166","HostName":"rhel64-test9","User":"root","Passwd":"sequoiadb","SshPort":"22","AgentService":"11790","InstallPath":"/opt/sequoiadb"}}
+   SYS_JSON: task id, the format is: { "TaskID":1 } ;
    ENV_JSON: {}
    OTHER_JSON: {}
 @return
-   RET_JSON: the format is: {"errno":0,"detail":"","HostInfo":[{"errno":0,"detail":"","IP":"192.168.20.42","HasInstall":true},{"errno":0,"detail":"","IP":"192.168.20.165","HasInstall":true}]}
+   RET_JSON: the format is: {"errno":0,"detail":"","IP":"192.168.20.166"}
 */
 
-var RET_JSON       = new Object() ;
-RET_JSON[Errno]    = SDB_OK ;
-RET_JSON[Detail]   = "" ;
-RET_JSON[HostInfo] = [] ;
-var errMsg         = "" ;
+// println
+//var BUS_JSON = {"SdbUser":"sdbadmin","SdbPasswd":"sdbadmin","SdbUserGroup":"sdbadmin_group","InstallPacket":"/opt/sequoiadb/packet/sequoiadb-1.10-linux_x86_64-installer.run","HostInfo":{"IP":"192.168.20.42","HostName":"susetzb","User":"root","Passwd":"sequoiadb","SshPort":"22","AgentService":"11790","InstallPath":"/opt/sequoiadb"} } ;
+
+// var BUS_JSON = {"SdbUser":"sdbadmin","SdbPasswd":"sdbadmin","SdbUserGroup":"sdbadmin_group","InstallPacket":"/opt/sequoiadb/packet/sequoiadb-1.10-linux_x86_64-installer.run","HostInfo":{"IP":"192.168.20.165","HostName":"rhel64-test8","User":"root","Passwd":"sequoiadb","SshPort":"22","AgentService":"11790","InstallPath":"/opt/sequoiadb"} } ;
+
+// var SYS_JSON = { "TaskID":1 } ;
+
+// global
+var FILE_NAME_ADD_HOST = "addHost.js" ;
+var RET_JSON           = new addHostResult() ;
+var rc                 = SDB_OK ;
+var errMsg             = "" ;
+
+var host_ip            = "" ;
+var task_id            = 0 ;
+
+
+var remote_precheck_result_file = "" ;
+var result_file                 = "" ;
+
 
 /* *****************************************************************************
-@discretion: check when install infos include installing in local, whether these
-             infos match local installed db's infos or not
+@discretion: init
 @author: Tanzhaobo
-@parameter
-   osInfo[string]: os type
-@return
-   [bool]: true or false
+@parameter void
+@return void
 ***************************************************************************** */
-function isMatchLocalInfo( osInfo )
+function _init()
 {
-   var infoArr          = null ;
-   var arrLen           = null ;
-   var localInstallInfo = null ;
-   var adminUser        = null ;
-   var installPath      = null ;
-   var localAgentPort   = null ;
-   var localIP          = getLocalIP() ;
-
-   // get local install info
+   // 1. get task id
+   task_id = getTaskID( SYS_JSON ) ;
+  
+   // 2. specify log file's name
    try
    {
-      localInstallInfo = eval( '(' + Oma.getOmaInstallInfo() + ')' ) ;
+      host_ip = BUS_JSON[HostInfo][IP] ;
    }
    catch ( e )
    {
-      // when no install info in /etc/default/sequoiadb, think it to be false
-      errMsg = "Failed to get localhost[" + localIP + "] db install info" ;
-      exception_handle( e, errMsg ) ;
+      SYSEXPHANDLE( e ) ;
+      errMsg = sprintf( "Failed to create js log file for adding host[?]", host_ip ) ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_ADD_HOST,
+              sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
+      exception_handle( SDB_SYS, errMsg ) ;
    }
-   if ( null == localInstallInfo || "undefined" == typeof( localInstallInfo ) )
-   {
-      errMsg = "Failed to get localhost[" + localIP + "] db install info" ;
-      exception_handle( e, errMsg ) ;
-   }
-   adminUser      = localInstallInfo[SDBADMIN_USER] ;
-   installPath    = localInstallInfo[INSTALL_DIR] ;
-   // check wether BUS_JSON include info installing in local host
-   // if so, get them for compare
-   infoArr       = BUS_JSON[HostInfo] ;
-   arrLen        = infoArr.length ;
-   var sdbUser   = BUS_JSON[SdbUser] ;
+   setTaskLogFileName( task_id, host_ip ) ;
 
-   for( var i = 0; i < arrLen; i++ )
+   // 3. set local and remote pre-check result file name
+   if( SYS_LINUX == SYS_TYPE )
    {
-      var obj = infoArr[i] ;
-      var ip = obj[IP] ;
-
-      if ( localIP == ip )
+      remote_precheck_result_file = OMA_FILE_TEMP_ADD_HOST_CHECK ;
+      try
       {
-         var ssh     = null ;
-         var user    = obj[User] ;
-         var passwd  = obj[Passwd] ; 
-         var path    = obj[InstallPath] ;
-         var port    = obj[AgentPort] ;
-         var sshport = parseInt(obj[SshPort]) ;
-         // get local agent port
-         try
-         {
-            ssh = new Ssh( ip, user, passwd, sshport ) ;
-         }
-         catch ( e )
-         {
-            errMsg = "Failed to ssh to localhost[" + ip + "]" ;
-            exception_handle( e, errMsg ) ;
-         }
-         // firstly, check sdb user
-         if ( adminUser != sdbUser )
-         {
-            errMsg = "When install db packet in localhost, sdb admin user[" + sdbUser  + "] does not match current one[" + adminUser + "]" ;
-            setLastErrMsg( errMsg ) ;
-            return false ;
-         }
-         // secondly, check agent port
-         localAgentPort = getSdbcmPort( ssh, osInfo ) ;
-         if ( localAgentPort != port )
-         {
-            errMsg = "When install db packet in localhost, agent port[" + port  + "] does not match current one[" + localAgentPort  + "]" ;
-            setLastErrMsg( errMsg ) ;
-            return false ;
-         }
-         // thirdly, check install path
-         var path1 = adaptPath(osInfo, installPath) ;
-         var path2 = adaptPath(osInfo, path) ;
-         if ( path1 != path2 )
-         {
-            errMsg = "When install db packet in localhost, install path[" + path  + "] does not match current one[" + installPath  + "]" ;
-            setLastErrMsg( errMsg ) ;
-            return false ;
-         }
+         result_file = adaptPath( System.getEWD() ) + "../conf/log/addHostPreCheckResult" ;
+         if ( File.exist( result_file ) )
+            File.remove( result_file ) ;
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         errMsg = sprintf( "Failed to initialize add host pre-check file in local host" ) ;
+         rc = GETLASTERROR() ;
+         PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ADD_HOST,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
       }
    }
- 
-   return true ;
+   else
+   {
+      // TODO
+   }
+   
+   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ADD_HOST, "Begin to add host" ) ;
+}
+
+/* *****************************************************************************
+@discretion: final
+@author: Tanzhaobo
+@parameter void
+@return void
+***************************************************************************** */
+function _final()
+{
+   try
+   {
+      // remove add host pre-check result file
+      if ( File.exist( result_file ) )
+         File.remove( result_file ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      PD_LOG2( task_id, arguments, PDWARNING, FILE_NAME_ADD_HOST,
+               sprintf( "Failed to remove add host pre-check result file in localhost, rc: ?, detail: ?",
+                        GETLASTERROR(), GETLASTERRMSG() ) ) ;
+   }
+   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ADD_HOST, "Finish adding host" ) ;
 }
 
 /* *****************************************************************************
 @discretion: get the name of install packet
 @author: Tanzhaobo
 @parameter
-   osInfo[string]: os type
    packet[string]: the full name of the packet,
                    e.g. /tmp/packet/sequoiadb-1.8-linux_x86_64-installer.run
 @return
    packetname[string]: the name of the install packet
 ***************************************************************************** */
-function getInstallPacketName( osInfo, packet )
+function _getInstallPacketName( packet )
 {
    var s = "" ;
    var i = 1 ;
    var packetname = "" ;
-   if ( OMA_LINUX == osInfo )
+   if ( SYS_LINUX == SYS_TYPE )
    {
       s = "/" ;
       i = packet.lastIndexOf( s ) ;
       if ( -1 != i )
-      {
          packetname = packet.substring( i+1 ) ;
-      }
       else
-      {
          packetname = packet ;
-      }
    }
    else
    {
@@ -166,45 +158,249 @@ function getInstallPacketName( osInfo, packet )
 }
 
 /* *****************************************************************************
-@discretion: create tmp diretory in /tmp
+@discretion: get local db packet's md5
+@author: Tanzhaobo
+@parameter
+   install_packet[string]: the full name of the packet,
+      e.g. /tmp/packet/sequoiadb-1.8-linux_x86_64-installer.run
+@return
+   [string]: the md5 of local db install packet
+***************************************************************************** */
+function _getLocalDBPacketMD5( install_packet )
+{
+   try
+   {
+      return Hash.fileMD5( install_packet ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = "Failed get local db install packet's md5" ;
+      PD_LOG2( task_id, arguments, PDSEVERE, FILE_NAME_ADD_HOST,
+               sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
+      exception_handle( SDB_SYS, errMsg ) ;
+   }
+}
+
+/* *****************************************************************************
+@discretion: push some tool packets and scripts to remote for checking
 @author: Tanzhaobo
 @parameter
    ssh[object]: Ssh object
-   osInfo[string]: os type
 @return void
 ***************************************************************************** */
-function createTmpDir( ssh, osInfo )
+function _pushToolPacket( ssh )
 {
-   var cmd = "" ;
-   if ( OMA_LINUX == osInfo )
+   var src = "" ;
+   var dest = "" ;
+   var local_prog_path = "" ;
+   var local_spt_path  = ""  ;
+   var js_files = [ "error.js", "common.js", "define.js", "log.js",
+                    "func.js", "addHostPreCheck.js" ] ;
+   try
    {
+      // 1. get tool program's path
       try
       {
-         // mkdir /tmp/omatmp
-         cmd = "mkdir -p " + OMA_PATH_TEMP_OMA_DIR_L ;
-         ssh.exec( cmd ) ;
-         // mkdir  /tmp/omatmp/packet
-         cmd = "mkdir -p " + OMA_PATH_TEMP_PACKET_DIR_L ; 
-         ssh.exec( cmd ) ;
-         // mkdir  /tmp/omatmp/data/vCoord
-         cmd = "mkdir -p " + OMA_PATH_TMP_COORD_PATH ;
-         ssh.exec( cmd ) ;
-         // chmod
-         // TODO: 
-         cmd = "chmod -R 777 " + OMA_PATH_TEMP_OMA_DIR_L ;
-         ssh.exec( cmd ) ;
+         local_prog_path = adaptPath( System.getEWD() ) ;
       }
       catch( e )
       {
-         errMsg = "Failed to create tmp director in check host" ;
-         exception_handle( e, errMsg ) ;
+         SYSEXPHANDLE( e ) ;
+         rc = GETLASTERROR() ;
+         errMsg = "Failed to get local tool program's path" ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_ADD_HOST,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
       }
+      PD_LOG2( task_id, arguments, PDDEBUG, FILE_NAME_ADD_HOST,
+               "Local tool program's path is: " + local_prog_path ) ;
+      // 2. get js script file's path
+      try
+      {
+         local_spt_path = getSptPath( local_prog_path ) ;
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         rc = GETLASTERROR() ;
+         errMsg = "Failed to get local js script files' path" ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_ADD_HOST,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
+      }
+      PD_LOG2( task_id, arguments, PDDEBUG, FILE_NAME_ADD_HOST,
+               "Local js script file's path is: " + local_spt_path ) ;
+      
+      // 3. push program and script
+      if ( SYS_LINUX == SYS_TYPE )
+      {
+         // push program
+         src = local_prog_path + OMA_PROG_SDB ;
+         dest = OMA_PATH_TEMP_BIN_DIR_L + OMA_PROG_SDB ;
+         ssh.push( src, dest ) ;
+         
+         // push js files
+         for ( var i = 0; i < js_files.length; i++ )
+         {
+            src = local_spt_path + js_files[i] ;
+            dest = OMA_PATH_TEMP_SPT_DIR_L + js_files[i] ;
+            ssh.push( src, dest ) ;
+         }
+      }
+      else
+      {
+         // TODO:
+      }
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = "Failed to push programs to host[" + ssh.getPeerIP() + "]" ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_ADD_HOST,
+               sprintf( errMsg + " src[?], dest[?], rc: ?, detail: ?",
+               src, dest, rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+}
+
+/* *****************************************************************************
+@discretion: judge whether need to install db packet in remote host
+@author: Tanzhaobo
+@parameter
+   ssh[object]: Ssh object
+   install_packet[string]: local db install packet
+   install_path[string]: remote db install path
+@return
+   [bool]: true for need to install while false for not
+***************************************************************************** */
+function _needToInstall( ssh, install_packet, install_path )
+{
+   /*
+   1. pre-check
+   2. get pre-check result
+   3. analysis
+   */
+   var obj            = null ;
+   var remote_md5     = "" ;
+   var local_md5      = "" ;
+   var isProgramExist = false ;
+   var str            = "" ;
+   var retMsg         = "" ;
+   var js_files       = "" ;
+   
+   if ( SYS_LINUX == SYS_TYPE )
+   {
+      // set execute command run by ./sdb
+      /*
+      /tmp/omatmp/bin/sdb -e 'var install_path = "/opt/sequoiadb"' -f '/tmp/omatmp/conf/script/define.js, /tmp/omatmp/conf/script/error.js, /tmp/omatmp/conf/script/log.js, /tmp/omatmp/conf/script/common.js, /tmp/omatmp/conf/script/func.js, /tmp/omatmp/conf/script/addHostPreCheck.js'
+      */
+      js_files = "/tmp/omatmp/conf/script/define.js" + ", " ;
+      js_files += "/tmp/omatmp/conf/script/error.js" + ", " ;
+      js_files += "/tmp/omatmp/conf/script/log.js" + ", " ;
+      js_files += "/tmp/omatmp/conf/script/common.js" + ", " ;
+      js_files += "/tmp/omatmp/conf/script/func.js" + ", " ;
+      js_files += "/tmp/omatmp/conf/script/addHostPreCheck.js" ;
+      str = '/tmp/omatmp/bin/sdb ' + ' -e ' + ' " var install_path = ' + '\'' + install_path + '\'' + ' " ' + ' -f ' + ' " ' + js_files + ' " ' ;
+
    }
    else
    {
-      // DOTO: tanzhaobo
-      // windows
+      // TODO: windows
    }
+
+   // 1. pre-check before add host
+   try
+   {
+      ssh.exec( str ) ;
+      // record the return msg to log file
+      retMsg = ssh.getLastOut() ;
+      PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ADD_HOST,
+               sprintf( "Log received message from remote host[?]:?=>???<=",
+               ssh.getPeerIP(), OMA_NEW_LINE, OMA_NEW_LINE, retMsg, OMA_NEW_LINE ) ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      retMsg = ssh.getLastOut() ;
+      errMsg = sprintf( "Failed to pre-check before add host[?]", ssh.getPeerIP() ) ;
+      PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ADD_HOST,
+               sprintf( errMsg + ", log received message from remote host[?]:?=>???<=",
+               ssh.getPeerIP(), OMA_NEW_LINE, OMA_NEW_LINE, retMsg, OMA_NEW_LINE ) ) ;
+      return true ;
+   }
+
+println("1111111111111111111111111111111")
+   // 2. get pre-check result
+   try
+   {
+      ssh.pull( remote_precheck_result_file, result_file ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = sprintf( "Add host pre-check result file does not exist in host[?], rc: ?, detail: ?",
+                        ssh.getPeerIP(), GETLASTERROR(), GETLASTERRMSG() ) ;
+      PD_LOG2( task_id, arguments, PDWARNING, FILE_NAME_ADD_HOST, errMsg ) ;
+      return true ;
+   }
+
+println("2222222222222222222222222222222222")
+   // 3. analysis
+   // check whether remote install packet's md5 is the same with local install
+   // packet's md5 or not
+   try
+   {
+      // TODO: need to rename
+      obj = eval( "(" + Oma.getOmaConfigs( result_file )  + ")" ) ;
+      remote_md5 = obj[MD5] ;
+      isProgramExist = obj[ISPROGRAMEXIST] ;
+      if ( "string" != typeof(remote_md5) && 32 != remote_md5.length )
+      {
+         PD_LOG2( task_id, arguments, PDWARNING,
+                  sprintf("Remote install packet's md5[?] is invalid", remote_md5) ) ;
+         return true ;
+      }
+      if ( ( "string" == typeof(isProgramExist ) && "true" != isProgramExist  ) ||
+           ( "boolean" == typeof(isProgramExist ) && true != isProgramExist  ) )
+      {
+         PD_LOG2( task_id, arguments, PDWARNING, FILE_NAME_ADD_HOST,
+                  "Remote installed db programs are incomplete" ) ;
+         return true ;
+      }
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = sprintf( "Failed to analysis remote host[?]'s install information" +
+                        " from file[?] in localhost, rc: ?, detail: ?",
+                        ssh.getPeerIP(), result_file, GETLASTERROR(), GETLASTERRMSG() ) ;
+      PD_LOG2( task_id, arguments, PDWARNING, FILE_NAME_ADD_HOST, errMsg ) ;
+      return true ;
+   }
+   // get local install packet's md5
+   try
+   {
+      local_md5 = _getLocalDBPacketMD5( install_packet ) ;
+   }
+   catch( e )
+   {
+      return true ;
+   }
+println("local md5: " + local_md5 + ", remote_md5: " + remote_md5) ;
+   if ( local_md5 != remote_md5 )
+   {
+      errMsg = sprintf( "Local db packet's md5: ?, remote db packet's md5: ?, need to install",
+                        local_md5, remote_md5 ) ;
+      PD_LOG2( task_id, arguments, PDWARNING, FILE_NAME_ADD_HOST, errMsg ) ;
+// TODO: wait for help
+// println
+//      return true ;
+   }
+println("3333333333333333333333333333333")
+
+   return false ;
 }
 
 /* *****************************************************************************
@@ -212,18 +408,18 @@ function createTmpDir( ssh, osInfo )
 @author: Tanzhaobo
 @parameter
    ssh[object]: Ssh object
-   osInfo[string]: os type
    packet[string]: the full name of the packet,
                    e.g. /tmp/packet/sequoiadb-1.8-linux_x86_64-installer.run
 @return void
 ***************************************************************************** */
-function pushInstallPacket( ssh, osInfo, packet )
+function _pushDBPacket( ssh, packet )
 {
-   var src = "" ;
+   var src  = "" ;
    var dest = "" ;
-   var packetName = getInstallPacketName( osInfo, packet ) ;
-   createTmpDir( ssh, osInfo ) ;
-   if ( OMA_LINUX == osInfo )
+   var cmd  = "" ;
+   var packetName = _getInstallPacketName( packet ) ;
+   
+   if ( SYS_LINUX == SYS_TYPE )
    {
       try
       {
@@ -231,19 +427,22 @@ function pushInstallPacket( ssh, osInfo, packet )
          src = packet;
          dest = OMA_PATH_TEMP_PACKET_DIR_L + packetName ;
          ssh.push( src, dest ) ;
-         var cmd = "chmod a+x " + OMA_PATH_TEMP_PACKET_DIR_L + packetName ;
+         cmd = "chmod a+x " + OMA_PATH_TEMP_PACKET_DIR_L + packetName ;
          ssh.exec( cmd ) ;
       }
       catch ( e )
       {
-         errMsg = "Failed to push db packet to host [" + ssh.getPeerIP() + "]" ;
-         exception_handle( e, errMsg ) ;
+         SYSEXPHANDLE( e ) ;
+         rc = GETLASTERROR() ;
+         errMsg = sprintf( "Failed to push db packet to host[?]", ssh.getPeerIP() ) ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_ADD_HOST,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
       }
    }
    else
    {
       // TODO: tanzhaobo
-      // push packet in windows
    }
 }
 
@@ -252,7 +451,6 @@ function pushInstallPacket( ssh, osInfo, packet )
 @author: Tanzhaobo
 @parameter
    ssh[object]: Ssh object
-   osInfo[string]: os type
    sdbuser[string]: the user to be add for running sequoiadb program
    sdbpasswd[string]: the password of sdbuser
    packet[string]: the full name of the packet,
@@ -261,14 +459,14 @@ function pushInstallPacket( ssh, osInfo, packet )
                  to push this packet to remote host
 @return void
 ***************************************************************************** */
-function installDBPacket( ssh, osInfo, sdbuser, sdbpasswd, packet, path )
+function _installDBPacket( ssh, sdbuser, sdbpasswd, packet, path )
 {
    var cmd = "" ;
    var option = "" ;
    option += " --mode unattended " + " --prefix " + path ;
    option += " --username " + sdbuser + " --userpasswd " + sdbpasswd ;
-   var packetName = getInstallPacketName( osInfo, packet ) ; 
-   if ( OMA_LINUX == osInfo )
+   var packetName = _getInstallPacketName( packet ) ; 
+   if ( SYS_LINUX == SYS_TYPE )
    {
       cmd = OMA_PATH_TEMP_PACKET_DIR_L + packetName + option ;
       try
@@ -277,27 +475,81 @@ function installDBPacket( ssh, osInfo, sdbuser, sdbpasswd, packet, path )
       }
       catch ( e )
       {
-         errMsg = "Failed to insall db packet in host [" + ssh.getPeerIP() + "]" ;
-         exception_handle( e, errMsg ) ;
+         SYSEXPHANDLE( e ) ;
+         rc = GETLASTERROR() ;
+         errMsg = sprintf( "Failed to install db packet in host[?]", ssh.getPeerIP() ) ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_ADD_HOST,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
       }
    }
    else
    {
       // TODO: tanzhaobo
-      // execute in windows
+   }
+}
+
+/* *****************************************************************************
+@discretion: uninstall db packet in remote host when install failed
+@author: Tanzhaobo
+@parameter
+   ssh[object]: ssh object
+   path[string]: the path db installed in
+@return void
+***************************************************************************** */
+function _uninstallDBPacket( ssh, path )
+{
+   var cmd = "" ;
+   var str = adaptPath( path ) ;
+   if ( SYS_LINUX == SYS_TYPE )
+   {
+      // try to stop sdbcm
+      try
+      {
+         cmd = str + OMA_PROG_BIN_SDBCMTOP_L ; 
+         ssh.exec( cmd ) ;
+      }
+      catch ( e )
+      {
+      }
+      // remove db packet
+      try
+      {
+         cmd = str + OMA_PROG_UNINSTALL_L ;
+         ssh.exec( "chmod a+x " + cmd ) ;
+         ssh.exec( cmd + " --mode unattended " ) ;
+      }
+      catch ( e )
+      {
+      }
+   }
+   else
+   {
+      // DOTO: tanzhaobo
    }
 }
 
 function main()
 {
+   _init() ;
+   
    var sdbUser         = null ;
    var sdbPasswd       = null ;
    var sdbUserGroup    = null ;
    var installPacket   = null ;
-   var infoArr         = null ;
-   var arrLen          = null ;
+   var hostInfo        = null ;
+
+   var ip              = null ;
+   var user            = null ;
+   var passwd          = null ;
+   var sshPort         = null ;
+   var agentService    = null ;
+   var installPath     = null ;
+
    var ssh             = null ;
-   var osInfo          = null ;
+   var hashcode_local  = null ;
+   var hashcode_remote = null ;
+   var flag            = false ;
 
    try
    {
@@ -305,117 +557,111 @@ function main()
       sdbPasswd        = BUS_JSON[SdbPasswd] ;
       sdbUserGroup     = BUS_JSON[SdbUserGroup] ;
       installPacket    = BUS_JSON[InstallPacket] ;
-      infoArr          = BUS_JSON[HostInfo] ;
-      arrLen           = infoArr.length ;
+      hostInfo         = BUS_JSON[HostInfo] ;
+  
+      ip               = hostInfo[IP] ;
+      RET_JSON[IP]     = ip ;
+      user             = hostInfo[User] ;
+      passwd           = hostInfo[Passwd] ;
+      sshPort          = parseInt(hostInfo[SshPort]) ;
+      agentService     = hostInfo[AgentPort] ;
+      installPath      = hostInfo[InstallPath] ;
    }
    catch ( e )
    {
-      RET_JSON[Errno] = SDB_INVALIDARG ;
-      RET_JSON[Detail] = "Failed to get field: " + e ;
-      return RET_JSON ;
+      SYSEXPHANDLE( e ) ;
+      errMsg = "Js receive invalid argument" ;
+      rc = GETLASTERROR() ;
+      // record error message in log
+      PD_LOG2( task_id, arguments, PDSEVERE, FILE_NAME_ADD_HOST,
+               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      // tell to user error happen
+      exception_handle( SDB_INVALIDARG, errMsg ) ;
+   }
 
-   }
-   // check
-   if ( arrLen == 0 )
-   {
-      RET_JSON[Errno] = SDB_INVALIDARG ;
-      RET_JSON[Detail] = "Not specified any hosts to add" ;
-      return RET_JSON ;
-   }
-   // get os information
+   // 1. ssh to target host
    try
    {
-      osInfo = System.type() ;
+      ssh = new Ssh( ip, user, passwd, sshPort ) ;
    }
-   catch ( e )
+   catch( e )
    {
-      RET_JSON[Errno] = SDB_INVALIDARG ;
-      RET_JSON[Detail] = "Failed to get os info: " + e ;
-      return RET_JSON ;
-
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = sprintf( "Failed to ssh to host[?]", ip ) ;
+      PD_LOG2( task_id, arguments, PDSEVERE, FILE_NAME_ADD_HOST,
+               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
    }
-   // check install info
-   var isMatch = null ;
+   
+   // 2. judge whether it's in local host, if so, no need to install
+   flag = isInLocalHost( ssh ) ;
+   if ( flag )
+   {
+      PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ADD_HOST,
+               sprintf("It's in localhost[?], no need to install db packet", ip) ) ;
+      _final() ;
+      return RET_JSON ;
+   }
+   
+   // 3. create temporary directory in remote host
+   createTmpDir( ssh ) ;
+      
+   // 4. push tool packet
+   _pushToolPacket( ssh ) ;
+println("Finish pushing tool packet")   
+
+   // 5. check whether need to install db packet or not
+   flag = _needToInstall( ssh, installPacket, installPath ) ;
+   if ( !flag ) 
+   {
+      PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ADD_HOST,
+               sprintf( "The same kind of db packet has been installed" +
+                        " in remote host[?], no need to install", ip) ) ;
+      _final() ;
+      return RET_JSON ;
+   }
+println("Need to install")
+
+   // 6. push db packet to remote host
+//TODO
+   _pushDBPacket( ssh, installPacket ) ;
+println("Finish pushing db packet")
+   // 7. install db packet
    try
    {
-      isMatch = isMatchLocalInfo( osInfo ) ;
-      if ( !isMatch )
-      {
-         RET_JSON[Errno] = SDB_INVALIDARG ;
-         RET_JSON[Detail] = getLastErrMsg() ;
-         return RET_JSON ;
-      }
+      _installDBPacket( ssh, sdbUser, sdbPasswd, installPacket, installPath ) ;
+println("Finish install db packet")
    }
    catch ( e )
    {
-      RET_JSON[Errno] = getLastError() ;
-      RET_JSON[Detail] = getLastErrMsg() ;
-      return RET_JSON ;
-   }
-
-   // add host
-   for ( var i = 0; i < arrLen; i++ )
-   {
-      var ssh          = null ;
-      var obj          = null ;
-      var ip           = null ;
-      var user         = null ;
-      var passwd       = null ;
-      var sshPort      = null ;
-      var agentPort    = null ;
-      var installPath  = null ;
-      var retObj       = null ;
-
+      SYSEXPHANDLE( e ) ;
+      errMsg = sprintf( "Failed to install db packet in host[?]", ip ) ;
+      rc = GETLASTERROR() ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_ADD_HOST,
+               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      // try to remove the packet
       try
       {
-         retObj        = new addHostResult() ;
-         obj           = infoArr[i] ;
-         ip            = obj[IP] ;
-         retObj[IP]    = obj[IP] ;
-         user          = obj[User] ;
-         passwd        = obj[Passwd] ;
-         sshPort       = parseInt(obj[SshPort]) ;
-         agentPort     = obj[AgentPort] ;
-         installPath   = obj[InstallPath] ;
-
-         // ssh
-         var ssh = new Ssh( ip, user, passwd, sshPort ) ;
-         // judge whether it's in local host, if so, no need to install
-         var isLocal = isInLocalHost( ssh ) ;
-         if ( isLocal )
-         {
-            retObj[HasInstall] = true ;
-            RET_JSON[HostInfo].push( retObj ) ;
-            continue ;
-         }
-         // push packet to remote host
-         pushInstallPacket( ssh, osInfo, installPacket ) ;
-         installDBPacket( ssh, osInfo, sdbUser, sdbPasswd, installPacket, installPath ) ;
-         retObj[HasInstall] = true ;
+//TODO:
+         _uninstallDBPacket( ssh, installPath ) ;
+println("Finish uninstall db packet")
       }
-      catch ( e )
-      {
-         if ( "number" == typeof(e) && e < 0 )
-         {
-            retObj[Errno] = e ;
-            retObj[Detail] = GETLASTERRMSG() ;
-            RET_JSON[HostInfo].push( retObj ) ;
-            RET_JSON[Errno] = e ;
-            RET_JSON[Detail] = "Failed to add host[" + ip + "]: " + retObj[Detail] ;
-            break ;
-         }
-         else
-         {
-            retObj[Errno] = SDB_SYS ;
-            retObj[Detail] = GETLASTERRMSG() ;
-            RET_JSON[HostInfo].push( retObj ) ;
-            RET_JSON[Errno] = SDB_SYS ;
-            RET_JSON[Detail] = "Failed to add host[" + ip + "]: " + e ;
-            break ;
-         }
-      }
-      RET_JSON[HostInfo].push( retObj ) ;
+      catch( e )
+      {}
+      exception_handle( rc, errMsg ) ;
    }
+   // 8. remove temporary directory in remote host
+   try
+   {
+      removeTmpDir2( ssh )
+   }
+   catch( e )
+   {
+   }
+   
+   _final() ;
+println("RET_JSON is: " + JSON.stringify(RET_JSON)) ;
    // return the result
    return RET_JSON ;
 }

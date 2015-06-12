@@ -43,11 +43,12 @@ namespace fap
 {
    namespace mongo
    {
-      INT32 buildIsMasterMsg( engine::IResource *resource, msgBuffer &msg ) ;
+      void buildIsMasterMsg( engine::IResource *resource,
+                             bson::BSONObjBuilder &bob ) ;
 
-      INT32 buildGetNonceMsg( msgBuffer &msg) ;
+      void buildGetNonceMsg( bson::BSONObjBuilder &bob ) ;
 
-      INT32 buildNotSupportMsg( msgBuffer &msg ) ;
+      void buildNotSupportMsg( bson::BSONObjBuilder &bob ) ;
    }
 }
 #endif

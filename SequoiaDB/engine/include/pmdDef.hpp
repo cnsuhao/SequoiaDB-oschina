@@ -57,7 +57,8 @@ namespace engine
       PMD_EDU_EVENT_TIMEOUT,      // pmd edu timeout,
       PMD_EDU_EVENT_LOCKWAKEUP,   // transaction-lock wake up
       PMD_EDU_EVENT_BP_RESUME,    // break point resume
-      PMD_EDU_EVENT_TRANS_STOP    // stop transaction
+      PMD_EDU_EVENT_TRANS_STOP,   // stop transaction
+      PMD_EDU_EVENT_STEP_DOWN     // step down
    } ;
 
    /*

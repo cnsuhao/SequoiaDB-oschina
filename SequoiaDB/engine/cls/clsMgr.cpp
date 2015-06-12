@@ -365,6 +365,7 @@ namespace engine
    BEGIN_OBJ_MSG_MAP( _clsMgr, _pmdObjBase )
       ON_MSG ( MSG_CAT_REG_RES, _onCatRegisterRes )
       ON_MSG ( MSG_CAT_QUERY_TASK_RSP, _onCatQueryTaskRes )
+      ON_EVENT( PMD_EDU_EVENT_STEP_DOWN, _onStepDown )      
    END_OBJ_MSG_MAP()
 
    _clsMgr::_clsMgr ()
@@ -1503,6 +1504,11 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   INT32 _clsMgr::_onStepDown( pmdEDUEvent *event )
+   {
+      return sdbGetReplCB()->dispatchEvent( event ) ;
    }
 
    /*

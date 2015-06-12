@@ -1661,8 +1661,8 @@
       <code>
          <name>SDB_CATA_RM_CATA_FORBIDDEN</name>
          <description>
-            <en>Unable to remove catalog for non-empty database</en>
-            <cn>系统存在其它组时不能删除编目节点和组</cn>
+            <en>Unable to remove primary catalog or catalog group for non-empty database</en>
+            <cn>系统存在其它组时不能删除主编目节点和编目节点组</cn>
          </description>
       </code>
 

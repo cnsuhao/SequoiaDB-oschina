@@ -625,7 +625,7 @@ namespace engine
    INT32 _pmdCfgRecord::parseAddressLine( const CHAR * pAddressLine,
                                           vector < _pmdCfgRecord::pmdAddrPair > & vecAddr,
                                           const CHAR * pItemSep,
-                                          const CHAR * pInnerSep )
+                                          const CHAR * pInnerSep ) const
    {
       INT32 rc = SDB_OK ;
       vector<string> addrs ;
@@ -682,15 +682,15 @@ namespace engine
       goto done ;
    }
 
-   string _pmdCfgRecord::makeAddressLine( vector < _pmdCfgRecord::pmdAddrPair > & vecAddr,
+   string _pmdCfgRecord::makeAddressLine( const vector < _pmdCfgRecord::pmdAddrPair > & vecAddr,
                                           CHAR chItemSep,
-                                          CHAR chInnerSep )
+                                          CHAR chInnerSep ) const
    {
       UINT32 count = 0 ;
       stringstream ss ;
       for ( UINT32 i = 0; i < vecAddr.size() ; ++i )
       {
-         pmdAddrPair &item = vecAddr[ i ] ;
+         const pmdAddrPair &item = vecAddr[ i ] ;
          if ( '\0' != item._host[ 0 ] )
          {
             if ( 0 != count )
@@ -771,6 +771,30 @@ namespace engine
          pValue[ len - 1 ] = 0 ;
       }
 
+      return rc ;
+   }
+
+   INT32 _pmdCfgRecord::getFieldStr( const CHAR *pFieldName,
+                                     std::string &strValue,
+                                     const CHAR *pDefault )
+   {
+      INT32 rc = SDB_OK ;
+
+      if ( !hasField( pFieldName ) )
+      {
+         if ( pDefault )
+         {
+            strValue = *pDefault ;
+         }
+         else
+         {
+            rc = SDB_FIELD_NOT_EXIST ;
+         }
+      }
+      else
+      {
+         strValue = _mapKeyValue[ pFieldName ]._value ;
+      }
       return rc ;
    }
 
@@ -1227,6 +1251,7 @@ namespace engine
       _sparseFile          = FALSE ;
       _weight              = 0 ; 
 
+
       ossMemset( _krcbConfPath, 0, sizeof( _krcbConfPath ) ) ;
       ossMemset( _krcbConfFile, 0, sizeof( _krcbConfFile ) ) ;
       ossMemset( _krcbCatFile, 0, sizeof( _krcbCatFile ) ) ;
@@ -1370,6 +1395,8 @@ namespace engine
       rdxUInt( pEX, PMD_OPTION_WEIGHT, _weight,
                FALSE, TRUE, 10, FALSE ) ; 
       rdvMinMax( pEX, _weight, 1, 100, TRUE ) ;
+
+
 
       return getResult () ;
    }
@@ -1596,6 +1623,11 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   string _pmdOptionsMgr::getCatAddr() const
+   {
+      return makeAddressLine( _vecCat ) ;
    }
 
    INT32 _pmdOptionsMgr::preSaving ()
@@ -1941,6 +1973,11 @@ namespace engine
       rc = utilWriteConfigFile( conf, line.c_str(), FALSE ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to write config[%s], rc: %d",
                    conf, rc ) ;
+
+      if ( getConfigHandler() )
+      {
+         getConfigHandler()->onConfigSave() ;
+      }
 
    done:
       PD_TRACE_EXIT ( SDB__PMDOPTMGR_REFLUSH2FILE) ;

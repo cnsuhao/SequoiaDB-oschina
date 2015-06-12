@@ -342,6 +342,24 @@ namespace engine
    } ;
    typedef _clsLSNNtyInfo clsLSNNtyInfo ;
 
+   enum CLS_REELECTION_LEVEL
+   {
+      CLS_REELECTION_LEVEL_NONE = 0,
+      CLS_REELECTION_LEVEL_1 = 1,
+      CLS_REELECTION_LEVEL_3 = 3,  /// wait for at least one replication catch up
+      CLS_REELECTION_LEVEL_MAX
+   } ;
+
+#define CLS_ELECTION_WEIGHT_MIN 0
+#define CLS_ELECTION_WEIGHT_USR_MIN 1
+#define CLS_ELECTION_WEIGHT_USR_MAX 100
+#define CLS_ELECTION_WEIGHT_MAX 101
+
+#define CLS_GET_WEIGHT( weight, shadowWeight )\
+        (( CLS_ELECTION_WEIGHT_MIN == (shadowWeight) ) ?\
+          (shadowWeight) :\
+         ( (weight) < (shadowWeight) ?\
+           (shadowWeight) : (weight) ))
 }
 
 #endif // CLSDEF_HPP_

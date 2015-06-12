@@ -128,6 +128,8 @@ namespace engine
 
       sdbGetReplCB()->callCatalog( (MsgHeader *)&msg ) ;
 
+      sdbGetReplCB()->reelectionDone() ;
+
       PD_LOG ( PDEVENT, "Change to Primary" ) ;
 
       sdbGetClsCB()->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_AFTER ) ;

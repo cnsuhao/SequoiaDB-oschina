@@ -20,13 +20,72 @@
 @modify list:
    2014-7-26 Zhaobo Tan  Init
 @parameter
-   BUS_JSON: the format is: { "HostInfo" : [ { "UninstallHostName": "rhel64-test8", "UninstallSvcName": "11820" } ] }
+   BUS_JSON: the format is: { "UninstallHostName": "rhel64-test8", "UninstallSvcName": "11820" }
+   SYS_JSON: the format is: { "TaskID: 2" }
 @return
-   RET_JSON: the format is: {}
+   RET_JSON: the format is: { "errno": 0, "detail": "" }
 */
 
-var RET_JSON = new Object() ;
+// println
+//var BUS_JSON = { "UninstallHostName": "susetzb", "UninstallSvcName": "20000" } ;
+//var SYS_JSON = { "TaskID": 4 } ;
+
+var FILE_NAME_REMOVE_STANDALONE = "removeStandalone.js" ;
+var RET_JSON = new removeNodeResult() ;
+var rc       = SDB_OK ;
 var errMsg   = "" ;
+
+var task_id = "" ;
+// println
+var host_name = "" ;
+var host_svc  = "" ;
+
+/* *****************************************************************************
+@discretion: init
+@author: Tanzhaobo
+@parameter void
+@return void
+***************************************************************************** */
+function _init()
+{           
+   // 1. get task id
+   task_id = getTaskID( SYS_JSON ) ;
+
+   // 2. specify the log file name
+   try
+   {
+      host_name = BUS_JSON[UninstallHostName] ;
+      host_svc  = BUS_JSON[UninstallSvcName] ;
+   }
+   catch ( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = "Js receive invalid argument" ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_REMOVE_STANDALONE,
+              sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
+      exception_handle( SDB_SYS, errMsg ) ;
+   }
+   setTaskLogFileName( task_id, host_name ) ;
+   
+   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_REMOVE_STANDALONE,
+            sprintf( "Begin to remove standalone[?:?] in task[?]",
+                     host_name, host_svc, task_id ) ) ;
+}
+
+/* *****************************************************************************
+@discretion: final
+@author: Tanzhaobo
+@parameter void
+@return void
+***************************************************************************** */
+function _final()
+{
+   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_REMOVE_STANDALONE,
+            sprintf( "Finish removing standalone[?:?] in task[?]",
+                     host_name, host_svc, task_id ) ) ;
+}
+
+
 /* *****************************************************************************
 @discretion remove standalone
 @parameter
@@ -35,7 +94,7 @@ var errMsg   = "" ;
    agentPort[string]: the port of sdbcm in standalone host
 @return void
 ***************************************************************************** */
-function removeStandalone( hostName, svcName, agentPort )
+function _removeStandalone( hostName, svcName, agentPort )
 {
    var oma = null ;
    try
@@ -44,15 +103,20 @@ function removeStandalone( hostName, svcName, agentPort )
    }
    catch ( e )
    {
-      errMsg = "Failed to connect to oma[" + hostName + ":" + agentPort + "]" ;
-      exception_handle( e, errMsg ) ;
+      SYSEXPHANDLE( e ) ;
+      errMsg = sprintf( "Failed to connect to OM Agent[?:?] in local host",
+                        hostName, agentPort ) ;
+      rc = GETLASTERROR() ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_REMOVE_STANDALONE,
+               sprintf( errMsg + ", rc:?, detail:?", rc, errMsg ) ) ;  
+      exception_handle( rc, errMsg ) ;
    }
    // remove standalone
    try
    {
       oma.removeData( svcName ) ;
       oma.close() ;
-      oma.null ;
+      oma = null ;
    }
    catch ( e ) 
    {
@@ -66,29 +130,61 @@ function removeStandalone( hostName, svcName, agentPort )
          {
          }
       }
-      errMsg = "Failed to remove standalone[" + hostName + ":" + svcName + "]" ;
-      exception_handle( e, errMsg ) ;
+      SYSEXPHANDLE( e ) ;
+      errMsg = sprintf( "Failed to connect to OM Agent[?:?]",
+                        hostName, agentPort ) ;
+      rc = GETLASTERROR() ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_REMOVE_STANDALONE,
+               sprintf( errMsg + ", rc:?, detail:?", rc, errMsg ) ) ;  
+      exception_handle( rc, errMsg ) ;
    }
 }
 
 function main()
 {
-   var infoArr = BUS_JSON[HostInfo] ;
-   var arrLen = infoArr.length ;
-   if ( 0 == arrLen )
+   var uninstallHostName  = null ;
+   var uninstallSvcName   = null ;
+   var agentPort          = null ;
+   
+   _init() ;
+   
+   try
    {
-      return RET_JSON ;
+      // 1. get arguments
+      try
+      {
+         uninstallHostName = BUS_JSON[UninstallHostName] ;
+         uninstallSvcName  = BUS_JSON[UninstallSvcName] ;
+         agentPort         = getOMASvcFromCfgFile( uninstallHostName ) ;
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         errMsg = "Js receive invalid argument" ;
+         rc = GETLASTERROR() ;
+         // record error message in log
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_REMOVE_STANDALONE,
+                  errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
+         // tell to user error happen
+         exception_handle( SDB_INVALIDARG, errMsg ) ;
+      }
+      // 2. remove standalone
+      _removeStandalone( uninstallHostName, uninstallSvcName, agentPort ) ;
    }
-   for ( var i = 0; i < arrLen; i++ )
+   catch( e )
    {
-      var obj = infoArr[i] ;
-      var uninstallHostName   = obj[UninstallHostName] ;
-      var uninstallSvcName    = obj[UninstallSvcName] ;
-      var agentPort           = getAgentPort( uninstallHostName ) ;
-      
-      removeStandalone( uninstallHostName, uninstallSvcName, agentPort ) ;
-      break ;
+      SYSEXPHANDLE( e ) ;
+      errMsg = GETLASTERRMSG() ; 
+      rc = GETLASTERROR() ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_REMOVE_STANDALONE,
+               sprintf( "Failed to remove standalone[?:?], rc:?, detail:?",
+               host_name, host_svc, rc, errMsg ) ) ;             
+      RET_JSON[Errno] = rc ;
+      RET_JSON[Detail] = errMsg ;
    }
+   
+   _final() ;
+println("RET_JSON is: " + JSON.stringify(RET_JSON) ) ;
    return RET_JSON ;
 }
 

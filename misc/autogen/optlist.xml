@@ -824,4 +824,19 @@
       <default>10</default>
       <type>int</type>
    </opt>
+
+   <opt>
+      <name>PMD_OPTION_USESSL</name>
+      <long>usessl</long>
+      <default>false</default>
+      <description>
+         <en>allow client to connect with SSL (enterprise edition only), default false</en>
+         <cn>允许客户端使用SSL连接（仅限企业版），默认为false</cn>
+      </description>
+      <detail>
+         <en>If it is not spcified, the default value is "false"</en>
+         <cn>如果不指定，默认值为"false"</cn>
+      </detail>
+      <typeofweb>boolean</typeofweb>
+   </opt>
 </optlist>

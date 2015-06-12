@@ -47,15 +47,6 @@ namespace engine
 {
    #define RTN_COORD_RSP_WAIT_TIME        1000 //1s
    #define RTN_COORD_RSP_WAIT_TIME_QUICK  10 //10ms
-   #define RTN_COORD_GETMORE_MAX_SIZE     (16*1024)   //16KB
-   #define RTN_FST_CMD_LIST               "list"
-   #define RTN_FST_CMD_LIST_LEN           4
-   #define RTN_SEC_CMD_CONTEXTS           "contexts"
-   #define RTN_SEC_CMD_CONTEXTS_LEN       8
-   #define RTN_SEC_CMD_GROUPS             "groups"
-   #define RTN_SEC_CMD_GROUPS_LEN         6
-   #define RTN_CMD_LIST_GROUPS            "$"RTN_FST_CMD_LIST" "RTN_SEC_CMD_GROUPS
-   #define RTN_CMD_LIST_GROUPS_LEN        (1+RTN_FST_CMD_LIST_LEN+1+RTN_SEC_CMD_GROUPS_LEN)
 
    class rtnCoordCommand;
    class rtnCoordOperator;
@@ -72,6 +63,9 @@ namespace engine
       rtnCoordOperator *pObj = SDB_OSS_NEW opClass();\
       _opMap.insert ( COORD_OP_MAP::value_type ( opCode, pObj )); }
 
+   /*
+      rtnCoordProcesserFactory define
+   */
    class rtnCoordProcesserFactory : public SDBObject
    {
    typedef std::map<std::string, rtnCoordCommand *> COORD_CMD_MAP;
@@ -83,7 +77,6 @@ namespace engine
       rtnCoordCommand *getCommandProcesser(const char *pCmd);
       rtnCoordOperator *getOperator( SINT32 opCode );
    private:
-      INT32 parseCommand(const CHAR *pMsg);
       void addCommand();
       void addOperator();
    private:
@@ -93,4 +86,4 @@ namespace engine
 
 }
 
-#endif
+#endif // RTNCOORD_HPP__

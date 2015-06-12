@@ -63,6 +63,17 @@ namespace engine
          return res ;
       }
 
+      UINT8 getShadowWeight() const
+      {
+         return _shadowWeight ;
+      }
+
+      void setShadowWeight( UINT8 weight )
+      {
+         _shadowWeight = weight ;
+         return ;
+      }
+
    public:
       INT32 init() ;
 
@@ -82,6 +93,7 @@ namespace engine
       _netRouteAgent *_agent ;
       _clsVoteStatus *_current ;
       _clsGroupInfo *_groupInfo ;
+      UINT8 _shadowWeight ;
    } ;
 
    typedef class _clsVoteMachine clsVoteMachine ;

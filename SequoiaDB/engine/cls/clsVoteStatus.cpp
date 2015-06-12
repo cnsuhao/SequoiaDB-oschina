@@ -211,6 +211,8 @@ namespace engine
          else
          {
             UINT8 weight = pmdGetOptionCB()->weight() ;
+            UINT8 shadowWeight = sdbGetReplCB()->voteMachine()->getShadowWeight() ;
+            weight = CLS_GET_WEIGHT( weight, shadowWeight ) ;
             const UINT8 remoteWeight = itrInfo->second.beat.weight ;
             if ( weight < remoteWeight )
             {

@@ -3190,6 +3190,41 @@ error :
    goto done ;
 }
 
+// PD_TRACE_DECLARE_FUNCTION ( SDB_RG_REELECT, "rg_reelect" )
+static JSBool rg_reelect ( JSContext *cx, uintN argc, jsval *vp )
+{
+   PD_TRACE_ENTRY( SDB_RG_REELECT ) ;
+   JSBool ret = JS_FALSE ;
+   INT32 rc = SDB_OK ;
+   sdbReplicaGroupHandle *rg = NULL ;
+   JSObject *jsObj = NULL ;
+   bson *options = NULL ;
+
+   ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
+                               "/o" , &jsObj ) ;
+   REPORT ( ret, "RG.reelect(): wrong arguments" ) ;
+
+   if ( NULL != jsObj )
+   {
+      ret = objToBson ( cx , jsObj , &options ) ;
+      VERIFY ( ret ) ;
+   }
+
+   rg = (sdbReplicaGroupHandle *)JS_GetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ) ) ;
+   REPORT ( rg, "RG.reelect(): no replica group handle" ) ;
+
+   rc = sdbReelect( *rg, options ) ;
+   REPORT_RC ( SDB_OK == rc, "RG.reelect()", rc ) ;
+
+   JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
+done:
+   SAFE_BSON_DISPOSE( options ) ;
+   return ret ;
+error :
+   TRY_REPORT ( cx , "RG.reelect(): false" ) ;
+   goto done ;
+}
+
 static JSFunctionSpec rg_functions[] = {
    JS_FS ( "getMaster" , rg_get_master , 0 , 0 ) ,
    JS_FS ( "getSlave" , rg_get_slave , 0 , 0 ) ,
@@ -3198,6 +3233,7 @@ static JSFunctionSpec rg_functions[] = {
    JS_FS ( "createNode", rg_create_node, 0 , 0 ) ,
    JS_FS ( "removeNode", rg_remove_node, 0 , 0 ) ,
    JS_FS ( "getNode" , rg_get_node , 1 , 0 ) ,
+   JS_FS ( "reelect", rg_reelect, 1, 0 ),
    JS_FS_END
 } ;
 

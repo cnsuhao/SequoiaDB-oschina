@@ -34,6 +34,9 @@ bpsFiles = [
       ]
 
 ossFiles = [
+      "oss/ossSSLCertificate.c",
+      "oss/ossSSLWrapper.c",
+      "oss/ossSSLContext.c",
       "oss/ossErr.cpp",
       "oss/oss.cpp",
       "oss/ossIO.cpp",
@@ -146,6 +149,7 @@ rtnFiles = [
       "rtn/rtnBackup.cpp",
       "rtn/rtnReorg.cpp",
       "rtn/rtnCoordCommands.cpp",
+      "rtn/rtnCoordImageCommands.cpp",
       "rtn/rtnCoordQuery.cpp",
       "rtn/rtnCoordCommon.cpp",
       "rtn/rtnCoordOperator.cpp",
@@ -338,7 +342,8 @@ clsFiles = [
       "cls/clsCatalogPredicate.cpp",
       "cls/clsReplBucket.cpp",
       "cls/clsCataHashMatcher.cpp",
-      "cls/clsCommand.cpp"
+      "cls/clsCommand.cpp",
+      "cls/clsReelection.cpp"
       ]
 
 dpsFiles = [

@@ -171,14 +171,13 @@ namespace engine
       shardCB *pShardCB = sdbGetShardCB() ;
       dpsTransCB *transCB = krcb->getTransCB() ;
 
-      CHAR hostName [ OSS_MAX_HOSTNAME + 1 ]             = {0} ;
       const CHAR *serviceName       = pmdGetOptionCB()->getServiceAddr() ;
       const CHAR *groupName         = krcb->getGroupName() ;
+      const CHAR *hostName          = krcb->getHostName() ;
       CHAR nodeName [ OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1 + 1 ] = {0} ;
       UINT32 nodeNameSize = OSS_MAX_HOSTNAME + OSS_MAX_SERVICENAME + 1 ;
 
-      ossSocket::getHostName ( hostName, OSS_MAX_HOSTNAME ) ;
-      monGetNodeName( nodeName, nodeNameSize,hostName, serviceName ) ;
+      monGetNodeName( nodeName, nodeNameSize, hostName, serviceName ) ;
 
       PD_TRACE4 ( SDB_MONAPPENDSYSTEMINFO, PD_PACK_STRING ( hostName ),
                   PD_PACK_STRING ( serviceName ),

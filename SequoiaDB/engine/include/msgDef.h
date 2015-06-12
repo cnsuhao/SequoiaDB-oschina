@@ -245,6 +245,12 @@
 #define FIELD_NAME_ELAPSED_TIME              "ElapsedTime"
 #define FIELD_NAME_RETURN_NUM                "ReturnNum"
 #define FIELD_NAME_RUN                       "Run"
+#define FIELD_NAME_CLUSTERNAME               "ClusterName"
+#define FIELD_NAME_BUSINESSNAME              "BusinessName"
+#define FIELD_NAME_DATACENTER                "DataCenter"
+#define FIELD_NAME_ADDRESS                   "Address"
+#define FIELD_NAME_IMAGE                     "Image"
+#define FIELD_NAME_ACTIVE                    "Active"
 
 #define FIELD_NAME_INSERT                    "Insert"
 #define FIELD_NAME_UPDATE                    "Update"
@@ -295,6 +301,8 @@
 #define FIELD_NAME_LOB_AVAILABLE             "Available"
 #define FIELD_NAME_LOB_PAGE_SZ               "LobPageSize"
 #define FIELD_NAME_AUTO_INDEX_ID             "AutoIndexId"
+#define FIELD_NAME_REELECTION_TIMEOUT        "Seconds"
+#define FIELD_NAME_REELECTION_LEVEL          "Level"
 
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"
@@ -396,6 +404,11 @@
 #define CMD_NAME_INVALIDATE_CACHE            "invalidate cache"
 #define CMD_NAME_FORCE_SESSION               "force session"
 #define CMD_NAME_LIST_LOBS                   "list lobs"
+#define CMD_NAME_ATTACH_IMAGE                "attach image"
+#define CMD_NAME_DETACH_IMAGE                "detach image"
+#define CMD_NAME_ACTIVE_IMAGE                "active image"
+#define CMD_NAME_DEACTIVE_IMAGE              "deactive image"
+#define CMD_NAME_REELECT                     "reelect"
 
 #define CMD_NAME_JSON_LOAD                   "json load"
 

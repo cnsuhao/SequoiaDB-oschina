@@ -695,6 +695,7 @@ namespace sdbclient
       CHAR                    *_pReceiveBuffer ;
       INT32                    _receiveBufferSize ;
       BOOLEAN                  _endianConvert ;
+      BOOLEAN                  _useSSL ;
       std::set<ossValuePtr>    _cursors ;
       std::set<ossValuePtr>    _collections ;
       std::set<ossValuePtr>    _collectionspaces ;
@@ -824,7 +825,7 @@ namespace sdbclient
       friend class _sdbDomainImpl ;
       friend class _sdbLobImpl ;
    public :
-      _sdbImpl () ;
+      _sdbImpl ( BOOLEAN useSSL = FALSE ) ;
       ~_sdbImpl () ;
       INT32 connect ( const CHAR *pHostName,
                       UINT16 port ) ;

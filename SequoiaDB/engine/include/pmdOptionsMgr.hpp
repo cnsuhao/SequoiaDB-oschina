@@ -185,6 +185,9 @@ namespace engine
          virtual  INT32   getFieldStr( const CHAR *pFieldName,
                                        CHAR *pValue, UINT32 len,
                                        const CHAR *pDefault = NULL ) ;
+         virtual  INT32   getFieldStr( const CHAR *pFieldName,
+                                       std::string &strValue,
+                                       const CHAR *pDefault = NULL ) ;
 
       public:
          _pmdCfgRecord () ;
@@ -206,7 +209,7 @@ namespace engine
 
          UINT32 getChangeID () const { return _changeID ; }
 
-      protected:
+      public:
          /*
             Parse address line(192.168.20.106:5000,192.168.30.102:1000...) to
             pmdAddrPair
@@ -214,12 +217,13 @@ namespace engine
          INT32 parseAddressLine( const CHAR *pAddressLine,
                                  vector< pmdAddrPair > &vecAddr,
                                  const CHAR *pItemSep = ",",
-                                 const CHAR *pInnerSep = ":" ) ;
+                                 const CHAR *pInnerSep = ":" ) const ;
 
-         string makeAddressLine( vector< pmdAddrPair > &vecAddr,
+         string makeAddressLine( const vector< pmdAddrPair > &vecAddr,
                                  CHAR chItemSep = ',',
-                                 CHAR chInnerSep = ':' ) ;
+                                 CHAR chInnerSep = ':' ) const ;
 
+      protected:
          INT32  _addToFieldMap( const string &key, INT32 value ) ;
          INT32  _addToFieldMap( const string &key, const string &value ) ;
 
@@ -398,6 +402,7 @@ namespace engine
          {
             return _dmsTmpBlkPath ;
          }
+         std::string getCatAddr() const ;
 
          OSS_INLINE UINT32 getSortBufSize() const
          {

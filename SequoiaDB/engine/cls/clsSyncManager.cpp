@@ -524,6 +524,27 @@ namespace engine
       return ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG_ATLEASTONE, "_clsSyncManager::atLeastOne" )
+   BOOLEAN _clsSyncManager::atLeastOne( const DPS_LSN_OFFSET &offset )
+   {
+      BOOLEAN res = FALSE ;
+      PD_TRACE_ENTRY( SDB__CLSSYNCMAG_ATLEASTONE ) ;
+      DPS_LSN lsn ;
+      lsn.offset = offset ;
+      ossScopedRWLock lock( &_info->mtx, SHARED ) ;
+
+      for ( UINT32 i = 0; i < _validSync ; i++ )
+      {
+         if ( 0 > lsn.compareOffset( _notifyList[i].offset ) )
+         {
+            res = TRUE ;
+            break ;
+         }
+      }
+      PD_TRACE_EXIT( SDB__CLSSYNCMAG_ATLEASTONE ) ;
+      return res ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSYNCMAG__COMPLETE, "_clsSyncManager::_complete" )
    void _clsSyncManager::_complete( const MsgRouteID &id,
                                     const DPS_LSN_OFFSET &offset )

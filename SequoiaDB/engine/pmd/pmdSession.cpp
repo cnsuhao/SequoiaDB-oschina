@@ -50,6 +50,7 @@ namespace engine
       ossMemset( (void*)&_replyHeader, 0, sizeof(_replyHeader) ) ;
       _needReply = TRUE ;
       _needRollback = FALSE ;
+      _awaitingHandshake = TRUE ;
    }
 
    _pmdLocalSession::~_pmdLocalSession()
@@ -124,6 +125,15 @@ namespace engine
             {
                break ;
             }
+
+            _setHandshakeReceived() ;
+         }
+         else if ( _isAwaitingHandshake() )
+         {
+
+            PD_LOG( PDERROR, "SSL feature not available in this build" ) ;
+            rc = SDB_NETWORK ;
+            break ;
          }
          else if ( msgSize < sizeof(MsgHeader) || msgSize > SDB_MAX_MSG_LENGTH )
          {

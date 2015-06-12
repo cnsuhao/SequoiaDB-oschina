@@ -20,6 +20,7 @@ import imp
 import types
 import re
 import shutil
+import subprocess
 import urllib
 import urllib2
 import stat
@@ -47,6 +48,46 @@ java_dir = join(root_dir,'java')
 options = {}
 
 options_topass = {}
+
+def mergeStaticLibrary(target, *sources):
+    if not sys.platform.startswith('linux'):
+        raise Exception('mergeStaticLibrary currently only support linux')
+    if not os.path.isabs(target):
+        raise Exception('target must be a absolute path: ' + target)
+    path = os.path.dirname(target)
+    file = os.path.basename(target)
+    if not os.path.exists(path):
+        raise Exception('target path not exists: ' + path)
+    if not file.endswith('.a'):
+        raise Exception('target not ends with ".a": ' + file)
+    if os.path.exists(target):
+        os.remove(target)
+    subdir = path + '/' + file[0:file.index(".a")] + '.objs'
+    if os.path.exists(subdir):
+        shutil.rmtree(subdir)
+    os.mkdir(subdir)
+    #print("current directory is " + os.getcwd())
+    print("create objs directory: " + subdir )
+    for s in sources:
+        if not os.path.isabs(s):
+            raise Exception('source must be a absolute path: ' + s)
+        if not os.path.exists(s):
+            raise Exception('source not exists: ' + s)
+        print("extract objs from " + s)
+        cmd = "ar x " + s
+        print(cmd)
+        subprocess.check_call(cmd, shell=True)
+        cmd = "mv `ar t " + s + "` " + subdir
+        print(cmd)
+        subprocess.check_call(cmd, shell=True)
+    cmd = "ar cr " + target + " " + subdir + "/*.o"
+    print(cmd)
+    subprocess.check_call(cmd, shell=True)
+    cmd = "ranlib " + target
+    print(cmd)
+    subprocess.check_call(cmd, shell=True)
+    shutil.rmtree(subdir)
+    print("remove objs directory: " + subdir)
 
 def GuessOS():
    id = platform.system()
@@ -175,6 +216,9 @@ add_option( "noscreenout", "do not send anything to screen", 0, True )
 #fap options
 add_option( "fap", "foreign access protocol", 0, False )
 
+#ssl options
+add_option( "ssl", "build engine with SSL (enterprise edition only) ", 0, False )
+
 # don't run configure if user calls --help
 if GetOption('help'):
     Return()
@@ -255,6 +299,7 @@ hasShell = has_option( "shell" )
 hasFmp = has_option("fmp")
 hasAll = has_option( "all" )
 hasFap = has_option("fap")
+hasSSL = has_option("ssl")
 
 # if everything are set, let's set everything to true
 if hasAll:
@@ -641,6 +686,11 @@ fmpEnv.Append( CPPDEFINES=[ "SDB_CLIENT" ] )
 fapEnv.Append( CPPDEFINES=["SDB_ENGINE", "SDB_DLL_BUILD"])
 #fapEnv.Append( CPPPATH=[join(engine_dir, "bson")])
 
+# drivers always set SSL definition
+clientCppEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
+if hasSSL:
+    env.Append( CPPDEFINES=[ "SDB_SSL" ] )
+
 env['INSTALL_DIR'] = installDir
 if testEnv is not None:
     testEnv['INSTALL_DIR'] = installDir
@@ -682,6 +732,8 @@ Export("hasTestcase")
 Export("hasTool")
 Export("driverDir")
 Export("guess_os")
+Export("mergeStaticLibrary")
+Export("hasSSL")
 
 # Generating Versioning information
 # In order to change the file location, we have to modify both win32 and linux

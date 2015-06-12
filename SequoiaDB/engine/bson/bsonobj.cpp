@@ -485,10 +485,22 @@ namespace bson {
         case Bool:
             return *l.value() - *r.value();
         case Timestamp:
+        {
+            OpTime l_optime( l.date() ) ;
+            OpTime r_optime( r.date() ) ;
+            if ( l_optime < r_optime )
+            {
+               return -1 ;
+            }
+
+            return l_optime == r_optime ? 0 : 1 ;
+        }
         case Date:
+        {
             if ( l.date() < r.date() )
                 return -1;
             return l.date() == r.date() ? 0 : 1;
+        }
         case NumberLong:
             if( r.type() == NumberLong ) {
                 long long L = l._numberLong();

@@ -33,41 +33,13 @@
 //println
 //var BUS_JSON = { "HostInfo": [ { "IP": "192.168.20.42", "HostName": "susetzb", "User": "root", "Passwd": "sequoiadb", "InstallPath": "/opt/sequoiadb", "SshPort": "22", "AgentService": "11790" }, { "IP": "192.168.20.165", "HostName": "rhel64-test8", "User": "root", "Passwd": "sequoiadb", "InstallPath": "/opt/sequoiadb", "SshPort": "22", "AgentService": "11790" } ] } ;
 
+
 var FILE_NAME_POST_CHECK_HOST = "postCheckHost.js" ;
 var RET_JSON       = new Object() ;
 RET_JSON[HostInfo] = [] ;
 var rc             = SDB_OK ;
 var errMsg         = "" ;
 
-/* *****************************************************************************
-@discretion: stop temporary sdbcm in remote host
-@author: Tanzhaobo
-@parameter
-   ssh[object]: ssh object
-@return void
-***************************************************************************** */
-function _stopTmpSdbcm( ssh )
-{
-   var str = ""
-   try
-   {
-      if ( SYS_LINUX == SYS_TYPE )
-      {
-         str += OMA_PATH_TEMP_BIN_DIR_L ;
-         str += OMA_PROG_SDBCMTOP_L ;
-         str += " " + OMA_OPTION_SDBCMART_I ;
-         
-         ssh.exec( str ) ;
-      }
-      else
-      {
-         // TODO:
-      }
-   }
-   catch( e )
-   {
-   }
-}
 
 function main()
 {
@@ -120,21 +92,8 @@ function main()
          
          // 1. ssh
          ssh = new Ssh( ip, user, passwd, sshport ) ;
-/*
-         // check whether it is in local host,
-         // if so, we would not stop local sdbcm
-         var flag = isInLocalHost( ssh ) ;
-         if ( flag )
-         {
-            RET_JSON[HostInfo].push( retObj ) ;
-            continue ;
-         }
-*/
-         // 2. try to remove temporary sdbcm in target host
-// println
-//         _stopTmpSdbcm( ssh ) ;
          
-         // 3. remove the temporary directory in target host but leave the log file
+         // 2. remove the temporary directory in target host but leave the log file
          removeTmpDir2( ssh ) ;
       }
       catch ( e )
@@ -145,14 +104,6 @@ function main()
          retObj[Detail] = GETLASTERRMSG() ;
          PD_LOG( arguments, PDERROR, FILE_NAME_POST_CHECK_HOST,
                  "Failed to post-check host[" + ip + "], rc: " + retObj[Errno] + ", detail: " + retObj[Detail] ) ;
-
-         // remove tmp dir and stop sdbcm anyway
-         try
-         {
-// println
-//            _stopTmpSdbcm( ssh ) ;
-         }
-         catch( e ){}
          try
          {
             removeTmpDir2( ssh ) ;

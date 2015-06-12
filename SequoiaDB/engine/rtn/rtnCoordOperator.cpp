@@ -36,61 +36,23 @@
 
 #include "rtnCoordOperator.hpp"
 #include "ossErr.h"
-#include "rtnCoord.hpp"
-#include "rtnCoordInsert.hpp"
-#include "rtnCoordQuery.hpp"
-#include "rtnCoordDelete.hpp"
-#include "rtnCoordUpdate.hpp"
 #include "../bson/bson.h"
 #include "pmd.hpp"
 #include "pmdCB.hpp"
 #include "msgMessage.hpp"
 #include "msgCatalog.hpp"
 #include "rtnCoordCommon.hpp"
-#include "rtnCoordInterrupt.hpp"
 #include "coordSession.hpp"
-#include "rtnCoordAuth.hpp"
-#include "rtnCoordAuthCrt.hpp"
-#include "rtnCoordAuthDel.hpp"
 #include "rtn.hpp"
 #include "pdTrace.hpp"
 #include "rtnTrace.hpp"
-#include "rtnCoordTransaction.hpp"
-#include "rtnCoordSql.hpp"
-#include "rtnCoordAggregate.hpp"
 #include "coordDef.hpp"
-#include "rtnCoordLob.hpp"
 #include <stdlib.h>
 
 using namespace bson;
 
 namespace engine
 {
-   RTN_COORD_OP_BEGIN
-   RTN_COORD_OP_ADD( MSG_BS_INSERT_REQ, rtnCoordInsert )
-   RTN_COORD_OP_ADD( MSG_BS_QUERY_REQ, rtnCoordQuery )
-   RTN_COORD_OP_ADD( MSG_BS_DELETE_REQ, rtnCoordDelete )
-   RTN_COORD_OP_ADD( MSG_BS_UPDATE_REQ, rtnCoordUpdate )
-   RTN_COORD_OP_ADD( MSG_BS_AGGREGATE_REQ, rtnCoordAggregate )
-   RTN_COORD_OP_ADD( MSG_BS_INTERRUPTE, rtnCoordInterrupt )
-   RTN_COORD_OP_ADD( MSG_BS_KILL_CONTEXT_REQ, rtnCoordKillContext )
-   RTN_COORD_OP_ADD( MSG_AUTH_VERIFY_REQ, rtnCoordAuth )
-   RTN_COORD_OP_ADD( MSG_AUTH_CRTUSR_REQ, rtnCoordAuthCrt )
-   RTN_COORD_OP_ADD( MSG_AUTH_DELUSR_REQ, rtnCoordAuthDel )
-   RTN_COORD_OP_ADD( MSG_BS_TRANS_BEGIN_REQ, rtnCoordTransBegin )
-   RTN_COORD_OP_ADD( MSG_BS_TRANS_COMMIT_REQ, rtnCoordTransCommit )
-   RTN_COORD_OP_ADD( MSG_BS_TRANS_ROLLBACK_REQ, rtnCoordTransRollback )
-   RTN_COORD_OP_ADD( MSG_BS_SQL_REQ, rtnCoordSql )
-   RTN_COORD_OP_ADD( MSG_BS_MSG_REQ, rtnCoordMsg )
-   RTN_COORD_OP_ADD( MSG_BS_LOB_OPEN_REQ, rtnCoordOpenLob )
-   RTN_COORD_OP_ADD( MSG_BS_LOB_WRITE_REQ, rtnCoordWriteLob )
-   RTN_COORD_OP_ADD( MSG_BS_LOB_READ_REQ, rtnCoordReadLob )
-   RTN_COORD_OP_ADD( MSG_BS_LOB_CLOSE_REQ, rtnCoordCloseLob )
-   RTN_COORD_OP_ADD( MSG_BS_LOB_REMOVE_REQ, rtnCoordRemoveLob )
-   RTN_COORD_OP_ADD( MSG_NULL, rtnCoordOperatorDefault )
-   RTN_COORD_OP_END
-
-
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOOPDEFAULT_EXECUTE, "rtnCoordOperatorDefault::execute" )
    INT32 rtnCoordOperatorDefault::execute( CHAR *pReceiveBuffer, SINT32 packSize,
                            CHAR **ppResultBuffer, pmdEDUCB *cb,

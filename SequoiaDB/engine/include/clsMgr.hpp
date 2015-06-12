@@ -262,6 +262,7 @@ namespace engine
       protected:
          INT32 _onCatRegisterRes ( NET_HANDLE handle, MsgHeader* msg ) ;
          INT32 _onCatQueryTaskRes ( NET_HANDLE handle, MsgHeader* msg ) ;
+         INT32 _onStepDown( pmdEDUEvent *event ) ;
 
       private:
          _shdMsgHandler                _shdMsgHandlerObj ;

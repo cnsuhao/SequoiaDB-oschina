@@ -29,7 +29,7 @@
 */
 
 // println
-//var BUS_JSON = { "_id": { "$oid": "54cafd090c1fd1708ca989dd" }, "TaskID": 1, "Type": 0, "TypeDesc": "ADD_HOST", "TaskName": "ADD_HOST", "CreateTime": {"$timestamp": "2015-01-30-11.39.53.000000"}, "EndTime": {"$timestamp": "1970-01-01-08.00.00.000000"}, "Status": 0, "StatusDesc": "INIT", "AgentHost": "susetzb", "AgentService": "11790", "Info": { "ClusterName": "c1", "SdbUser": "sdbadmin", "SdbPasswd": "sdbadmin", "SdbUserGroup": "sdbadmin_group", "InstallPacket": "/opt/sequoiadb/bin/../packet/sequoiadb-1.10-linux_x86_64-installer.run", "HostInfo": [ { "HostName": "susetzb", "ClusterName": "c1", "IP": "192.168.20.42", "User": "root", "Passwd": "sequoiadb", "OS": { "Distributor": "RedHatEnterpriseServer", "Release": "6.4", "Bit": 64 }, "OMA": { "Status": false, "Version": "" }, "Memory": { "Model": "", "Size": 2887, "Free": 1414 }, "Disk": [ { "Name": "sda", "Size": 44705762, "Mount": "/", "Free": 41470996 } ], "CPU": [ { "ID": "", "Model": "", "Core": 2, "Freq": "2.00GHz" } ], "Net": [ { "Name": "lo", "Model": "", "Bandwidth": "", "IP": "127.0.0.1" }, { "Name": "eth0", "Model": "", "Bandwidth": "", "IP": "192.168.20.165" } ], "Port": [ { "Port": "50000", "Status": false } ], "Service": [ { "Name": "", "Status": false, "Version": "" } ], "Safety": { "Name": "", "Context": "", "Status": false }, "InstallPath": "/opt/sequoiadb", "AgentService": "11790", "SshPort": "22" }, { "HostName": "rhel64-test8", "ClusterName": "c1", "IP": "192.168.20.165", "User": "root", "Passwd": "sequoiadb", "OS": { "Distributor": "RedHatEnterpriseServer", "Release": "6.4", "Bit": 64 }, "OMA": { "Status": false, "Version": "" }, "Memory": { "Model": "", "Size": 2887, "Free": 1414 }, "Disk": [ { "Name": "sda", "Size": 44705762, "Mount": "/", "Free": 41470996 } ], "CPU": [ { "ID": "", "Model": "", "Core": 2, "Freq": "2.00GHz" } ], "Net": [ { "Name": "lo", "Model": "", "Bandwidth": "", "IP": "127.0.0.1" }, { "Name": "eth0", "Model": "", "Bandwidth": "", "IP": "192.168.20.165" } ], "Port": [ { "Port": "50000", "Status": false } ], "Service": [ { "Name": "", "Status": false, "Version": "" } ], "Safety": { "Name": "", "Context": "", "Status": false }, "InstallPath": "/opt/sequoiadb", "AgentService": "11790", "SshPort": "22" } ] }, "errno": 0, "Progress": 0, "ResultInfo": [ { "IP": "192.168.20.42", "HostName": "susetzb", "Status": 0, "StatusDesc": "INIT", "errno": 0, "detail": "", "Flow": null }, { "IP": "192.168.20.165", "HostName": "rhel64-test8", "Status": 0, "StatusDesc": "INIT", "errno": 0, "detail": "", "Flow": null } ] } ;
+// var BUS_JSON = { "_id": { "$oid": "54cafd090c1fd1708ca989dd" }, "TaskID": 1, "Type": 0, "TypeDesc": "ADD_HOST", "TaskName": "ADD_HOST", "CreateTime": {"$timestamp": "2015-01-30-11.39.53.000000"}, "EndTime": {"$timestamp": "1970-01-01-08.00.00.000000"}, "Status": 0, "StatusDesc": "INIT", "AgentHost": "susetzb", "AgentService": "11790", "Info": { "ClusterName": "c1", "SdbUser": "sdbadmin", "SdbPasswd": "sdbadmin", "SdbUserGroup": "sdbadmin_group", "InstallPacket": "/opt/sequoiadb/bin/../packet/sequoiadb-1.10-linux_x86_64-installer.run", "HostInfo": [ { "HostName": "susetzb", "ClusterName": "c1", "IP": "192.168.20.42", "User": "root", "Passwd": "sequoiadb", "OS": { "Distributor": "RedHatEnterpriseServer", "Release": "6.4", "Bit": 64 }, "OMA": { "Status": false, "Version": "" }, "Memory": { "Model": "", "Size": 2887, "Free": 1414 }, "Disk": [ { "Name": "sda", "Size": 44705762, "Mount": "/", "Free": 41470996 } ], "CPU": [ { "ID": "", "Model": "", "Core": 2, "Freq": "2.00GHz" } ], "Net": [ { "Name": "lo", "Model": "", "Bandwidth": "", "IP": "127.0.0.1" }, { "Name": "eth0", "Model": "", "Bandwidth": "", "IP": "192.168.20.165" } ], "Port": [ { "Port": "50000", "Status": false } ], "Service": [ { "Name": "", "Status": false, "Version": "" } ], "Safety": { "Name": "", "Context": "", "Status": false }, "InstallPath": "/opt/sequoiadb", "AgentService": "11790", "SshPort": "22" }, { "HostName": "rhel64-test8", "ClusterName": "c1", "IP": "192.168.20.165", "User": "root", "Passwd": "sequoiadb", "OS": { "Distributor": "RedHatEnterpriseServer", "Release": "6.4", "Bit": 64 }, "OMA": { "Status": false, "Version": "" }, "Memory": { "Model": "", "Size": 2887, "Free": 1414 }, "Disk": [ { "Name": "sda", "Size": 44705762, "Mount": "/", "Free": 41470996 } ], "CPU": [ { "ID": "", "Model": "", "Core": 2, "Freq": "2.00GHz" } ], "Net": [ { "Name": "lo", "Model": "", "Bandwidth": "", "IP": "127.0.0.1" }, { "Name": "eth0", "Model": "", "Bandwidth": "", "IP": "192.168.20.165" } ], "Port": [ { "Port": "50000", "Status": false } ], "Service": [ { "Name": "", "Status": false, "Version": "" } ], "Safety": { "Name": "", "Context": "", "Status": false }, "InstallPath": "/opt/sequoiadb", "AgentService": "11790", "SshPort": "22" } ] }, "errno": 0, "Progress": 0, "ResultInfo": [ { "IP": "192.168.20.42", "HostName": "susetzb", "Status": 0, "StatusDesc": "INIT", "errno": 0, "detail": "", "Flow": null }, { "IP": "192.168.20.165", "HostName": "rhel64-test8", "Status": 0, "StatusDesc": "INIT", "errno": 0, "detail": "", "Flow": null } ] } ;
 
 
 var FILE_NAME_CHECK_ADD_HOST_INFO = "checkAddHostInfo.js" ;
@@ -37,8 +37,8 @@ var RET_JSON       = new checkAddHostInfoResult() ;
 var rc             = SDB_OK ;
 var errMsg         = "" ;
 
+var task_id        = "" ;
 var task_dir       = "" ;
-
 
 /* *****************************************************************************
 @discretion: init
@@ -49,20 +49,8 @@ var task_dir       = "" ;
 function _init()
 {
    // 1. get task id
-   try
-   {
-      task_id = BUS_JSON[TaskID] ;
-      if ( "number" != typeof(task_id) )
-         exception_handle( SDB_SYS, "Task id is not a number: " + task_id ) ;
-   }
-   catch ( e )
-   {
-      SYSEXPHANDLE( e ) ;
-      errMsg = "Js receive invalid argument" ;
-      PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_ADD_HOST_INFO,
-              sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
-      exception_handle( SDB_SYS, errMsg ) ;
-   }
+   task_id = getTaskID( BUS_JSON ) ;
+   
    // 2. try to remove exist task log directory
    try
    {
@@ -81,25 +69,6 @@ println("task dir is: " + task_dir) ;
               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
       exception_handle( rc, errMsg ) ;
    }
-// println
-/*
-   // 2. try to remove task log file
-   try
-   {
-      LOG_FILE_NAME = TaskLog + task_id + ".log" ;
-      var task_log_file = LOG_FILE_PATH + LOG_FILE_NAME ;
-println("task log file is: " + task_log_file) ;
-      if ( File.exist( task_log_file ) )
-         File.remove( task_log_file ) ;
-   }
-   catch( e )
-   {
-      SYSEXPHANDLE( e ) ;
-      PD_LOG( arguments, PDWARNING, FILE_NAME_CHECK_ADD_HOST_INFO,
-              sprintf( "Try to remove task[?]'s log file failed, rc: ?, detail: ?",
-                       task_id, GETLASTERROR(), GETLASTERRMSG() ) ) ;
-   }
-*/
    
    PD_LOG( arguments, PDEVENT, FILE_NAME_CHECK_ADD_HOST_INFO, "Begin to check add host info" ) ;
 }
@@ -115,7 +84,6 @@ function _final()
    PD_LOG( arguments, PDEVENT, FILE_NAME_CHECK_ADD_HOST_INFO, "Finish checking add host info" ) ;
 }
 
-
 /* *****************************************************************************
 @discretion: check when install informations include installing db packet in
              local, whether these informations match local installed db's
@@ -125,7 +93,7 @@ function _final()
 @return
    [bool]: true or false
 ***************************************************************************** */
-function checkAddHostInfo()
+function _checkAddHostInfo()
 {
    var info             = null ;
    var hostInfo         = null ;
@@ -235,7 +203,7 @@ function checkAddHostInfo()
                     sprintf( errMsg + ", rc: ?", rc ) ) ;
             exception_handle( rc, errMsg ) ; 
          }
-         // thirdly, check install path
+         // 3rd, check install path
          var path1 = adaptPath( installPath ) ;
          var path2 = adaptPath( path ) ;
          if ( path1 != path2 )
@@ -258,7 +226,7 @@ function main()
    // check install info
    try
    {
-      checkAddHostInfo() ;
+      _checkAddHostInfo() ;
    }
    catch ( e )
    {

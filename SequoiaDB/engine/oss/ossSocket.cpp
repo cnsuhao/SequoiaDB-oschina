@@ -143,6 +143,15 @@ _ossSocket::_ossSocket ( SOCKET *sock, INT32 timeoutMilli )
    PD_TRACE_EXIT ( SDB__OSSSK__OSSSK3 );
 }
 
+_ossSocket::~_ossSocket ()
+{
+   if ( _closeWhenDestruct )
+   {
+      close () ;
+   }
+
+}
+
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSSK_INITTSK, "ossSocket::initSocket" )
 INT32 _ossSocket::initSocket ()
 {
@@ -300,6 +309,7 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
    }
    while ( len > 0 )
    {
+      {
 #if defined (_WINDOWS)
       rc = ::send ( _fd, pMsg, len, flags ) ;
       if ( SOCKET_ERROR == rc )
@@ -323,6 +333,8 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
          rc = SDB_NETWORK ;
          goto error ;
       }
+      }
+
       sentLen += rc ;
       len -= rc ;
       pMsg += rc ;
@@ -387,6 +399,7 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
    {
       goto done ;
    }
+
 
    maxSelectTime.tv_sec = timeout / 1000 ;
    maxSelectTime.tv_usec = ( timeout % 1000 ) * 1000 ;
@@ -575,6 +588,7 @@ void _ossSocket::close ()
    PD_TRACE_ENTRY ( SDB_OSSSK_CLOSE );
    if ( _init )
    {
+
 #if defined (_WINDOWS)
       closesocket ( _fd ) ;
 #else
@@ -696,6 +710,7 @@ void _ossSocket::quickAck ()
    }
 #endif // _LINUX
 }
+
 
 UINT32 _ossSocket::_getPort ( sockaddr_in *addr )
 {

@@ -49,7 +49,7 @@ function _init()
       // TODO: windows
    }
    PD_LOG2( LOG_NONE, arguments, PDEVENT, FILE_NAME_ADD_HOST_PRE_CHECK,
-            "Begin to check whether target host had been add before execute add host command" ) ;
+            "Begin to pre-check add host" ) ;
 }
 
 /* *****************************************************************************
@@ -61,7 +61,7 @@ function _init()
 function _final()
 {
    PD_LOG2( LOG_NONE, arguments, PDEVENT, FILE_NAME_ADD_HOST_PRE_CHECK,
-            "Finish checking whether target host had been add before execute add host command" ) ;
+            "Finish pre-checking add host" ) ;
 }
 
 /* *****************************************************************************
@@ -130,7 +130,7 @@ function _isProgramExist()
             if( !File.exist( program_name ) )
             {
                PD_LOG2( LOG_NONE, arguments, PDWARNING, FILE_NAME_ADD_HOST_PRE_CHECK,
-                        sprintf( "Program [?] does not exist in target host, need to install db packet", program_name) ) ;
+                        sprintf( "Program [?] does not exist in target host, need to install db packet", program_name ) ) ;
                return false ;
             }
          }

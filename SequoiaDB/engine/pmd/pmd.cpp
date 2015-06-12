@@ -266,6 +266,22 @@ namespace engine
       }
    }
 
+   void _SDB_KRCB::onConfigSave()
+   {
+      INT32 index = 0 ;
+      IControlBlock *pCB = NULL ;
+
+      for ( index = 0 ; index < SDB_CB_MAX ; ++index )
+      {
+         pCB = _arrayCBs[ index ] ;
+         if ( !pCB )
+         {
+            continue ;
+         }
+         pCB->onConfigSave() ;
+      }
+   }
+
    INT32 _SDB_KRCB::onConfigInit ()
    {
       _role = utilGetRoleEnum( _optioncb.krcbRole() ) ;
