@@ -5120,23 +5120,15 @@ namespace engine
       list<BSONObj>::iterator iter = tasks.begin() ;
       while ( iter != tasks.end() )
       {
-         clusterName  = "" ;
-         businessName = "" ;
          BSONElement clusterEle ;
          clusterEle = iter->getFieldDotted( 
                          OM_TASKINFO_FIELD_INFO"."OM_BSON_FIELD_CLUSTER_NAME ) ;
-         if ( clusterEle.type() == String )
-         {
-            clusterName  = clusterEle.String() ;
-         }
+         clusterName  = clusterEle.String() ;
 
          BSONElement businessEle ;
          businessEle = iter->getFieldDotted( 
                          OM_TASKINFO_FIELD_INFO"."OM_BSON_BUSINESS_NAME ) ;
-         if ( businessEle.type() == String )
-         {
-            businessName = businessEle.String() ;
-         }
+         businessName = businessEle.String() ;
 
          BSONObj info = BSON( OM_BSON_FIELD_CLUSTER_NAME << clusterName 
                               << OM_BSON_BUSINESS_NAME << businessName ) ;
@@ -6523,8 +6515,8 @@ namespace engine
          getMaxTaskID( taskID ) ;
          taskID++ ;
 
-         rc = createTask( OM_TASK_TYPE_REMOVE_BUSINESS, taskID, 
-                          getTaskTypeStr( OM_TASK_TYPE_REMOVE_BUSINESS ), 
+         rc = createTask( OM_TASK_TYPE_ADD_BUSINESS, taskID, 
+                          getTaskTypeStr( OM_TASK_TYPE_ADD_BUSINESS ), 
                           _localAgentHost, _localAgentService,
                           taskInfo, resultInfo ) ;
          if ( SDB_OK != rc )

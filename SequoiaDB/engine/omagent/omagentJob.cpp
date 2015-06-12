@@ -2854,11 +2854,7 @@ namespace engine
          case OMA_TASK_INSTALL_DB :
             pTask = SDB_OSS_NEW _omaInstDBBusTask( taskID ) ;
             break ;
-         case OMA_TASK_INSTALL_DB_SUB :
-            pTask = SDB_OSS_NEW _omaInstDBBusSubTask( taskID ) ;
-            break ;
          case OMA_TASK_REMOVE_DB :
-            pTask= SDB_OSS_NEW _omaRemoveDBBusTask( taskID ) ;
             break ;
          default :
             PD_LOG_MSG( PDERROR, "Unknow task type[%d]", taskType ) ;

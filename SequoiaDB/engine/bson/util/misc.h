@@ -80,9 +80,6 @@ namespace bson {
             time_t_to_String(millis/1000, buf);
             return buf;
         }
-        unsigned long long getMillis() {
-            return millis ;
-        }
     };
 
     inline int strnlen( const char *s, int n ) {

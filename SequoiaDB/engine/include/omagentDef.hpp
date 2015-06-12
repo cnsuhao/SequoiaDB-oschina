@@ -133,7 +133,7 @@ namespace engine
    */
    #define OMA_CMD_CHECK_ADD_HOST_INFO                "check add host info"
    
-   #define OMA_CMD_INSTALL_TMP_COORD                  "install temporary coord"
+   #define OMA_CMD_CRRATE_TMP_COORD                   "create temporary coord"
    #define OMA_CMD_REMOVE_TMP_COORD                   "remove temporary coord"
    
    #define OMA_CMD_ROLLBACK_ADD_HOSTS                 "rollback add hosts"
@@ -164,7 +164,6 @@ namespace engine
    #define OMA_ROLLBACK_STANDALONE                    "rollback installed standalone"
    #define OMA_ROLLBACK_CATALOG                       "rollback installed catalog"
    #define OMA_ROLLBACK_COORD                         "rollback installed coord"
-   #define OMA_ROLLBACK_DATA_RG                       "rollback installed data groups"
    #define OMA_JOB_REMOVE_VIRTUAL_COORD               "remove virtual coord job"
 
    #define OMA_JOB                                    "omagent job"
@@ -188,8 +187,10 @@ namespace engine
    #define FILE_ADD_HOST2                   "addHost2.js"
    #define FIEL_CHECK_ADD_HOST_INFO         "checkAddHostInfo.js"
    #define FILE_REMOVE_HOST                 "removeHost.js"
+   #define FILE_CREATE_TMP_COORD            "createTmpCoord.js"
+   #define FILE_REMOVE_TMP_COORD            "removeTmpCoord.js"
    #define FILE_ADDHOST_ROLLBACK            "addHostRollback.js"
-   #define FILE_ADDHOST_ROLLBACK2           "addHostRollback2.js"
+   #define FILE_ADDHOST_ROLLBACK2            "addHostRollback2.js"
    #define FILE_UPDATE_HOSTS_INFO           "updateHostsInfo.js"
    #define FILE_UPDATE_HOSTS                "updateHosts.js"
 
@@ -197,18 +198,16 @@ namespace engine
    #define FILE_INSTALL_CATALOG             "installCatalog.js"
    #define FILE_INSTALL_COORD               "installCoord.js"
    #define FILE_INSTALL_DATANODE            "installDataNode.js"
-   #define FILE_INSTALL_TMP_COORD           "installTmpCoord.js"
 
    #define FILE_REMOVE_STANDALONE           "removeStandalone.js"
    #define FILE_REMOVE_CATALOG_RG           "removeCatalogRG.js"
    #define FILE_REMOVE_COORD_RG             "removeCoordRG.js"
    #define FILE_REMOVE_DATA_RG              "removeDataRG.js"
-   #define FILE_REMOVE_TMP_COORD            "removeTmpCoord.js"
 
    #define FILE_ROLLBACK_STANDALONE         "rollbackStandalone.js"
    #define FILE_ROLLBACK_CATALOG            "rollbackCatalog.js"
    #define FILE_ROLLBACK_COORD              "rollbackCoord.js"
-   #define FILE_ROLLBACK_DATA_RG            "rollbackDataRG.js"
+   #define FILE_ROLLBACK_DATANODE           "rollbackDataNode.js"
 
 
    #define FILE_QUERY_HOSTSTATUS            "queryHostStatus.js"

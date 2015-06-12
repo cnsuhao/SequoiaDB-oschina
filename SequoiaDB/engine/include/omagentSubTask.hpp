@@ -48,8 +48,7 @@
 using namespace std ;
 using namespace bson ;
 
-#define OMA_TASK_NAME_ADD_HOST_SUB           "add host sub task"
-#define OMA_TASK_NAME_INSTALL_BUSINESS_SUB   "install db business sub task"
+#define OMA_TASK_NAME_ADD_HOST_SUB   "add host sub task"
 
 namespace engine
 {
@@ -83,25 +82,6 @@ namespace engine
 
    } ;
    typedef _omaAddHostSubTask omaAddHostSubTask ;
-
-   /*
-      add business sub task
-   */
-   class _omaInstDBBusSubTask : public _omaTask
-   {
-      public:
-         _omaInstDBBusSubTask( INT64 taskID ) ;
-         virtual ~_omaInstDBBusSubTask() ;
-
-      public:
-         INT32 init( const BSONObj &info, void *ptr = NULL ) ;
-         INT32 doit() ;
-
-      private:
-         _omaInstDBBusTask    *_pTask ;
-   } ;
-   typedef _omaAddHostSubTask omaAddHostSubTask ;
-   
    
 }
 

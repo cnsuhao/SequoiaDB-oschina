@@ -58,8 +58,7 @@ namespace engine
       OMA_TASK_REMOVE_DB          = 2, // remove db business
 
 
-      OMA_TASK_ADD_HOST_SUB       = 10, // add host sub task
-      OMA_TASK_INSTALL_DB_SUB     = 11, // install db business sub task
+      OMA_TASK_ADD_HOST_SUB       = 10, // add host bus task
 
       OMA_TASK_END
    } ;

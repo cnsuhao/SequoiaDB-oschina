@@ -147,32 +147,28 @@ namespace engine
    class _omaCreateTmpCoord : public _omaCommand
    {
       public:
-         _omaCreateTmpCoord( INT64 taskID ) ;
-         ~_omaCreateTmpCoord() ;
-         virtual const CHAR* name() { return OMA_CMD_INSTALL_TMP_COORD ; }
-         virtual INT32 init( const CHAR *pInstallInfo ) ;
+         _omaCreateTmpCoord () ;
+         ~_omaCreateTmpCoord () ;
+         virtual const CHAR* name () { return OMA_CMD_CRRATE_TMP_COORD ; }
+         virtual INT32 init ( const CHAR *pInstallInfo ) ;
 
       public:
-         INT32 createTmpCoord( BSONObj &cfgObj, BSONObj &retObj ) ;
-
-      private:
-         INT64   _taskID ;
+         INT32 createTmpCoord ( BSONObj &retObj ) ;
    } ;
 
    class _omaRemoveTmpCoord : public _omaCommand
    {
       public:
-         _omaRemoveTmpCoord( INT64 taskID, string &tmpCoordSvcName ) ;
-         ~_omaRemoveTmpCoord() ;
-         virtual const CHAR* name() { return OMA_CMD_REMOVE_TMP_COORD ; }
-         virtual INT32 init( const CHAR *pInstallInfo ) ;
+         _omaRemoveTmpCoord ( const CHAR *tmpCoordSvcName ) ;
+         ~_omaRemoveTmpCoord () ;
+         virtual const CHAR* name () { return OMA_CMD_REMOVE_TMP_COORD ; }
+         virtual INT32 init ( const CHAR *pInstallInfo ) ;
          
       public:
-         INT32 removeTmpCoord( BSONObj &retObj ) ;
+         INT32 removeTmpCoord ( BSONObj &retObj ) ;
 
       private:
-         INT64  _taskID ;
-         string _tmpCoordSvcName ;
+         CHAR _tmpCoordSvcName[OSS_MAX_SERVICENAME + 1] ;
    } ;
 
    class _omaAddHostRollbackInternal : public _omaCommand
@@ -240,8 +236,7 @@ namespace engine
    class _omaInstallCatalog : public _omaCommand
    {
       public:
-         _omaInstallCatalog ( INT64 taskID, string &tmpCoordSvcName,
-                              InstDBInfo &info ) ;
+         _omaInstallCatalog ( string &tmpCoordSvcName, InstDBInfo &info ) ;
          virtual ~_omaInstallCatalog () ;
 
       public:
@@ -249,16 +244,15 @@ namespace engine
          virtual INT32 init ( const CHAR *pInstallInfo ) ;
 
       private:
-         INT64         _taskID ;
-         string        _tmpCoordSvcName ;
+         BSONObj       _installInfo ;
          InstDBInfo    _info ;
+         string        _tmpCoordSvcName ;
    } ;
 
    class _omaInstallCoord : public _omaCommand
    {
       public:
-         _omaInstallCoord ( INT64 taskID, string &tmpCoordSvcName,
-                            InstDBInfo &info ) ;
+         _omaInstallCoord ( string &tmpCoordSvcName, InstDBInfo &info ) ;
          virtual ~_omaInstallCoord () ;
 
       public:
@@ -266,17 +260,15 @@ namespace engine
          virtual INT32 init ( const CHAR *pInstallInfo ) ;
 
       private:
-         INT64         _taskID ;
-         string        _tmpCoordSvcName ;
+         BSONObj       _installInfo ;
          InstDBInfo    _info ;
-
+         string        _tmpCoordSvcName ;
    } ;
 
    class _omaInstallDataNode : public _omaCommand
    {
       public:
-         _omaInstallDataNode ( INT64 taskID, string tmpCoordSvcName,
-                               InstDBInfo &info ) ;
+         _omaInstallDataNode ( string &tmpCoordSvcName, InstDBInfo &info ) ;
          virtual ~_omaInstallDataNode () ;
 
       public:
@@ -284,17 +276,17 @@ namespace engine
          virtual INT32 init ( const CHAR *pInstallInfo ) ;
 
       private:
-         INT64         _taskID ;
-         string        _tmpCoordSvcName ;
+         BSONObj       _installInfo ;
          InstDBInfo    _info ;
+         string        _tmpCoordSvcName ;
    } ;
 
    class _omaRollbackStandalone : public _omaCommand
    {
       public:
-         _omaRollbackStandalone( INT64 taskID,
-                                 BSONObj &bus,
-                                 BSONObj &sys ) ;
+         _omaRollbackStandalone( BSONObj &bus,
+                                 BSONObj &sys,
+                                 INT64 taskID ) ;
          ~_omaRollbackStandalone() ;
 
       public:
@@ -302,62 +294,62 @@ namespace engine
          virtual INT32 init( const CHAR *pInstallInfo ) ;
 
       private:
-         INT64     _taskID ;
-         BSONObj   _bus ;
-         BSONObj   _sys ;
+         BSONObj _bus ;
+         BSONObj _sys ;
+         INT64   _taskID ;
    } ;
 
-   class _omaRollbackCatalog : public _omaCommand
+   class _omaRunRollbackCoordJob : public _omaCommand
    {
       public:
-         _omaRollbackCatalog ( INT64 taskID,
-                               string &tmpCoordSvcName ) ;
-         ~_omaRollbackCatalog () ;
-
-      public:
-         virtual const CHAR* name () { return OMA_ROLLBACK_CATALOG ; }
-         virtual INT32 init ( const CHAR *pInstallInfo ) ;
-
-      private:
-         INT64    _taskID ;
-         string   _tmpCoordSvcName ;
-   } ;
-
-   class _omaRollbackCoord : public _omaCommand
-   {
-      public:
-         _omaRollbackCoord ( INT64 taskID,
-                             string &tmpCoordSvcName ) ;
-         ~_omaRollbackCoord () ;
+         _omaRunRollbackCoordJob ( string &tmpCoordSvcName, 
+                                   map< string, vector<InstalledNode> > &info
+                                 ) ;
+         ~_omaRunRollbackCoordJob () ;
 
       public:
          virtual const CHAR* name () { return OMA_ROLLBACK_COORD ; }
          virtual INT32 init ( const CHAR *pInstallInfo ) ;
 
       private:
-         INT64    _taskID ;
-         string   _tmpCoordSvcName ;
+         map< string, vector< InstalledNode > >         &_info ;
+         string                                         _tmpCoordSvcName ;
    } ;
 
-   class _omaRollbackDataRG : public _omaCommand
+   class _omaRunRollbackCatalogJob : public _omaCommand
    {
       public:
-         _omaRollbackDataRG (  INT64 taskID,
-                               string &tmpCoordSvcNamem,
-                               set<string> &info ) ;
-         ~_omaRollbackDataRG () ;
+         _omaRunRollbackCatalogJob ( string &tmpCoordSvcName, 
+                                     map< string, vector<InstalledNode> > &info
+                                   ) ;
+         ~_omaRunRollbackCatalogJob () ;
 
       public:
-         virtual const CHAR* name () { return OMA_ROLLBACK_DATA_RG ; }
+         virtual const CHAR* name () { return OMA_ROLLBACK_CATALOG ; }
          virtual INT32 init ( const CHAR *pInstallInfo ) ;
 
       private:
-         void _getInstalledDataGroupInfo( BSONObj &obj ) ;         
+         map< string, vector< InstalledNode > >         &_info ;
+         string                                         _tmpCoordSvcName ;
+   } ;
+
+   class _omaRunRollbackDataNodeJob : public _omaCommand
+   {
+      public:
+         _omaRunRollbackDataNodeJob ( string &tmpCoordSvcNamem,
+                                      map< string, vector<InstalledNode> > &info
+                                    ) ;
+         ~_omaRunRollbackDataNodeJob () ;
+
+      public:
+         virtual const CHAR* name () { return OMA_CMD_RM_DATA_RG ; }
+         virtual INT32 init ( const CHAR *pInstallInfo ) ;
 
       private:
-         INT64         _taskID ;
-         string        _tmpCoordSvcName ;
-         set<string>   &_info ;
+         void _getInstalledDataGroupInfo( BSONObj& obj ) ;         
+
+         map< string, vector< InstalledNode > >         &_info ;
+         string                                         _tmpCoordSvcName ;
    } ;
 
    class _omaRmStandalone : public _omaCommand

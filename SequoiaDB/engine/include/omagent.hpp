@@ -230,7 +230,6 @@ namespace engine
       BSONObj _conf ;
    } ;
    typedef struct _InstDBInfo InstDBInfo ;
-   typedef InstDBInfo RemoveDBInfo ;
 
    struct _InstDBResult
    {
@@ -245,7 +244,6 @@ namespace engine
       vector<string> _flow ;
    } ;
    typedef struct _InstDBResult InstDBResult ;
-   typedef InstDBResult RemoveDBResult ;
 
    struct _InstDBBusInfo
    {
@@ -254,7 +252,6 @@ namespace engine
       InstDBResult   _instResult ;
    } ;
    typedef struct _InstDBBusInfo InstDBBusInfo ;
-   typedef InstDBBusInfo RemoveDBBusInfo ;
    
 }
 

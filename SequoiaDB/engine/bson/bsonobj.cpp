@@ -486,9 +486,9 @@ namespace bson {
             return *l.value() - *r.value();
         case Timestamp:
         case Date:
-            if ( l.date().getMillis() < r.date().getMillis() )
+            if ( l.date() < r.date() )
                 return -1;
-            return l.date().getMillis() == r.date().getMillis() ? 0 : 1;
+            return l.date() == r.date() ? 0 : 1;
         case NumberLong:
             if( r.type() == NumberLong ) {
                 long long L = l._numberLong();
