@@ -1,0 +1,49 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.attachCL()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+attachCL - Attach child partition-collections to the main
+partition.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.attachCL(\fB<subCLFullName>\fR\fB,<options>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+Attach child partition-collections to the main partition.
+.sp 2
+\fBsubCLFullName (string)\fR
+.br
+       The child partition-collection's full name(include the
+       name of collection space).
+.sp 2
+\fBoptions (json object)\fR
+.br
+       Partition range, includes two fields named "LowBound" and
+       "UpBoumd".
+.br
+       e.g., {LowBound:{a:0},UpBound:{a:100} stands for choosing
+       the range of field a:[0, 100)
+.SH "Examples"
+
+.sp 2
+Mount the child partition-collections to the specified main
+collection.
+.sp 2
+db.foo.year.attachCL("foo2.January",{LowBound:{date:"20130101"},UpBound:{date:"20130131"}})

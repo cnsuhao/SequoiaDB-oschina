@@ -1,0 +1,95 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.createCS()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+createCS - Create a collection space in a database instance.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.createCS(\fB<name>\fR,\fB[options]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Create a collection space in a database instance.
+.sp 2
+\fBname (string)\fR
+.br
+       Collection space name. Collection space name should be
+       unique to each other in a database instance.
+.sp 2
+\fBoptions (Json object)\fR
+.br
+       Optional in a collection space.
+.sp 2
+       \fBPageSize\fR
+.br
+              Size of a data page. The default value is 65536B.
+.br
+              PageSize:<int32>
+.sp 2
+       \fBDomain\fR
+.br
+              Domain that collection space belongs to.
+.br
+              Domain:<string>
+.sp 2
+       \fBLobPageSize\fR
+.br
+              Lob size of data page. The default value is
+              262144B.
+.br
+              LobPageSize:<int32>
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  The parameter "name" should not be a null string. It should
+   not contain "." or "$". The length of it should not be greater
+   than 127B.
+.sp 2
+   *  Collection space names should be unique to each other in a
+   database instance.
+.sp 2
+   *  When creating a collection space, users can specify the
+   size of data page. It is unchangeable afterward. The default
+   value of it is 65536B.
+.sp 2
+   *  PageSize can only be one of the following six: 0, 4096,
+   8192, 16384, 32768, and 65536. The default value is 0.
+.sp 2
+   *  Domain must already exist, and cannot be SYSDOMAIN.
+.sp 2
+   *  It is compatible with earlier version interface, and
+   function db.createCS(<name>, [PageSize]) can alsobe used.
+.sp 2
+   *  LobPageSize can only be one of the following nine: 0, 4096,
+   8192, 16384, 32768, 65536, 131072, 262144 and 524288, The
+   default value is 262144.
+.SH "Examples"
+
+.sp 2
+Create a collection space named "foo" without specifying the size
+of data page, so its default page size will be 65536B.
+.sp 2
+db.createCS("foo")
+.sp 2
+Create a collection space named "foo", specify the size of the
+data page as 4096 and its domain as "mydomain".
+.sp 2
+db.createCS("foo",{PageSize:4096,Domain:"mydomain"})

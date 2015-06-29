@@ -1,0 +1,51 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBquery.hint()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+hint - Enumerate the result set according to the specified index.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+query.hint(\fB[hint]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Query
+.SH "DESCRIPTION"
+
+.sp 2
+Enumerate the result set according to the specified index.
+.sp 2
+\fBhint (json object)\fR
+.br
+       It specifies the access plan to accelerate query speed.
+.sp 2
+       \fBFormat\fR
+.br
+              The method "query.hint()" contains parameter
+              "hint". If it is not specified, the query will not
+              use index to visit records. The parameter "hint"
+              contains a one-field json object. The field name is
+              ignored. But the field value is specified as the
+              index which will be visited. When it is null, it
+              will visit all the records in the collection.
+.br
+              {"":null} or {"":"<indexname>"}
+.SH "Examples"
+
+.sp 2
+Enumerate the records contain field "age" in the collection "bar"
+according to index "ageIndex" and return the result set.
+.sp 2
+db.foo.bar.find({age:{$exists:1}}).hint({"":"ageIndex"})

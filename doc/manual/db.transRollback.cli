@@ -1,0 +1,37 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.transRollback()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+transRollback - Transaction rollback.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.transRollback()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Roll back the transactions. When transaction function is on, if
+any exceptions occurred when performing operations in a single
+logical unit, execute the transRollback() command, the batabase
+will back to its original state.
+.SH "Examples"
+
+.sp 2
+Transaction rollback command:
+.sp 2
+db.transRollback() 

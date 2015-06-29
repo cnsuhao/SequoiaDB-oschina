@@ -1,0 +1,50 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.removeProcedure()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+removeProcedure - Deletes the specified function name.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.removeProcedure(\fB<function name>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Deletes the specified function name, The specified function name
+must exist, otherwise exceptions will occur.
+.sp 2
+\fBfunction name (string)\fR
+.br
+       function name.
+.sp 2
+removeProcedure() method has one parameter 'function name' in a
+string type. Its value should already exist, otherwise exceptions
+will occur.
+.SH "Examples"
+
+.sp 2
+
+.sp 2
+Delete the sum function:
+.sp 2
+db.removeProcedure("sum")
+.sp 2
+Make sure that the function name specified in the
+removeProcedure() method be exactly the same as the name in its
+definition. Otherwise, it will return a failure.
+db.removeProcedure('sum') call will return a failure.

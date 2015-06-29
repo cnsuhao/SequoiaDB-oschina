@@ -1,0 +1,54 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBoma.createOM()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+createOM - Create an OM node.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+oma.createOM(\fB<svcname>,<dbpath>,[config obj]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Oma
+.SH "DESCRIPTION"
+
+.sp 2
+Create an OM node.
+.sp 2
+\fBsvcname (string)\fR
+.br
+       Port number of the node.
+.sp 2
+\fBdbpath (string)\fR
+.br
+       Nodes path.
+.sp 2
+\fBconfig (Json Object)\fR
+.br
+       Configuration file of the node, including setting log's
+       size, whether open transaction.
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  In OM mode, we can create multiple nodes, but port number
+   of each two nodes must be apart at least 5 ports, because each
+   node's backend control 5 communication ports.
+.SH "Examples"
+
+.sp 2
+Create anOM Node at port 11830, and set the log file size to
+64MB.
+.sp 2
+oma.createOM(11830,"/opt/sequoiadb/om/11830",{logfilesz:64})

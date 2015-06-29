@@ -1,0 +1,80 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.createCataRG()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+createCataRG - Create a new catalog replica group.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.createCataRG(\fB<host>\fR,\fB<service>\fR,\fB<dbpath>\fR,\fB[config]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Create a new catalog replica group, create and start a catalog
+node at the same time.
+.sp 2
+\fBhost (string)\fR
+.br
+       Specify the host name of the catalog node.
+.sp 2
+\fBservice (int)\fR
+.br
+       Specify the service port of the catalog node, please make
+       sure this port and its three succeeding ones are
+       unoccupied. For example, if 11800 is specified, please
+       make sure all of 11800/11801/11802/11803 are unoccupied.
+.sp 2
+\fBdbpath (string)\fR
+.br
+       The path for the data files which is used to store the
+       catalog data files. Please make sure that the data
+       administrator users(created during installation,
+       'sdbadmin' in default) have the write permissions.
+.sp 2
+\fBconfig (json)\fR
+.br
+       Optional. Used to set up more detailed configurations. It
+       must be in Json format. For more details please check the
+       Database Configuration section, for example the parameter
+       for configuring of log file size: {logfilesz:64}.
+.sp 2
+       \fBFormat\fR
+.br
+              createCataRG() method has four parameters: host,
+              service, dbpath, and config. The value of 'host'
+              and 'dbpath' should be a string, 'service' should
+              be an int, and a Json Object for 'config', the
+              format is:
+.br
+              {"<host name>",<port number>,"<data file
+              path>",[database configuration parameter object]}
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  Please make sure to give proper permissions to the
+   data-file storage path, if default installation was used, then
+   give the 'sdbadmin' permission to the path.
+.SH "Examples"
+
+.sp 2
+Named: Create a catalog node group on sdbserver1 host, service
+port: 11800, data files path: /opt/sequoiadb/database/cata/11800
+.sp 2
+db.createCataRG("sdbserver1", 11800, "/opt/sequoiadb/database/cata/11800")

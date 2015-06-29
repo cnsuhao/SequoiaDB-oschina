@@ -1,0 +1,116 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.backupOffline()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+backupOffline - Backup Database.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.backupOffline(\fB[options]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Backup Database.
+.sp 2
+\fBoptions (json object)\fR
+.br
+       Specify the name of the backup, the replica group, and
+       number of copies, etc.
+.sp 2
+       \fBGroupID\fR
+.br
+              Specify the ID of the replica group need to be
+              backup. Backup all replica groups in default.
+.br
+              GroupID:1000 or GroupID:[1000, 1001]
+.sp 2
+       \fBGroupName\fR
+.br
+              Specify the name of the replica group need to
+              backup. Backup all replica groups in default.
+.br
+              GroupName:"data1" or GroupName:["data1", "data2"]
+.sp 2
+       \fBName\fR
+.br
+              Backup name, the default name is in the
+              "YYYY-MM-DD-HH:mm:SS" time format.
+.br
+              Name:"backup-2014-1-1"
+.sp 2
+       \fBPath\fR
+.br
+              Backup path, the default path is the one specified
+              in the configuration. The path supports
+              wildcards(%g%G: group name, %h%H:host name,
+              %s%S:service name).
+.br
+              Path:"/opt/sequoiadb/backup/%g"
+.sp 2
+       \fBIsSubDir\fR
+.br
+              Whether the path configured in the above Path
+              parameter is a subdirectory of the backup path in
+              the configuration. False in default.
+.br
+              IsSubDir:false
+.sp 2
+       \fBPrefix\fR
+.br
+              Backup prefix, support wildcards
+              (%g,%G,%h,%H,%s,%S), The default is empty.
+.br
+              Prefix:"%g_bk_"
+.sp 2
+       \fBEnableDataDir\fR
+.br
+              Whether to enable the date-subdirectory function or
+              not. It will automatically create subdirectories
+              with names in "YYYY-MM-DD" format according to the
+              current date if the function is enabled. False in
+              default.
+.br
+              EnableDataDir:false
+.sp 2
+       \fBDescription\fR
+.br
+              Backup description
+.br
+              Description:"First backup"
+.sp 2
+       \fBEnsureInc\fR
+.br
+              Whether to enable incremental backup or not. False
+              in default.
+.br
+              EnsureInc:false
+.sp 2
+       \fBOverWrite\fR
+.br
+              Whether to overwrite the backups with the same
+              name. False in default.
+.br
+              OverWrite:false
+.sp 2
+
+.SH "Examples"
+
+.sp 2
+Back up the entire database.
+.sp 2
+db.backupOffline({Name:"FullBackup1"})

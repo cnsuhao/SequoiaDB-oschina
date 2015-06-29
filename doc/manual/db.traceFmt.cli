@@ -1,0 +1,48 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBtraceFmt()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+traceFmt - To format the binary data into other type of file that
+db.traceOff() exported.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+traceFmt(\fB<formatType>,<input>,<input>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Golbal
+.SH "DESCRIPTION"
+
+.sp 2
+To format the binary data into other type of file that
+db.traceOff() exported.
+.sp 2
+\fBformatType (int)\fR
+.br
+       Format type of the.
+.sp 2
+\fBinput (string)\fR
+.br
+       Input file.
+.sp 2
+\fBoutput (String)\fR
+.br
+       Output file.
+.SH "Examples"
+
+.sp 2
+格式化输出文件
+.sp 2
+traceFmt(0, "/opt/sequoiadb/trace.dump", "/opt/sequoiadb/trace.flw")

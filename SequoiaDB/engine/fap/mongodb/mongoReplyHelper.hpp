@@ -39,16 +39,21 @@
 
 #include "msgBuffer.hpp"
 #include "sdbInterface.hpp"
+#include "rtnContextBuff.hpp"
+
 namespace fap
 {
    namespace mongo
    {
       void buildIsMasterMsg( engine::IResource *resource,
-                             bson::BSONObjBuilder &bob ) ;
+                             engine::rtnContextBuf &buff ) ;
 
-      void buildGetNonceMsg( bson::BSONObjBuilder &bob ) ;
+      void buildGetNonceMsg( engine::rtnContextBuf &buff ) ;
 
-      void buildNotSupportMsg( bson::BSONObjBuilder &bob ) ;
+      void buildGetLastErrorMsg( const bson::BSONObj &err,
+                                 engine::rtnContextBuf &buff ) ;
+
+      void buildNotSupportMsg( engine::rtnContextBuf &buff ) ;
    }
 }
 #endif

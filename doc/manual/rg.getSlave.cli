@@ -1,0 +1,37 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBrg.getSlave()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+getSlave - Return a random slave node in the current replica
+group.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+rg.getSlave()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+ReplicaGroup
+.SH "DESCRIPTION"
+
+.sp 2
+Return a random slave node in the current replica group.
+.SH "Examples"
+
+.sp 2
+Return a random slave node in the current replica group:
+.sp 2
+> rg.getSlave()
+.br
+Return: vmsvr2-suse-x64:11800

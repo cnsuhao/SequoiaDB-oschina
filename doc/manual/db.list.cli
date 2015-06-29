@@ -1,0 +1,147 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.list()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+list - Enumerate list.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.list(\fB<listType>\fR,\fB[cond]\fR,\fB[sel]\fR,\fB[sort]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Enumerate list. List is a lightweight command to get the current
+system status.
+.sp 2
+\fBlistType (Enumeration)\fR
+.br
+       listType, Please refer to List.
+.sp 2
+\fBcond (json object)\fR
+.br
+       Selecting condition. It just returns the records that
+       match conditions in "cond". When it is null, return all
+       records.
+.sp 2
+\fBsel (json object)\fR
+.br
+       Select fields to be returned. When it is null, return all
+       the fields.
+.sp 2
+\fBsort (json object)\fR
+.br
+       Sort records. "1" means ascending order. "-1" means
+       descending order.
+.sp 2
+       \fBFormat\fR
+.br
+              The method "list()" contians 4 parameters:
+              listType, cond, sel and sort. The parameter
+              "listType" is in the type of enumeration. Other
+              parameters are in the type of json object. The
+              format is as follow:
+.br
+              {"listType":"<List type>",["cond":"{"field name
+              1":{"operator 1":"value 1"},"field name
+              2":{"operator 2":"value 2"}...}"],["sel":"{"field
+              name 1":"","field name
+              2":"",...}"],["sort":"{"field name 1":-1|1,"field
+              name 2":1|-1,...}"]}
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  For more details on the value of "listType", please refer
+   to List .
+.sp 2
+   *  The value of "sel" is in the type of json object. The value
+   of field is often specified as a null string. If the
+   parameters are specified in this format: "{"field name 1":
+   "value 1", "field name 2":"value 2",...}", for the fields that
+   do exist in the records, the value of these fields is actually
+   useless; for the fields that do not exist in the records,
+   "{"field name 1": "value 1", "field name 2":"value 2",...}"
+   will be returned.
+.sp 2
+   *  If a value of a field is in the type of array, users can
+   use "." to invoke it and add double quotation.
+.SH "Examples"
+
+.sp 2
+Specify the value of "listType" as SDB_LIST_CONTEXTS:
+.sp 2
+db.list(SDB_LIST_CONTEXTS)
+.sp 2
+Return:
+.sp 2
+     {
+.br
+        "SessionID": 4,
+.br
+        "Contexts": [ 0 ]
+.br
+        } ...
+.sp 2
+Specify the value of "listType" as SDB_LIST_STORAGEUNITS:
+.sp 2
+db.list(SDB_LIST_STORAGEUNITS)
+.sp 2
+Return:
+.sp 2
+    {
+.br
+        "Name": "foo", 
+.br
+        "ID": 4094,
+.br
+        "Logical ID": 1,
+.br
+        "PageSize": 4096, 
+.br
+        "Sequence": 1, 
+.br
+        "NumCollections": 1,
+.br
+        "CollectionHWM": 3,
+.br
+        "Size": 172032000 
+.br
+        } 
+.sp 2
+db.list(SDB_LIST_STORAGEUNITS,{"Logical ID":{$gt:1}},{Name:"space",ID:2},{Name:1})
+.sp 2
+Return the records that contain the value of "Logical ID" greater
+than 1. Each record just returns two fields: "Name" and "ID". The
+values of "Name" in these records are sorted in ascending order.
+.sp 2
+      {
+.br
+        "ID": 4091,
+.br
+        "Name": "foo" 
+.br
+      } 
+.br
+      {
+.br
+        "ID": 4093,
+.br
+        "Name": "name"
+.br
+       }...

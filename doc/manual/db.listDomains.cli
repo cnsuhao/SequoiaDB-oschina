@@ -1,0 +1,67 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.listDomains()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+listDomains - Emuratedoamins.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.listDomains()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Emuratedoamins. This method will list every domain created by the
+users in the current system.
+.SH "Examples"
+
+.sp 2
+db.listDomains()
+.sp 2
+Returns:
+.sp 2
+{
+.br
+  "_id": {
+.br
+    "$oid": "539ea19669d195f36432111a"
+.br
+  },	
+.br
+  "Name": "hello",
+.br
+  "Groups": [
+.br
+    {
+.br
+      "GroupName": "data1",
+.br
+      "GroupID": 1000
+.br
+    },
+.br
+    {
+.br
+      "GroupName": "data2",
+.br
+      "GroupID": 1001
+.br
+    }
+.br
+  ]
+.br
+}

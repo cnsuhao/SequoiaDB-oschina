@@ -130,7 +130,7 @@ public:                                                              \
 
 
 DECLARE_COMMAND( insert )
-DECLARE_COMMAND( remove )
+DECLARE_COMMAND( delete )
 DECLARE_COMMAND( update )
 DECLARE_COMMAND( query )
 DECLARE_COMMAND( getMore )
@@ -146,7 +146,7 @@ DECLARE_COMMAND( createIndex )
 DECLARE_COMMAND( dropIndexes )
 DECLARE_COMMAND( getIndexes )
 
-DECLARE_COMMAND( getLastError )
+DECLARE_COMMAND( getlasterror )
 DECLARE_COMMAND( ismaster )
 
 #endif

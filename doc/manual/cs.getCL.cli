@@ -1,0 +1,59 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.getCL()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+getCL - Returns the reference of collection in a collection
+space.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.getCL(\fB<name>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collectionspace
+.SH "DESCRIPTION"
+
+.sp 2
+Returns the reference of collection in a collection space.
+.sp 2
+\fBname (string)\fR
+.br
+       Collection name. In a collection space, collection name
+       should be unique to each other.
+.sp 2
+       \fBFormat\fR
+.br
+              The parameter "name" in the method "getCL()" should
+              be specified and the "name" should be valid, or
+              exception will occur.
+.br
+              {"name":"<collection name>"}
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  The value of "name" should not be null string. It should
+   not contain "." or "$". The length of should not be greater
+   than 127B. If the value of "name" is invalid, exception will
+   occur.
+.sp 2
+   *  Make sure that the collection name exists in the collection
+   space, or operation exception will occur.
+.SH "Examples"
+
+.sp 2
+Supposing that the collection name "bar", the command returns the
+reference of the collection "bar" in the collection space "foo".
+.sp 2
+db.foo.getCL("bar")

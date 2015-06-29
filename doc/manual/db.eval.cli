@@ -1,0 +1,115 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.eval()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+eval - Fill in needed javaScript statements.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.eval(\fB<code>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Fill in needed javaScript statements. And it can also invoke
+defined procedures.
+.sp 2
+\fBcode (string)\fR
+.br
+       JavaScript statements or defined procedure functions.
+.sp 2
+   *  Return the results according to the statements If success.
+   And the returned value can be directly assigned to anther
+   variable. For example: \fBvar a = db.eval(' db.foo.bar');
+   a.find(); \fR
+.sp 2
+   *  Return the error code and error information if fail.: \fB{
+   "errmsg": "(nofile):1 ReferenceError: sum is not
+   defined","retCode": -152 } \fR
+.sp 2
+   *  Nothing will be returned until the function is completely
+   finished. Exit during run time will terminate the entire
+   execution, and code has been executed will not be rolled back.
+.sp 2
+   *  There is a limit on the length of returned value, for more
+   information, please check "Maximum length of inserted record
+   in SequoiaDB" section.
+.sp 2
+   *  Support the definition of temporary functions, for example:
+   \fBdb.eval(' function sum(x,y){return x+y;} sum(1,2)')\fR
+.sp 2
+   *  The uses of global database are in the same way as
+   createProcedure().
+.sp 2
+\fBNote: \fRThe use of any print statements in the statements are
+not recommended even though all the outputs will be blocked.
+.SH "Examples"
+
+.sp 2
+
+.sp 2
+Call a stored procedure function sum() in the eval() method.
+.sp 2
+//sum() method does not exist at the time of initialization, return a exception information.
+.br
+> var a = db.eval('sum(1,2)');
+.br
+{ "errmsg": "(nofile):1 ReferenceError: getCL is not defined
+.br
+", "retCode": -152 }
+.br
+(nofile):0 uncaught exception: -152
+.br
+//Initialization sum()
+.br
+>db.createProcedure(function sum(x,y){return x+y;})
+.br
+//Call the sum()
+.br
+>db.eval('sum(1,2)')
+.br
+3
+.sp 2
+Fill in javaScript statement in the eval() method
+.sp 2
+>var rc = db.eval("db.foo.bar")
+.br
+>rc.find()
+.br
+{
+.br
+  "_id": {
+.br
+    "$oid": "5248d3867159ae144a000000"
+.br
+  },
+.br
+  "a": 1
+.br
+}
+.br
+{
+.br
+  "_id": {
+.br
+    "$oid": "5248d3897159ae144a000001"
+.br
+  },
+.br
+  "a": 2
+.br
+}...

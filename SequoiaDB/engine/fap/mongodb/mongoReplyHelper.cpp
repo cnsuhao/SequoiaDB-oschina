@@ -38,14 +38,14 @@
 #include "sdbInterface.hpp"
 #include "../../bson/bsonobjbuilder.h"
 #include "../../bson/lib/nonce.h"
-#include "msgBuffer.hpp"
 namespace fap
 {
    namespace mongo
    {
       void buildIsMasterMsg( engine::IResource *resource,
-                             bson::BSONObjBuilder& bob )
+                             engine::rtnContextBuf &buff )
       {
+         bson::BSONObjBuilder bob ;
          bob.append( "ismaster", FALSE ) ;
          bob.append("msg", "isdbgrid");
          bob.append( "maxBsonObjectSize", 16777216 ) ;
@@ -54,20 +54,39 @@ namespace fap
          bob.append( "localTime", 100 ) ;
          bob.append( "maxWireVersion", 2 ) ;
          bob.append( "minWireVersion", 2 ) ;
+         buff = engine::rtnContextBuf( bob.obj() ) ;
       }
 
-      void buildGetNonceMsg( bson::BSONObjBuilder& bob )
+      void buildGetNonceMsg( engine::rtnContextBuf &buff )
       {
+         bson::BSONObjBuilder bob ;
          static Nonce::Security security ;
          UINT64 nonce = security.getNonce() ;
 
          std::stringstream ss ;
          ss << std::hex << nonce ;
          bob.append( "nonce", ss.str() ) ;
+         buff = engine::rtnContextBuf( bob.obj() ) ;
       }
 
-      void buildNotSupportMsg( bson::BSONObjBuilder& bob )
+      void buildGetLastErrorMsg( const bson::BSONObj &err,
+                                 engine::rtnContextBuf &buff )
       {
+         INT32 rc = SDB_OK ;
+         bson::BSONObjBuilder bob ;
+         rc = err.getIntField( OP_ERRNOFIELD ) ;
+         bob.append( "ok", 1.0 ) ;
+         bob.append( "code", rc ) ;
+         bob.append( "errmsg", err.getStringField( OP_ERRDESP_FIELD) ) ;
+         buff = engine::rtnContextBuf( bob.obj() ) ;
+      }
+
+      void buildNotSupportMsg( engine::rtnContextBuf &buff )
+      {
+         bson::BSONObjBuilder bob ;
+         bob.append( "ok", 1.0 ) ;
+         bob.append( "msg", "Sorry, the command has not support now" ) ;
+         buff = engine::rtnContextBuf( bob.obj() ) ;
       }
    }
 }

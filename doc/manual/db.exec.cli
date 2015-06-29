@@ -1,0 +1,35 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.exec()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+exec - Execute SQL select statements.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.exec(\fB<select sql>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Execute SQL select statements.
+.SH "Examples"
+
+.sp 2
+Get all the records with "age = 20" from the collection named
+"my.my".
+.sp 2
+db.exec("select * from my.my where age = 20")

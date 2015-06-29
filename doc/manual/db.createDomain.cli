@@ -1,0 +1,70 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.createDomain()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+createDomain - Create a domain.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.createDomain(\fB<name>\fR,\fB<groups>\fR,\fB[options]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Create a domain. A domain can contain multiple replica groups.
+.sp 2
+\fBname (string)\fR
+.br
+       Unique domain name in the database.
+.sp 2
+\fBgroups (Json Array)\fR
+.br
+       Replica groups belong to the domain.
+.sp 2
+\fBoptions (Json Object)\fR
+.br
+       Configuration options for creating a domain with different
+       given fields.
+.sp 2
+       \fBAutoSplit\fR
+.br
+              When this field is set to be True, all the
+              hash-partitioning collection spaces created in this
+              domain will be automatically splitted into the
+              replica groups it belong to.
+.br
+              AutoSplit:true|false
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  AutoSplit can only apply to hash-partitioning collections.
+.sp 2
+   *  Cannot create collection spaces in an empty domain(domain
+   with no replica groups).
+.SH "Examples"
+
+.sp 2
+Create a domain which contains two replica groups.
+.sp 2
+db.createDomain('mydomain', ['datagroup1','datagroup2'])
+.sp 2
+Create a domain which contains two replica groups, and enables
+its auto-split function.
+.sp 2
+db.createDomain('mydomain', ['datagroup1','datagroup2'],{AutoSplit:true})

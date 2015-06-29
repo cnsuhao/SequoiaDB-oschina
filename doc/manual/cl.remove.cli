@@ -1,0 +1,69 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.remove()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+remove - Delete records from the current collection.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.remove(\fB[cond]\fR,\fB[hint]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+Delete records from the current collection.
+.sp 2
+\fBcont (json object)\fR
+.br
+       Selecting condition. If it is null, it will delete all the
+       records. If it is not null, delete the records that match
+       the condition.
+.sp 2
+\fBhint (json object)\fR
+.br
+       Specify access plan.
+.sp 2
+       \fBFormat\fR
+.br
+              The "cond" is a json object. When it is null (e.g.
+              {} ), delete all records in the collection. "hint"
+              is a json object that contains a single element.
+              The field name of this element is ignored. But the
+              value of the field in it is specified as the name
+              of index which is needed to visit. When the value
+              of field is null, it will visit all the records in
+              the collection.
+.br
+              {[{"Field name 1":{"Match Operator 1":"value
+              1","Field name 2":{"Match Operator 2":"value
+              2"},...}],[{"":"index name"|null}]}
+.SH "Examples"
+
+.sp 2
+Delete all the records in the collection "bar".
+.sp 2
+db.foo.bar.remove()
+.sp 2
+Delete records that match the condition in "cond" according to
+access plan.
+.sp 2
+db.foo.bar.remove({age:{$gte:20}},{"":"myIndex"})
+.sp 2
+This operation accesses all the records in the current collection
+according to the index named "myIndex", then it deletes all the
+records that match the condition(with a value greater than or
+equal to 20 in "age" field.

@@ -1,0 +1,38 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.deleteLob()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+deleteLob - Delete the LOB in collection.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.deleteLob(\fB<oid>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+Delete the LOB in collection.
+.sp 2
+\fBoid (string)\fR
+.br
+       LOB(large Object)'s only description.
+.SH "Examples"
+
+.sp 2
+Delete a LOB's descriptor named 5435e7b69487faa663000897.
+.sp 2
+db.foo.bar.deleteLob('5435e7b69487faa663000897')

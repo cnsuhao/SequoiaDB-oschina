@@ -67,10 +67,8 @@ protected:
 protected:
    BOOLEAN _preProcessMsg( const mongoParser &parser,
                            engine::IResource *resource,
-                           bson::BSONObjBuilder &bob ) ;
-   INT32 _processMsg( const CHAR *pMsg,
-                      bson::BSONObjBuilder &bob,
-                      const CHAR *&pBody, INT32 &bodyLen) ;
+                           engine::rtnContextBuf &buff ) ;
+   INT32 _processMsg( const CHAR *pMsg ) ;
    INT32 _onMsgBegin( MsgHeader *msg ) ;
    INT32 _onMsgEnd( INT32 result, MsgHeader *msg ) ;
    INT32 _reply( MsgOpReply *replyHeader, const CHAR *pBody, const INT32 len ) ;

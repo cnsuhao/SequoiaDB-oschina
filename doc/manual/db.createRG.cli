@@ -1,0 +1,56 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.createRG()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+createRG - Create a replica group.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.createRG(\fB<name>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Create a replica group. When creating a replica group, the system
+will automatically generate a "groupID" for a replica group.
+.sp 2
+\fBname (string)\fR
+.br
+       Replica group name. All replica group names are unique to
+       each other in a database instance.
+.sp 2
+       \fBFormat\fR
+.br
+              The method "createRG()" contains the parameter
+              "name", which is in the type of string. It should
+              not be null.
+.br
+              (<"replica group name">)
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  The value of the "name" cannot be a null string. It should
+   not contain "." or "$". The length of it should not be greater
+   than 127B.
+.SH "Examples"
+
+.sp 2
+Create a replica group named "group".
+.sp 2
+db.createRG("group")

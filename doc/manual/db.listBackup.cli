@@ -1,0 +1,93 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.listBackup()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+listBackup - View database backup.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.listBackup(\fB[options]\fR,\fB[cond]\fR,\fB[sel]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+View database backup.
+.sp 2
+\fBoptions (json object)\fR
+.br
+       Specify the name of the backup, the replica group, and
+       number of copies, etc.
+.sp 2
+       \fBGroupID\fR
+.br
+              Specify the ID of the backup replica group to
+              output. List all replica groups in default.
+.br
+              GroupID:1000 or GroupID:[1000, 1001]
+.sp 2
+       \fBGroupName\fR
+.br
+              Specify the name of the backup replica group to
+              output. List all the replica groups in default.
+.br
+              GroupName:"data1" or GroupName:["data1", "data2"]
+.sp 2
+       \fBName\fR
+.br
+              Backup name, list all the backups in default.
+.br
+              Name:"backup-2014-1-1"
+.sp 2
+       \fBPath\fR
+.br
+              Backup path, the default path is the one specified
+              in the configuration. The path supports
+              wildcards(%g%G: group name, %h%H:host name,
+              %s%S:service name).
+.br
+              Path:"/opt/sequoiadb/backup/%g"
+.sp 2
+       \fBIsSubDir\fR
+.br
+              Whether the path configured in the above Path
+              parameter is a subdirectory of the backup path in
+              the configuration. False in default.
+.br
+              IsSubDir:false
+.sp 2
+       \fBPrefix\fR
+.br
+              Backup prefix, supports
+              wildcards(%g,%G,%h,%H,%s,%S), default is empty.
+.br
+              Prefix:"%g_bk_"
+.sp 2
+
+.sp 2
+\fBcond (json object)\fR
+.br
+       Filter conditions.
+.sp 2
+\fBsel (json object)\fR
+.br
+       Output fields.
+.SH "Examples"
+
+.sp 2
+View all database backup information.
+.sp 2
+db.listBackup()

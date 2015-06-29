@@ -1,0 +1,48 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.setSessionAttr()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+setSessionAttr - Set session attributes.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.setSessionAttr(\fB<options>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Set session attributes.
+.sp 2
+\fBoptions (json object)\fR
+.br
+       Session attributes' options.
+.sp 2
+       \fBPreferedInstance\fR
+.br
+              A preferred database instance mark for sessions'
+              read operations. Its values
+              contain:"m"/"M"/"s"/"S"/"a"/"A"/1-7 which stands
+              for master/slave/anyone/node1-node7 respectively.
+.br
+              PreferedInstance:"M"
+.SH "Examples"
+
+.sp 2
+Set the preferred instance as master so that the session will
+preferentially read the data from a master database instance.
+.sp 2
+db.setSessionAttr({PreferedInstance:"M"})

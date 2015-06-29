@@ -1,0 +1,37 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.transCommit()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+transCommit - Transaction commits.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.transCommit()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Commit transactions. When transaction function is on, if an
+operation of a single logical unit performed without any
+exception, execute the transCommit() command, the data in the
+database will be updated.
+.SH "Examples"
+
+.sp 2
+Transaction commit command:
+.sp 2
+db.transCommit() 

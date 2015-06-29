@@ -1,0 +1,55 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.count()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+count - Return the amount of matching records in current
+collection.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.count(\fB[cond]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+Return the amount of matching records in current collection.
+.sp 2
+\fBcond (json object)\fR
+.br
+       Selecting condition. If it is null, it will count all the
+       records in the collection. If it is not null, it will
+       count records that match the conditions.
+.sp 2
+       \fBFormat\fR
+.br
+              The method "count()" contains field named "cond".
+              It is a JSON object.
+.br
+              {[{"Field name 1":{"match 1":"value 1"},"Field name
+              2":{"match 2":"value 2"},...}]}
+.SH "Examples"
+
+.sp 2
+Count all the records in collection "bar" without specifying
+"cond".
+.sp 2
+db.foo.bar.count()
+.sp 2
+Count records that both contain the value "Tom" on the field
+"name" and the value on the field "age" is greater than 25.
+.sp 2
+db.foo.bar.count({name:"Tom",age:{$gt:25}})

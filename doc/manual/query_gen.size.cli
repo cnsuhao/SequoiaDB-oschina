@@ -1,0 +1,38 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBquery.size()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+size - Honors skip() and limit(), return the amount of records
+from current cursor to final cursor.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+query.size()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Query
+.SH "DESCRIPTION"
+
+.sp 2
+Honors skip() and limit(), return the amount of records from
+current cursor to final cursor.
+.SH "Examples"
+
+.sp 2
+Select records with the value of "age" greater than 10 in the
+collection "bar" and return the amount of records in the range
+from current cursor to final cursor.
+.sp 2
+db.foo.bar.find({age:{$gt:10}}).size()

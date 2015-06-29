@@ -1,0 +1,53 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.resetSnapshot()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+resetSnapshot - Reset snapshot.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+resetSnapshot(\fB[cond]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Reset snapshot.
+.sp 2
+\fBcond (json object)\fR
+.br
+       Selecting condition. It merely resets snapshot records
+       that match the conditions in "cond". If it is null, it
+       will reset all the snapshot records.
+.sp 2
+       \fBFormat\fR
+.br
+              The method "resetSnapshot()" contains the parameter
+              "cond". It is a json object.
+.br
+              {["cond":"{"Field name 1":{"match 1":"value
+              1"},"Field name 2":{"match 2":"value 2"}...}"]}
+.sp 2
+
+.SH "Examples"
+
+.sp 2
+
+.sp 2
+Reset snapshots that contain the value of "SessionID" greater
+than 1.
+.sp 2
+db.resetSnapshot({SessionID:{$gt:1}})

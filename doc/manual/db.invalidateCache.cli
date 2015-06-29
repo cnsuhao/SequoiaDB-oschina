@@ -1,0 +1,58 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.invalidateCache()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+invalidateCache - Clear the cache of the nodes (data/coord node).
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+invalidateCache(\fB[options]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Clear the cache of the nodes (data/coord node).
+.sp 2
+\fBoptions (Json Object)\fR
+.br
+       The options of clearing the cache.
+.sp 2
+       \fBGroups\fR
+.br
+              The target cache needs to be cleared.
+.br
+              Groups:null -- current coord node.
+.br
+              Groups:['data1','data2'] -- current coord node and
+              two specified data groups.
+.br
+              Groups:'data1' -- current coord node and one
+              specified data group.
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  When Groups is not specified, its affected scope includes
+   coord nodes and all data nodes.
+.SH "Examples"
+
+.sp 2
+Clear the cache of the current coord node and the data group
+named "data1".
+.sp 2
+db.invalidateCache({Groups:'data1'})

@@ -1,0 +1,38 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBnode.getNodeDetail()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+getNodeDetail - Return the information of the current node.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+node.getNodeDetail()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Node
+.SH "DESCRIPTION"
+
+.sp 2
+Return the information of the current node.
+.SH "Examples"
+
+.sp 2
+Return the information of the current node.
+.sp 2
+> node.getNodeDetail()
+.br
+Return: 1000:vmsvr2-suse-x64:11800(group)
+.br
+Here "1000" is node ID(NodeID); "vmsvr2-suse-x64" is hostname(HostName); "11800" is service name(ServiceName), "(group)" is the ReplicaGroup name of the node.

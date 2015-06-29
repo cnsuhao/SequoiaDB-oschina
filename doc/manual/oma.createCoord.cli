@@ -1,0 +1,54 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBoma.createCoord()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+createCoord - Create a CoordNode in the cluster.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+oma.createCoord(\fB<svcname>,<dbpath>,[config obj]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Oma
+.SH "DESCRIPTION"
+
+.sp 2
+Create a CoordNode in the cluster.
+.sp 2
+\fBsvcname (string)\fR
+.br
+       Port number of the node.
+.sp 2
+\fBdbpath (string)\fR
+.br
+       Nodes path.
+.sp 2
+\fBconfig (Json Object)\fR
+.br
+       Configuration file of the node, including setting log's
+       size, whether open transaction.
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  In a collection, we can create multiple nodes, but port
+   number of each two nodes must be apart at least 5 ports,
+   because each node's backend control 5 communication ports.
+.SH "Examples"
+
+.sp 2
+Create a Coord Node at port 11810, and set the log file size to
+64MB.
+.sp 2
+oma.createCoord(11810,"/opt/sequoiadb/coord/11810",{logfilesz:64})

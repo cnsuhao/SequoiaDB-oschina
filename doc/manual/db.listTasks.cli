@@ -1,0 +1,46 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.listTasks()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+listTasks - View the background tasks of the database.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.listTasks(\fB[cond]\fR,\fB[sel]\fR,\fB[orderBy]\fR,\fB[hint]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+View the background tasks of the database.
+.sp 2
+\fBcond (json object)\fR
+.br
+       Tasks filter.
+.sp 2
+\fBsel (json object)\fR
+.br
+       Tasks selecting condition.
+.sp 2
+\fBhint (json object)\fR
+.br
+       Reservations.
+.SH "Examples"
+
+.sp 2
+List all the background tasks in the system.
+.sp 2
+db.listTasks()

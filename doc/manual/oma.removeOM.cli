@@ -1,0 +1,43 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBoma.removeOM()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+removeOM - Remove an OM node.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+oma.removeOM(\fB<svcname>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Oma
+.SH "DESCRIPTION"
+
+.sp 2
+Remove an OM node.
+.sp 2
+\fBsvcname (string)\fR
+.br
+       Port number of the node.
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  The node you chose to remove must exist, or the system will
+   occur exception.
+.SH "Examples"
+
+.sp 2
+Remove an OM node in the cluster that port number is 11830.
+.sp 2
+oma.removeOM(11830)

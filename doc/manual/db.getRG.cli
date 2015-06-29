@@ -1,0 +1,67 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.getRG()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+getRG - Return the reference of a replica group.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.getRG(\fB<name>|<id>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Return the reference of a replica group.
+.sp 2
+\fBname (string)\fR
+.br
+       Replica group name. Replica group names are unique to each
+       other in a database instance.
+.sp 2
+\fBid (int)\fR
+.br
+       Replica group id. The system will automatically generate a
+       replica group id.
+.sp 2
+       \fBFormat\fR
+.br
+              getRG() has two parameters "name" and "id". The
+              value of "name" should be a string, the value of
+              "id" is a int. If the replica group specified by
+              "name" or "id" does not exist, an exception will
+              occur.
+.br
+              ("<replica group name>"|<id>)
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  The value of "name" should not contain null string, "." or
+   "$". The length of it should not be greater than 127B.
+.SH "Examples"
+
+.sp 2
+Specify the value of the "name", the command will return the
+corresponding reference of the replica group named "rg1".
+.sp 2
+db.getRG("rg1")
+.sp 2
+Specify the value of the "id", the command will return the
+corresponding reference of the replica group named "rg1".
+.sp 2
+db.getRG("1000")

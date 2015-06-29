@@ -1,0 +1,34 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.findOne()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+findOne - This function is the same as
+db.collectionspace.collection.find ([cond],[sel]), but findOne()
+returns only one record that satisfied the query condition. The
+detail instruction refers to find().
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.findOne(\fB[cond]\fR,\fB[sel]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+This function is the same as db.collectionspace.collection.find
+([cond],[sel]), but findOne() returns only one record that
+satisfied the query condition. The detail instruction refers to
+find().

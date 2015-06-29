@@ -1,0 +1,176 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.createCL()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+createCL - create a new collection
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.createCL(\fB<name>\fR,\fB[option]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collectionspace
+.SH "DESCRIPTION"
+
+.sp 2
+Create a collection in a specified collection space.
+.sp 2
+Collection is a logical object which stores records. Each record
+should belong to one and only one collection.
+.sp 2
+\fBname (string)\fR
+.br
+       The name of the collection, should be unique to each other
+       in a collectionspace.
+.sp 2
+\fBoptions (object)\fR
+.br
+       The parameters of the collection, could be a combination
+       of the following options
+.sp 2
+       \fBShardingKey (object)\fR
+.br
+              The sharding key of the collection.
+.sp 2
+       \fBShardingType (string)\fR
+.br
+              The sharding type of the collection, could be one
+              of the following
+.sp 2
+              \fB"hash"\fR
+.br
+                     Sharding by hash
+.sp 2
+              \fB"range"\fR
+.br
+                     Sharding by range
+.sp 2
+
+.sp 2
+       \fBPartition (number)\fR
+.br
+              Specify the number of slices, only valid for {
+              ShardingType:"hash" }
+.sp 2
+       \fBReplSize (number)\fR
+.br
+              Number of WriteConcern. Minimum 0 and maximum 7.
+.sp 2
+              \fB0\fR
+.br
+                     WriteConcern equal to the number of nodes in
+                     each replica group
+.sp 2
+              \fB1 - 7\fR
+.br
+                     WriteConcern = 1-7
+.sp 2
+
+.sp 2
+       \fBCompressed (boolean)\fR
+.br
+              ompress the collection or not
+.sp 2
+       \fBIsMainCL (boolean)\fR
+.br
+              Partitioned collection
+.sp 2
+       \fBAutoSplit (boolean)\fR
+.br
+              automatic split.
+.sp 2
+       \fBGroup (string)\fR
+.br
+              Specify a replica group which the collection should
+              be in.
+.br
+              Group:<group name>
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  The parameter "ShardingKey" is a JSON object. Each of the
+   fields in the JSON object corresponds to that in shard key.
+   The value is 1 or -1, representing ascending and descending
+   order.
+.sp 2
+   *  The parameter "ReplSize" is a JSON object,the value of it
+   is a \fIint\fR type,Be used to set the number of writed data
+   nodes, the value can not be greater than the number of nodes
+   in the current data group.
+.sp 2
+   *  The parameter "Compressed" is a JSON object,the value of it
+   is \fIboolean \fRtype,if the value is "true",then standing for
+   the data of the collection will be stored in compressed form
+   ,otherwise,data will be stored in normal .
+.sp 2
+   *  when the \fIoptions\fR have one or more params,please use
+   comma(,) to separate.
+.sp 2
+   *  The value of "name" should not be null string, "." or "$".
+   The length of it should not be greater than 127B, or exception
+   will occur.
+.sp 2
+   *  AutoSplit must cooperate with hash partitioning and domain.
+   AutoSplit and Group cannot be set at the same time.
+.sp 2
+   *  AutoSplit and Group cannot be set at the same time.
+.sp 2
+   *  If AutoSplit is not specOKified in a collection, the value
+   of AutoSplit will come from domain.
+.sp 2
+   *  Group must exist in a domain, which contains a collection
+   space, which has the group(All replica group belong to
+   SYSDOMAIN, that is to say, a collection space can be
+   distributed into any replica group if no specific group is
+   given)
+.SH "RETURN VALUE"
+
+.sp 2
+On success, createCL() creates a new collection and return the
+object. On error, exception will be thrown.
+.SH "ERRORS"
+
+.sp 2
+\fBSDB_OOM (-2)\fR
+.br
+       Unable to allocate memory for creating collection
+.sp 2
+\fBSDB_NOSPC (-11)\fR
+.br
+       Out of space
+.sp 2
+\fBSDB_DMS_EXIST (-22)\fR
+.br
+       Collection already exist
+.sp 2
+\fBSDB_DMS_CS_NOTEXIST (-34)\fR
+.br
+       Collection space does not exist
+.SH "Examples"
+
+.sp 2
+Create collection "bar" in collection space "foo" without shard
+key. If the collection space "foo" doesn't exist, it will
+automatically generate collection space "foo".
+.sp 2
+db.foo.createCL("foo")
+.sp 2
+Create a compressed normal collection "bar" in collection space
+"foo" with the hash shard key "age" and in ascending order, using
+65535 partitions with writeconcern 1.
+.sp 2
+db.foo.createCL("bar",{ShardingKey:{age:1},ShardingType:"hash", Partition:65535, ReplSize:1, Compressed:true, IsMainCL:false})

@@ -1,0 +1,36 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBrg.stop()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+stop - Stop the current replica group.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+rg.stop()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+ReplicaGroup
+.SH "DESCRIPTION"
+
+.sp 2
+Stop the current replica group. Operations on the replica group
+like creating a node in this group cannot be done after the
+replica group is stopped.
+.SH "Examples"
+
+.sp 2
+Stop the current replica group.
+.sp 2
+rg.stop()

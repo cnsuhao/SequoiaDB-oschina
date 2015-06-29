@@ -1,0 +1,52 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.traceOn()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+traceOn - Turn on the trace function of the database engine.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+traceOn(\fB<bufferSize>,[strComp],[strBreakPoint]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Turn on the trace function of the database engine.
+.sp 2
+\fBbufferSize (int)\fR
+.br
+       Trace file's size.
+.sp 2
+\fBstrComp (string)\fR
+.br
+       Specific module.
+.sp 2
+\fBstrBreakPoint (String)\fR
+.br
+       Add a breakpoint in function to trace.
+.SH "Examples"
+
+.sp 2
+Turn on the trace function of the database engine. Default is all
+the modules.
+.sp 2
+db.traceOn(10000000);
+.sp 2
+Turn on the tracefunction of the database engine, and specify the
+module's name to be traced and add a breakpoint to trace.
+.sp 2
+db.traceOn(10000000, "cls, dms, mth", "_dmsTempCB::init") ;

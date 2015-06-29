@@ -1,0 +1,53 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBcount.hint()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+hint - Use the specified index to get the amount of matching
+records in current collection.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+count.hint(\fB[hint]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Count
+.SH "DESCRIPTION"
+
+.sp 2
+Use the specified index to get the amount of matching records in
+current collection.
+.sp 2
+\fBhint (json object)\fR
+.br
+       It specifies the access plan to accelerate query speed.
+.sp 2
+       \fBFormat\fR
+.br
+              The method "count.hint()" contains parameter
+              "hint". If it is not specified, the query will not
+              use index to visit records. The parameter "hint"
+              contains a one-field json object. The field name is
+              ignored. But the field value is specified as the
+              index which will be visited. When it is null, it
+              will visit all the records in the collection.
+.br
+              {"":null} or {"":"<indexname>"}
+.SH "Examples"
+
+.sp 2
+Get the amount of records contain field "age" in the collection
+"bar" according to index "ageIndex".
+.sp 2
+db.foo.bar.count({age:{$exists:1}}).hint({"":"ageIndex"})

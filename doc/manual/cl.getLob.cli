@@ -1,0 +1,54 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.getLob()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+getLob - Get the LOB in collection.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.getLob(\fB<oid>,<file
+path>,[forced]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+Get the LOB in collection.
+.sp 2
+\fBoid (string)\fR
+.br
+       LOB(large Object)'s only description.
+.sp 2
+\fBfile path (string)\fR
+.br
+       Full path of the local file prepared to write.
+.sp 2
+\fBforced (boolean)\fR
+.br
+       Whether force to replace if the local file has exist.
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  Local file not need to manually create.
+.sp 2
+   *  Default of forced is false.
+.SH "Examples"
+
+.sp 2
+Write the LOB's descriptor named 5435e7b69487faa663000897, to the
+local path of /opt/newlob file.
+.sp 2
+db.foo.bar.getLob('5435e7b69487faa663000897','/opt/newlob')

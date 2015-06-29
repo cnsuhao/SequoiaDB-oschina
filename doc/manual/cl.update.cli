@@ -1,0 +1,97 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.update()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+update - Update records in a collection.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.update(\fB<rule>\fR,\fB[cond]\fR,\fB[hint]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+Update records in a collection.
+.sp 2
+\fBrule (json object)\fR
+.br
+       Update rule. Records will be updated according the value
+       of "rule".
+.sp 2
+\fBcond (json object)\fR
+.br
+       Selecting condition. If it is null, update all the
+       records. If it is not null, it will update records that
+       match the condition.
+.sp 2
+\fBhint (json object)\fR
+.br
+       Specify the access plan.
+.sp 2
+       \fBFormat\fR
+.br
+              The definition of update() must contain field
+              "rule" which should be a json object. "cond" and
+              "hint" are optional fields. Parameter "hint" is a
+              json object that includes one field, the field name
+              will be ignored, and its value specifies the index
+              name, when the value of the field is null, all the
+              records in the collection will be accessed, its
+              format is {"":null} or {"":"<indexname>"}.
+.br
+              {< {<{""update operator 1"":{field name
+              1:"value"},"update operator 2":{"field name
+              2":"value 2"},...}>,[{"field name 1":{"match
+              operator 1":"value 1"},"field name 2":{"match
+              operator 2":"value 2"},...}],[{"":"index
+              name"|null}]}
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  update() does not support the update of sharding key in
+   this version, if there are update operations on sharding key,
+   these operations will be automatically neglected and the
+   update of other fields will still work without any problems.
+.SH "Examples"
+
+.sp 2
+Update all the records according to the updae rule. That's to
+say, we merely set the value of "rule", but not "cond" or "hint".
+.sp 2
+db.foo.bar.update({$inc:{age:1}})
+.sp 2
+This operation updates the field "age" in collection "bar" by
+adding 1 to the value of "age".
+.sp 2
+Select records that match the condition. Update these records
+according to update rules by setting the values of "rule" and
+"cond".
+.sp 2
+db.foo.bar.update({$unset:{age:""}},{age:{$exists:1},name:{$exists:0}})
+.sp 2
+This operation will update records that contain the field "age"
+but not the field "name" in collection "bar" and delete the field
+"age" in these records.
+.sp 2
+Update records according to visiting plan, supposing that the
+collection contains the specified index name.
+.sp 2
+db.foo.bar.update({$inc:{age:1}},{age:{$gt:20}},{"":"testIndex"})>
+.sp 2
+This operation accesses records that contain a value which is no
+less than 20 in the field "age" according to the index named
+"testIndex"

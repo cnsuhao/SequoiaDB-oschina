@@ -1,0 +1,64 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBcursor.close()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+close - Close the current cursor.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+cursor.close()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Cursor
+.SH "DESCRIPTION"
+
+.sp 2
+Close the current cursor, the cursor is no longer available.
+.SH "Examples"
+
+.sp 2
+Insert the 10 records.
+.sp 2
+for(i = 0; i < 10; i++) { db.foo.bar.insert({a:i}) }
+.sp 2
+Query all records set "foo.bar".
+.sp 2
+var cur = db.foo.bar.find()
+.sp 2
+Use the cursor a record.
+.sp 2
+cur.next()
+.sp 2
+{
+.br
+  "_id": {
+.br
+  "$oid": "53b3c2d7bb65d2f74c000000"
+.br
+  },
+.br
+  "a": 0
+.br
+}
+.sp 2
+Close cursor.
+.sp 2
+cur.close()
+.sp 2
+To obtain the next record.
+.sp 2
+cur.next()
+.sp 2
+No results are returned.

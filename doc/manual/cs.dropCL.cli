@@ -1,0 +1,60 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.dropCL()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+dropCL - Delete a specified collection in a specified collection
+space.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.dropCL(\fB<name>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collectionspace
+.SH "DESCRIPTION"
+
+.sp 2
+Delete a specified collection in a specified collection space.
+.sp 2
+\fBname (string)\fR
+.br
+       Collection name. Collection names should be unique to each
+       other in a collection space.
+.sp 2
+       \fBFormat\fR
+.br
+              The parameter "name" should be specified in the
+              method "dropCL()". It should be ensured that the
+              collection name exists in the collection space, or
+              operation exception will occur.
+.br
+              {"name":"<collection name>"}
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  The value of "name" should not be null string. It should
+   not contain "." or "$". And the length of it should not be
+   greater than 127B. If the collection name is invalid , the
+   operation will fail.
+.sp 2
+   *  It should be ensured that the collection name exists in a
+   collection space, or exception will occur.
+.SH "Examples"
+
+.sp 2
+Supposing that the collection "bar" exists in the collection
+space "foo", the following command will delete it.
+.sp 2
+db.foo.dropCL("bar")

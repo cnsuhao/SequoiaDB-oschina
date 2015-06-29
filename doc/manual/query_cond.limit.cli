@@ -1,0 +1,55 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBquery.limit()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+limit - Limit the maximum number of returned records.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+query.limit(\fB[num]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Query
+.SH "DESCRIPTION"
+
+.sp 2
+Limit the maximum number of returned records.
+.sp 2
+\fBnum (int)\fR
+.br
+       The parameter "num" specifies the maximum number of
+       returned records.
+.sp 2
+       \fBFormat\fR
+.br
+              The method "query.limit()" contains the parameter
+              "num". It is in the type of "int". If the value of
+              "num" is not specified, it will return all the
+              records in the result set. If only the first 5
+              records are wanted, the value of "num"should be set
+              as 5.
+.SH "Examples"
+
+.sp 2
+Select records with the value of "age" greater than 10 in the
+collection "bar" and return the first 10 records.
+.sp 2
+db.foo.bar.find({age:{$gt:10}}).limit(10)
+.sp 2
+\fBNote: \fR
+.sp 2
+If the amount of records in the result set is lesser than 10, it
+will return all the records. If it is greater than 10, it will
+return the first 10 records.

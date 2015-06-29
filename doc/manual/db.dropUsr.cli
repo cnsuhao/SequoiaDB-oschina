@@ -1,0 +1,57 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.dropUsr()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+dropUsr - Delete an existent user and the corresponding password
+in the database.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.dropUsr(\fB<name>\fR,\fB<password>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Delete an existent user and the corresponding password in the
+database.
+.sp 2
+\fBname (string)\fR
+.br
+       User name.
+.sp 2
+\fBpassword (string)\fR
+.br
+       Password.
+.sp 2
+       \fBFormat\fR
+.br
+              The method "dropUsr()" contains 2 parameter: "name"
+              and "password". Both of them are in the type of
+              string.
+.br
+              ("<user name>","<password>")
+.sp 2
+
+.SH "Examples"
+
+.sp 2
+
+.sp 2
+Delete a user through the user name "root" and the password
+"admin".
+.sp 2
+db.dropUsr("root","admin")

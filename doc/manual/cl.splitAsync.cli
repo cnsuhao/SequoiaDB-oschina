@@ -1,0 +1,36 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.splitAsync()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+splitAsync - This method has the same function as
+db.collection.collection.split, but this is a asynchronous
+operation, a task ID will be returned immediately after the task
+is created.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.splitAsync(\fB<source
+group>\fR,\fB<target
+group>\fR,\fB<percent(0~100)|cond>\fR,\fB[endcondition]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+This method has the same function as
+db.collection.collection.split, but this is a asynchronous
+operation, a task ID will be returned immediately after the task
+is created.

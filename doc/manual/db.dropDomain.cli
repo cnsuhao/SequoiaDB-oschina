@@ -1,0 +1,66 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.dropDomain()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+dropDomain - Delete the specified domain.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.dropDomain(\fB<name>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Delete the specified domain.
+.sp 2
+\fBname (string)\fR
+.br
+       Domain name.
+.sp 2
+       \fBFormat\fR
+.br
+              The parameter "name" should be specified in
+              thedropDomain() method, and value of "name" should
+              exist in the system, otherwise an exception will
+              occur.
+.br
+              {"name":"<domain name>"}
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  Make sure that there is no data in the domain before
+   deleting it.
+.sp 2
+   *  SYSDOMAIN cannot be deleted.
+.SH "Examples"
+
+.sp 2
+Delete an existent domain.
+.sp 2
+db.dropDomain('mydomain')
+.sp 2
+Delete a domain contains a collection space, return an exception.
+.sp 2
+>db.dropDomain('hello')
+.br
+(nofile):0 uncaught exception: -256
+.br
+Takes 0.1865s.
+.br
+>getErr(-256)
+.br
+Domain is not empty

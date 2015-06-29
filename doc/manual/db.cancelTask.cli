@@ -1,0 +1,44 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.cancelTask()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+cancelTask - Cancel the task.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.cancelTask(\fB<id>\fR\fB,[isAsync]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Cancel the task.
+.sp 2
+\fBid (Integer)\fR
+.br
+       Task ID
+.sp 2
+\fBisAsync (Boolean)\fR
+.br
+       Whether to cancel the task asynchronously or not.
+.SH "Examples"
+
+.sp 2
+Stop a split task asynchronously.
+.sp 2
+var taskid1 = db.test.test.splitAsync("db1", "db2", 50);
+.br
+db.cancelTask( taskid1, true )

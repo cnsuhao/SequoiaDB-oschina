@@ -1,0 +1,238 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.aggregate()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+aggregate - retrieve the documents from the collection in the
+SequoiaDB and return a cursor.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.aggregate(\fB<subOp>...\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+The functions of aggregate() and find() are pretty similar to
+each other. It also retrieves the documents from the collection
+in the SequoiaDB and return a cursor.
+.sp 2
+\fBsubOp (json object)\fR
+.br
+       Sub-operation, 1 to N sub-operations can be filled in the
+       aggregate() method.
+.sp 2
+       aggregate() method has only one parameter subOp, which
+       represents 1~N sub-operations,each sub-operation is a json
+       object, separated by commas sub-operation. Aggregation
+       framework supports the following Sub-operation parameters:
+.sp 2
+
+.sp 2
+       \fB$project\fR
+.br
+              Select the output fields by specifying field names,
+              1 stands for output, 0 means do not output. The
+              rename of fields can be realized.
+.br
+              {$project:{field1:1,field:0,aliase:"$field3"}}
+.sp 2
+       \fB$match\fR
+.br
+              Select records which match the criteria from the
+              collection, equivalent to the "WHERE" command in
+              SQL.
+.br
+              {$match:{field:{$lte:value}}}
+.sp 2
+       \fB$limit\fR
+.br
+              Limit the number of returned records.
+.br
+              {$limit:10}
+.sp 2
+       \fB$skip\fR
+.br
+              Control the starting point of the result set, in
+              other words, skip specified number of records in
+              the result set.
+.br
+              {$skip:5}
+.sp 2
+       \fB$group\fR
+.br
+              Divide the records into groups, similar to the
+              "group by" command in SQL, specify the grouping
+              field by "_id".
+.br
+              {$group:{_id:"$field"}}
+.sp 2
+       \fB$sort\fR
+.br
+              Sort the result set. 1 for ascending while 0 for
+              descending.
+.br
+              {$sort:{field1:1,field2:-1,...}}
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  \fBDescription: \fRaggregate() can have any number of
+   sub-operations, but please be careful about the syntax of the
+   parameters.
+.SH "Examples"
+
+.sp 2
+Assume a collection stores records in following format:
+.sp 2
+{
+.br
+  no:1000,
+.br
+  score:80,
+.br
+  interest:["basketball","football"],
+.br
+  major:"Computer Science and Technology",
+.br
+  dep:"Computer Academy",
+.br
+  info:{
+.br
+        name:"Tom",
+.br
+        age:25,
+.br
+        gender:"male"
+.br
+        }
+.br
+        }
+.sp 2
+Select records according to the criteria, and specify the
+returned field name.
+.sp 2
+db.collectionspace.collection.aggregate({$match:{$and:[{no:{$gt:1002}},{no:{$lt:1015}},{dep:"Computer Academy"}]}},
+.br
+{$project:{no:1,"info.name":1,major:1}})
+.sp 2
+This aggregate operation firstly uses $match to select the
+records match the criteria, then uses $project to specify the
+names of the returned fields.
+.sp 2
+{
+.br
+  "no": 1003,
+.br
+  "info.name": "Sam",
+.br
+  "major": "Computer Software and Theory"
+.br
+}
+.br
+{
+.br
+  "no": 1004,
+.br
+  "info.name": "Coll",
+.br
+  "major": "Computer Engineering"
+.br
+}
+.br
+{
+.br
+  "no": 1005,
+.br
+  "info.name": "Jim",
+.br
+  "major": "Computer Engineering"
+.br
+  }
+.sp 2
+Select records by criteria and divide the selected records into
+groups.
+.sp 2
+db.collectionspace.collection.aggregate({$match:{dep:"Computer Academy"}},{$group:{_id:"$major",Major:{$first:"$major"},
+.br
+avg_age:{$avg:"$info.age"}}})
+.sp 2
+This operation firstly uses $match to select records that match
+the selecting criteria, then uses $group to divide the selected
+records by field "major", and uses $avg to return the average of
+the "age" field in each group.
+.sp 2
+{
+.br
+  "Major": "Computer Engineering",
+.br
+  "avg_age": 25
+.br
+}
+.br
+{
+.br
+  "Major": "Computer Science and Technology",
+.br
+  "avg_age": 22.5
+.br
+}
+.br
+{
+.br
+  "Major": "Computer Software and Theory",
+.br
+  "avg_age": 26
+.br
+  }
+.sp 2
+Select records by criteria, then group and sort the selected
+records, limit the starting point of the result set and the
+number of returned records.
+.sp 2
+db.collectionspace.collection.aggregate({$match:{interest:{$exists:1}}},{$group:{_id:"$major",avg_age:{$avg:"$info.age"},
+.br
+major:{$first:"$major"}}},{$sort:{avg_age:-1,major:-1}},{$skip:2},{$limit:3})
+.sp 2
+This aggregate operation firstly uses $match to select records
+match the criteria, then uses $group to group the records by
+"major", uses $avg to return the average of "age" field in each
+group, and sort the records in descending order, uses $skip to
+specify the starting point of the returned result, and $limit to
+limit the number of returned records.
+.sp 2
+{
+.br
+  "avg_age": 25,
+.br
+  "major": "Computer Science and Technology"
+.br
+}
+.br
+{
+.br
+  "avg_age": 22,
+.br
+  "major": "Computer Software and Theory"
+.br
+}
+.br
+{
+.br
+  "avg_age": 22,
+.br
+  "major": "Physics"
+.br
+}

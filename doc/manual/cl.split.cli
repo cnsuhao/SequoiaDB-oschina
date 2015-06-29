@@ -1,0 +1,111 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.split()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+split - Split the records into different replica groups according
+to the given conditions in an environment with no less than two
+replica groups. This operation is a synchronous operation, so it
+will terminate and return after finishing the data split.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.split(\fB<source
+group>\fR,\fB<target
+group>\fR,\fB<percent(0~100)|cond>\fR,\fB[endcondition]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+Split the records into different replica groups according to the
+given conditions in an environment with no less than two replica
+groups. This operation is a synchronous operation, so it will
+terminate and return after finishing the data split.
+.sp 2
+\fBsource group (string)\fR
+.br
+       The source replica group.
+.sp 2
+\fBtarget group (string)\fR
+.br
+       The target replica group.
+.sp 2
+\fBpercent(0~100) (double)\fR
+.br
+       percentage split condition. (Either "percent" or
+       "condition".)
+.sp 2
+\fBcond (json object)\fR
+.br
+       Range split condition. (Either "condition" or "percent".)
+.sp 2
+\fBendcondition (json object)\fR
+.br
+       End of the range condition. (Optional, and it is effective
+       when using range split, useless when using percentage
+       split.)
+.sp 2
+       \fBFormat\fR
+.br
+              Data split is classified into range split and
+              percentage split. Both "source group" and "target
+              group" are common parameters in a type of string;
+              both "condition" and "endcondition" are json
+              objects that are needed when using range split;
+              "percent" is a double float number that are needed
+              when using percentage split.
+.br
+              \fBRange split:\fR When using range split, range
+              partitions use precise condition, hash partitions
+              use "number of partitions" as a condition. The
+              starting point of split is a required condition,
+              but the ending point is optional, in default, the
+              ending point is the maximum data range of the split
+              source.
+.br
+              ("<source shard>","<target shard>",<condition>)
+.br
+              \fBPercentage split:\fR db.foo.bar.split("<source
+              shard>","<target shard>",<percent>)
+.sp 2
+
+.sp 2
+       \fBNote: \fR When using range split, if the specified
+       field of sharding key is in descending order, like:
+       {groupingKey:{<Field 1>:<-1>}, the starting point in
+       "condition" or "partition" should be larger than the
+       ending point. The Hash Sharding's parameter Partition must
+       be integer type, not any other type.
+.sp 2
+
+.SH "Examples"
+
+.sp 2
+Range-split of a hash-partition collection
+.sp 2
+db.foo.bar.split("shard1", "shard2",{Partition:10},{Partition:20}) 
+.sp 2
+Range-split of range-partition collection
+.sp 2
+db.foo.bar.split("shard1", "shard2",{a:10}, {a:10000})
+.sp 2
+Percentage split
+.sp 2
+db.foo.bar.split("shard1", "shard2", 50) 
+.sp 2
+\fBNote: \fRWhen using percentage split, please make sure that
+there are data in the source group, in other words, the
+collection is not empty.

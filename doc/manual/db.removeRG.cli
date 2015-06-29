@@ -1,0 +1,53 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.removeRG()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+removeRG - Delete the specified replica group in the current
+database.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.removeRG(\fB<name>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Delete the specified replica group in the current database.
+.sp 2
+\fBname (string)\fR
+.br
+       Replica group name, All the replica group names are unique
+       to each other in a database instance.
+.sp 2
+       \fBFormat\fR
+.br
+              removeRG() only has one "name" parameter, it is
+              required and its value should be a string.
+.br
+              (<"replica group name">)
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  Replica group name must exist.
+.SH "Examples"
+
+.sp 2
+Delete the replica group named "group".
+.sp 2
+db.removeRG("group")

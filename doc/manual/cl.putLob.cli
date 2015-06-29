@@ -1,0 +1,50 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.putLob()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+putLob - Insert LOB into collection.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.putLob(\fB<file path>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+Insert LOB into collection.
+.sp 2
+\fBfile path (string)\fR
+.br
+       Full path to insert the file.
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  If insert the LOB successfully, system will return the OID.
+.sp 2
+   *  Inserting operations need the authorization of the file.
+.SH "Examples"
+
+.sp 2
+Create collection space and collection.
+.sp 2
+db.createCS('foo')
+.br
+db.foo.createCL('bar')
+.sp 2
+Insert the LOB file.
+.sp 2
+db.foo.bar.putLob('/opt/mylob')

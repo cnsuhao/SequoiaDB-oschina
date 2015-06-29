@@ -1,0 +1,58 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBrg.getNode()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+getNode - Return the information of a specified node.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+rg.getNode(\fB<nodename|hostname>\fR,\fB<servicename>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+ReplicaGroup
+.SH "DESCRIPTION"
+
+.sp 2
+Return the information of a specified node.
+.sp 2
+\fBnodename (string)\fR
+.br
+       Node name. Either "nodename" or "hostname".
+.sp 2
+\fBhostname (string)\fR
+.br
+       Hostname. Either "hostname" or "nodename".
+.sp 2
+\fBservicename (string)\fR
+.br
+       Server name.
+.sp 2
+       \fBFormat\fR
+.br
+              rg.getNode() has two parameters, the first
+              parameter can be either the node name or host name,
+              the second parameter is the server name. These
+              parameters are all required and must in the type of
+              string.
+.br
+              ("<Node name>|<hostname>","<server name>")
+.SH "Examples"
+
+.sp 2
+Return a node with specified hostname and server name.
+.sp 2
+> rg.getNode("vmsvr2-suse-x64","11800")
+.br
+Return: vmsvr2-suse-x64:11800

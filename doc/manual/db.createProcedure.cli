@@ -1,0 +1,110 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.createProcedure()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+createProcedure - Create a stored procedure in the database
+instance.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.createProcedure(\fB<code>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Create a stored procedure in the database instance.
+.sp 2
+\fBcode (Custom Functions)\fR
+.br
+       Standard function definition, not a string type,
+       iquotation marks cannot be used when inputting parameters.
+.sp 2
+       \fBFormat\fR
+.br
+              createProcedure() has a parameter "code" which is a
+              standard function definition.
+.br
+              createProcedure(<code>)
+.sp 2
+
+.sp 2
+   *  Recommended direct use stored procedures have been
+   initialized global db, and the global db using authentication
+   information currently executing the stored procedure session.
+   such as: \fBdb.createProcedure( function getAll(){return
+   db.foo.bar.find();} )\fR.
+.sp 2
+   *  Db initialization own form of \fBvar db=new Sdb()\fR. DB
+   the authentication information for the current session to
+   execute the stored procedure. If you need to add other user
+   name and password, as \fBvar db=new
+   Sdb('usrname','passwd')\fR. It should be noted that when the
+   stored procedure can only be run on a connected db, db does
+   not provide remote connection to other methods. Without the
+   need for authentication, even if \fBvar db = new
+   Sdb('hostname', 'servicename')\fR statement is executed
+   normally. Db still get local db.
+.sp 2
+   *  Database's role must be a coord node. Standalone mode
+   cannot support procedure function.
+.SH "Function definition"
+
+.sp 2
+*  
+   Function definition
+.sp 2
+   1. Function must contain the function name. It cannot be
+   usedin the following form \fBfunction(x,y){return x+y;}\fR
+.sp 2
+   2. Other functions or even inexistent functions can be called
+   in the function definition. But it should be ensured that all
+   the functions are existent during runtime.
+.sp 2
+   3. The function name should be globally unique and overload is
+   not supported.
+.sp 2
+   4. Each fuction is available in the whole system. Delete a
+   procedure without proper check may lead to run time exceptions
+   of other people.
+.sp 2
+   *  Function's parameters
+.sp 2
+   native type of JS
+.sp 2
+   *  Function's outputs
+.sp 2
+   Functions for all standard output, standard error will be
+   masked. And the uses of output commands are not recommended in
+   the function definitions. Too much output may lead to a
+   failure during the running of stored procedure.
+.sp 2
+   *  Function's returned values
+.sp 2
+   Function's returned values can be any data type except for a
+   database. For example: \fBfunction getCL(){return
+   db.foo.bar;}\fR
+.SH "Examples"
+
+.sp 2
+
+.sp 2
+Create a sum function:
+.sp 2
+db.createProcedure(function sum(x,y){return x+y;})
+.sp 2
+Once the function is created, db.listProcedures() can be used to
+check the information of the functions.

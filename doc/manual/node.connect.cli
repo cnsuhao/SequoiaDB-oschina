@@ -1,0 +1,38 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBnode.connect()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+connect - Connect the database to the current node.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+node.connect()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Node
+.SH "DESCRIPTION"
+
+.sp 2
+Connect the database to the current node. After connecting them,
+users can execute a set of operations. Users can check relative
+manipulations with the method "node.connect().help()".
+.SH "Examples"
+
+.sp 2
+Connect the database to the current node.
+.sp 2
+> node.connect()
+.br
+Return: vmsvr2-suse-x64:11800

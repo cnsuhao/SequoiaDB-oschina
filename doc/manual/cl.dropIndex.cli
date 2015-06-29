@@ -1,0 +1,55 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.dropIndex()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+dropIndex - Delete specified index in a collection.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.dropIndex(\fB<name>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+Delete specified index in a collection.
+.sp 2
+\fBname (string)\fR
+.br
+       Index name. Index names should be unique to each other in
+       the same collection.
+.sp 2
+       \fBFormat\fR
+.br
+              Then method "dropIndex()" contains a field named
+              "name". The value of "name" should be string.
+.br
+              {"name":"<index name>"}
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  When deleting index, it should be ensured that the index
+   name is in the collection.
+.sp 2
+   *  The index name can't be null, contain dot(.) or "$",and the
+   length of it must be no more than 127B.
+.SH "Examples"
+
+.sp 2
+Supposing that the index "ageIndex" exists in the collection
+"bar", the following command will delete it.
+.sp 2
+db.foo.bar.dropIndex("ageIndex")

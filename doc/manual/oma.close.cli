@@ -1,0 +1,39 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBoma.close()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+close - Close the OM agent.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+oma.close()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Oma
+.SH "DESCRIPTION"
+
+.sp 2
+Close the OM agent.
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  The OMA you chose to close must exist, or the system will
+   occur exception.
+.SH "Examples"
+
+.sp 2
+Close om agent.
+.sp 2
+oma.close()

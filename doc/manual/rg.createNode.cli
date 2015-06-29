@@ -1,0 +1,68 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBrg.createNode()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+createNode - Create a node in a replica group.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+rg.createNode(\fB<host>\fR,\fB<service>\fR,\fB<dbpath>\fR,\fB[config]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+ReplicaGroup
+.SH "DESCRIPTION"
+
+.sp 2
+Create a node in a replica group.
+.sp 2
+\fBhost (string)\fR
+.br
+       Specify the host name of the node.
+.sp 2
+\fBservice (string)\fR
+.br
+       Node port number.
+.sp 2
+\fBdbpath (string)\fR
+.br
+       Node path.
+.sp 2
+\fBconfig (json)\fR
+.br
+       Node's configuration information, such as, the size of
+       configuration log, whether enable transaction function or
+       not. For more details, please check DATABASE
+       CONFIGURATION.
+.sp 2
+       \fBFormat\fR
+.br
+              The method "rg.createNode()" contains 4 parameters:
+              Host, Service, dbPath, config. The first three
+              parameters in the above list are required and in
+              the type of string, the last one is an optional
+              json object configuration option.
+.br
+              ("<Host>","<service>","<dbpath>",[{<configParam>:value,...}])
+.SH "Examples"
+
+.sp 2
+Create a node with the port of 11800 in a replica group named
+"group", and specify the size of the log file as 64 MB.
+.sp 2
+rg.createNode("vmsvr2-suse-x64",11800,"/opt/sequoiadb/data/11800",{logfilesz:64})
+.sp 2
+\fBNote: \fR
+.sp 2
+More than one nodes can be created within one replica group.

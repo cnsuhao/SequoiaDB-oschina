@@ -1,0 +1,84 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.createIndex()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+createIndex - Create an index for the collection to accelerate
+query.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.createIndex(\fB<name>\fR,\fB<indexDef>\fR,\fB[isUnique]\fR,\fB[enforced]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+Create an index for the collection to accelerate query.
+.sp 2
+\fBname (string)\fR
+.br
+       Index name. It should be unique in a collection.
+.sp 2
+\fBindexDef (json object)\fR
+.br
+       Index key. It contains one or more objects that specify
+       index fields and order direction. "1" means ascending
+       order. "-1" means descending order.
+.sp 2
+\fBisUnique (Boolean)\fR
+.br
+       It shows whether the index is unique. The default value is
+       "false". When it is "true", the index is unique.
+.sp 2
+\fBenforced (Boolean)\fR
+.br
+       Optional, whether the index is mandatorily unique or not.
+       Its default value is false, and it becomes effective when
+       "isUnique" is true. When it is true, it means that in the
+       premise of "isUnique" is true, no more than one null index
+       key can exist in this index.
+.sp 2
+       \fBFormat\fR
+.br
+              The method "createIndex()" contains three
+              parameters: "name", "indexDef" and "isUnique". The
+              value of "name" should be in the type of string.
+              The field "indexDef" is defined as a JSON object,
+              which contains at least one field. The field name
+              is index name. The value of it is 1 or -1. "1"
+              means ascending order. "-1" means descending order.
+              The parameter "isUnique" is in the type of boolean.
+              Its default value is "false".
+.br
+              {"name":"<index name>","indexDef":{"<index field
+              1>":<1|-1> [,"<index field 2>":<1|-1>...]
+              },["isUnique":<true|false>],["enfored":<true|false>]}
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  There should not be any exactly same records in the fields
+   that are specified by the unique index in a collection.
+.sp 2
+   *  Index name should not be null string. It should not contain
+   "." or "$". The length of it should be no more than 127B.
+.SH "Examples"
+
+.sp 2
+Create an unique index named "ageIndex" on the field "age" in
+collection "bar". The records are in ascending order on the field
+"age".
+.sp 2
+db.foo.bar.createIndex("ageIndex",{age:1},true)

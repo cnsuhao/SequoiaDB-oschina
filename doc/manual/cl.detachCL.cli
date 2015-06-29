@@ -1,0 +1,42 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.detachCL()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+detachCL - Detach the child partition-collections from the main
+partition-collection.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.detachCL(\fB<subCLFullName>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+Detach the child partition-collections from the main
+partition-collection.
+.sp 2
+\fBsubCLFullName (string)\fR
+.br
+       Child partition-collection's full name(includes the
+       collection space name).
+.SH "Examples"
+
+.sp 2
+Detach the child partition-collection from the specified main
+partition-collection.
+.sp 2
+db.foo.year.detachCL("foo2.January"}

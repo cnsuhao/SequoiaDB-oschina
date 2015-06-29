@@ -1,0 +1,34 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.execUpdate()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+execUpdate - Execute other SQL statements.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.execUpdate(\fB<other sql>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Execute other SQL statements.
+.SH "Examples"
+
+.sp 2
+Insert a new record into the collection named "my.my".
+.sp 2
+db.execUpdate("insert into my.my(name,age) values('zhangshang', 30) ")

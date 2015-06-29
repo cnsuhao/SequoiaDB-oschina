@@ -1,0 +1,60 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBrg.removeNode()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+removeNode - Delete the specified node in the replica group.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+rg.removeNode(\fB<host>\fR,\fB<service>\fR,\fB[config]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+ReplicaGroup
+.SH "DESCRIPTION"
+
+.sp 2
+Delete the specified node in the replica group.
+.sp 2
+\fBhost (string)\fR
+.br
+       Node's hostname.
+.sp 2
+\fBservice (string)\fR
+.br
+       Node's port number.
+.sp 2
+\fBconfig (json)\fR
+.br
+       Node's configuration information.
+.sp 2
+       \fBFormat\fR
+.br
+              Definition Format rg.removeNode() method has three
+              parameters: host, service, config, as shown above,
+              in the following format:
+.br
+              ("<hostname>","<port
+              number>"[,{<configParam>:value,...}])
+.SH "Examples"
+
+.sp 2
+Delete specified node from the replica group.
+.sp 2
+rg.removeNode("vmsvr2-suse-x64",11800)
+.sp 2
+\fBNote: \fR
+.sp 2
+The specified node to be deleted must exist, otherwise an
+exception will occur.

@@ -1,0 +1,36 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.listIndexes()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+listIndexes - Enumerate indexes.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.listIndexes()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+Enumerate indexes. It will show information of all indexes in the
+specified collection.
+.SH "Examples"
+
+.sp 2
+The following command will return information of all the indexes
+in the collection "bar".
+.sp 2
+db.foo.bar.listIndexes()

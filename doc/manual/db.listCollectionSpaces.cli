@@ -1,0 +1,40 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.listCollectionSpaces()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+listCollectionSpaces - The collection spaces in the database.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.listCollectionSpaces()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+The collection spaces in the database.
+.SH "Examples"
+
+.sp 2
+db.listCollectionSpace()
+.sp 2
+Returns:
+.sp 2
+      { 
+.br
+        "Name":"foo" 
+.br
+      }...

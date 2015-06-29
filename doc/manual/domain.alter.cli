@@ -1,0 +1,65 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdomain.alter()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+alter - Alter the specified fields of the current domain.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+domain.alter(\fB<options>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Domain
+.SH "DESCRIPTION"
+
+.sp 2
+Alter the specified fields of the current domain.
+.sp 2
+\fBoptions (Json Object)\fR
+.br
+       Need to modify the list of attributes.
+.sp 2
+       \fBGroups\fR
+.br
+              The contained replica groups.
+.br
+              Groups:['data1','data2']
+.sp 2
+       \fBAutoSplit\fR
+.br
+              Automatically splitted.
+.br
+              AutoSplit:true|false
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  Make sure that there is no data in the domain before
+   deleting it.
+.sp 2
+   *  The modification of the "AutoSplit" field will not affect
+   the former created collections and collection spaces.
+.SH "Examples"
+
+.sp 2
+Create a domain contains two replica groups, and then enable it
+to auto-split.
+.sp 2
+var domain = db.createDomain('mydomain',['data1','data2'],{AutoSplit:true})
+.sp 2
+Delete a replica group from a domain, and then add another one.
+.sp 2
+domain.alter({Groups:['data1', 'data3']})

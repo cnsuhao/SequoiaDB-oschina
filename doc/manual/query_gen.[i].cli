@@ -1,0 +1,36 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBquery[i]\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+[i] - Access the result set by index.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+query[i]
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Query
+.SH "DESCRIPTION"
+
+.sp 2
+Access the query result set by index.
+.SH "Examples"
+
+.sp 2
+Get a result set and access it by index.
+.sp 2
+var query = db.foo.bar.find({age:{$gt:10}})
+.sp 2
+println( query[0] )

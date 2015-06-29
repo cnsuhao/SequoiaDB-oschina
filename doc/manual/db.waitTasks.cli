@@ -1,0 +1,43 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.waitTasks()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+waitTasks - Wait for the end or cancellation of specified task
+synchronously.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.waitTasks(\fB<id1>\fR,\fB[id2]\fR,\fB...\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Wait for the end or cancellation of specified task synchronously.
+.sp 2
+\fBid1,id2,... (Integer)\fR
+.br
+       Task ID.
+.SH "Examples"
+
+.sp 2
+Synchronously wait the data split task to finish.
+.sp 2
+var taskid1 = db.test.test.splitAsync("db1", "db2", 50);
+.br
+var taskid2 = db.my.my.splitAsync("db3", "db4", 50) ;
+.br
+db.waitTasks( taskid1, taskid2 )

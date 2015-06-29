@@ -1,0 +1,278 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.snapshot()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+snapshot - It lists snapshots.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+snapshot(\fB<snapType>\fR,\fB[cond]\fR,\fB[sel]\fR,\fB[sort]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+It lists snapshots. Snapshot() is a command used to get the
+current status of system.
+.sp 2
+\fBsnapType (list)\fR
+.br
+       Snapshot type.Please refer to Snapshot.
+.sp 2
+\fBcond (json object)\fR
+.br
+       Selecting condition. Only return the snapshot information
+       of the nodes and replica groups that match the selecting
+       conditions specified in the 'cond' field. When the field
+       is null, return the cluster's information.
+.sp 2
+\fBsel (json object)\fR
+.br
+       Selects the returned field. Returns all the fields when it
+       is null.
+.sp 2
+\fBsort (json object)\fR
+.br
+       Sorts the returned records according to the selected
+       fields. 1 for ascending order, -1 for descending order.
+.sp 2
+       \fBFormat\fR
+.br
+              Snapshot() has four parameters: snapType, cond,
+              sel, sort. The type of "snapType" is enumeration.
+              Other fields are json objects. The format is as
+              follow:
+.br
+              {"snapType":"<snapshot type>",["cond":"{"Field name
+              1":{"operation 1":"value 1"},"Field name
+              2":{"Operation 2":"value 2"}...}"]}
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  For more details on the value of snapType, please refer to
+   Snapshot.
+.sp 2
+   *  The parameter "sel" is a json object. The value of field is
+   often specified as a null string. If the parameters are
+   specified in this format: "{"field name 1": "value 1", "field
+   name 2":"value 2",...}", for the fields that do exist in the
+   records, the value of these fields is actually useless; for
+   the fields that do not exist in the records, "{"field name 1":
+   "value 1", "field name 2":"value 2",...}" will be returned.
+.sp 2
+   *  If the value of a field is in the type of array. Elements
+   are invoked by "."(dot) and double quotations.
+.SH "Examples"
+
+.sp 2
+Set the value of "snapType" as SDB_SNAP_CONTEXTS:
+.sp 2
+db.snapshot(SDB_SNAP_CONTEXTS)
+.sp 2
+Returns context snapshot of the entire cluster:
+.sp 2
+{
+.br
+  "SessionID": "vmsvr1-cent-x64-1:11820:22",
+.br
+  "Contexts": [
+.br
+    {
+.br
+      "ContextID": 8,
+.br
+      "Type": "DUMP",
+.br
+      "Description": "BufferSize:0",
+.br
+      "DataRead": 0,
+.br
+      "IndexRead": 0,
+.br
+      "QueryTimeSpent": 0,
+.br
+      "StartTimestamp": "2013-12-28-16.07.59.146399"
+.br
+    }
+.br
+  ]
+.br
+}
+.br
+{
+.br
+  "SessionID": "vmsvr1-cent-x64-1:11830:22",
+.br
+  "Contexts": [
+.br
+    {
+.br
+      "ContextID": 6,
+.br
+      "Type": "DUMP",
+.br
+      "Description": "BufferSize:0",
+.br
+      "DataRead": 0,
+.br
+      "IndexRead": 0,
+.br
+      "QueryTimeSpent": 0,
+.br
+      "StartTimestamp": "2013-12-28-16.07.59.147576"
+.br
+    }
+.br
+  ]
+.br
+}
+.br
+{
+.br
+  "SessionID": "vmsvr1-cent-x64-1:11840:23",
+.br
+  "Contexts": [
+.br
+    {
+.br
+      "ContextID": 7,
+.br
+      "Type": "DUMP",
+.br
+      "Description": "BufferSize:0",
+.br
+      "DataRead": 0,
+.br
+      "IndexRead": 0,
+.br
+      "QueryTimeSpent": 0,
+.br
+      "StartTimestamp": "2013-12-28-16.07.59.148603"
+.br
+    }
+.br
+  ]
+.br
+  }
+.sp 2
+Get the snapshot of the specified replica group by group name or
+group ID, for example:
+.sp 2
+db.snapshot(SDB_SNAP_CONTEXTS,{GroupName:'data1'})
+.sp 2
+Return the snapshot of a group named "data1".
+.sp 2
+db.snapshot(SDB_SNAP_CONTEXTS,{GroupID:1000})
+.sp 2
+Return the snapshot of a replica group with a group ID of 1000.
+.sp 2
+{
+.br
+  "SessionID": "vmsvr1-cent-x64-1:11820:22",
+.br
+  "Contexts": [
+.br
+    {
+.br
+      "ContextID": 11,
+.br
+      "Type": "DUMP",
+.br
+      "Description": "BufferSize:0",
+.br
+      "DataRead": 0,
+.br
+      "IndexRead": 0,
+.br
+      "QueryTimeSpent": 0,
+.br
+      "StartTimestamp": "2013-12-28-16.13.57.864245"
+.br
+    }
+.br
+  ]
+.br
+}
+.br
+{
+.br
+  "SessionID": "vmsvr1-cent-x64-1:11840:23",
+.br
+  "Contexts": [
+.br
+    {
+.br
+      "ContextID": 10,
+.br
+      "Type": "DUMP",
+.br
+      "Description": "BufferSize:0",
+.br
+      "DataRead": 0,
+.br
+      "IndexRead": 0,
+.br
+      "QueryTimeSpent": 0,
+.br
+      "StartTimestamp": "2013-12-28-16.13.57.865103"
+.br
+    }
+.br
+  ]
+.br
+  }
+.sp 2
+Get the snapshot of a node by specifying "group name + host name
++ service name" or "group ID + node ID", for example:
+.sp 2
+db.snapshot(SDB_SNAP_CONTEXTS,{GroupName:'data1',HostName:"vmsvr1-cent-x64-1",svcname:"11820"})
+.sp 2
+db.snapshot(SDB_SNAP_CONTEXTS,{GroupID:1000,NodeID:1001})
+.sp 2
+{
+.br
+  "SessionID": "vmsvr1-cent-x64-1:11820:22",
+.br
+  "Contexts": [
+.br
+    {
+.br
+      "ContextID": 11,
+.br
+      "Type": "DUMP",
+.br
+      "Description": "BufferSize:0",
+.br
+      "DataRead": 0,
+.br
+      "IndexRead": 0,
+.br
+      "QueryTimeSpent": 0,
+.br
+      "StartTimestamp": "2013-12-28-16.13.57.864245"
+.br
+    }
+.br
+  ]
+.br
+  }
+.sp 2
+Get the snapshot of a node by specifying "host name + service
+name", for example:
+.sp 2
+db.snapshot(SDB_SNAP_CONTEXTS,{HostName:"vmsvr1-cent-x64-1",svcname:"11820"})

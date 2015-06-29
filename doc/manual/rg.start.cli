@@ -1,0 +1,36 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBrg.start()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+start - Start the replica group.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+rg.start()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+ReplicaGroup
+.SH "DESCRIPTION"
+
+.sp 2
+Start the replica group. After a replica group is started,
+operations like creating nodes can be executed. Users can start
+specified node with the method db.startRG(<name>).
+.SH "Examples"
+
+.sp 2
+Start replica group:
+.sp 2
+rg.start() //Equivalent to db.startRG("group")

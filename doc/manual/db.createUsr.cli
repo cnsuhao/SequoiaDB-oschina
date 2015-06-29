@@ -1,0 +1,64 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.createUsr()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+createUsr - Create a database user with a user name and a
+password.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.createUsr(\fB<name>\fR,\fB<password>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Create a database user with a user name and a password.
+.sp 2
+\fBname (string)\fR
+.br
+       User name.
+.sp 2
+\fBpassword (string)\fR
+.br
+       Password.
+.sp 2
+       \fBFormat\fR
+.br
+              The method "createUsr()" contains 2 parameters:
+              name and password. Both of them are in the type of
+              string. And they can be null string.
+.br
+              ("<user name>","<password>")
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+*  
+   If there are any user accounts have been configured into the
+   database, only the user with correct user name and password
+   can log in and manipulate the database.
+.sp 2
+   db = new Sdb("<hostname>","<port>","<name>","<password>")
+.SH "Examples"
+
+.sp 2
+
+.sp 2
+Create a user with the user name "root" and the password "admin":
+.sp 2
+db.createUsr("root","admin")

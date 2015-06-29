@@ -1,0 +1,34 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.traceResume()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+traceResume - Resume the breakpoint trace tool.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.traceResume()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Resume the breakpoint trace tool.
+.SH "Examples"
+
+.sp 2
+Resume the breakpoint trace tool.
+.sp 2
+db.traceResume()

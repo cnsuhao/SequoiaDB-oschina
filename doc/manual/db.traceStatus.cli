@@ -1,0 +1,106 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.traceStatus()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+traceStatus - Show the current status of the program trace.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.traceStatus()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Show the current status of the program trace.
+.SH "Examples"
+
+.sp 2
+Show the current status of the program trace.
+.sp 2
+db.traceStatus()
+.br
+{
+.br
+  "TraceStarted": true,
+.br
+  "Wrapped": false,
+.br
+  "Size": 524288,
+.br
+  "Mask": [
+.br
+    "auth",
+.br
+    "bps",
+.br
+    "cat",
+.br
+    "cls",
+.br
+    "dps",
+.br
+    "mig",
+.br
+    "msg",
+.br
+    "net",
+.br
+    "oss",
+.br
+    "pd",
+.br
+    "rtn",
+.br
+    "sql",
+.br
+    "tools",
+.br
+    "bar",
+.br
+    "client",
+.br
+    "coord",
+.br
+    "dms",
+.br
+    "ixm",
+.br
+    "mon",
+.br
+    "mth",
+.br
+    "opt",
+.br
+    "pmd",
+.br
+    "rest",
+.br
+    "spt",
+.br
+    "util",
+.br
+    "aggr",
+.br
+    "spd",
+.br
+    "qgm"
+.br
+  ],
+.br
+  "BreakPoint": []
+.br
+}

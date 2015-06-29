@@ -1,0 +1,86 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.removeBackup()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+removeBackup - Delete the database backup.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.removeBackup(\fB[options]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Delete the database backup.
+.sp 2
+\fBoptions (json object)\fR
+.br
+       Set the backup name, specify the replica group, the backup
+       path and other parameters.
+.sp 2
+       \fBGroupID\fR
+.br
+              Specify the ID of the backup replica group needs to
+              be deleted. Delete all replica groups in default.
+.br
+              GroupID:1000 or GroupID:[1000, 1001]
+.sp 2
+       \fBGroupName\fR
+.br
+              Specify the name of the backup replica group needs
+              to be deleted. Delete all replica groups in
+              default.
+.br
+              GroupName:"data1" or GroupName:["data1", "data2"]
+.sp 2
+       \fBName\fR
+.br
+              Backup name, delete all the backups in default.
+.br
+              Name:"backup-2014-1-1"
+.sp 2
+       \fBPath\fR
+.br
+              Backup path, the default path is the one specified
+              in the configuration. The path supports
+              wildcards(%g%G: group name, %h%H:host name,
+              %s%S:service name).
+.br
+              Path:"/opt/sequoiadb/backup/%g"
+.sp 2
+       \fBIsSubDir\fR
+.br
+              Whether the path configured in the above Path
+              parameter is a subdirectory of the backup path in
+              the configuration. False in default.
+.br
+              IsSubDir:false
+.sp 2
+       \fBPrefix\fR
+.br
+              Backup prefix, supports
+              wildcards(%g,%G,%h,%H,%s,%H), default is empty.
+.br
+              Prefix:"%g_bk_"
+.sp 2
+
+.SH "Examples"
+
+.sp 2
+Delete the backup named "backup-2014-1-1" from the database.
+.sp 2
+db.removeBackup({Name:"backup-2014-1-1"})

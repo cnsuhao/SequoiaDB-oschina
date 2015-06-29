@@ -1,0 +1,51 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.getDomain()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+getDomain - Gets the specified domain.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.getDomain(\fB<name>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Gets the specified domain.
+.sp 2
+\fBname (string)\fR
+.br
+       Domain name.
+.sp 2
+       \fBFormat\fR
+.br
+              The parameter "name" should be specified in the
+              getDomain() method, and value of "name" should
+              exist in the collection space, otherwise an
+              exception will occur.
+.br
+              {"name":"<domain name>"}
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  SYSDOMAIN cannot be gotten.
+.SH "Examples"
+
+.sp 2
+Get an existent domain.
+.sp 2
+var domain = db.getDomain('mydomain')

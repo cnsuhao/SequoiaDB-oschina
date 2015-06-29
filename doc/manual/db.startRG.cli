@@ -1,0 +1,58 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.startRG()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+startRG - Start a specified replica group.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.startRG(\fB<name1>\fR,\fB[name2]\fR,\fB...\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Start a specified replica group. A node can only be created after
+a replica group is already started. This method is equivalent to
+rg.start().
+.sp 2
+\fBname (string)\fR
+.br
+       The name of a replica group.
+.sp 2
+       \fBFormat\fR
+.br
+              The method "db.startRG()" contains a parameter
+              called "name". The type of it is string. It is the
+              name of the replica group which is about to be
+              started.
+.br
+              ("<replica group name>")
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  Exception will occur when the specified replica group
+   doesn't exist or it has been started.
+.SH "Examples"
+
+.sp 2
+
+.sp 2
+The following command starts a replica group called "group":
+.sp 2
+db.startRG("group")

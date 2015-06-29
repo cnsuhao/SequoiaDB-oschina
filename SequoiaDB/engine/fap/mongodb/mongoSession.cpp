@@ -113,7 +113,6 @@ INT32 _mongoSession::run()
    const CHAR *pBody            = NULL ;
    INT32 bodyLen                = 0 ;
    engine::pmdEDUMgr *pmdEDUMgr = NULL ;
-   bson::BSONObjBuilder bob ;
    std::vector< msgBuffer * >::iterator itr ;
 
    if ( !_pEDUCB )
@@ -183,7 +182,6 @@ INT32 _mongoSession::run()
             {
                if ( SDB_OPTION_NOT_SUPPORT == rc )
                {
-                  goto reply ;
                }
                else
                {
@@ -191,28 +189,29 @@ INT32 _mongoSession::run()
                }
             }
 
-            if ( _preProcessMsg( _converter->getParser(), _resource, bob ) )
+            if ( _preProcessMsg( _converter->getParser(),
+                                 _resource, _contextBuff ) )
             {
-               pBody = bob.done().objdata() ;
-               bodyLen = bob.done().objsize() ;
                goto reply ;
             }
             itr = _inBufferVec.begin() ;
             for ( ; itr != _inBufferVec.end() ; ++itr )
             {
                _pEDUCB->incEventCount() ;
+               _needReply = FALSE ;
                if ( SDB_OK != ( rc = pmdEDUMgr->activateEDU( _pEDUCB ) ) )
                {
                   PD_LOG( PDERROR, "Session[%s] activate edu failed, rc: %d",
                           sessionName(), rc ) ;
                   goto error ;
                }
-               rc = _processMsg( (*itr)->data(), bob, pBody, bodyLen ) ;
+               rc = _processMsg( (*itr)->data() ) ;
                if ( rc )
                {
                   if ( SDB_DMS_CS_EXIST == rc &&
                        OP_CMD_CREATE == _converter->getOpType())
                   {
+                     _contextBuff.release() ;
                   }
                   else
                   {
@@ -227,6 +226,8 @@ INT32 _mongoSession::run()
                }
             }
          reply:
+            pBody = _contextBuff.data() ;
+            bodyLen = _contextBuff.size() ;
             INT32 rcTmp = _reply( &_replyHeader, pBody, bodyLen ) ;
             if ( rcTmp )
             {
@@ -234,10 +235,11 @@ INT32 _mongoSession::run()
                        sessionName(), rcTmp ) ;
                goto error ;
             }
+            pBody = NULL ;
+            bodyLen = 0 ;
          }
       }
    } // end while
-
 done:
    disconnect() ;
    return rc ;
@@ -245,12 +247,12 @@ error:
    goto done ;
 }
 
-INT32 _mongoSession::_processMsg( const CHAR *pMsg,
-                                  bson::BSONObjBuilder &bob,
-                                  const CHAR *&pBody, INT32 &bodyLen )
+INT32 _mongoSession::_processMsg( const CHAR *pMsg )
 {
    INT32 rc  = SDB_OK ;
    INT32 tmp = SDB_OK ;
+   INT32 bodyLen = 0 ;
+   bson::BSONObjBuilder bob ;
 
    rc = _onMsgBegin( (MsgHeader *) pMsg ) ;
    if ( SDB_OK != rc )
@@ -258,43 +260,26 @@ INT32 _mongoSession::_processMsg( const CHAR *pMsg,
       goto error ;
    }
 
-   if ( _converter->isGetLastError()  )
-   {
-      _replyHeader.numReturned = 1 ;
-      _replyHeader.contextID = 0 ;
-      _replyHeader.startFrom = 0 ;
-      _replyHeader.flags = rc ;
-
-      tmp = _errorInfo.getIntField( OP_ERRNOFIELD ) ;
-      bob.append( "ok", rc ) ;
-      bob.append( "code", tmp ) ;
-      bob.append( "errmsg", _errorInfo.getStringField( OP_ERRDESP_FIELD) ) ;
-      pBody = bob.done().objdata() ;
-      bodyLen = bob.done().objsize() ;
-   }
-   else
    {
       rc = getProcessor()->processMsg( (MsgHeader *) pMsg,
                                        _contextBuff, _replyHeader.contextID,
                                        _needReply ) ;
-      pBody = _contextBuff.data() ;
       bodyLen = _contextBuff.size() ;
       _replyHeader.numReturned = _contextBuff.recordNum() ;
       _replyHeader.startFrom = (INT32)_contextBuff.getStartFrom() ;
       _replyHeader.flags = rc ;
    }
 
-   if ( rc && bodyLen )
+   if ( rc  && ( 0 == bodyLen ) )
    {
       _errorInfo = engine::utilGetErrorBson( rc,
                    _pEDUCB->getInfo( engine::EDU_INFO_ERROR ) ) ;
 
       tmp = _errorInfo.getIntField( OP_ERRNOFIELD ) ;
-      bob.append( "ok", rc ? FALSE : TRUE ) ;
+      bob.append( "ok", FALSE ) ;
       bob.append( "code",  tmp ) ;
       bob.append( "errmsg", _errorInfo.getStringField( OP_ERRDESP_FIELD) ) ;
-      pBody = bob.done().objdata() ;
-      bodyLen = bob.done().objsize() ;
+      _contextBuff = engine::rtnContextBuf( bob.obj() ) ;
 
       _replyHeader.numReturned = 1 ;
       _replyHeader.contextID = 0 ;
@@ -377,9 +362,16 @@ INT32 _mongoSession::_reply( MsgOpReply *replyHeader,
    reply.cursorId = ( -1 == replyHeader->contextID ?
                             0 : replyHeader->contextID ) ;
    reply.startingFrom = replyHeader->startFrom ;
-   reply.nReturned = replyHeader->numReturned ;
+   if ( _converter->getParser().withCmd || _needReply )
+   {
+      reply.nReturned = replyHeader->numReturned > 0 ? replyHeader->numReturned : 1 ;
+   }
+   else
+   {
+      reply.nReturned = replyHeader->numReturned ;
+   }
 
-   if ( reply.nReturned > 1 )
+   if ( !_converter->getParser().withCmd && reply.nReturned > 0 )
    {
       while ( offset < len )
       {
@@ -445,19 +437,28 @@ error:
 
 BOOLEAN _mongoSession::_preProcessMsg( const mongoParser &parser,
                                        engine::IResource *resource,
-                                       bson::BSONObjBuilder &bob )
+                                       engine::rtnContextBuf &buff )
 {
    BOOLEAN handled = FALSE ;
 
    if ( OP_CMD_ISMASTER == parser.opType )
    {
       handled = TRUE ;
-      fap::mongo::buildIsMasterMsg( resource, bob ) ;
+      fap::mongo::buildIsMasterMsg( resource, buff ) ;
    }
    else if ( OP_CMD_GETNONCE == parser.opType )
    {
       handled = TRUE ;
-      fap::mongo::buildGetNonceMsg( bob ) ;
+      fap::mongo::buildGetNonceMsg( buff ) ;
+   }
+   else if ( OP_CMD_GETLASTERROR == parser.opType )
+   {
+      handled = TRUE ;
+      fap::mongo::buildGetLastErrorMsg( _errorInfo, buff ) ;
+   }
+   else if ( OP_CMD_NOT_SUPPORTED )
+   {
+      fap::mongo::buildNotSupportMsg( _contextBuff ) ;
    }
 
    if ( handled )

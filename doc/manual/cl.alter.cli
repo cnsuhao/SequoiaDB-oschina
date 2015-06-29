@@ -1,0 +1,83 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.alter()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+alter - Modify the collection properties.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.alter(\fB<options>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+Modify the collection properties.
+.sp 2
+\fBoptions (Json Object)\fR
+.br
+       Attributes to be modified.
+.sp 2
+       \fBReplSize\fR
+.br
+              Number of replica.
+.br
+              ReplSize:<int32>
+.sp 2
+       \fBShardingKey\fR
+.br
+              Key to shard.
+.br
+              ShardingKey:{<field 1>:<1|-1>,[<field 2>:<1|-1>,
+              ...]}
+.sp 2
+       \fBShardingType\fR
+.br
+              Sharding type, the default value is range.
+.br
+              ShardingType:"hash"|"range"
+.sp 2
+       \fBPartition\fR
+.br
+              Number of partitions. Fill out when there is a hash
+              partitioning. It represents the number of hash
+              partitioning. Its value must be a power of 2,
+              ranging from 2^3 to 2^20.
+.br
+              Partition:<number of partitioning>
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  Usage of ShardingKey, ShardingType, Partition, please
+   checkdb.collectionspace.createCL().
+.sp 2
+   *  Partitioning collection cannot alter attributes related to
+   partitioning.
+.sp 2
+   *  After altering to partitioning collection, we must split
+   manually.
+.SH "Examples"
+
+.sp 2
+Create a collection.
+.sp 2
+db.foo.createCL('bar')
+.sp 2
+Alter to partitioning collection.
+.sp 2
+db.foo.bar.alter({ShardingKey:{a:1},ShardingType:"hash"})

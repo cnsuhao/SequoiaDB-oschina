@@ -1,0 +1,155 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.listReplicaGroups()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+listReplicaGroups - List replica groups.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.listReplicaGroups()
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+List replica groups.
+.SH "Examples"
+
+.sp 2
+Return the information of every replica group:
+.sp 2
+> db.listReplicaGroups()
+.br
+Return: {
+.br
+  "Group": [
+.br
+    {
+.br
+      "dbpath": "/opt/sequoiadb/data/11800",
+.br
+      "HostName": "vmsvr2-suse-x64",
+.br
+      "Service": [
+.br
+        {
+.br
+          "Type": 0,
+.br
+          "Name": "11800"
+.br
+        },
+.br
+        {
+.br
+          "Type": 1,
+.br
+          "Name": "11801"
+.br
+        },
+.br
+        {
+.br
+          "Type": 2,
+.br
+          "Name": "11802"
+.br
+        },
+.br
+        {
+.br
+          "Type": 3,
+.br
+          "Name": "11803"
+.br
+        }
+.br
+      ],
+.br
+      "NodeID": 1000
+.br
+    },
+.br
+    {
+.br
+      "dbpath": "/opt/sequoiadb/data/11850",
+.br
+      "HostName": "vmsvr2-suse-x64",
+.br
+      "Service": [
+.br
+        {
+.br
+          "Type": 0,
+.br
+          "Name": "11850"
+.br
+        },
+.br
+        {
+.br
+          "Type": 1,
+.br
+          "Name": "11851"
+.br
+        },
+.br
+        {
+.br
+          "Type": 2,
+.br
+          "Name": "11852"
+.br
+        },
+.br
+        {
+.br
+          "Type": 3,
+.br
+          "Name": "11853"
+.br
+        }
+.br
+      ],
+.br
+      "NodeID": 1001
+.br
+    }
+.br
+  ],
+.br
+  "GroupID": 1001,
+.br
+  "GroupName": "group",
+.br
+  "PrimaryNode": 1001,
+.br
+  "Role": 0,
+.br
+  "Status": 1,
+.br
+  "Version": 5,
+.br
+  "_id": {
+.br
+    "$oid": "517b2fc33d7e6f820fc0eb57"
+.br
+  }
+.br
+  }
+.sp 2
+This replica group has 2 nodes: 11800 and 11850. Node 11850 is
+the master node.

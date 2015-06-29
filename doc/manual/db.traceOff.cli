@@ -1,0 +1,42 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.traceOff()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+traceOff - Close the tracing function of the database engine, and
+then export the information in to binary files.
+/opt/sequoiadb/trace.dump
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+traceOff(\fB<dumpFile>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Close the tracing function of the database engine, and then
+export the information in to binary files.
+/opt/sequoiadb/trace.dump
+.sp 2
+\fBDump file (string)\fR
+.br
+       Name of dump file.
+.SH "Examples"
+
+.sp 2
+Turn off the trace function of the database engine.
+.sp 2
+db.traceOff("/opt/sequoiadb/trace.dump");

@@ -1,0 +1,47 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.flushConfigure()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+flushConfigure - Flush the configurations to the configuration
+files.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.flushConfigure(\fB<rule>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Flush the configurations to the configuration files.
+.sp 2
+\fBrule (json object)\fR
+.br
+       Flush rules.
+.sp 2
+       \fBGlobal\fR
+.br
+              True indicates to flush the entire system's
+              configurations. False indicates to flush the
+              current node's configurations.
+.br
+              Global:true
+.SH "Examples"
+
+.sp 2
+Flush database's configurations.
+.sp 2
+db.flushConfigure({Global:true})

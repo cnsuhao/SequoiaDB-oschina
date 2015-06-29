@@ -1,0 +1,89 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.collectionspace.collection.find()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+find - Select specified records.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.collectionspace.collection.find(\fB[cond]\fR,\fB[sel]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Collection
+.SH "DESCRIPTION"
+
+.sp 2
+Select specified records. Return a cursor on the selected
+records. Cursor is a pointer in SequoiaDB, it points to a query
+result set, the search result can be iterated in a client.
+.sp 2
+\fBcond (json object)\fR
+.br
+       Selecting condtion. If it is null, it will find all the
+       records. If it is not null, it will find records that
+       matches the condition.
+.sp 2
+\fBsel (json object)\fR
+.br
+       It chooses fields to be returned. If it is null, it will
+       return all the records.If a field doesn't exist, it will
+       return null string.
+.sp 2
+       \fBFormat\fR
+.br
+              The definitin of "find()" contains 2 parameters:
+              cond and sel, which are both in the type of JSON
+              object. The parameter "cond" specifies the matching
+              condition. The parameter "sel" specifies the fields
+              to be returned.
+.br
+              {[{"field name 1":{"match 1":"value 1","field name
+              2":{"match 2":"value 2"},...}],[{"field name
+              1":"","field name 2":"",..}]}
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  The parameter "sel" is in the type of a json object. The
+   value of field is often specified as a null string. If the
+   parameters are specified in this format: "{"field name 1":
+   "value 1", "field name 2":"value 2",...}", for the fields that
+   do exist in the records, the value of these fields is actually
+   useless; for the fields that do not exist in the records,
+   "{"field name 1": "value 1", "field name 2":"value 2",...}"
+   will be returned.
+.SH "Examples"
+
+.sp 2
+Find all the records without specifying the field "cond" and
+"sel".
+.sp 2
+db.foo.bar.find()
+.sp 2
+Find records that matches the value of the parameter "cond".
+.sp 2
+db.foo.bar.find({age:{$gt:25},name:"Tom"})
+.sp 2
+This operation will return records that contain the value of
+"age" greater than 25 and the value "Tom" on the field "name".
+.sp 2
+Specify the fields to return by setting the content of the
+parameter "sel".For example, there are 2 records:
+"{age:25,type:"system"}" and "{age:20,name:"Tom",type:"normal"}".
+.sp 2
+db.foo.bar.find(null,{age:"",name:""})
+.sp 2
+This operation return the value of "age" and "name". So it will
+return:"{age:25,name:""},{age:20,name:"Tom"}". Although the first
+record doesn't contain the field, it will return "name:""".

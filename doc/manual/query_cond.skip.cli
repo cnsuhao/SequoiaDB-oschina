@@ -1,0 +1,59 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBquery.skip()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+skip - It is used to specify the first returned record in the
+result set.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+query.skip(\fB[num]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Query
+.SH "DESCRIPTION"
+
+.sp 2
+It is used to specify the first returned record in the result
+set.
+.sp 2
+\fBnum (int)\fR
+.br
+       Specify the index number of first returned record in the
+       result set.
+.sp 2
+       \fBFormat\fR
+.br
+              The method "query.skip()" contains the parameter
+              "num". It is in the type of "int". If the value of
+              "num" is null or 0, the method will return the
+              whole result set. If you want to get a result set
+              that begins with the 3rd record, you should set the
+              value of "num" as "2".
+.SH "Examples"
+
+.sp 2
+Select records with the value of "age" greater than 10 and return
+records which begin with the 5th record. That's to say, it will
+skip the first 4 records.
+.sp 2
+db.foo.bar.find({age:{$gt:10}}).skip(4)
+.sp 2
+\fBNote: \fR
+.sp 2
+If the amount of records in a result set is lesser than 5, no
+record will be returned. If the amount of records in a result set
+is greater than 5, it will return all the records after the
+fourth one..

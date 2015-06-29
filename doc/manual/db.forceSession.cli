@@ -1,0 +1,42 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.forceSession()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+forceSession - Stop the specified session's current operation.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.forceSession(\fB<sessionID>\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+Stop the specified session's current operation.
+.sp 2
+\fBsessionID (int)\fR
+.br
+       The ID of the session.
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  Only the user session can be terminated.
+.SH "Examples"
+
+.sp 2
+Stop the session with the ID of 100.
+.sp 2
+db.forceSession(100)
