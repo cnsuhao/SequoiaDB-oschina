@@ -338,7 +338,8 @@ namespace engine
        */
       INT32    postEDUPost ( EDUID eduID, pmdEDUEventTypes type,
                              pmdEDUMemTypes dataMemType = PMD_EDU_MEM_NONE,
-                             void *pData = NULL ) ;
+                             void *pData = NULL,
+                             UINT64 usrData = 0 ) ;
 
 
       /*

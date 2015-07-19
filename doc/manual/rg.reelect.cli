@@ -1,0 +1,55 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBrg.reelect()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+reelect - Re-elect the master node in the replica group.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+rg.reelect(\fB[options]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+ReplicaGroup
+.SH "DESCRIPTION"
+
+.sp 2
+Re-elect the master node in the replica group.
+.sp 2
+\fBoptions (json object)\fR
+.br
+       Parameter collection
+.sp 2
+       \fBSeconds\fR
+.br
+              Re-election start in how many seconds.
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  Returning timeout error means that the re-election hasn't
+   completed during the time we set. Using db.listReplicaGroups()
+   to view the result.
+.sp 2
+   *  The re-election can only be started when there is a master
+   node in the replica group.
+.SH "Examples"
+
+.sp 2
+Conduct the re-election in 60s with the group of 'datagroup1'
+.sp 2
+var rg = db.getRG("datagroup1") ;
+.br
+rg.reelect({Seconds:60});

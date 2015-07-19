@@ -325,12 +325,12 @@ error :
    goto done ;
 }
 
-static INT32 _send1 ( sdbConnectionHandle cHandle, SOCKET sock,
+static INT32 _send1 ( sdbConnectionHandle cHandle, Socket* sock,
                       const CHAR *pMsg, INT32 len )
 {
    INT32 rc = SDB_OK ;
 
-   if ( -1 == sock )
+   if ( NULL == sock )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -351,7 +351,7 @@ error :
    goto done ;
 }
 
-static INT32 _send ( sdbConnectionHandle cHandle, SOCKET sock,
+static INT32 _send ( sdbConnectionHandle cHandle, Socket* sock,
                      const MsgHeader *msg, BOOLEAN endianConvert )
 {
    INT32 rc  = SDB_OK ;
@@ -369,7 +369,7 @@ error :
    goto done ;
 }
 
-static INT32 _recv ( sdbConnectionHandle cHandle, SOCKET sock,
+static INT32 _recv ( sdbConnectionHandle cHandle, Socket* sock,
                      MsgHeader **msg, INT32 *size,
                      BOOLEAN endianConvert )
 {
@@ -378,7 +378,7 @@ static INT32 _recv ( sdbConnectionHandle cHandle, SOCKET sock,
    INT32 realLen   = 0 ;
    CHAR **ppBuffer = (CHAR**)msg ;
 
-   if ( -1 == sock )
+   if ( NULL == sock )
    {
       rc = SDB_INVALIDARG ;
       goto error ;
@@ -398,7 +398,7 @@ static INT32 _recv ( sdbConnectionHandle cHandle, SOCKET sock,
 #if defined( _LINUX )
       {
          INT32 i = 0 ;
-         setsockopt( sock, IPPROTO_TCP, TCP_QUICKACK, (void*)&i, sizeof(i) ) ;
+         setsockopt( clientGetRawSocket ( sock ), IPPROTO_TCP, TCP_QUICKACK, (void*)&i, sizeof(i) ) ;
       }
 #endif // _LINUX
       break ;
@@ -433,7 +433,7 @@ error :
    goto done ;
 }
 
-static INT32 _recvExtract ( sdbConnectionHandle cHandle, SOCKET sock,
+static INT32 _recvExtract ( sdbConnectionHandle cHandle, Socket* sock,
                             MsgHeader **msg, INT32 *size,
                             SINT64 *contextID, BOOLEAN *result,
                             BOOLEAN endianConvert )
@@ -473,7 +473,7 @@ error :
    goto done ;
 }
 
-static INT32 _recvExtractEval ( sdbConnectionHandle cHandle, SOCKET sock,
+static INT32 _recvExtractEval ( sdbConnectionHandle cHandle, Socket* sock,
                                 MsgHeader **msg, INT32 *size,
                                 SINT64 *contextID, SDB_SPD_RES_TYPE *type,
                                 BOOLEAN *result, bson *errmsg,
@@ -482,8 +482,12 @@ static INT32 _recvExtractEval ( sdbConnectionHandle cHandle, SOCKET sock,
    INT32 rc          = SDB_OK ;
    INT32 replyFlag   = -1 ;
    INT32 startFrom   = -1 ;
+   INT32 returnNum   = -1 ;
    CHAR **ppBuffer   = (CHAR**)msg ;
    MsgOpReply *replyHeader = NULL ;
+   bson_iterator rType ;
+   bson runInfo ;
+   bson_init( &runInfo ) ;
 
    rc = _recv ( cHandle, sock, msg, size, endianConvert ) ;
    if ( SDB_OK != rc )
@@ -491,8 +495,10 @@ static INT32 _recvExtractEval ( sdbConnectionHandle cHandle, SOCKET sock,
       goto error ;
    }
 
+   replyHeader = (MsgOpReply *)(*ppBuffer) ;
+
    rc = clientExtractReply ( *ppBuffer, &replyFlag, contextID,
-                             &startFrom, (SINT32 *)type, endianConvert ) ;
+                             &startFrom, &returnNum, endianConvert ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -502,17 +508,32 @@ static INT32 _recvExtractEval ( sdbConnectionHandle cHandle, SOCKET sock,
    {
       *result = FALSE ;
       rc = replyFlag ;
-      replyHeader = (MsgOpReply *)(*ppBuffer) ;
       if ( errmsg && sizeof( MsgOpReply ) != replyHeader->header.messageLength )
       {
          bson_init_finished_data( errmsg, *ppBuffer + sizeof(MsgOpReply) ) ;
       }
+      goto error ;
+   }
+   else if ( 1 == returnNum &&
+             ( INT32 )(sizeof( MsgOpReply )) < replyHeader->header.messageLength )
+   {
+      bson_init_finished_data( &runInfo, *ppBuffer + sizeof(MsgOpReply) ) ;
+      if ( BSON_INT != bson_find( &rType, &runInfo, FIELD_NAME_RTYPE ) )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+      *type = ( SDB_SPD_RES_TYPE )( bson_iterator_int( &rType ) ) ;   
+      *result = TRUE ;
    }
    else
    {
-      *result = TRUE ;
+      *result = FALSE ;
+      rc = SDB_SYS ;
+      goto error ;
    }
 done :
+   bson_destroy( &runInfo ) ;
    return rc ;
 error :
    goto done ;
@@ -571,7 +592,7 @@ error :
 }
 
 
-static INT32 _runCommand ( sdbConnectionHandle cHandle, SOCKET sock,
+static INT32 _runCommand ( sdbConnectionHandle cHandle, Socket* sock,
                            CHAR **ppSendBuffer, INT32 *sendBufferSize,
                            CHAR **ppReceiveBuffer, INT32 *receiveBufferSize,
                            BOOLEAN endianConvert, const CHAR *pString,
@@ -732,12 +753,12 @@ done :
    return SDB_OK ;
 }
 
-static INT32 _regSocket( ossValuePtr cHandle, SOCKET *pSock )
+static INT32 _regSocket( ossValuePtr cHandle, Socket** pSock )
 {
    INT32 rc                        = SDB_OK ;
    sdbConnectionStruct *connection = (sdbConnectionStruct *)cHandle ;
 
-   if ( -1 == *pSock )
+   if ( NULL == *pSock )
    {
       goto done ;
    }
@@ -754,13 +775,13 @@ error :
    goto done ;
 }
 
-static INT32 _unregSocket( ossValuePtr cHandle, SOCKET *pSock )
+static INT32 _unregSocket( ossValuePtr cHandle, Socket** pSock )
 {
    INT32 rc                        = SDB_OK ;
    Node *ptrRemoved                = NULL ;
    sdbConnectionStruct *connection = (sdbConnectionStruct *)cHandle ;
 
-   if ( -1 == *pSock )
+   if ( NULL == *pSock )
    {
       goto done ;
    }
@@ -774,7 +795,7 @@ static INT32 _unregSocket( ossValuePtr cHandle, SOCKET *pSock )
 
    if ( ptrRemoved )
    {
-      *(SOCKET*)ptrRemoved->data = -1 ;
+      *(Socket**)ptrRemoved->data = NULL ;
       SDB_OSS_FREE( ptrRemoved ) ;
    }
 
@@ -1036,7 +1057,7 @@ static INT32 _sdbGetList ( sdbConnectionHandle cHandle,
    }
 
    CHECK_RET_MSGHEADER( connection->_pSendBuffer, connection->_pReceiveBuffer,
-		        cHandle ) ;
+           cHandle ) ;
    ALLOC_HANDLE( cursor, sdbCursorStruct ) ;
    INIT_CURSOR ( cursor, connection, connection, contextID ) ;
 
@@ -1207,8 +1228,10 @@ error :
 }
 
 #define ENCRYTED_STR_LEN   ( SDB_MD5_DIGEST_LENGTH * 2 + 1 )
-SDB_EXPORT INT32 sdbConnect ( const CHAR *pHostName, const CHAR *pServiceName,
-                              const CHAR *pUsrName, const CHAR *pPasswd ,
+
+static INT32 _sdbConnect ( const CHAR *pHostName, const CHAR *pServiceName,
+                              const CHAR *pUsrName, const CHAR *pPasswd,
+                              BOOLEAN useSSL,
                               sdbConnectionHandle *handle )
 {
    INT32 rc                            = SDB_OK ;
@@ -1225,7 +1248,7 @@ SDB_EXPORT INT32 sdbConnect ( const CHAR *pHostName, const CHAR *pServiceName,
 
    ALLOC_HANDLE( connection, sdbConnectionStruct ) ;
    connection->_handleType = SDB_HANDLE_TYPE_CONNECTION ;
-   rc = clientConnect ( pHostName, pServiceName, &connection->_sock ) ;
+   rc = clientConnect ( pHostName, pServiceName, useSSL, &connection->_sock ) ;
    if ( SDB_OK != rc )
    {
       goto error ;
@@ -1288,8 +1311,23 @@ error:
    goto done ;
 }
 
-SDB_EXPORT INT32 sdbConnect1 ( const CHAR **pConnAddrs, INT32 arrSize,
-                               const CHAR *pUsrName, const CHAR *pPasswd ,
+SDB_EXPORT INT32 sdbConnect ( const CHAR *pHostName, const CHAR *pServiceName,
+                              const CHAR *pUsrName, const CHAR *pPasswd ,
+                              sdbConnectionHandle *handle )
+{
+   return _sdbConnect ( pHostName, pServiceName, pUsrName, pPasswd, FALSE, handle ) ;
+}
+
+SDB_EXPORT INT32 sdbSecureConnect ( const CHAR *pHostName, const CHAR *pServiceName,
+                              const CHAR *pUsrName, const CHAR *pPasswd ,
+                              sdbConnectionHandle *handle )
+{
+   return _sdbConnect ( pHostName, pServiceName, pUsrName, pPasswd, TRUE, handle ) ;
+}
+
+static INT32 _sdbConnect1 ( const CHAR **pConnAddrs, INT32 arrSize,
+                               const CHAR *pUsrName, const CHAR *pPasswd,
+                               BOOLEAN useSSL,
                                sdbConnectionHandle *handle )
 {
    INT32 rc                 = SDB_OK ;
@@ -1331,7 +1369,7 @@ SDB_EXPORT INT32 sdbConnect1 ( const CHAR **pConnAddrs, INT32 arrSize,
       pStr[pTmp - addr] = 0 ;
       pHostName = pStr ;
       pServiceName = &(pStr[pTmp - addr]) + 1;
-      rc = sdbConnect ( pHostName, pServiceName, pUsrName, pPasswd, handle ) ;
+      rc = _sdbConnect ( pHostName, pServiceName, pUsrName, pPasswd, useSSL, handle ) ;
       SDB_OSS_FREE ( pStr ) ;
       pStr = NULL ;
       pTmp = NULL ;
@@ -1349,6 +1387,20 @@ error:
    goto done;
 }
 
+SDB_EXPORT INT32 sdbConnect1 ( const CHAR **pConnAddrs, INT32 arrSize,
+                               const CHAR *pUsrName, const CHAR *pPasswd ,
+                               sdbConnectionHandle *handle )
+{
+   return _sdbConnect1 ( pConnAddrs, arrSize, pUsrName, pPasswd, FALSE, handle) ;
+}
+
+SDB_EXPORT INT32 sdbSecureConnect1 ( const CHAR **pConnAddrs, INT32 arrSize,
+                               const CHAR *pUsrName, const CHAR *pPasswd ,
+                               sdbConnectionHandle *handle )
+{
+   return _sdbConnect1 ( pConnAddrs, arrSize, pUsrName, pPasswd, TRUE, handle) ;
+}
+
 void _sdbDisconnect_inner ( sdbConnectionHandle handle )
 {
    INT32 rc = SDB_OK ;
@@ -1359,18 +1411,17 @@ void _sdbDisconnect_inner ( sdbConnectionHandle handle )
    CLIENT_UNUSED( rc ) ;
 
    HANDLE_CHECK( handle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
-   if ( -1 == connection->_sock )
+   if ( NULL == connection->_sock )
    {
       return ;
    }
 
-   clientDisconnect ( connection->_sock ) ;
-   connection->_sock = -1 ;
+   clientDisconnect ( &connection->_sock ) ;
 
    sockets = connection->_sockets ;
    while ( sockets )
    {
-      *((SOCKET*)sockets->data) = -1 ;
+      *((Socket**)sockets->data) = NULL ;
       connection->_sockets = sockets->next ;
       SDB_OSS_FREE( sockets ) ;
       sockets = connection->_sockets ;
@@ -1400,7 +1451,7 @@ SDB_EXPORT void sdbDisconnect ( sdbConnectionHandle handle )
    CLIENT_UNUSED( rc ) ;
 
    HANDLE_CHECK( handle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
-   if ( -1 == connection->_sock )
+   if ( NULL == connection->_sock )
    {
       return ;
    }
@@ -3208,6 +3259,10 @@ SDB_EXPORT INT32 sdbEvalJS(sdbConnectionHandle cHandle,
    *handle = (sdbCursorHandle)cursor ;
 done:
    BSON_DESTROY( bs ) ;
+   if ( NULL != errmsg )
+   {
+      bson_finish( errmsg ) ;
+   }
    return rc ;
 error:
    if ( cursor )
@@ -5023,7 +5078,7 @@ SDB_EXPORT INT32 sdbCloseCursor ( sdbCursorHandle cHandle )
    {
       goto done ;
    }
-   if ( -1 == cs->_sock || -1 == cs->_contextID )
+   if ( NULL == cs->_sock || -1 == cs->_contextID )
    {
       cs->_isClosed = TRUE ;
       goto done ;
@@ -5104,7 +5159,7 @@ SDB_EXPORT INT32 sdbIsValid( sdbConnectionHandle cHandle, BOOLEAN *result )
       goto error ;
    }
 
-   sock = connection->_sock ;
+   sock = clientGetRawSocket ( connection->_sock ) ;
    if ( sock < 0 )
    {
       *result = FALSE ;
@@ -7325,7 +7380,7 @@ SDB_EXPORT INT32 sdbCloseLob( sdbLobHandle *lobHandle )
 
    HANDLE_CHECK( *lobHandle, lob, SDB_HANDLE_TYPE_LOB ) ;
 
-   if ( -1 == lob->_sock )
+   if ( NULL == lob->_sock )
    {
       goto done ;
    }
@@ -7747,6 +7802,51 @@ SDB_EXPORT INT32 sdbReelect( sdbReplicaGroupHandle cHandle,
                         rg->_connection ) ;
 done:
    bson_destroy( &ops ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+SDB_EXPORT INT32 sdbForceStepUp( sdbConnectionHandle cHandle,
+                                 const bson *options )
+{
+   INT32 rc = SDB_OK ;
+   sdbConnectionStruct *conn = ( sdbConnectionStruct *)cHandle ;
+   BOOLEAN result = FALSE ;
+   SINT64 contextID = -1 ;
+   HANDLE_CHECK( cHandle, conn, SDB_HANDLE_TYPE_CONNECTION ) ;
+
+   rc = clientBuildQueryMsg( &(conn->_pSendBuffer),
+                             &(conn->_sendBufferSize),
+                             (CMD_ADMIN_PREFIX CMD_NAME_FORCE_STEP_UP ),
+                             0, 0, 0, -1, options, NULL, NULL, NULL,
+                             conn->_endianConvert ) ;
+   if ( SDB_OK != rc )
+   {
+      ossPrintf ( "Failed to build flush msg, rc = %d"OSS_NEWLINE, rc ) ;
+      goto error ;
+   }
+
+   rc = _send ( cHandle, conn->_sock,
+                (MsgHeader*)(conn->_pSendBuffer),
+                conn->_endianConvert ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+   rc = _recvExtract ( cHandle, conn->_sock,
+                       (MsgHeader**)&conn->_pReceiveBuffer,
+                       &conn->_receiveBufferSize, &contextID,
+                       &result, conn->_endianConvert ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+   CHECK_RET_MSGHEADER( conn->_pSendBuffer, conn->_pReceiveBuffer,
+                        cHandle ) ;
+done:
    return rc ;
 error:
    goto done ;

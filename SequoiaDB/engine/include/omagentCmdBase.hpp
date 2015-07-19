@@ -98,7 +98,7 @@ namespace engine
 
       protected:
          CHAR                            _jsFileName[ OSS_MAX_PATHSIZE + 1 ] ;
-         CHAR                            _jsFileArgs[ JS_ARG_LEN + 1 ] ;
+         string                          _jsFileArgs ;
          CHAR                            *_fileBuff ;
          UINT32                          _buffSize ;
          UINT32                          _readSize ;

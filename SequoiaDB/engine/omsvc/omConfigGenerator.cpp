@@ -880,7 +880,7 @@ namespace engine
       }
 
       {
-         BSONObj nodes = host.getObjectField( OM_BSON_FIELD_CONFIG ) ;
+         BSONObj nodes = config.getObjectField( OM_BSON_FIELD_CONFIG ) ;
          BSONObjIterator i( nodes ) ;
          while ( i.more() )
          {

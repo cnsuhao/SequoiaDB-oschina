@@ -64,6 +64,9 @@ static void initDesc( po::options_description &desc )
 {
    PMD_ADD_PARAM_OPTIONS_BEGIN ( desc )
       COMMANDS_OPTIONS
+#ifdef SDB_SSL
+      ( MIG_SSL, "use SSL connection" )
+#endif
    PMD_ADD_PARAM_OPTIONS_END
 }
 
@@ -214,6 +217,10 @@ static INT32 parseCmdLine( const po::options_description &desc,
          goto error ;
       }
    }
+
+#ifdef SDB_SSL
+   builder.appendBool( MIG_SSL, vm.count( MIG_SSL ) ) ;
+#endif
 
    obj = builder.obj() ;
 done:

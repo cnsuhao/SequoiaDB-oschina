@@ -21,6 +21,7 @@
 package com.sequoiadb.base;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
@@ -50,6 +51,8 @@ public class SequoiadbDatasource
 	private final double MULTIPLE = 1.2;
 	private final double MULTIPLE2 = 0.8;
 	private Random rand = new Random(47);
+	
+	private boolean isClosed = false;
 	
 	/**
 	 * @fn int getIdleConnNum()
@@ -140,6 +143,8 @@ public class SequoiadbDatasource
 				       this.dsOpt.getRecheckCyclePeriod());
 		timer2.schedule(new RecaptureCoordAddrTask(this), this.dsOpt.getRecaptureConnPeriod(),
 				        this.dsOpt.getRecaptureConnPeriod());
+		
+		Runtime.getRuntime().addShutdownHook(new SDExitThread(this));
 	}
 
 	/**
@@ -176,6 +181,7 @@ public class SequoiadbDatasource
 			throw e;
 		}
 		timer.schedule(new CleanConnectionTask(this), dsOpt.getRecheckCyclePeriod(), dsOpt.getRecheckCyclePeriod());
+		Runtime.getRuntime().addShutdownHook(new SDExitThread(this));
 	}	
 	
 	/**
@@ -382,6 +388,9 @@ public class SequoiadbDatasource
 	 */
 	synchronized void increaseConnetions() throws BaseException
 	{
+	    if (isClosed) {
+            return;
+        }
 		if (dsOpt.getMaxConnectionNum() == 0)
 			return;
 		if (idle_sequoiadbs.size() >= dsOpt.getMaxIdeNum())
@@ -405,6 +414,9 @@ public class SequoiadbDatasource
 	 */
 	synchronized void cleanAbandonConnection() throws BaseException
 	{
+	    if (isClosed) {
+	        return;
+	    }
 		if ((0 == idle_sequoiadbs.size()) && (0 == used_sequoiadbs.size()))
 			return ;
 		if (dsOpt.getAbandonTime() <= 0)
@@ -470,6 +482,42 @@ public class SequoiadbDatasource
 			idle_sequoiadbs.add(sdb);
 		}
 	}
+
+	/**
+     * @fn void close()
+     * @brief clean all resources of this object
+     */
+	public synchronized void close() {    
+	    timer.cancel();
+        timer2.cancel();
+        
+        Iterator<Sequoiadb> iterUsed  = used_sequoiadbs.iterator();
+        while(iterUsed.hasNext()) {
+            Sequoiadb db = iterUsed.next();
+            db.disconnect();
+            iterUsed.remove();
+        }
+        
+	    Iterator<Sequoiadb> iterIdle  = idle_sequoiadbs.iterator();
+	    while(iterIdle.hasNext()) {
+	        Sequoiadb db = iterIdle.next();
+	        db.disconnect();
+	        iterIdle.remove();
+	    }
+	    
+	    isClosed=true;
+	}
+	
+	protected void finalize() throws Throwable {
+	    try {
+	        close();
+	    }
+	    catch(Exception e) {
+	        
+	    }
+	    
+	    super.finalize();
+	}
 }
 
 class CleanConnectionTask extends TimerTask
@@ -512,4 +560,18 @@ class RecaptureCoordAddrTask extends TimerTask
 	{
 		datasource.getBackCoordAddr();
 	}
+}
+
+class SDExitThread extends Thread {
+    private SequoiadbDatasource _sd = null ;
+    
+    public SDExitThread( SequoiadbDatasource sd ) {
+        _sd = sd;
+    }
+    
+    public void run() {
+        if (null != _sd) {
+            _sd.close();
+        }
+    }
 }

@@ -260,7 +260,8 @@ namespace engine
    INT32 rtnCoordGetSubCLsByGroups( const CoordSubCLlist &subCLList,
                                     const CoordGroupList &sendGroupList,
                                     pmdEDUCB *cb,
-                                    CoordGroupSubCLMap &groupSubCLMap );
+                                    CoordGroupSubCLMap &groupSubCLMap,
+                                    const BSONObj *query = NULL );
 
    INT32 rtnCoordParseGroupList( pmdEDUCB *cb, const BSONObj &obj,
                                  CoordGroupList &groupList ) ;

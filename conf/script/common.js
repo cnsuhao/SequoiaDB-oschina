@@ -21,6 +21,12 @@
    2014-7-26 Zhaobo Tan  Init
 */
 
+function commonResult()
+{
+   this.errno                     = SDB_OK ;
+   this.detail                    = "" ;
+}
+
 function scanHostResult()
 {
    this.errno                     = SDB_OK ;
@@ -45,6 +51,15 @@ function postCheckResult()
    this.IP                        = "" ;
 }
 
+function addHostCheckEnvResult()
+{
+   this.MD5                       = "" ;
+   this.SDBADMIN_USER             = "" ;
+   this.INSTALL_DIR               = "" ;
+   this.OMA_SERVICE               = "" ;
+   this.ISPROGRAMEXIST            = false ;
+}
+
 function addHostResult()
 {
    this.errno                     = SDB_OK ;
@@ -61,7 +76,7 @@ function removeHostResult()
    //this.HasUninstall              = false ;
 }
 
-function checkAddHostInfoResult()
+function addHostCheckInfoResult()
 {
    this.errno                     = SDB_OK ;
    this.detail                    = "" ;
@@ -111,3 +126,28 @@ function removeTmpCoordResult()
    this.errno                     = SDB_OK ;
    this.detail                    = "" ;
 }
+
+function tmpCoordOption()
+{
+   this.type                      = "db" ;
+   this.role                      = "coord" ;
+   this.mode                      = "run" ;
+   this.expand                    = true ;
+}
+
+function tmpCoordMather()
+{
+   this.clustername               = "" ;
+   this.businessname              = "" ;
+   this.usertag                   = "" ;
+}
+
+function checkSAInfo()
+{
+   this.clustername               = "" ;
+   this.businessname              = "" ;
+   this.usertag                   = "" ;
+   this.svcname                   = "" ;
+}
+
+

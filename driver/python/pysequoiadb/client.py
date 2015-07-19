@@ -70,7 +70,7 @@ class client(object):
    USER = ""
    PSW = ""
 
-   def __init__(self, host = None, service = None, user = None, psw  = None):
+   def __init__(self, host = None, service = None, user = None, psw = None, ssl = False):
       """initialize when product a object.
  
          it will try to connect to SequoiaDB using host and port given,
@@ -78,15 +78,16 @@ class client(object):
          user and password are "". 
 
       Parameters:
-         Name    Type      Info:
-         host    str       The hostname or IP address of dbserver,
-                                 if None, "localhost" will be insteaded
-         service str/int   The service name or port number of dbserver,
-                                 if None, "localhost" will be insteaded
-         user    str       The user name to access to database,
-                                 if None, "" will be insteaded
-         psw     str       The user password to access to database,
-                                 if None, "" will be insteaded
+         Name       Type      Info:
+         host       str       The hostname or IP address of dbserver,
+                                    if None, "localhost" will be insteaded
+         service    str/int   The service name or port number of dbserver,
+                                    if None, "11810" will be insteaded
+         user       str       The user name to access to database,
+                                    if None, "" will be insteaded
+         psw        str       The user password to access to database,
+                                    if None, "" will be insteaded
+         ssl        bool      decide to use ssl or not, default is False.
       Exceptions:
          pysequoiadb.error.SDBTypeError
          pysequoiadb.error.SDBBaseError
@@ -122,8 +123,13 @@ class client(object):
       else:
          raise SDBTypeError("password must be an instance of basestring")
 
+      if isinstance(ssl, bool):
+         self.__ssl = ssl
+      else:
+         raise SDBTypeError("ssl must be an instance of bool")
+
       try:
-         self._client = sdb.sdb_create_client()
+         self._client = sdb.sdb_create_client( self.__ssl )
       except SystemError:
          raise SDBBaseError("Failed to alloc client", const.SDB_OOM)
 

@@ -440,7 +440,8 @@ namespace engine
       PMD_ADD_PARAM_OPTIONS_BEGIN( desc )
          ( SDB_INSTALL_RUN_FILED, po::value<string>(), "after to run cmd" ) \
          ( SDB_INSTALL_USER_FIELD, po::value<string>(), "user" ) \
-         ( SDB_INSTALL_PATH_FIELD, po::value<string>(), "install path" )
+         ( SDB_INSTALL_PATH_FIELD, po::value<string>(), "install path" ) \
+         ( SDB_INSTALL_MD5_FIELD, po::value<string>(), "md5" )
       PMD_ADD_PARAM_OPTIONS_END
 
       rc = ossAccess( SDB_INSTALL_FILE_NAME ) ;
@@ -470,6 +471,10 @@ namespace engine
       if ( vm.count( SDB_INSTALL_PATH_FIELD ) )
       {
          info._path = vm[ SDB_INSTALL_PATH_FIELD ].as<string>() ;
+      }
+      if ( vm.count( SDB_INSTALL_MD5_FIELD ) )
+      {
+         info._md5 = vm[ SDB_INSTALL_MD5_FIELD ].as<string>() ;
       }
 
    done:

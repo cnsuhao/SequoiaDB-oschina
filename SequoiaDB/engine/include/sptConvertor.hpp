@@ -77,6 +77,10 @@ private:
                            const CHAR *key,
                            bson *bs ) ;
 
+   INT32 _addJsonTypes( JSObject *obj,
+                        const CHAR *key,
+                        bson *bs ) ;
+
    BOOLEAN _getProperty( JSObject *obj,
                          const CHAR *fieldName,
                          JSType type,
@@ -89,6 +93,38 @@ private:
    INT32 _toDouble( const jsval &val, FLOAT64 &fV ) ;
 
    INT32 _toBoolean( const jsval &val, BOOLEAN &bL ) ;
+
+   INT32 _addObjectId( JSObject *obj,
+                       const CHAR *key,
+                       bson *bs ) ;
+
+   INT32 _addBinData( JSObject *obj,
+                      const CHAR *key,
+                      bson *bs ) ;
+
+   INT32 _addTimestamp( JSObject *obj,
+                        const CHAR *key,
+                        bson *bs ) ;
+
+   INT32 _addRegex( JSObject *obj,
+                    const CHAR *key,
+                    bson *bs ) ;
+
+   INT32 _addMinKey( JSObject *obj,
+                     const CHAR *key,
+                     bson *bs ) ;
+
+   INT32 _addMaxKey( JSObject *obj,
+                     const CHAR *key,
+                     bson *bs ) ;
+
+   INT32 _addNumberLong( JSObject *obj,
+                         const CHAR *key,
+                         bson *bs) ;
+
+   INT32 _addSdbDate( JSObject *obj,
+                      const CHAR *key,
+                      bson *bs) ;
 
 private:
    JSContext *_cx ;

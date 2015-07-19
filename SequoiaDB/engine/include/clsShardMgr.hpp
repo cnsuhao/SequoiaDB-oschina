@@ -50,17 +50,6 @@ namespace engine
    #define CLS_SHARD_TIMEOUT     (5*OSS_ONE_SEC)
 
    /*
-      _catlogServerInfo define
-   */
-   struct _catlogServerInfo : public SDBObject
-   {
-      NodeID      nodeID ;
-      std::string host ;
-      std::string service ;
-   } ;
-   typedef std::vector<_catlogServerInfo>             VECCATLOG ;
-
-   /*
       _clsEventItem define
    */
    class _clsEventItem : public SDBObject

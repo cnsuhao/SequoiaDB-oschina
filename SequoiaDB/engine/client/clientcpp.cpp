@@ -46,6 +46,9 @@
 #include "clientTrace.hpp"
 #include "fmpDef.hpp"
 #include "../bson/lib/md5.hpp"
+#ifdef SDB_SSL
+#include "ossSSLWrapper.h"
+#endif
 
 using namespace std ;
 using namespace bson ;
@@ -4735,6 +4738,14 @@ do                                                            \
 
       if ( _useSSL )
       {
+#ifdef SDB_SSL
+         rc = _sock->secure () ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         goto done;
+#endif
          PD_LOG( PDERROR, "SSL feature not available in this build" ) ;
          rc = SDB_INVALIDARG ;
          goto error;
@@ -6396,10 +6407,10 @@ do                                                            \
    }
 
    PD_TRACE_DECLARE_FUNCTION( SDB_CLIENT_EVALJS, "_sdbImpl::evalJS" )
-   INT32 _sdbImpl::evalJS( _sdbCursor **cursor,
-                           const CHAR *code,
-                           SDB_SPD_RES_TYPE *type,
-                           const bson::BSONObj &errmsg )
+   INT32 _sdbImpl::evalJS( const CHAR *code,
+                           SDB_SPD_RES_TYPE &type,
+                           _sdbCursor **cursor,
+                           bson::BSONObj &errmsg )
    {
       PD_TRACE_ENTRY( SDB_CLIENT_EVALJS ) ;
       INT32 rc = SDB_OK ;
@@ -6408,6 +6419,7 @@ do                                                            \
       SINT64 contextID = 0 ;
       BSONObj newObj ;
       BSONObjBuilder ob ;
+      const MsgOpReply *replyHeader = NULL ;
 
       ob.appendCode ( FIELD_NAME_FUNC, code ) ;
       ob.appendIntOrLL ( FIELD_NAME_FUNCTYPE, FMP_FUNC_TYPE_JS ) ;
@@ -6436,6 +6448,7 @@ do                                                            \
          goto error ;
       }
       CHECK_RET_MSGHEADER( _pSendBuffer, _pReceiveBuffer, this ) ;
+
       if ( *cursor )
       {
          delete *cursor ;
@@ -6450,6 +6463,33 @@ do                                                            \
       ((_sdbCursorImpl*)*cursor)->_setCollection ( NULL ) ;
       ((_sdbCursorImpl*)*cursor)->_contextID = contextID ;
       ((_sdbCursorImpl*)*cursor)->_setConnection ( this ) ;
+
+      replyHeader = ( const MsgOpReply * )_pReceiveBuffer ;
+      if ( 1 == replyHeader->numReturned &&
+           (INT32)(sizeof( MsgOpReply )) < replyHeader->header.messageLength )
+      {
+         try
+         {
+            BSONObj runInfo( _pReceiveBuffer + sizeof( MsgOpReply ) ) ;
+            BSONElement rType = runInfo.getField( FIELD_NAME_RTYPE ) ;
+            if ( NumberInt != rType.type() )
+            {
+               rc = SDB_SYS ;
+               goto error ;
+            }
+            type = ( SDB_SPD_RES_TYPE )( rType.Int() ) ;
+         }
+         catch ( std::exception &e )
+         {
+            rc = SDB_SYS ;
+            goto error ;
+         }
+      }
+      else
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
    done:
       if ( locked )
       {

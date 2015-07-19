@@ -416,11 +416,6 @@ namespace engine
       }
       else
       {
-/*
-#if defined (_DEBUG)
-         ossPanic() ;
-#endif
-*/
          builder.append( OMA_FIELD_DETAIL, getErrDesp( rc ) ) ;
       }
 

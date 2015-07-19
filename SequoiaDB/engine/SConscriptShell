@@ -44,6 +44,9 @@ spt2Files = [
       ]
 
 ossFiles = [
+      "oss/ossSSLCertificate.c",
+      "oss/ossSSLWrapper.c",
+      "oss/ossSSLContext.c",
       "oss/oss.cpp",
       "oss/ossErr.cpp",
       "oss/ossUtil.cpp",

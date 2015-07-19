@@ -39,6 +39,7 @@
 
 #include "pmd.hpp"
 #include "catSplit.hpp"
+#include "rtnContextBuff.hpp"
 
 using namespace bson ;
 
@@ -161,22 +162,14 @@ namespace engine
                                BOOLEAN writable ) ;
 
       INT32 processCmdCreateCL( const CHAR *pQuery,
-                                CHAR **ppReplyBody,
-                                UINT32 &replyBodyLen,
-                                INT32 &returnNum ) ;
+                                rtnContextBuf &ctxBuf ) ;
       INT32 processCmdCreateCS( const CHAR *pQuery,
-                                CHAR **ppReplyBody,
-                                UINT32 &replyBodyLen,
-                                INT32 &returnNum ) ;
+                                rtnContextBuf &ctxBuf ) ;
       INT32 processCmdSplit( const CHAR *pQuery,
                              INT32 opCode,
-                             CHAR **ppReplyBody,
-                             UINT32 &replyBodyLen,
-                             INT32 &returnNum ) ;
+                             rtnContextBuf &ctxBuf ) ;
       INT32 processCmdQuerySpaceInfo( const CHAR *pQuery,
-                                      CHAR **ppReplyBody,
-                                      UINT32 &replyBodyLen,
-                                      INT32 &returnNum ) ;
+                                      rtnContextBuf &ctxBuf ) ;
       INT32 processCmdDropCollection ( const CHAR *pQuery,
                                        INT32 version = -1 ) ;
       INT32 processCmdDropCollectionSpace ( const CHAR *pQuery ) ;
@@ -184,20 +177,14 @@ namespace engine
       INT32 processQueryCatalogue ( const NET_HANDLE &handle,
                                     MsgHeader *pMsg ) ;
       INT32 processQueryTask ( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
-      INT32 processAlterCollection ( void *pMsg,
-                                     CHAR **ppReplyBody,
-                                     UINT32 &replyBodyLen,
-                                     INT32 &returnNum ) ;
+      INT32 processAlterCollection ( const CHAR *pMsg,
+                                     rtnContextBuf &ctxBuf ) ;
       INT32 processCmdCrtProcedures( void *pMsg ) ;
       INT32 processCmdRmProcedures( void *pMsg ) ;
       INT32 processCmdLinkCollection( const CHAR *pQuery,
-                                    CHAR **ppReplyBody,
-                                    UINT32 &replyBodyLen,
-                                    INT32 &returnNum );
+                                      rtnContextBuf &ctxBuf );
       INT32 processCmdUnlinkCollection( const CHAR *pQuery,
-                                       CHAR **ppReplyBody,
-                                       UINT32 &replyBodyLen,
-                                       INT32 &returnNum );
+                                        rtnContextBuf &ctxBuf );
       INT32 processCmdCreateDomain ( const CHAR *pQuery ) ;
       INT32 processCmdDropDomain ( const CHAR *pQuery ) ;
       INT32 processCmdAlterDomain ( const CHAR *pQuery ) ;
@@ -206,9 +193,9 @@ namespace engine
       void  _fillRspHeader( MsgHeader *rspMsg, const MsgHeader *reqMsg ) ;
       INT32 _sendFailedRsp( NET_HANDLE handle, INT32 res, MsgHeader *reqMsg) ;
 
-      INT32 _createCL( BSONObj & createObj, INT32 &groupID,
+      INT32 _createCL( BSONObj & createObj, UINT32 &groupID,
                        std::vector<UINT64> &taskIDs ) ;
-      INT32 _createCS( BSONObj & createObj, INT32 &groupID ) ;
+      INT32 _createCS( BSONObj & createObj, UINT32 &groupID ) ;
 
       INT32 _checkAndBuildCataRecord( const BSONObj &infoObj,
                                       UINT32 &fieldMask,
@@ -220,12 +207,12 @@ namespace engine
       INT32 _checkGroupInDomain( const CHAR *groupName,
                                  const CHAR *domainName,
                                  BOOLEAN &existed,
-                                 INT32 *pGroupID = NULL ) ;
-      INT32 _assignGroup( vector< INT32 > *pGoups, INT32 &groupID ) ;
+                                 UINT32 *pGroupID = NULL ) ;
+      INT32 _assignGroup( vector< UINT32 > *pGoups, UINT32 &groupID ) ;
 
       INT32 _buildCatalogRecord( const catCollectionInfo &clInfo,
                                  UINT32 mask,
-                                 INT32 groupID,
+                                 UINT32 groupID,
                                  const CHAR *groupName,
                                  BSONObj &catRecord ) ;
 
@@ -233,12 +220,12 @@ namespace engine
                               const BSONObj &csObj,
                               const catCollectionInfo &clInfo,
                               std::string &groupName,
-                              INT32 &groupID,
-                              std::map<string, INT32> &splitRange ) ;
+                              UINT32 &groupID,
+                              std::map<string, UINT32> &splitRange ) ;
 
       INT32 _autoHashSplit( const BSONObj &clObj, std::vector<UINT64> &taskIDs,
                             const CHAR *srcGroupName = NULL,
-                            const map<string, INT32> *dstIDs = NULL ) ;
+                            const map<string, UINT32> *dstIDs = NULL ) ;
 
       INT32 _combineOptions( const BSONObj &domain,
                              const BSONObj &cs,

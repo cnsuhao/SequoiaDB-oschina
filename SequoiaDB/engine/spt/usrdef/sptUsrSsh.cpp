@@ -41,6 +41,7 @@ using namespace std ;
 
 namespace engine
 {
+JS_MEMBER_FUNC_DEFINE( _sptUsrSsh, close )
 JS_MEMBER_FUNC_DEFINE( _sptUsrSsh, exec )
 JS_MEMBER_FUNC_DEFINE( _sptUsrSsh, copy2Remote )
 JS_MEMBER_FUNC_DEFINE( _sptUsrSsh, copyFromRemote )
@@ -54,6 +55,7 @@ JS_DESTRUCT_FUNC_DEFINE( _sptUsrSsh, destruct )
 JS_STATIC_FUNC_DEFINE(_sptUsrSsh, help)
 
 JS_BEGIN_MAPPING( _sptUsrSsh, "Ssh" )
+   JS_ADD_MEMBER_FUNC( "close", close )
    JS_ADD_MEMBER_FUNC( "exec", exec )
    JS_ADD_MEMBER_FUNC( "push", copy2Remote )
    JS_ADD_MEMBER_FUNC( "pull", copyFromRemote )
@@ -137,6 +139,8 @@ JS_MAPPING_END()
          _session->getLastError( errmsg ) ;
          goto error ;
       }
+      _localIP = _session->getLocalIPAddr() ;
+      _peerIP = _session->getPeerIPAddr() ;
 
       rval.setUsrObjectVal( "", this, SPT_CLASS_DEF( this ) ) ;
    done:
@@ -214,6 +218,13 @@ JS_MAPPING_END()
          PD_RC_CHECK( rc, PDERROR, "Failed to get mode, rc: %d", rc ) ;
       }
 
+      if ( !_session->isOpened() )
+      {
+         detail = BSON( SPT_ERR << "connection is shutdown" ) ;
+         rc = SDB_NETWORK ;
+         goto error ;
+      }
+
       rc = _session->copy2Remote( SPT_CP_PROTOCOL_SCP,
                                   local.c_str(),
                                   dst.c_str(),
@@ -274,6 +285,13 @@ JS_MAPPING_END()
          PD_RC_CHECK( rc, PDERROR, "Failed to get mode, rc: %d", rc ) ;
       }
 
+      if ( !_session->isOpened() )
+      {
+         detail = BSON( SPT_ERR << "connection is shutdown" ) ;
+         rc = SDB_NETWORK ;
+         goto error ;
+      }
+
       rc = _session->copyFromRemote( SPT_CP_PROTOCOL_SCP,
                                      remote.c_str(),
                                      local.c_str(),
@@ -292,6 +310,17 @@ JS_MAPPING_END()
          detail = BSON( SPT_ERR << errMsg ) ;
       }
       goto done ;
+   }
+
+   INT32 _sptUsrSsh::close( const _sptArguments &arg,
+                            _sptReturnVal &rval,
+                            bson::BSONObj &detail )
+   {
+      if ( _session )
+      {
+         _session->close() ;
+      }
+      return SDB_OK ;
    }
 
    INT32 _sptUsrSsh::exec( const _sptArguments &arg,
@@ -316,6 +345,13 @@ JS_MAPPING_END()
          detail = BSON( SPT_ERR << "command must be string" ) ;
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get command, rc: %d", rc ) ;
+
+      if ( !_session->isOpened() )
+      {
+         detail = BSON( SPT_ERR << "connection is shutdown" ) ;
+         rc = SDB_NETWORK ;
+         goto error ;
+      }
 
       rc = _session->exec( cmd.c_str(), _lastRet, _lastOutStr ) ;
       if ( SDB_OK != rc )
@@ -364,6 +400,7 @@ JS_MAPPING_END()
          << "var ssh = new Ssh( hostname, [user], [password], [port] )" << endl
          << "   getLastRet()       --- get the last cmd remote exec return number" << endl
          << "   getLastOut()       --- get the last cmd remote exec out string" << endl
+         << "   close()" << endl
          << "   exec( command )" << endl
          << "   push( local_file, dst_file, [mode] )" << endl
          << "   pull( remote_file, local_file, [mode] )" << endl
@@ -394,14 +431,13 @@ JS_MAPPING_END()
                                  BSONObj & detail )
    {
       INT32 rc = SDB_OK ;
-      string ip = _session->getLocalIPAddr() ;
-      if ( ip.empty() )
+      if ( _localIP.empty() )
       {
          detail = BSON( SPT_ERR << "not connect" ) ;
          rc = SDB_NETWORK ;
          goto error ;
       }
-      rval.setStringVal( "", ip.c_str() ) ;
+      rval.setStringVal( "", _localIP.c_str() ) ;
 
    done:
       return rc ;
@@ -414,14 +450,13 @@ JS_MAPPING_END()
                                 BSONObj & detail )
    {
       INT32 rc = SDB_OK ;
-      string ip = _session->getPeerIPAddr() ;
-      if ( ip.empty() )
+      if ( _peerIP.empty() )
       {
          detail = BSON( SPT_ERR << "not connect" ) ;
          rc = SDB_NETWORK ;
          goto error ;
       }
-      rval.setStringVal( "", ip.c_str() ) ;
+      rval.setStringVal( "", _peerIP.c_str() ) ;
 
    done:
       return rc ;

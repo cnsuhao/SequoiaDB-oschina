@@ -56,6 +56,8 @@
 #include "ossIO.hpp"
 #include "sptSPDef.hpp"
 #include "sptConvertorHelper.hpp"
+#include <boost/lexical_cast.hpp>
+#include "utilStr.hpp"
 
 #define SAFE_BSON_DISPOSE( p ) \
    do { if ( p ) { bson_dispose( p ) ; ( p ) = NULL ; } } while ( 0 )
@@ -88,7 +90,7 @@
       engine::sdbSetErrno( SDB_OK ) ;                           \
       if ( ! (cond) ) {                                     \
          ret = JS_FALSE ;                                   \
-         engine::sdbSetErrMsg( rc ? getErrDesp( rc ) : NULL ) ;\
+         engine::sdbSetErrMsg( msg ? msg : getErrDesp( rc ) ) ;\
          engine::sdbSetErrno( rc ) ;                         \
          JS_SetPendingException ( cx , INT_TO_JSVAL( rc ) ) ;   \
          goto error ;                                       \
@@ -3837,7 +3839,8 @@ static JSBool isSpecialCSName ( const CHAR *name )
                                    "removeCatalogRG",
                                    "createCoordRG",
                                    "removeCoordRG",
-                                   "getCoordRG"
+                                   "getCoordRG",
+                                   "forceStepUp",
    };
    JSBool   in = JS_FALSE ;
    INT32    i  = 0 ;
@@ -3917,8 +3920,41 @@ static JSClass sdb_class = {
    JSCLASS_NO_OPTIONAL_MEMBERS           // optional members
 };
 
-// PD_TRACE_DECLARE_FUNCTION ( SDB_SDB_CONSTRUCTOR, "sdb_constructor" )
-static JSBool sdb_constructor ( JSContext *cx , uintN argc , jsval *vp )
+static JSClass secure_sdb_class = {
+   "SecureSdb",                          // class name
+   JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE,   // flags
+   JS_PropertyStub,                      // addProperty
+   JS_PropertyStub,                      // delProperty
+   JS_PropertyStub,                      // getProperty
+   JS_StrictPropertyStub,                // setProperty
+   JS_EnumerateStub,                     // enumerate
+   (JSResolveOp) sdb_resolve ,           // resolve
+   JS_ConvertStub,                       // convert
+   sdb_destructor,                       // finalize
+   JSCLASS_NO_OPTIONAL_MEMBERS           // optional members
+};
+
+static INT32 _sdb_connect ( const CHAR *hostName, const CHAR *serviceName,
+                              const CHAR *userName, const CHAR *passwd,
+                              BOOLEAN secure, 
+                              sdbConnectionHandle *handle )
+{
+   INT32 ret ;
+
+   if ( secure )
+   {
+      ret = sdbSecureConnect ( hostName, serviceName, userName, passwd, handle ) ;
+   }
+   else
+   {
+      ret = sdbConnect ( hostName, serviceName, userName, passwd, handle ) ;
+   }
+
+   return ret ;
+}
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_SDB_CONSTRUCTOR, "_sdb_constructor" )
+static JSBool _sdb_constructor ( JSContext *cx , uintN argc , jsval *vp , BOOLEAN secure)
 {
    PD_TRACE_ENTRY ( SDB_SDB_CONSTRUCTOR );
    JSString *           strHost     = NULL ;
@@ -3942,7 +3978,14 @@ static JSBool sdb_constructor ( JSContext *cx , uintN argc , jsval *vp )
                                "/SSSS" , &strHost , &strPort ,
                                &strName , &strPwd ) ;
 #endif
-   REPORT ( ret , "new Sdb(): wrong arguments" ) ;
+   if ( secure )
+   {
+      REPORT ( ret , "new SecureSdb(): wrong arguments" ) ;
+   }
+   else
+   {
+      REPORT ( ret , "new Sdb(): wrong arguments" ) ;
+   }
 
 #if !defined (SDB_FMP)
    if ( !strHost )
@@ -4036,8 +4079,7 @@ static JSBool sdb_constructor ( JSContext *cx , uintN argc , jsval *vp )
 #if defined( SDB_FMP )
       g_disablePassEncode = FALSE ;
 #endif // SDB_FMP
-      rc = sdbConnect ( host , port , name , pwd , connection ) ;
-      REPORT_RC ( SDB_OK == rc , "new Sdb()" , rc ) ;
+      rc = _sdb_connect ( host , port , name , pwd , secure , connection ) ;
    }
    else if ( strName && ! strPwd )
    {
@@ -4047,14 +4089,36 @@ static JSBool sdb_constructor ( JSContext *cx , uintN argc , jsval *vp )
    {
 #if defined( SDB_FMP )
       g_disablePassEncode = TRUE ;
-      rc = sdbConnect ( host , port , g_UserName, g_Password, connection ) ;
+      rc = _sdb_connect ( host , port , g_UserName, g_Password, secure, connection ) ;
 #else
-      rc = sdbConnect ( host , port , "", "", connection ) ;
+      rc = _sdb_connect ( host , port , "", "", secure, connection ) ;
 #endif // SDB_FMP
-      REPORT_RC ( SDB_OK == rc , "new Sdb()" , rc ) ;
    }
-   obj = JS_NewObject ( cx , &sdb_class, NULL, NULL ) ;
-   VERIFY ( obj ) ;
+
+   if ( secure )
+   {
+      JSObject* proto = NULL ;
+      JSObject* sdbObj = NULL;
+
+      REPORT_RC ( SDB_OK == rc , "new SecureSdb()" , rc ) ;
+
+      obj = JS_NewObject ( cx , &secure_sdb_class, NULL, NULL ) ;
+      VERIFY ( obj ) ;
+
+      proto = JS_GetPrototype(cx, obj);
+      VERIFY ( proto ) ;
+      sdbObj = JS_NewObject ( cx , &sdb_class, NULL, NULL ) ;
+      VERIFY ( sdbObj ) ;
+      ret = JS_SetPrototype(cx, proto, sdbObj);
+      VERIFY ( ret ) ;
+   }
+   else
+   {
+      REPORT_RC ( SDB_OK == rc , "new Sdb()" , rc ) ;
+      obj = JS_NewObject ( cx , &sdb_class, NULL, NULL ) ;
+      VERIFY ( obj ) ;
+   }
+
    /*
    jsval *pv = (jsval*)JS_malloc ( cx, sizeof(jsval) ) ;
    VERIFY ( pv ) ;
@@ -4091,8 +4155,25 @@ done :
 error :
    SAFE_RELEASE_CONNECTION ( connection ) ;
    SAFE_JS_FREE ( cx , connection ) ;
-   TRY_REPORT ( cx , "new Sdb(): false" ) ;
+   if ( secure )
+   {
+      TRY_REPORT ( cx , "new SecureSdb(): false" ) ;
+   }
+   else
+   {
+      TRY_REPORT ( cx , "new Sdb(): false" ) ;
+   }
    goto done ;
+}
+
+static JSBool sdb_constructor ( JSContext *cx , uintN argc , jsval *vp )
+{
+   return _sdb_constructor ( cx , argc , vp , FALSE ) ;
+}
+
+static JSBool secure_sdb_constructor ( JSContext *cx , uintN argc , jsval *vp )
+{
+   return _sdb_constructor ( cx , argc , vp , TRUE ) ;
 }
 
 
@@ -4123,9 +4204,13 @@ static JSBool rn_connect ( JSContext *cx, uintN argc, jsval *vp )
    jsval                    valServiceName = JSVAL_VOID ;
    JSString                *strHostName    = NULL ;
    JSString                *strServiceName = NULL ;
+   JSBool                  secure          = JS_FALSE ;
 
-   rn = (sdbNodeHandle *)JS_GetPrivate ( cx,
-                                                JS_THIS_OBJECT ( cx, vp ) ) ;
+   ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
+                               "/b" , &secure ) ;
+   REPORT ( ret , "SdbNode.connect(): wrong argument" ) ;
+
+   rn = (sdbNodeHandle *)JS_GetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ) ) ;
    REPORT ( rn, "SdbNode.connect(): no node handle" ) ;
 
    rc = sdbGetNodeAddr ( *rn, &host, &port, NULL, NULL ) ;
@@ -4136,11 +4221,29 @@ static JSBool rn_connect ( JSContext *cx, uintN argc, jsval *vp )
    VERIFY ( connection ) ;
    *connection = SDB_INVALID_HANDLE ;
 
-   rc = sdbConnect ( host, port, "", "", connection ) ;
+   rc = _sdb_connect ( host, port, "", "", secure, connection ) ;
    REPORT_RC ( SDB_OK == rc, "SdbNode.connect()", rc ) ;
 
-   obj = JS_NewObject ( cx, &sdb_class , 0 , 0 ) ;
-   VERIFY ( obj ) ;
+   if ( secure )
+   {
+      JSObject* proto = NULL ;
+      JSObject* sdbObj = NULL;
+
+      obj = JS_NewObject ( cx , &secure_sdb_class, NULL, NULL ) ;
+      VERIFY ( obj ) ;
+
+      proto = JS_GetPrototype(cx, obj);
+      VERIFY ( proto ) ;
+      sdbObj = JS_NewObject ( cx , &sdb_class, NULL, NULL ) ;
+      VERIFY ( sdbObj ) ;
+      ret = JS_SetPrototype(cx, proto, sdbObj);
+      VERIFY ( ret ) ;
+   }
+   else
+   {
+      obj = JS_NewObject ( cx, &sdb_class , NULL , NULL ) ;
+      VERIFY ( obj ) ;
+   }
 
    JS_SET_RVAL ( cx, vp, OBJECT_TO_JSVAL ( obj ) ) ;
 
@@ -6594,6 +6697,42 @@ error:
    goto done ;
 }
 
+// PD_TRACE_DECLARE_FUNCTION( SDB_SDB_FORCE_STEP_UP, "sdb_force_step_up" )
+static JSBool sdb_force_step_up( JSContext *cx, uintN argc, jsval *vp )
+{
+   PD_TRACE_ENTRY( SDB_SDB_FORCE_STEP_UP) ;
+   sdbConnectionHandle *connection = NULL ;
+   BOOLEAN ret = TRUE ;
+   INT32 rc = SDB_OK ;
+   JSObject *opsObj = NULL ;
+   bson *ops = NULL ;
+
+   connection = (sdbConnectionHandle *)
+                 JS_GetPrivate ( cx , JS_THIS_OBJECT ( cx , vp ) ) ;
+   REPORT ( connection , "Sdb.forceSetpUp(): no connection handle" ) ;
+
+   ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
+                               "/o" , opsObj ) ;
+   REPORT ( ret , "Sdb.forceStepUp(): wrong arguments" ) ;
+
+   if ( NULL != opsObj )
+   {
+      ret = objToBson( cx, opsObj, &ops ) ;
+      REPORT ( ret , "Sdb.forceStepUp(): failed to convert object" ) ;
+   }
+
+   rc = sdbForceStepUp( *connection, ops ) ;
+   REPORT_RC ( SDB_OK == rc , "Sdb.forceStepUp()" , rc ) ;
+
+   JS_SET_RVAL ( cx , vp , JSVAL_VOID ) ;
+done:
+   SAFE_BSON_DISPOSE( ops ) ;
+   PD_TRACE_EXIT( SDB_SDB_FORCE_STEP_UP) ;
+   return ret ;
+error:
+   goto done ;
+}
+
 static JSFunctionSpec sdb_functions[] = {
    JS_FS ( "getCS" , sdb_get_cs , 1 , 0 ) ,
    JS_FS ( "getRG" , sdb_get_rg , 1 , 0 ) ,
@@ -6637,8 +6776,672 @@ static JSFunctionSpec sdb_functions[] = {
    JS_FS ( "listDomains", sdb_list_domains, 0, 0 ),
    JS_FS ( "invalidateCache", sdb_invalidate_cache, 0, 0 ),
    JS_FS ( "forceSession", sdb_force_session, 0, 0 ),
+   JS_FS ( "forceStepUp", sdb_force_step_up, 0, 0 ),
    JS_FS_END
 } ;
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_OBJECTID_DESTRUCTOR, "objectid_destructor" )
+static void objectid_destructor( JSContext *cx, JSObject *obj )
+{
+   PD_TRACE_ENTRY ( SDB_OBJECTID_DESTRUCTOR );
+   PD_TRACE_EXIT( SDB_OBJECTID_DESTRUCTOR ) ;
+   return ;
+}
+
+static JSClass objectid_class = {
+   "ObjectId", // class name
+   JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE ,   // flags
+   JS_PropertyStub,              // addProperty
+   JS_PropertyStub,              // delProperty
+   JS_PropertyStub,              // getProperty
+   JS_StrictPropertyStub,        // setProperty
+   JS_EnumerateStub,             // enumerate
+   JS_ResolveStub,               // resolve
+   JS_ConvertStub,               // convert
+   objectid_destructor,          // finalize
+   JSCLASS_NO_OPTIONAL_MEMBERS   // optional members
+} ;
+
+BOOLEAN isValidOIDHex( const CHAR *hex )
+{
+   if ( 24 != ossStrlen( hex ) )
+   {
+      return FALSE ;
+   }
+
+   for ( UINT32 i = 0; i < 24; ++i )
+   {
+      if ( !std::isxdigit(hex[i]) )
+      {
+         return FALSE ;
+      }
+   }
+
+   return TRUE ;
+}
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_OBJECTID_CONSTRUCTOR, "objectid_constructor" )
+static JSBool objectid_constructor( JSContext *cx, uintN argc, jsval *vp )
+{
+   JSBool ret = JS_TRUE ;
+   PD_TRACE_ENTRY( SDB_OBJECTID_CONSTRUCTOR ) ;
+   JSString *jsHexStr = NULL ;
+   JSString *jsOidStr = NULL ;
+   CHAR *hexStr = NULL ;
+   bson_oid_t oid ;
+   jsval valOIDStr = JSVAL_VOID ;
+   JSObject *jsOID = NULL ;
+
+   ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
+                               "/S" , &jsHexStr ) ;
+   REPORT_RC( ret, "ObjectId(): wrong arguments", SDB_INVALIDARG ) ;
+
+   if ( NULL == jsHexStr )
+   {
+      CHAR hexDump[25] = { 0 } ;
+      bson_oid_gen( &oid ) ;
+      bson_oid_to_string( &oid, hexDump ) ;
+      jsOidStr = JS_NewStringCopyN( cx, hexDump, 24 ) ;
+      VERIFY( jsOidStr ) ;
+   }
+   else
+   {
+      hexStr = ( CHAR * )JS_EncodeString( cx, jsHexStr ) ;
+      VERIFY( hexStr ) ;
+      if ( !isValidOIDHex( hexStr ) )
+      {
+         REPORT_RC( ret, "ObjectId(): wrong arguments", SDB_INVALIDARG ) ;
+      }
+      jsOidStr = JS_NewStringCopyN( cx, hexStr, 24 ) ;
+      VERIFY( jsOidStr ) ;
+   }
+
+   valOIDStr = STRING_TO_JSVAL( jsOidStr ) ;
+
+   jsOID = JS_NewObject ( cx , &objectid_class, NULL, NULL ) ;
+   VERIFY ( jsOID ) ;
+   VERIFY ( JS_SetProperty ( cx , jsOID , "_str" , &valOIDStr ) ) ;
+   JS_SET_RVAL( cx, vp, OBJECT_TO_JSVAL( jsOID ) ) ;
+done:
+   SAFE_JS_FREE( cx, hexStr ) ;
+   PD_TRACE_EXIT( SDB_OBJECTID_CONSTRUCTOR ) ;
+   return ret ;
+error:
+   ret = JS_FALSE ;
+   goto done ;
+}
+
+static JSFunctionSpec objectid_functions [] = {
+   JS_FS_END
+} ;
+
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_BINDATA_DESTRUCTOR, "bindata_destructor" )
+static void bindata_destructor( JSContext *cx, JSObject *obj )
+{
+   PD_TRACE_ENTRY ( SDB_BINDATA_DESTRUCTOR );
+   PD_TRACE_EXIT( SDB_BINDATA_DESTRUCTOR ) ;
+   return ;
+}
+
+static JSClass bindata_class = {
+   "BinData", // class name
+   JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE ,   // flags
+   JS_PropertyStub,              // addProperty
+   JS_PropertyStub,              // delProperty
+   JS_PropertyStub,              // getProperty
+   JS_StrictPropertyStub,        // setProperty
+   JS_EnumerateStub,             // enumerate
+   JS_ResolveStub,               // resolve
+   JS_ConvertStub,               // convert
+   bindata_destructor,           // finalize
+   JSCLASS_NO_OPTIONAL_MEMBERS   // optional members
+} ;
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_BINDATA_CONSTRUCTOR, "bindata_constructor" )
+static JSBool bindata_constructor( JSContext *cx, uintN argc, jsval *vp )
+{
+   PD_TRACE_ENTRY( SDB_BINDATA_CONSTRUCTOR ) ;
+   JSBool ret = JS_TRUE ;
+   JSObject *jsBinObj = NULL ;
+   JSString *jsBinData = NULL ;
+   JSString *jsBinType = NULL ;
+   jsval dataVal = JSVAL_VOID ;
+   jsval typeVal = JSVAL_VOID ;
+   CHAR *binData = NULL ;
+   CHAR *binType = NULL ;
+   std::string strType ;
+   
+   jsval *argv = JS_ARGV ( cx , vp ) ;
+   VERIFY( argv ) ;
+
+   if ( 2 != argc )
+   {
+      REPORT_RC ( FALSE , "BinData(): wrong arguments", SDB_INVALIDARG ) ;
+   }
+
+   if ( !JSVAL_IS_STRING(argv[0]) )
+   {
+      REPORT_RC ( FALSE , "BinData(): wrong arguments", SDB_INVALIDARG ) ;
+   }
+
+   if ( !JSVAL_IS_STRING(argv[1]) && 
+        !JSVAL_IS_INT(argv[1]) )
+   {
+      REPORT_RC ( FALSE , "BinData(): wrong arguments", SDB_INVALIDARG ) ;
+   }
+
+   binData = JS_EncodeString( cx, JSVAL_TO_STRING( argv[0]) ) ;
+   VERIFY( binData ) ;
+
+   if ( JSVAL_IS_STRING(argv[1]) )
+   {
+      binType = JS_EncodeString( cx, JSVAL_TO_STRING( argv[1] ) ) ;
+      VERIFY( binType ) ;
+
+      try
+      {
+         INT32 typeNumber = boost::lexical_cast<UINT32>( binType ) ;
+         if ( typeNumber < 0 || 255 < typeNumber )
+         {
+            REPORT_RC ( FALSE , "BinData(): wrong arguments", SDB_INVALIDARG ) ;
+         }
+         strType = std::string( binType ) ;
+      }
+      catch ( std::exception &e )
+      {
+         REPORT_RC ( FALSE , "BinData(): wrong arguments", SDB_INVALIDARG ) ;
+      }
+   }
+   else
+   {
+      INT32 typeNumber = JSVAL_TO_INT( argv[1] ) ;
+      if ( typeNumber < 0 || 255 < typeNumber )
+      {
+         REPORT_RC ( FALSE , "BinData(): wrong arguments", SDB_INVALIDARG ) ;
+      }
+      strType = boost::lexical_cast<string>( typeNumber ) ;
+   }
+
+   jsBinObj = JS_NewObject ( cx , &bindata_class, NULL, NULL ) ;
+   VERIFY( jsBinObj ) ;
+
+   jsBinData = JS_NewStringCopyN( cx, binData, ossStrlen( binData) ) ;
+   VERIFY( jsBinData ) ;
+   dataVal = STRING_TO_JSVAL( jsBinData ) ;
+
+   jsBinType = JS_NewStringCopyN( cx, strType.c_str(), strType.size() ) ;
+   VERIFY( jsBinType ) ;
+   typeVal = STRING_TO_JSVAL( jsBinType ) ;
+
+   VERIFY ( JS_SetProperty ( cx, jsBinObj, "_data", &dataVal ) ) ;
+   VERIFY ( JS_SetProperty ( cx, jsBinObj, "_type", &typeVal ) ) ;
+
+   JS_SET_RVAL( cx, vp, OBJECT_TO_JSVAL( jsBinObj ) ) ;
+
+done:
+   SAFE_JS_FREE( cx, binData ) ;
+   SAFE_JS_FREE( cx, binType ) ;
+   PD_TRACE_EXIT( SDB_BINDATA_CONSTRUCTOR ) ;
+   return ret ;
+error:
+   ret = FALSE ;
+   goto done ;
+}
+
+static JSFunctionSpec bindata_functions [] = {
+   JS_FS_END
+} ;
+
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_TIMESTAMP_DESTRUCTOR, "timestamp_destructor" )
+static void timestamp_destructor( JSContext *cx, JSObject *obj )
+{
+   PD_TRACE_ENTRY( SDB_TIMESTAMP_DESTRUCTOR ) ;
+   PD_TRACE_EXIT( SDB_TIMESTAMP_DESTRUCTOR ) ;
+   return ;
+}
+
+static JSClass timestamp_class = {
+   "Timestamp", // class name
+   JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE ,   // flags
+   JS_PropertyStub,              // addProperty
+   JS_PropertyStub,              // delProperty
+   JS_PropertyStub,              // getProperty
+   JS_StrictPropertyStub,        // setProperty
+   JS_EnumerateStub,             // enumerate
+   JS_ResolveStub,               // resolve
+   JS_ConvertStub,               // convert
+   timestamp_destructor,          // finalize
+   JSCLASS_NO_OPTIONAL_MEMBERS   // optional members
+} ;
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_TIMESTAMP_CONSTRUCTOR, "timestamp_constructor" )
+static JSBool timestamp_constructor( JSContext *cx, uintN argc, jsval *vp )
+{
+   PD_TRACE_ENTRY( SDB_TIMESTAMP_CONSTRUCTOR ) ;
+   INT32 rc = SDB_OK ;
+   JSBool ret = JS_TRUE ;
+   CHAR *timeStr = NULL ;
+   JSString *jsTimeProperty = NULL ;
+   JSObject *jsObj = NULL ;
+   jsval valTime = JSVAL_VOID ;
+
+   jsval *argv = JS_ARGV ( cx , vp ) ;
+   if ( 0 == argc )
+   {
+      ossTimestamp currentTime ;
+      struct tm localTm ;
+      time_t t ;
+      CHAR buf[128] ;
+
+      ossGetCurrentTime( currentTime ) ;
+      t = currentTime.time ;
+      ossLocalTime( t, localTm ) ;
+      ossSnprintf( buf, 127,
+                   "%04d-%02d-%02d-%02d.%02d.%02d.%06d",
+                   localTm.tm_year+1900,            // 1) Year (UINT32)
+                   localTm.tm_mon+1,                // 2) Month (UINT32)
+                   localTm.tm_mday,                 // 3) Day (UINT32)
+                   localTm.tm_hour,                 // 4) Hour (UINT32)
+                   localTm.tm_min,                  // 5) Minute (UINT32)
+                   localTm.tm_sec,                  // 6) Second (UINT32)
+                   currentTime.microtm ) ;
+      jsTimeProperty = JS_NewStringCopyN( cx, buf, ossStrlen( buf ) ) ;
+      VERIFY( jsTimeProperty ) ;
+   }
+   else if ( 1 == argc )
+   {
+      time_t tm ;
+      UINT64 usec = 0 ;
+
+      if ( !JSVAL_IS_STRING( argv[0]) )
+      {
+         REPORT_RC ( SDB_OK == rc , "Timestamp(): wrong arguments", SDB_INVALIDARG ) ;
+      }
+
+      timeStr = JS_EncodeString( cx, JSVAL_TO_STRING( argv[0]) ) ;
+      VERIFY( timeStr ) ;
+      rc = engine::utilStr2TimeT( timeStr, tm, &usec ) ;
+      REPORT_RC ( SDB_OK == rc , "Timestamp(): wrong arguments", SDB_INVALIDARG ) ;
+      jsTimeProperty = JS_NewStringCopyN( cx, timeStr, ossStrlen( timeStr ) ) ;
+      VERIFY( jsTimeProperty ) ;
+   }
+   else if ( 2 == argc )
+   {
+      struct tm localTm ;
+      time_t t ;
+      UINT32 inc = 0 ;
+      CHAR buf[128] ;
+ 
+      if ( !JSVAL_IS_INT( argv[0]) ||
+           !JSVAL_IS_INT( argv[1] ))
+      {
+         REPORT_RC ( FALSE, "Timestamp(): wrong arguments", SDB_INVALIDARG ) ;
+      }
+
+      t = JSVAL_TO_INT( argv[0] ) ;
+      inc = JSVAL_TO_INT( argv[1] ) ;
+      ossLocalTime( t, localTm ) ;
+      ossSnprintf( buf, 127,
+                   "%04d-%02d-%02d-%02d.%02d.%02d.%06d",
+                   localTm.tm_year+1900,            // 1) Year (UINT32)
+                   localTm.tm_mon+1,                // 2) Month (UINT32)
+                   localTm.tm_mday,                 // 3) Day (UINT32)
+                   localTm.tm_hour,                 // 4) Hour (UINT32)
+                   localTm.tm_min,                  // 5) Minute (UINT32)
+                   localTm.tm_sec,                  // 6) Second (UINT32)
+                   inc ) ;
+      jsTimeProperty = JS_NewStringCopyN( cx, buf, ossStrlen( buf ) ) ;
+      VERIFY( jsTimeProperty ) ;
+   }
+   else
+   {
+      REPORT_RC ( FALSE, "Timestamp(): wrong arguments", SDB_INVALIDARG ) ;
+   }
+
+   valTime = STRING_TO_JSVAL( jsTimeProperty ) ;
+
+   jsObj = JS_NewObject( cx, &timestamp_class, NULL, NULL ) ;
+   VERIFY( jsObj ) ;
+
+   VERIFY ( JS_SetProperty ( cx, jsObj, "_t", &valTime ) ) ;
+
+   JS_SET_RVAL( cx, vp, OBJECT_TO_JSVAL( jsObj ) ) ;
+done:
+   SAFE_JS_FREE( cx, timeStr ) ;
+   PD_TRACE_EXIT( SDB_TIMESTAMP_CONSTRUCTOR ) ;
+   return ret ;
+error:
+   ret = JS_FALSE ;
+   goto done ;
+}
+
+static JSFunctionSpec timestamp_functions [] = {
+   JS_FS_END
+} ;
+
+
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_REGEX_DESTRUCTOR, "regex_destructor" )
+static void regex_destructor( JSContext *cx, JSObject *obj )
+{
+   PD_TRACE_ENTRY( SDB_REGEX_DESTRUCTOR ) ;
+   PD_TRACE_EXIT( SDB_REGEX_DESTRUCTOR ) ;
+   return ;
+}
+
+static JSClass regex_class = {
+   "Regex", // class name
+   JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE ,   // flags
+   JS_PropertyStub,              // addProperty
+   JS_PropertyStub,              // delProperty
+   JS_PropertyStub,              // getProperty
+   JS_StrictPropertyStub,        // setProperty
+   JS_EnumerateStub,             // enumerate
+   JS_ResolveStub,               // resolve
+   JS_ConvertStub,               // convert
+   regex_destructor,             // finalize
+   JSCLASS_NO_OPTIONAL_MEMBERS   // optional members
+} ;
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_REGEX_CONSTRUCTOR, "regex_constructor" )
+static JSBool regex_constructor( JSContext *cx, uintN argc, jsval *vp )
+{
+   PD_TRACE_ENTRY( SDB_REGEX_CONSTRUCTOR ) ;
+   JSBool ret = JS_TRUE ;
+   JSString *jsRegex = NULL ;
+   JSString *jsOption = NULL ;
+   JSString *regexProperty = NULL ;
+   JSString *optionProperty = NULL ;
+   jsval regexVal = JSVAL_VOID ;
+   jsval optionVal = JSVAL_VOID ;
+   JSObject *jsObj = NULL ;
+   CHAR *regex = NULL ;
+   CHAR *option = NULL ;
+
+   ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
+                               "SS" , &jsRegex, &jsOption ) ;
+   REPORT_RC( ret, "Regex(): wrong arguments", SDB_INVALIDARG ) ;
+
+   regex = ( CHAR * )JS_EncodeString( cx, jsRegex ) ;
+   VERIFY( regex ) ;
+
+   option = ( CHAR * )JS_EncodeString( cx, jsOption ) ;
+   VERIFY( option ) ;
+
+   regexProperty = JS_NewStringCopyN( cx, regex, ossStrlen( regex ) ) ;
+   VERIFY( regexProperty ) ;
+
+   optionProperty = JS_NewStringCopyN( cx, option, ossStrlen( option ) ) ;
+   VERIFY( optionProperty ) ;
+
+   jsObj = JS_NewObject( cx, &regex_class, NULL, NULL ) ;
+   VERIFY( jsObj ) ;
+
+   regexVal = STRING_TO_JSVAL( regexProperty ) ;
+   optionVal = STRING_TO_JSVAL( optionProperty ) ;
+
+   VERIFY ( JS_SetProperty ( cx , jsObj , "_regex" , &regexVal ) ) ;
+   VERIFY ( JS_SetProperty ( cx , jsObj , "_option", &optionVal ) ) ;
+
+   JS_SET_RVAL( cx, vp, OBJECT_TO_JSVAL( jsObj ) ) ;
+done:
+   SAFE_JS_FREE( cx, regex ) ;
+   SAFE_JS_FREE( cx, option ) ;
+   PD_TRACE_EXIT( SDB_REGEX_CONSTRUCTOR ) ;
+   return ret ;
+error:
+   ret = JS_FALSE ;
+   goto done ;
+}
+
+static JSFunctionSpec regex_functions [] = {
+   JS_FS_END
+} ;
+
+
+
+static JSClass minkey_class = {
+   "MinKey", // class name
+   JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE ,   // flags
+   JS_PropertyStub,              // addProperty
+   JS_PropertyStub,              // delProperty
+   JS_PropertyStub,              // getProperty
+   JS_StrictPropertyStub,        // setProperty
+   JS_EnumerateStub,             // enumerate
+   JS_ResolveStub,               // resolve
+   JS_ConvertStub,               // convert
+   JS_FinalizeStub,             // finalize
+   JSCLASS_NO_OPTIONAL_MEMBERS   // optional members
+} ;
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_MINKEY_CONSTRUCTOR, "minkey_constructor" )
+static JSBool minkey_constructor( JSContext *cx, uintN argc, jsval *vp )
+{
+   JSBool ret = JS_TRUE ;
+   PD_TRACE_ENTRY( SDB_MINKEY_CONSTRUCTOR ) ;
+   JSObject *jsObj = NULL ;
+
+   if ( 0 != argc )
+   {
+      REPORT_RC( ret, "MinKey(): wrong arguments", SDB_INVALIDARG ) ;
+   }
+
+   jsObj = JS_NewObject ( cx , &minkey_class, NULL, NULL ) ;
+   VERIFY( jsObj ) ;
+   JS_SET_RVAL( cx, vp, OBJECT_TO_JSVAL( jsObj ) ) ;
+done:
+   PD_TRACE_EXIT( SDB_MINKEY_CONSTRUCTOR ) ;
+   return ret ;
+error:
+   ret = JS_FALSE ;
+   goto done ;
+}
+
+
+static JSClass maxkey_class = {
+   "MaxKey", // class name
+   JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE ,   // flags
+   JS_PropertyStub,              // addProperty
+   JS_PropertyStub,              // delProperty
+   JS_PropertyStub,              // getProperty
+   JS_StrictPropertyStub,        // setProperty
+   JS_EnumerateStub,             // enumerate
+   JS_ResolveStub,               // resolve
+   JS_ConvertStub,               // convert
+   JS_FinalizeStub,             // finalize
+   JSCLASS_NO_OPTIONAL_MEMBERS   // optional members
+} ;
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_MAXKEY_CONSTRUCTOR, "maxkey_constructor" )
+static JSBool maxkey_constructor( JSContext *cx, uintN argc, jsval *vp )
+{
+   JSBool ret = JS_TRUE ;
+   PD_TRACE_ENTRY( SDB_MAXKEY_CONSTRUCTOR ) ;
+   JSObject *jsObj = NULL ;
+
+   if ( 0 != argc )
+   {
+      REPORT_RC( ret, "MaxKey(): wrong arguments", SDB_INVALIDARG ) ;
+   }
+
+   jsObj = JS_NewObject ( cx , &maxkey_class, NULL, NULL ) ;
+   VERIFY( jsObj ) ;
+   JS_SET_RVAL( cx, vp, OBJECT_TO_JSVAL( jsObj ) ) ;
+done:
+   PD_TRACE_EXIT( SDB_MAXKEY_CONSTRUCTOR ) ;
+   return ret ;
+error:
+   ret = JS_FALSE ;
+   goto done ;
+}
+
+
+static JSClass numberlong_class = {
+   "NumberLong", // class name
+   JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE ,   // flags
+   JS_PropertyStub,              // addProperty
+   JS_PropertyStub,              // delProperty
+   JS_PropertyStub,              // getProperty
+   JS_StrictPropertyStub,        // setProperty
+   JS_EnumerateStub,             // enumerate
+   JS_ResolveStub,               // resolve
+   JS_ConvertStub,               // convert
+   JS_FinalizeStub,              // finalize
+   JSCLASS_NO_OPTIONAL_MEMBERS   // optional members
+} ;
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_NUMBERLONG_CONSTRUCTOR, "numberlong_constructor" )
+static JSBool numberlong_constructor( JSContext *cx, uintN argc, jsval *vp )
+{
+   JSBool ret = JS_TRUE ;
+   PD_TRACE_ENTRY( SDB_NUMBERLONG_CONSTRUCTOR ) ;
+   JSObject *jsObj = NULL ;
+   jsdouble v = 0 ;
+   JSString *ln = NULL ;
+   jsval vval = JSVAL_VOID ;
+   INT64 n = 0 ;
+   CHAR *lnStr = NULL ;
+   JSString *lnProperty = NULL ;
+   string parsedStr ;
+   jsval *argv = JS_ARGV ( cx , vp ) ;
+   VERIFY( argv ) ;
+   
+   if ( 1 != argc ||
+        ( !JSVAL_IS_NUMBER( argv[0]) &&
+          !JSVAL_IS_STRING( argv[0]) ) )
+   {
+      REPORT_RC ( FALSE , "NumberLong(): wrong arguments", SDB_INVALIDARG ) ;
+   }
+
+   if ( JSVAL_IS_NUMBER( argv[0] ) )
+   {
+      ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
+                                  "d" , &v ) ;
+      REPORT_RC( ret, "NumberLong(): wrong arguments", SDB_INVALIDARG ) ;
+      n = v ;
+      v = n ;
+      vval = DOUBLE_TO_JSVAL( v ) ;
+   }
+   else
+   {
+      ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
+                                  "S" , &ln ) ;
+      REPORT_RC( ret, "NumberLong(): wrong arguments", SDB_INVALIDARG ) ;
+      lnStr = ( CHAR * )JS_EncodeString( cx, ln ) ;
+      VERIFY( lnStr ) ;
+      try
+      {
+         n = boost::lexical_cast<INT64>( lnStr ) ;
+      }
+      catch ( std::bad_cast &e )
+      {
+         REPORT_RC( FALSE, "NumberLong(): wrong arguments", SDB_INVALIDARG ) ;
+      }
+
+      parsedStr = boost::lexical_cast<string>( n ) ;
+      lnProperty = JS_NewStringCopyN( cx, parsedStr.c_str(), parsedStr.size() ) ;
+      VERIFY( lnProperty ) ;
+      vval = STRING_TO_JSVAL( lnProperty ) ;
+   }
+
+   jsObj = JS_NewObject ( cx , &numberlong_class, NULL, NULL ) ;
+   VERIFY( jsObj ) ;
+   VERIFY ( JS_SetProperty ( cx, jsObj, "_v", &vval ) ) ;
+   JS_SET_RVAL( cx, vp, OBJECT_TO_JSVAL( jsObj ) ) ;
+done:
+   SAFE_JS_FREE( cx, lnStr ) ;
+   PD_TRACE_EXIT( SDB_NUMBERLONG_CONSTRUCTOR ) ;
+   return ret ;
+error:
+   ret = JS_FALSE ;
+   goto done ;
+}
+
+
+static JSClass sdbdate_class = {
+   "SdbDate", // class name
+   JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE ,   // flags
+   JS_PropertyStub,              // addProperty
+   JS_PropertyStub,              // delProperty
+   JS_PropertyStub,              // getProperty
+   JS_StrictPropertyStub,        // setProperty
+   JS_EnumerateStub,             // enumerate
+   JS_ResolveStub,               // resolve
+   JS_ConvertStub,               // convert
+   JS_FinalizeStub,              // finalize
+   JSCLASS_NO_OPTIONAL_MEMBERS   // optional members
+} ;
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_SDBDATE_CONSTRUCTOR, "sdbdate_constructor" )
+static JSBool sdbdate_constructor( JSContext *cx, uintN argc, jsval *vp )
+{
+   PD_TRACE_ENTRY( SDB_SDBDATE_CONSTRUCTOR ) ;
+   JSBool ret = JS_TRUE ;
+   INT32 rc = SDB_OK ;
+   CHAR *timeStr = NULL ;
+   JSString *jsTimeProperty = NULL ;
+   JSObject *jsObj = NULL ;
+   jsval valTime = JSVAL_VOID ;
+
+   jsval *argv = JS_ARGV ( cx , vp ) ;
+   if ( 0 == argc )
+   {
+      ossTimestamp currentTime ;
+      struct tm localTm ;
+      time_t t ;
+      CHAR buf[128] ;
+
+      ossGetCurrentTime( currentTime ) ;
+      t = currentTime.time ;
+      ossLocalTime( t, localTm ) ;
+      ossSnprintf( buf, 127,
+                   "%04d-%02d-%02d",
+                   localTm.tm_year+1900,            // 1) Year (UINT32)
+                   localTm.tm_mon+1,                // 2) Month (UINT32)
+                   localTm.tm_mday ) ;                 // 3) Day (UINT32)
+      jsTimeProperty = JS_NewStringCopyN( cx, buf, ossStrlen( buf ) ) ;
+      VERIFY( jsTimeProperty ) ;
+   }
+   else if ( 1 == argc )
+   {
+      UINT64 mills = 0 ;
+
+      if ( !JSVAL_IS_STRING( argv[0]) )
+      {
+         REPORT_RC ( SDB_OK == rc , "SdbDate(): wrong arguments", SDB_INVALIDARG ) ;
+      }
+
+      timeStr = JS_EncodeString( cx, JSVAL_TO_STRING( argv[0]) ) ;
+      VERIFY( timeStr ) ;
+      rc = engine::utilStr2Date( timeStr, mills ) ;
+      REPORT_RC ( SDB_OK == rc , "SdbDate(): wrong arguments", SDB_INVALIDARG ) ;
+      jsTimeProperty = JS_NewStringCopyN( cx, timeStr, ossStrlen( timeStr ) ) ;
+      VERIFY( jsTimeProperty ) ;
+   }
+   else
+   {
+      REPORT_RC ( FALSE, "SdbDate(): wrong arguments", SDB_INVALIDARG ) ;
+   }
+
+   valTime = STRING_TO_JSVAL( jsTimeProperty ) ;
+
+   jsObj = JS_NewObject( cx, &sdbdate_class, NULL, NULL ) ;
+   VERIFY( jsObj ) ;
+
+   VERIFY ( JS_SetProperty ( cx, jsObj, "_d", &valTime ) ) ;
+
+   JS_SET_RVAL( cx, vp, OBJECT_TO_JSVAL( jsObj ) ) ;
+done:
+   SAFE_JS_FREE( cx, timeStr ) ;
+   PD_TRACE_EXIT( SDB_SDBDATE_CONSTRUCTOR ) ;
+   return ret ;
+error:
+   ret = JS_FALSE ;
+   goto done ; 
+}
+
 
 JSBool jsobj_is_query( JSContext *cx, JSObject *obj )
 {
@@ -6670,6 +7473,60 @@ JSBool jsobj_is_rg( JSContext *cx, JSObject *obj )
    return JS_InstanceOf( cx, obj, &rg_class, NULL ) ;
 }
 
+
+
+JSBool is_objectid( JSContext *cx, JSObject *obj )
+{
+   return JS_InstanceOf( cx, obj, &objectid_class, NULL ) ;
+}
+
+JSBool is_bindata( JSContext *cx, JSObject *obj )
+{
+   return JS_InstanceOf( cx, obj, &bindata_class, NULL ) ;
+}
+
+JSBool is_timestamp( JSContext *cx, JSObject *obj )
+{
+   return JS_InstanceOf( cx, obj, &timestamp_class, NULL ) ;
+}
+
+JSBool is_regex( JSContext *cx, JSObject *obj )
+{
+   return JS_InstanceOf( cx, obj, &regex_class, NULL ) ;
+}
+
+JSBool is_minkey( JSContext *cx, JSObject *obj )
+{
+   return JS_InstanceOf( cx, obj, &minkey_class, NULL ) ;
+}
+
+JSBool is_maxkey( JSContext *cx, JSObject *obj )
+{
+   return JS_InstanceOf( cx, obj, &maxkey_class, NULL ) ;
+}
+
+JSBool is_numberlong( JSContext *cx, JSObject *obj )
+{
+   return JS_InstanceOf( cx, obj, &numberlong_class, NULL ) ;
+}
+
+JSBool is_sdbdate( JSContext *cx, JSObject *obj )
+{
+   return JS_InstanceOf( cx, obj, &sdbdate_class, NULL ) ;
+}
+
+JSBool is_jsontypes( JSContext *cx, JSObject *obj )
+{
+   return is_objectid( cx, obj ) ||
+          is_bindata( cx, obj ) ||
+          is_timestamp( cx, obj ) ||
+          is_regex( cx, obj ) ||
+          is_minkey( cx, obj ) ||
+          is_maxkey( cx, obj ) ||
+          is_numberlong( cx, obj ) ||
+          is_sdbdate( cx, obj ) ;
+}
+
 JSBool jsobj_is_sdbobj( JSContext *cx, JSObject *obj )
 {
    if ( JS_InstanceOf( cx, obj, &cursor_class, NULL ) )
@@ -6697,6 +7554,10 @@ JSBool jsobj_is_sdbobj( JSContext *cx, JSObject *obj )
       return TRUE ;
    }
    else if ( JS_InstanceOf( cx, obj, &sdb_class, NULL ) )
+   {
+      return TRUE ;
+   }
+   else if ( JS_InstanceOf( cx, obj, &secure_sdb_class, NULL ) )
    {
       return TRUE ;
    }
@@ -6771,6 +7632,10 @@ JSBool InitDbClasses( JSContext *cx, JSObject *obj )
                            sdb_constructor , 2 ,
                            0 , sdb_functions , 0 , 0 ) ) ;
 
+   VERIFY ( JS_InitClass ( cx , obj , NULL , &secure_sdb_class ,
+                           secure_sdb_constructor , 2 ,
+                           0 , sdb_functions , 0 , 0 ) ) ;
+
    VERIFY ( JS_InitClass ( cx , obj , NULL , &count_class ,
                            count_constructor , 1 ,
                            0 , 0 , 0 , 0 ) ) ;
@@ -6778,6 +7643,38 @@ JSBool InitDbClasses( JSContext *cx, JSObject *obj )
    VERIFY ( JS_InitClass ( cx, obj, NULL, &domain_class,
                            domain_constructor, 0,
                            0, domain_functions, 0, 0 ) ) ;
+
+   VERIFY ( JS_InitClass ( cx, obj, NULL, &objectid_class,
+                           objectid_constructor, 0,
+                           0, objectid_functions, 0, 0 ) ) ;
+
+   VERIFY ( JS_InitClass ( cx, obj, NULL, &bindata_class,
+                           bindata_constructor, 0,
+                           0, bindata_functions, 0, 0 ) ) ;
+
+   VERIFY ( JS_InitClass ( cx, obj, NULL, &timestamp_class,
+                           timestamp_constructor, 0,
+                           0, timestamp_functions, 0, 0 ) ) ;
+
+   VERIFY ( JS_InitClass ( cx, obj, NULL, &regex_class,
+                           regex_constructor, 0,
+                           0, regex_functions, 0, 0 ) ) ;
+
+   VERIFY ( JS_InitClass ( cx, obj, NULL, &minkey_class,
+                           minkey_constructor, 0,
+                           0, NULL, 0, 0 ) ) ;
+
+   VERIFY ( JS_InitClass ( cx, obj, NULL, &maxkey_class,
+                           maxkey_constructor, 0,
+                           0, NULL, 0, 0 ) ) ;
+
+   VERIFY ( JS_InitClass ( cx, obj, NULL, &numberlong_class,
+                           numberlong_constructor, 0,
+                           0, NULL, 0, 0 ) ) ;
+
+   VERIFY ( JS_InitClass ( cx, obj, NULL, &sdbdate_class,
+                           sdbdate_constructor, 0,
+                           0, NULL, 0, 0 ) ) ;
 #elif defined (SDB_ENGINE)
 #endif
 

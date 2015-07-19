@@ -46,6 +46,7 @@
 #include "../bson/bsonobj.h"
 #include <vector>
 using namespace bson;
+using namespace std ;
 
 namespace engine
 {
@@ -57,16 +58,59 @@ namespace engine
 
    class _pmdEDUCB ;
 
+
+   /*
+      _dpsLogAccessor define
+   */
+   class _dpsLogAccessor
+   {
+      public:
+         _dpsLogAccessor() {}
+         virtual ~_dpsLogAccessor() {}
+
+      public:
+         virtual INT32     search( const DPS_LSN &minLsn,
+                                   _dpsMessageBlock *mb,
+                                   UINT8 type = DPS_SERCAH_ALL ) = 0 ;
+
+         virtual INT32     searchHeader( const DPS_LSN &lsn,
+                                         _dpsMessageBlock *mb,
+                                         UINT8 type = DPS_SERCAH_ALL ) = 0 ;
+
+         virtual DPS_LSN   getStartLsn ( BOOLEAN logBufOnly = FALSE ) = 0 ;
+
+         virtual DPS_LSN   getCurrentLsn() = 0 ;
+         virtual DPS_LSN   expectLsn() = 0 ;
+
+         virtual void      getLsnWindow( DPS_LSN &fileBeginLsn,
+                                         DPS_LSN &memBeginLsn,
+                                         DPS_LSN &endLsn,
+                                         DPS_LSN *pExpectLsn = NULL ) = 0 ;
+
+         virtual void      getLsnWindow( DPS_LSN &fileBeginLsn,
+                                         DPS_LSN &memBeginLsn,
+                                         DPS_LSN &endLsn,
+                                         DPS_LSN &expected ) = 0 ;
+
+         virtual INT32     move( const DPS_LSN_OFFSET &offset,
+                                 const DPS_LSN_VER &version ) = 0 ;
+
+         virtual INT32     recordRow( const CHAR *row, UINT32 len ) = 0 ;
+
+   } ;
+   typedef _dpsLogAccessor ILogAccessor ;
+
+
    /*
       _dpsLogWrapper define
    */
-   class _dpsLogWrapper : public _IControlBlock
+   class _dpsLogWrapper : public _IControlBlock, public ILogAccessor
    {
    private:
       _dpsReplicaLogMgr          _buf ;
       BOOLEAN                    _initialized ;
       BOOLEAN                    _dpslocal ;
-      dpsEventHandler            *_pEventHandler ;
+      vector< dpsEventHandler* > _vecEventHandler ;
 
    public:
       _dpsLogWrapper() ;
@@ -81,16 +125,38 @@ namespace engine
       virtual INT32  fini () ;
 
    public:
-      OSS_INLINE void setEventHandler( dpsEventHandler *pHandler )
-      {
-         _pEventHandler = pHandler ;
-         _buf.setEventHandler( pHandler ) ;
-      }
-      OSS_INLINE void unsetEventHandler()
-      {
-         _pEventHandler = NULL ;
-         _buf.unsetEventHandler() ;
-      }
+      virtual INT32     search( const DPS_LSN &minLsn,
+                                _dpsMessageBlock *mb,
+                                UINT8 type = DPS_SERCAH_ALL ) ;
+
+      virtual INT32     searchHeader( const DPS_LSN &lsn,
+                                      _dpsMessageBlock *mb,
+                                      UINT8 type = DPS_SERCAH_ALL ) ;
+
+      virtual DPS_LSN   getStartLsn ( BOOLEAN logBufOnly = FALSE ) ;
+
+      virtual DPS_LSN   getCurrentLsn() ;
+      virtual DPS_LSN   expectLsn() ;
+
+      virtual void      getLsnWindow( DPS_LSN &fileBeginLsn,
+                                      DPS_LSN &memBeginLsn,
+                                      DPS_LSN &endLsn,
+                                      DPS_LSN *pExpectLsn = NULL ) ;
+
+      virtual void      getLsnWindow( DPS_LSN &fileBeginLsn,
+                                      DPS_LSN &memBeginLsn,
+                                      DPS_LSN &endLsn,
+                                      DPS_LSN &expected ) ;
+
+      virtual INT32     move( const DPS_LSN_OFFSET &offset,
+                              const DPS_LSN_VER &version ) ;
+
+      virtual INT32     recordRow( const CHAR *row, UINT32 len ) ;
+
+   public:
+      void regEventHandler( dpsEventHandler *pHandler ) ;
+      void unregEventHandler( dpsEventHandler *pHandler ) ;
+
       OSS_INLINE _dpsReplicaLogMgr *getLogMgr ()
       {
          return &_buf ;
@@ -98,20 +164,6 @@ namespace engine
       OSS_INLINE BOOLEAN isLogLocal() const
       {
          return _dpslocal ;
-      }
-      OSS_INLINE INT32 search( const DPS_LSN &minLsn,
-                               _dpsMessageBlock *mb,
-                               UINT8 type = DPS_SERCAH_ALL )
-      {
-         SDB_ASSERT ( _initialized, "shouldn't call search without init" ) ;
-         return _buf.search( minLsn, mb, type, FALSE ) ;
-      }
-      OSS_INLINE INT32 searchHeader( const DPS_LSN &lsn,
-                                     _dpsMessageBlock *mb,
-                                     UINT8 type = DPS_SERCAH_ALL )
-      {
-         SDB_ASSERT ( _initialized, "shouldn't call search without init" ) ;
-         return _buf.search( lsn, mb, type, TRUE ) ;
       }
       OSS_INLINE INT32 run( _pmdEDUCB *cb )
       {
@@ -140,75 +192,9 @@ namespace engine
          return _buf.flushAll() ;
       }
 
-      OSS_INLINE DPS_LSN getStartLsn ( BOOLEAN logBufOnly = FALSE )
-      {
-         if ( !_initialized )
-         {
-            DPS_LSN lsn ;
-            return lsn ;
-         }
-         return _buf.getStartLsn ( logBufOnly ) ;
-      }
-
-      OSS_INLINE DPS_LSN  getCurrentLsn()
-      {
-         return _buf.currentLsn() ;
-      }
-
-      OSS_INLINE void getLsnWindow( DPS_LSN &fileBeginLsn,
-                                DPS_LSN &memBeginLsn,
-                                DPS_LSN &endLsn,
-                                DPS_LSN *pExpectLsn = NULL )
-      {
-         if ( !_initialized )
-         {
-            return ;
-         }
-
-         if ( pExpectLsn )
-         {
-            _buf.getLsnWindow( fileBeginLsn, memBeginLsn, endLsn, *pExpectLsn ) ;
-         }
-         else
-         {
-            _buf.getLsnWindow( fileBeginLsn, memBeginLsn, endLsn ) ;
-         }
-      }
-
-      OSS_INLINE void getLsnWindow( DPS_LSN &fileBeginLsn,
-                                DPS_LSN &memBeginLsn,
-                                DPS_LSN &endLsn,
-                                DPS_LSN &expected )
-      {
-         if ( !_initialized )
-         {
-            return ;
-         }
-         _buf.getLsnWindow( fileBeginLsn,
-                            memBeginLsn,
-                            endLsn,
-                            expected ) ;
-      }
-
-      OSS_INLINE DPS_LSN expectLsn()
-      {
-         if ( !_initialized )
-         {
-            DPS_LSN lsn ;
-            return lsn ;
-         }
-         return _buf.expectLsn() ;
-      }
-
       OSS_INLINE DPS_LSN_VER incVersion()
       {
          return _buf.incVersion() ;
-      }
-
-      OSS_INLINE INT32 move( const DPS_LSN_OFFSET &offset,
-                             const DPS_LSN_VER &version )
-      {
-         return _buf.move( offset, version ) ;
       }
 
       OSS_INLINE INT32 checkSyncControl( UINT32 reqLen, _pmdEDUCB *cb )
@@ -217,12 +203,8 @@ namespace engine
       }
 
    public:
-      void  writeData ( dpsMergeInfo &info ) ;
-
-      INT32 recordRow( const CHAR *row, UINT32 len ) ;
-
       INT32 prepare( dpsMergeInfo &info ) ;
-
+      void  writeData ( dpsMergeInfo &info ) ;
       INT32 completeOpr( _pmdEDUCB *cb, INT32 w ) ;
 
       void setLogFileSz ( UINT32 logFileSz )

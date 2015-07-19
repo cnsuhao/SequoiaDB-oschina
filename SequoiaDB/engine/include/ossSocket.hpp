@@ -71,6 +71,11 @@
 #define OSS_MAX_HOSTNAME            NI_MAXHOST
 #define OSS_MAX_SERVICENAME         NI_MAXSERV
 
+#ifdef SDB_SSL
+SDB_EXTERN_C_START
+struct SSLHandle ;
+SDB_EXTERN_C_END
+#endif
 
 /*
    _ossSocket define
@@ -89,6 +94,9 @@ class _ossSocket : public SDBObject
       INT32                _timeout ;
       BOOLEAN              _enableBlock ;
 
+#ifdef SDB_SSL
+      SSLHandle*           _sslHandle;
+#endif
 
    protected:
       UINT32   _getPort ( sockaddr_in *addr ) ;
@@ -126,7 +134,8 @@ class _ossSocket : public SDBObject
                    INT32 &receivedLen,
                    INT32 timeout = OSS_SOCKET_DFT_TIMEOUT,
                    INT32 flags = 0,
-                   BOOLEAN block = TRUE ) ;
+                   BOOLEAN block = TRUE,
+                   BOOLEAN recvRawData = FALSE ) ;
 
       INT32 connect ( INT32 timeout = OSS_SOCKET_DFT_TIMEOUT ) ;
       void  close () ;
@@ -134,6 +143,10 @@ class _ossSocket : public SDBObject
                      INT32 timeout = OSS_SOCKET_DFT_TIMEOUT ) ;
       INT32 disableNagle () ;
       void  quickAck () ;
+#ifdef SDB_SSL
+      INT32 secure () ;
+      INT32 doSSLHandshake ( const CHAR* initialBytes, INT32 len ) ;
+#endif
       UINT32 getPeerPort () ;
       INT32  getPeerAddress ( CHAR *pAddress, UINT32 length ) ;
       UINT32 getPeerIP () ;

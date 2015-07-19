@@ -58,9 +58,11 @@ namespace engine
    }CoordInsertMsg;
    typedef std::map< UINT32, CoordInsertMsg > GroupInsertMsgMap;
    public:
-      virtual INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                           CHAR **ppResultBuffer, pmdEDUCB *cb,
-                           MsgOpReply &replyHeader, BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    private:
       INT32 shardDataByGroup( const CoordCataInfoPtr &cataInfo,
                               INT32 count,

@@ -15,7 +15,7 @@ connect - Connect the database to the current node.
 .sp 2
 
 .sp 2
-node.connect()
+node.connect([secure])
 .SH "CATEGORY"
 
 .sp 2
@@ -25,9 +25,16 @@ Node
 .SH "DESCRIPTION"
 
 .sp 2
-Connect the database to the current node. After connecting them,
-users can execute a set of operations. Users can check relative
+Connect the database to the current node. Use SSL connection if
+secure is true, default false. After connecting them, users can
+execute a set of operations. Users can check relative
 manipulations with the method "node.connect().help()".
+.sp 2
+\fBsecure (boolean)\fR
+.br
+       Whether using security connection with SSL, optional.
+       Activate when secure equals to true, default value is
+       false.
 .SH "Examples"
 
 .sp 2

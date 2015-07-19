@@ -706,7 +706,6 @@ namespace engine
          _session = NULL ;
       }
 
-      libssh2_exit() ;
 
       return ;
    }

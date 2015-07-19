@@ -41,6 +41,7 @@
 #include "oss.hpp"
 #include "mongodef.hpp"
 #include "commands.hpp"
+#include "msg.hpp"
 
 class command ;
 
@@ -55,23 +56,12 @@ public:
 
    ~mongoConverter()
    {
-
+      resetCommand() ;
    }
 
    BOOLEAN isBigEndian() const
    {
       return _bigEndian ;
-   }
-
-   BOOLEAN isGetLastError() const
-   {
-      const CHAR *ptr = NULL ;
-      ptr = ossStrstr( _cmd->name(), "getLastError" ) ;
-      if ( NULL == ptr )
-      {
-         ptr = ossStrstr( _cmd->name(), "getlasterror" ) ;
-      }
-      return NULL != ptr ;
    }
 
    void resetCommand()
@@ -89,8 +79,9 @@ public:
       return _parser ;
    }
 
-   virtual INT32 convert( std::vector<msgBuffer*> &out ) ;
-   virtual INT32 reConvert( msgBuffer *in, msgBuffer &out ) ;
+   virtual INT32 convert( msgBuffer &out ) ;
+   virtual INT32 reConvert( msgBuffer &out, MsgOpReply *reply ) ;
+
 
 private:
    BOOLEAN _bigEndian ;

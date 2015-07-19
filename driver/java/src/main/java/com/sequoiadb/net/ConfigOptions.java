@@ -30,6 +30,7 @@ public class ConfigOptions {
 	private int socketTimeout = 0;
 	private boolean socketKeepAlive = false;
 	private boolean useNagle = false;
+	private boolean useSSL = false;
 
 	/**
 	 * @fn int getSocketTimeout()
@@ -119,5 +120,27 @@ public class ConfigOptions {
 	 */
 	public void setMaxAutoConnectRetryTime(long maxAutoConnectRetryTime) {
 		this.maxAutoConnectRetryTime = maxAutoConnectRetryTime;
+	}
+
+	/**
+	 * @fn boolean getUseSSL()
+	 * @brief Get whether use the SSL or not
+	 * @return boolean
+	 * @author David Li
+	 * @since 1.12
+	 */
+	public boolean getUseSSL() {
+		return useSSL;
+	}
+
+	/**
+	 * @fn void setUseSSL(boolean useSSL)
+	 * @brief Set whether use the SSL or not
+	 * @param useSSL(boolean)
+	 * @author David Li
+	 * @since 1.12
+	 */
+	public void setUseSSL(boolean useSSL) {
+		this.useSSL = useSSL;
 	}
 }

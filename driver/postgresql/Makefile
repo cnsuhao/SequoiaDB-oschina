@@ -96,7 +96,8 @@ OBJS = sdb_fdw.o $(OBJECTS)
 SHLIB_LINK = 
 
 # Procedures
-local: $(BSON_PATH) $(MD5_HEADER_PATH) $(MD5_PATH) $(COPY_FILES) $(COMPILEOBJECTS)
+local: $(BSON_PATH) $(MD5_HEADER_PATH) $(MD5_PATH) $(COPY_FILES) $(COMPILEOBJECTS) 
+	sed -i "s/return pthread_once ( control, func ) ;/return 0;/g" $(EXTERNAL_PATH)/oss.c
 
 $(BSON_PATH):
 	mkdir -p $@

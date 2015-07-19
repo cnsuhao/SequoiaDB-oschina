@@ -2,6 +2,7 @@ import os
 
 Import("clientCppEnv")
 Import("linux")
+Import("windows")
 Import("ssllib_file")
 Import("ssllib_file1")
 Import("mergeStaticLibrary")
@@ -60,6 +61,9 @@ if linux:
    dir = os.path.dirname(staticPureSdbCPPLib[0].get_abspath())
    clientCPPLibStatic = dir + '/libstaticsdbcpp.a'
    clientCppEnv.AddPostAction(staticPureSdbCPPLib, Action(merge))
+elif windows:
+   clientCPPLibStatic = clientCppEnv.StaticLibrary('staticsdbcpp', [clientCPPLibFiles, ssllib_file, ssllib_file1])
+   clientCppEnv.Install( '#/client/lib/', clientCPPLibStatic )
 
 #Header files
 clientCppEnv.Install( '#/client/include/', "client/client.hpp" )

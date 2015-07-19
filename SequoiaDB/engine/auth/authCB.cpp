@@ -41,9 +41,11 @@ using namespace bson ;
 
 namespace engine
 {
-   _authCB::_authCB():_needAuth( FALSE )
+   _authCB::_authCB()
+   :_needAuth( FALSE ),
+    _authEnabled( FALSE )
    {
-
+      _authEnabled = pmdGetOptionCB()->authEnabled() ;
    }
 
    _authCB::~_authCB()

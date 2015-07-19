@@ -138,7 +138,6 @@ namespace engine
       _SDB_KRCB *krcb = pmdGetKRCB() ;
       SDB_ROLE role = krcb->getDBRole() ;
       BSONObj hint ;
-      BSONObj *err = NULL ;
 
       if ( SDB_ROLE_COORD == role )
       {
@@ -161,8 +160,7 @@ namespace engine
          }
 
          rc = update.execute( msg, *((SINT32 *)msg),
-                              NULL, eduCB, dummy, &err ) ;
-         SDB_ASSERT( NULL == err, "impossible" ) ;
+                              eduCB, dummy, NULL ) ;
          SDB_OSS_FREE( msg ) ;
          msg = NULL ;
          if ( SDB_OK != rc )

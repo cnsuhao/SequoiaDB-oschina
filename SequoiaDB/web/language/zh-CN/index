@@ -1,0 +1,129 @@
+{
+    "index": {
+        "clusterOperation": [
+            "添加主机",
+            "主机列表",
+            "添加业务",
+            "业务列表",
+            "删除集群",
+            "创建集群"
+        ],
+        "leftPanel": {
+            "title": "状态",
+				"body": {
+					 "table": [ "业务", "主机" ],
+					 "badgeTips": [
+					 		"一共 ? 台主机",
+							"一共 ? 个业务",
+							"有 ? 台主机的内存达到90%以上",
+							"有 ? 台主机的硬盘达到90%以上",
+							"有 ? 台主机的CPU达到90%以上",
+							"有 ? 台主机故障"
+					 ]
+				},
+            "SAC": [
+                "节点"
+            ]
+        },
+        "rightPanel": {
+            "title": "?监控信息",
+				"body": "目前没有监控信息，请创建一个集群吧！",
+				"pic": [
+					 { "title": "CPU利用率", "subTitle": "percent" },
+					 { "title": "Memory利用率", "subTitle": "percent" },
+					 { "title": "Disk利用率", "subTitle": "percent" },
+					 { "title": "Network In", "subTitle": "Kb/s" },
+					 { "title": "Network Out", "subTitle": "Kb/s" },
+					 { "title": "Network PIn", "subTitle": "数据包" },
+					 { "title": "Network POut", "subTitle": "数据包" }
+				]
+        },
+        "modal": {
+            "deploy": {
+                "title": "部署引导",
+                "body": [
+                    {
+                        "name": "集群名:",
+                        "desc": "部署的集群名"
+                    },
+						  {
+						  		"name": "描述:",
+								"desc": "集群的描述"
+						  },
+						  {
+						  		"name": "业务名:",
+								"desc": "安装的业务名"
+						  },
+						  {
+						  		"name": "业务类型:",
+								"desc": ""
+						  },
+						  {
+						  		"name": "用户名:",
+								"desc": "运行业务的用户名"
+						  },
+						  {
+						  		"name": "密码:",
+								"desc": "用户密码"
+						  },
+						  {
+						  		"name": "用户组:",
+								"desc": "用户所属的组"
+						  },
+						  {
+						  		"name": "安装路径:",
+								"desc": "业务默认的安装路径"
+						  }
+                ]
+            },
+				"createCluster": {
+                "title": "创建集群",
+                "body": [
+                    {
+                        "name": "集群名:",
+                        "desc": "部署的集群名"
+                    },
+						  {
+						  		"name": "描述:",
+								"desc": "集群的描述"
+						  },
+						  {
+						  		"name": "用户名:",
+								"desc": "运行业务的用户名"
+						  },
+						  {
+						  		"name": "密码:",
+								"desc": "用户密码"
+						  },
+						  {
+						  		"name": "用户组:",
+								"desc": "用户所属的组"
+						  },
+						  {
+						  		"name": "安装路径:",
+								"desc": "业务默认的安装路径"
+						  }
+                ]
+            },
+				"addBusiness": {
+                "title": "添加业务",
+                "body": [
+						  {
+						  		"name": "业务名:",
+								"desc": "安装的业务名"
+						  },
+						  {
+						  		"name": "业务类型:",
+								"desc": ""
+						  }
+                ]
+            },
+				"isRemoveCluster": {
+					 "title": "提示"
+				},
+				"isGoOnDeploy": {
+					 "title": "提示"
+				}
+        }
+    }
+}

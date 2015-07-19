@@ -47,8 +47,9 @@ public class BaseException extends RuntimeException {
 		}
 		try {
 			error.setErrorCode(SDBErrorLookup.getErrorCodeByType(errorType));
-			error.setErrorDescription(SDBErrorLookup
-					.getErrorDescriptionByType(errorType) + "\n Exception Detail:" + infos);
+			error.setErrorDescription("errorType:" + errorType + "," 
+			        + SDBErrorLookup.getErrorDescriptionByType(errorType) 
+			        + "\n Exception Detail:" + infos);
 		} catch (Exception e) {
 			error.setErrorCode(0);
 			error.setErrorDescription(SequoiadbConstants.UNKNOWN_DESC + "\n Exception Detail:"
@@ -72,10 +73,11 @@ public class BaseException extends RuntimeException {
 		}
 		try {
 			error.setErrorType(SDBErrorLookup.getErrorTypeByCode(errorCode));
-			error.setErrorDescription(SDBErrorLookup
-					.getErrorDescriptionByCode(errorCode) + "\n Exception Detail:" + infos);
+			error.setErrorDescription("errorCode:" + errorCode + "," 
+			        + SDBErrorLookup.getErrorDescriptionByCode(errorCode) 
+			        + "\n Exception Detail:" + infos);
 		} catch (Exception e) {
-			error.setErrorType(SequoiadbConstants.UNKNOWN_DESC);
+			error.setErrorType(SequoiadbConstants.UNKNOWN_TYPE);
 			error.setErrorDescription(SequoiadbConstants.UNKNOWN_DESC + "\n Exception Detail:"
 					+ infos);
 		}

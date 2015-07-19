@@ -43,32 +43,37 @@ namespace engine
    class rtnCoordTransBegin : public rtnCoordOperator
    {
    public:
-      virtual INT32 execute( CHAR * pReceiveBuffer, SINT32 packSize,
-                           CHAR * * ppResultBuffer, pmdEDUCB * cb,
-                           MsgOpReply & replyHeader,
-                           BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR * pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB * cb,
+                             MsgOpReply & replyHeader,
+                             rtnContextBuf *buf ) ;
    };
 
    class rtnCoord2PhaseCommit : public rtnCoordOperator
    {
    public:
-      virtual INT32 execute( CHAR * pReceiveBuffer, SINT32 packSize,
-                           CHAR * * ppResultBuffer, pmdEDUCB * cb,
-                           MsgOpReply & replyHeader,
-                           BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR * pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB * cb,
+                             MsgOpReply & replyHeader,
+                             rtnContextBuf *buf ) ;
 
    private:
-      virtual INT32 doPhase1( CHAR * pReceiveBuffer, SINT32 packSize,
-                           CHAR * * ppResultBuffer, pmdEDUCB * cb,
-                           MsgOpReply & replyHeader );
+      virtual INT32 doPhase1( CHAR * pReceiveBuffer,
+                              SINT32 packSize,
+                              pmdEDUCB * cb,
+                              MsgOpReply & replyHeader );
 
-      virtual INT32 doPhase2( CHAR * pReceiveBuffer, SINT32 packSize,
-                           CHAR * * ppResultBuffer, pmdEDUCB * cb,
-                           MsgOpReply & replyHeader );
+      virtual INT32 doPhase2( CHAR * pReceiveBuffer,
+                              SINT32 packSize,
+                              pmdEDUCB * cb,
+                              MsgOpReply & replyHeader );
 
-      virtual INT32 cancelOp( CHAR * pReceiveBuffer, SINT32 packSize,
-                           CHAR * * ppResultBuffer, pmdEDUCB * cb,
-                           MsgOpReply & replyHeader );
+      virtual INT32 cancelOp( CHAR * pReceiveBuffer,
+                              SINT32 packSize,
+                              pmdEDUCB * cb,
+                              MsgOpReply & replyHeader );
 
       virtual INT32 buildPhase1Msg( CHAR * pReceiveBuffer, CHAR **pMsg ) = 0;
 
@@ -82,10 +87,11 @@ namespace engine
    class rtnCoordTransCommit : public rtnCoord2PhaseCommit
    {
    public:
-      virtual INT32 execute( CHAR * pReceiveBuffer, SINT32 packSize,
-                           CHAR * * ppResultBuffer, pmdEDUCB * cb,
-                           MsgOpReply & replyHeader,
-                           BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR * pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB * cb,
+                             MsgOpReply & replyHeader,
+                             rtnContextBuf *buf ) ;
 
    private:
       virtual INT32 buildPhase1Msg( CHAR * pReceiveBuffer, CHAR **pMsg );
@@ -100,10 +106,11 @@ namespace engine
    class rtnCoordTransRollback : public rtnCoordOperator
    {
    public:
-      virtual INT32 execute( CHAR * pReceiveBuffer, SINT32 packSize,
-                           CHAR * * ppResultBuffer, pmdEDUCB * cb,
-                           MsgOpReply & replyHeader,
-                           BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR * pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB * cb,
+                             MsgOpReply & replyHeader,
+                             rtnContextBuf *buf ) ;
 
    private:
       virtual INT32 executeOnDataGroup ( CHAR *pMsg,

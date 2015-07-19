@@ -44,7 +44,8 @@ const UINT32 BUF_SIZE = 2 * 1024 * 1024 ;
    _migLobTool::_migLobTool()
    :_buf( NULL ),
     _bufSize( 0 ),
-    _written( 0 )
+    _written( 0 ),
+    _db( NULL )
    {
       _bufSize = BUF_SIZE ;
       _buf = ( CHAR * )ossAlignedAlloc( OSS_FILE_DIRECT_IO_ALIGNMENT,
@@ -67,8 +68,6 @@ const UINT32 BUF_SIZE = 2 * 1024 * 1024 ;
    INT32 _migLobTool::exec( const bson::BSONObj &options )
    {
       INT32 rc = SDB_OK ;
-      sdbclient::sdb db ;
-      sdbclient::sdbCollection cl ;
       migOptions ops ;
       BSONElement ele ;
 
@@ -267,6 +266,25 @@ const UINT32 BUF_SIZE = 2 * 1024 * 1024 ;
             goto error ;
          }
       }
+
+#ifdef SDB_SSL
+      ele = options.getField( MIG_SSL ) ;
+      if ( ele.eoo() )
+      {
+         ops.useSSL = FALSE ;
+      }
+      else if ( Bool != ele.type() )
+      {
+         PD_LOG( PDERROR, "invalid type of %s, options:%s",
+                 MIG_SSL, options.toString( FALSE, TRUE ).c_str() ) ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else
+      {
+         ops.useSSL = ele.Bool() ;
+      }
+#endif
 
       rc = _initDB( ops ) ;
       if ( SDB_OK != rc )
@@ -991,7 +1009,16 @@ const UINT32 BUF_SIZE = 2 * 1024 * 1024 ;
    INT32 _migLobTool::_initDB( const migOptions &ops )
    {
       INT32 rc = SDB_OK ;
-      rc = _db.connect( ops.hostname,
+
+      _db = new(std::nothrow) sdb ( ops.useSSL ) ;
+      if ( NULL == _db )
+      {
+         PD_LOG( PDERROR, "failed to alloc sdb") ;
+         rc = SDB_OOM ;
+         goto error ;
+      }
+
+      rc = _db->connect( ops.hostname,
                         ops.service,
                         ops.usrname,
                         ops.passwd ) ;
@@ -1002,7 +1029,7 @@ const UINT32 BUF_SIZE = 2 * 1024 * 1024 ;
          goto error ;
       }
 
-      rc = _db.getCollection( ops.collection, _cl ) ;
+      rc = _db->getCollection( ops.collection, _cl ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to get collection[%s], rc:%d",
@@ -1017,7 +1044,12 @@ const UINT32 BUF_SIZE = 2 * 1024 * 1024 ;
 
    void _migLobTool::_closeDB()
    {
-      _db.disconnect() ;
+      if ( NULL != _db )
+      {
+         _db->disconnect() ;
+         delete _db ;
+         _db = NULL ;
+      }
       return ;
    }
 

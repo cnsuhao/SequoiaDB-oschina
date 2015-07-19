@@ -20,15 +20,11 @@
 @modify list:
    2014-7-26 Zhaobo Tan  Init
 @parameter
-   BUS_JSON: the format is: { "UninstallHostName": "rhel64-test8", "UninstallSvcName": "11820" }
-   SYS_JSON: the format is: { "TaskID: 2" }
+   BUS_JSON: the format is: { "UninstallHostName": "susetzb", "UninstallSvcName": "20000" } ;
+   SYS_JSON: the format is: { "TaskID": 4 } ;
 @return
    RET_JSON: the format is: { "errno": 0, "detail": "" }
 */
-
-// println
-//var BUS_JSON = { "UninstallHostName": "susetzb", "UninstallSvcName": "20000" } ;
-//var SYS_JSON = { "TaskID": 4 } ;
 
 var FILE_NAME_REMOVE_STANDALONE = "removeStandalone.js" ;
 var RET_JSON = new removeNodeResult() ;
@@ -36,7 +32,7 @@ var rc       = SDB_OK ;
 var errMsg   = "" ;
 
 var task_id = "" ;
-// println
+
 var host_name = "" ;
 var host_svc  = "" ;
 
@@ -47,7 +43,7 @@ var host_svc  = "" ;
 @return void
 ***************************************************************************** */
 function _init()
-{           
+{
    // 1. get task id
    task_id = getTaskID( SYS_JSON ) ;
 
@@ -65,7 +61,8 @@ function _init()
               sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
       exception_handle( SDB_SYS, errMsg ) ;
    }
-   setTaskLogFileName( task_id, host_name ) ;
+   
+   setTaskLogFileName( task_id ) ;
    
    PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_REMOVE_STANDALONE,
             sprintf( "Begin to remove standalone[?:?] in task[?]",
@@ -115,28 +112,19 @@ function _removeStandalone( hostName, svcName, agentPort )
    try
    {
       oma.removeData( svcName ) ;
+   }
+   catch( e )
+   {
+      if ( SDBCM_NODE_NOTEXISTED != e )
+         exception_handle( GETLASTERROR(), GETLASTERRMSG() ) ;
+   }
+   try
+   {
       oma.close() ;
       oma = null ;
    }
    catch ( e ) 
    {
-      if ( null != oma && "undefined" != typeof(oma) )
-      {
-         try
-         {
-            oma.close() ;
-         }
-         catch ( e2 )
-         {
-         }
-      }
-      SYSEXPHANDLE( e ) ;
-      errMsg = sprintf( "Failed to connect to OM Agent[?:?]",
-                        hostName, agentPort ) ;
-      rc = GETLASTERROR() ;
-      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_REMOVE_STANDALONE,
-               sprintf( errMsg + ", rc:?, detail:?", rc, errMsg ) ) ;  
-      exception_handle( rc, errMsg ) ;
    }
 }
 
@@ -184,7 +172,6 @@ function main()
    }
    
    _final() ;
-println("RET_JSON is: " + JSON.stringify(RET_JSON) ) ;
    return RET_JSON ;
 }
 

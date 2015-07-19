@@ -37,6 +37,7 @@
 #include "pdTrace.hpp"
 #include "mthCommon.hpp"
 #include "../util/rawbson2json.h"
+#include <boost/unordered_map.hpp>
 
 using namespace bson ;
 
@@ -108,7 +109,17 @@ namespace engine
       }
       else
       {
-         rc = _buildCSV( obj, target ) ;
+         BSONObj resorted ;
+         rc = _resortObj( _matrix.getPattern(),
+                          obj,
+                          resorted ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to resort obj:%d", rc ) ;
+            goto error ;
+         }
+
+         rc = _buildCSV( resorted, target ) ;
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to build csv:%d", rc ) ;
@@ -220,6 +231,63 @@ namespace engine
       return rc ;
    error:
       goto done ;
+   }
+
+   struct hasher
+   {
+      size_t operator()( const CHAR *name )const
+      {
+         return ossHash( name ) ;
+      }
+   } ;
+
+   struct equal_to
+   {
+      BOOLEAN operator()( const CHAR *l, const CHAR *r )const
+      {
+         return ossStrcmp( l, r ) == 0 ;
+      }
+   } ;
+
+   typedef  boost::unordered_map<const CHAR *, BSONElement, hasher, equal_to> hash_map ;
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSELECTOR__RESORTOBJ, "_mthSelector::_resortObj" )
+   INT32 _mthSelector::_resortObj( const bson::BSONObj &pattern,
+                                   const bson::BSONObj &src,
+                                   bson::BSONObj &obj )
+   {
+      
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__MTHSELECTOR__RESORTOBJ ) ;
+      BSONObjBuilder builder ;
+      hash_map fMap ;
+                                                    
+      BSONObjIterator i( src ) ;
+      while ( i.more() )
+      {
+         BSONElement e = i.next() ;
+         fMap.insert( std::make_pair( e.fieldName(), e ) ) ;
+      }
+
+      BSONObjIterator j( pattern ) ;
+      while ( j.more() )
+      {
+         BSONElement e = j.next() ;
+         hash_map::const_iterator itr = fMap.find( e.fieldName() ) ;
+         if ( fMap.end() != itr )
+         {
+            builder.append( itr->second ) ;
+         }
+         else
+         {
+            PD_LOG( PDWARNING, "field[%s] in pattern does not exist in src[%s]",
+                    e.fieldName(), src.toString( FALSE, TRUE ).c_str() ) ;
+         }
+      }
+
+      obj = builder.obj() ;
+      PD_TRACE_EXITRC( SDB__MTHSELECTOR__RESORTOBJ, rc ) ;
+      return rc ;
    }
 }
 

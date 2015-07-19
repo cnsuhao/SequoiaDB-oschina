@@ -24,6 +24,13 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.security.NoSuchAlgorithmException;
+import java.security.KeyManagementException;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import com.sequoiadb.util.Helper;
 import com.sequoiadb.exception.BaseException;
@@ -65,6 +72,39 @@ public class ConnectionTCPImpl implements IConnection {
 		REAL_BUFFER_LENGTH = DEF_BUFFER_LENGTH ;
 	}
 
+	static class SSLContextHelper {
+		private volatile static SSLContext sslContext = null;
+
+		public static SSLContext getSSLContext() throws BaseException {
+			if (sslContext == null) {
+				synchronized(SSLContextHelper.class) {
+					if (sslContext == null) {
+						try {
+							X509TrustManager tm = new X509TrustManager() {
+								public X509Certificate[] getAcceptedIssuers() {
+									return null;
+								}
+								public void checkClientTrusted(X509Certificate[] arg0, String arg1) 
+									throws CertificateException {}
+								public void checkServerTrusted(X509Certificate[] arg0, String arg1) 
+									throws CertificateException {}
+							};
+							SSLContext ctx = SSLContext.getInstance("SSL");
+							ctx.init(null, new TrustManager[] { tm }, null);
+							sslContext = ctx;
+						} catch (NoSuchAlgorithmException nsae) {
+							throw new BaseException("SDB_NETWORK", nsae);
+						} catch (KeyManagementException kme) {
+							throw new BaseException("SDB_NETWORK", kme);
+						}
+					}
+				}
+			}
+
+			return sslContext;
+		}
+	}
+
 	private void connect() throws BaseException {
 		logger.getInstance().debug(0, "enter connect\n");
 		String objectidentity = Integer.toString(hashCode());
@@ -80,7 +120,11 @@ public class ConnectionTCPImpl implements IConnection {
 			BaseException lastError = null;
 			InetSocketAddress addr = hostAddress.getHostAddress();
 			try {
-				clientSocket = new Socket();
+				if (options.getUseSSL()) {
+					clientSocket = SSLContextHelper.getSSLContext().getSocketFactory().createSocket();
+				} else {
+					clientSocket = new Socket();
+				}
 				clientSocket.connect(addr, options.getConnectTimeout());
 				clientSocket.setTcpNoDelay(!options.getUseNagle());
 				clientSocket.setKeepAlive(options.getSocketKeepAlive());

@@ -265,6 +265,7 @@ namespace engine
          DPS_LSN_OFFSET                   _lastEndNtyOffset ;
          BOOLEAN                          _getLastEndNtyOffset ;
          UINT32                           _collectionW ;
+         UINT32                           _internalV ;
    };
 }
 

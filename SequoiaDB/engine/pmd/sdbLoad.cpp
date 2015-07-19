@@ -116,7 +116,7 @@ INT32 lThreadNum = 0 ;
 INT32 lBucketNum = 0 ;
 INT32 lBufferSize = 0 ;
 CHAR  lDelCFR[4] ;
-SOCKET s ;
+Socket* s ;
 
 void init ( po::options_description &desc )
 {
@@ -427,7 +427,7 @@ INT32 _connectSdb ()
       PD_LOG ( PDERROR, "get port error" ) ;
       goto error ;
    }
-   rc = clientConnect ( lHostName, lServiceName, &s ) ;
+   rc = clientConnect ( lHostName, lServiceName, FALSE, &s ) ;
    if ( rc )
    {
       PD_LOG ( PDERROR, "connect database error" ) ;
@@ -732,7 +732,7 @@ INT32 main ( INT32 argc, CHAR **argv )
    }
 done:
    SAFE_OSS_FREE( _pSendBuffer ) ;
-   clientDisconnect ( s ) ;
+   clientDisconnect ( &s ) ;
    PD_TRACE_EXITRC ( SDB_SDBLOAD_MAIN, rc );
    return SDB_OK == rc ? 0 : 1 ;
 error:

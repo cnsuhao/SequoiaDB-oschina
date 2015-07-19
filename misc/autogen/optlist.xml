@@ -648,8 +648,8 @@
       <name>PMD_OPTION_SHARINGBRK</name>
       <long>sharingbreak</long>
       <description>
-         <en>The timeout period for heartbeat in each replica group ( in ms ), default:5000, value range:[5000,300000] </en>
-         <cn>判定心跳中断的时间(ms),默认值:5000,取值范围:[5000,300000]</cn>
+         <en>The timeout period for heartbeat in each replica group ( in ms ), default:7000, value range:[5000,300000] </en>
+         <cn>判定心跳中断的时间(ms),默认值:7000,取值范围:[5000,300000]</cn>
       </description>
       <type>int</type>
       <hidden>true</hidden>
@@ -764,8 +764,8 @@
          <cn>在大对象功能中关闭文件系统缓存</cn>
       </description>
       <detail>
-         <en>If it is not spcified, the default value is "false"</en>
-         <cn>如果不指定，默认值为"false"</cn>
+         <en>Open direct io in large object, if it is not specified, the default value is "false"</en>
+         <cn>在大对象功能中关闭文件系统缓存，如果不指定，默认值为"false"</cn>
       </detail>
       <typeofweb>boolean</typeofweb>
    </opt>
@@ -774,12 +774,12 @@
       <name>PMD_OPTION_SPARSE_FILE</name>
       <long>sparsefile</long>
       <description>
-         <en>extend the file as a sparse file</en>
+         <en>Extend the file as a sparse file</en>
          <cn>当扩展文件时，使用稀疏文件功能</cn>
       </description>
       <detail>
-         <en>If it is not spcified, the default value is "false"</en>
-         <cn>如果不指定，默认值为"false"</cn>
+         <en>Extend the file as a sparse file, if it is not specified, the default value is "false"</en>
+         <cn>当扩展文件时，使用稀疏文件功能，如果不指定，默认值为"false"</cn>
       </detail>
       <typeofweb>boolean</typeofweb>
    </opt>
@@ -817,12 +817,17 @@
    <opt>
       <name>PMD_OPTION_WEIGHT</name>
       <long>weight</long>
+      <default>10</default>
+      <type>int</type>
       <description>
          <en>The weight of election, default is 10, range [1, 100]</en>
          <cn>节点选举权重, 默认值为10, 取值范围[1, 100]</cn>
       </description>
-      <default>10</default>
-      <type>int</type>
+      <detail>
+         <en>The weight of election, default is 10, range [1, 100]</en>
+         <cn>节点选举权重, 默认值为10, 取值范围[1, 100]</cn>
+      </detail>
+      <typeofweb>num</typeofweb>
    </opt>
 
    <opt>
@@ -830,13 +835,38 @@
       <long>usessl</long>
       <default>false</default>
       <description>
-         <en>allow client to connect with SSL (enterprise edition only), default false</en>
+         <en>Allow client to connect with SSL (enterprise edition only), default false</en>
          <cn>允许客户端使用SSL连接（仅限企业版），默认为false</cn>
       </description>
       <detail>
-         <en>If it is not spcified, the default value is "false"</en>
-         <cn>如果不指定，默认值为"false"</cn>
+         <en>Allow client to connect with SSL (enterprise edition only), default false</en>
+         <cn>允许客户端使用SSL连接（仅限企业版），默认为false</cn>
       </detail>
       <typeofweb>boolean</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_AUTH</name>
+      <long>auth</long>
+      <default>true</default>
+      <description>
+         <en>Enable authentication. default is true</en>
+         <cn>开启鉴权功能.默认为true</cn>
+      </description>
+      <detail>
+         <en>Enable authentication. default is true</en>
+         <cn>开启鉴权功能.默认为true</cn>
+      </detail>
+      <typeofweb>boolean</typeofweb>
+  </opt>
+
+  <opt>
+      <name>FAP_OPTION_NAME</name>
+      <long>fap</long>
+      <description>
+         <en>Enable foreign access protocol.Only module name 'fapmongo' is supportted</en>
+         <cn>开启第三方驱动接入.暂支持'fapmongo'选项</cn>
+      </description>
+     <hidden>true</hidden>
    </opt>
 </optlist>

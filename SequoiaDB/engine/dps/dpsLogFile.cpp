@@ -197,6 +197,9 @@ namespace engine
       UINT64 offSet = 0 ;
       UINT64 baseOffset = 0 ;
       dpsLogRecordHeader lsnHeader ;
+      CHAR *lastRecord = NULL ;
+      UINT64 lastOffset = 0 ;
+      UINT32 lastLen = 0 ;
 
       rc = ossGetFileSize( _file, &fileSize ) ;
       if ( SDB_OK != rc )
@@ -321,11 +324,62 @@ namespace engine
          }
 
          offSet += lsnHeader._length ;
+         lastOffset = offSet ;
+         lastLen = lsnHeader._length ;
+      }
+
+      if ( 0 < lastLen && 0 < lastOffset )
+      {
+         _dpsLogRecord lr ;
+         lastRecord = ( CHAR * )SDB_OSS_MALLOC( lastLen ) ;
+         if ( NULL == lastRecord )
+         {
+            PD_LOG( PDERROR, "failed to allocate mem.") ;
+            rc = SDB_OOM ;
+            goto error ;
+         }
+
+         rc = read( lastOffset + baseOffset - lastLen,
+                    lastLen,
+                    lastRecord ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to read dps record[%lld, rc:%d]",
+                    offSet, rc ) ;
+            goto error ;
+         }
+
+         rc = lr.load( lastRecord ) ;
+         if ( SDB_DPS_CORRUPTED_LOG == rc )
+         {
+            offSet -= lastLen ;
+            rc = SDB_OK ;
+            const dpsLogRecordHeader *corruptedHeader =
+                           ( const dpsLogRecordHeader * )lastRecord ;
+            PD_LOG( PDEVENT, "last log record(lsn:%lld) is corrupted.",
+                    corruptedHeader->_lsn ) ;
+
+            if ( 0 == offSet )
+            {
+               _logHeader._firstLSN.offset = DPS_INVALID_LSN_OFFSET ;
+               _logHeader._firstLSN.version = DPS_INVALID_LSN_VERSION ;
+            }
+         }
+         else if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to load record log:%d", rc ) ;
+            goto error ;
+         }
+         else
+         {
+
+         }
       }
 
       _idleSize = _fileSize - offSet ;
 
    done:
+      SAFE_OSS_FREE( lastRecord ) ;
       PD_TRACE_EXITRC ( SDB__DPSLOGFILE__RESTRORE, rc );
       return rc ;
    error:

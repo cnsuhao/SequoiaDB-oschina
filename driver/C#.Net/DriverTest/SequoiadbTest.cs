@@ -90,7 +90,7 @@ namespace DriverTest
         public void Connect_With_Serval_Arg_Test()
         {
 		    List<string> list = new List<string>();
-            
+
             list.Add("192.168.20.35:12340");
             list.Add("192.168.20.36:12340");
             list.Add("123:123");
@@ -98,6 +98,7 @@ namespace DriverTest
             list.Add("192.168.20.40");
             list.Add("192.168.30.161:11810");
             list.Add("localhost:50000");
+            list.Add("192.168.20.42:50000");
             list.Add("192.168.20.42:11810");
             list.Add("192.168.20.165:11810");
             list.Add("localhost:12340");
@@ -116,6 +117,34 @@ namespace DriverTest
 	        DBCursor cursor = sdb1.GetList(4, null, null, null);
 	        Assert.IsTrue(cursor != null);
 	        sdb1.Disconnect();
+        }
+
+        [TestMethod()]
+        [Ignore]
+        public void ConnectWithSSLTest()
+        {
+            ConfigOptions cfgOpt = null ;
+            CollectionSpace cs2 = null;
+            DBCollection coll2 = null;
+            Sequoiadb sdb2 = new Sequoiadb(config.conf.Coord.Address);
+            System.Console.WriteLine(config.conf.Coord.Address.ToString());
+
+            // set connect using ssl
+            cfgOpt = new ConfigOptions();
+            cfgOpt.UseSSL = true;
+
+            // connect to database
+            sdb2.Connect("", "", cfgOpt);
+            if (true == sdb2.IsCollectionSpaceExist("testSSL"))
+                cs2 = sdb2.GetCollecitonSpace("testSSL");
+            else
+                cs2 = sdb2.CreateCollectionSpace("testSSL");
+            if (true == cs2.IsCollectionExist("testSSL"))
+                coll2 = cs2.GetCollection("testSSL");
+            else
+                coll2 = cs2.CreateCollection("testSSL");
+
+            sdb2.DropCollectionSpace("testSSL");
         }
 
         [TestMethod()]

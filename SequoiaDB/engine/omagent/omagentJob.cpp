@@ -155,6 +155,9 @@ namespace engine
          case OMA_TASK_ADD_HOST_SUB :
             pTask = SDB_OSS_NEW _omaAddHostSubTask( taskID ) ;
             break ;
+         case OMA_TASK_REMOVE_HOST :
+            pTask = SDB_OSS_NEW _omaRemoveHostTask( taskID ) ;
+            break ;
          case OMA_TASK_INSTALL_DB :
             pTask = SDB_OSS_NEW _omaInstDBBusTask( taskID ) ;
             break ;

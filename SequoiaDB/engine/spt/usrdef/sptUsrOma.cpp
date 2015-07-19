@@ -206,11 +206,11 @@ namespace engine
          << endl
          << "var oma = new Oma( [hostname], [svcname] )" << endl
          << "   createCoord( svcname, dbpath, [config obj] )" << endl
-         << "   removeCoord( svcname )" << endl
+         << "   removeCoord( svcname, [config obj] )" << endl
          << "   createData( svcname, dbpath, [config obj] )  -standalone" << endl
-         << "   removeData( svcname )                       -standalone" << endl
+         << "   removeData( svcname, [config obj] )          -standalone" << endl
          << "   createOM( svcname, dbpath, [config obj] )" << endl
-         << "   removeOM( svcname )" << endl
+         << "   removeOM( svcname, [config obj] )" << endl
          << "   startNode( svcname )" << endl
          << "   stopNode( svcname )" << endl
          << "   close()" << endl ;
@@ -334,7 +334,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       string svcname ;
-      BSONObj config = BSON( PMD_OPTION_ROLE << pNodeStr ) ;
+      BSONObj config ;
 
       rc = arg.getString( 0, svcname ) ;
       if ( SDB_OUT_OF_BOUND == rc )
@@ -360,6 +360,32 @@ namespace engine
          }
       }
       PD_RC_CHECK( rc, PDERROR, "Failed to get svcname, rc: %d", rc ) ;
+
+      if ( arg.argc() >= 2 )
+      {
+         rc = arg.getBsonobj( 1, config ) ;
+         if ( rc )
+         {
+            detail = BSON( SPT_ERR << "config must be object" ) ;
+         }
+         PD_RC_CHECK( rc, PDERROR, "Failed to get config, rc: %d", rc ) ;
+      }
+
+      {
+         BSONObjBuilder builder ;
+         BSONObjIterator it( config ) ;
+         while ( it.more() )
+         {
+            BSONElement e = it.next() ;
+            if ( 0 == ossStrcmp( PMD_OPTION_ROLE, e.fieldName() ) )
+            {
+               continue ;
+            }
+            builder.append( e ) ;
+         }
+         builder.append( PMD_OPTION_ROLE, pNodeStr ) ;
+         config = builder.obj() ;
+      }
 
       rc = _assit.removeNode( svcname.c_str(), config.objdata() ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to remove %s[%s], rc: %d",
@@ -500,6 +526,7 @@ namespace engine
          builder.append( SDB_INSTALL_RUN_FILED, info._run ) ;
          builder.append( SDB_INSTALL_USER_FIELD, info._user ) ;
          builder.append( SDB_INSTALL_PATH_FIELD, info._path ) ;
+         builder.append( SDB_INSTALL_MD5_FIELD, info._md5 ) ;
          rval.setBSONObj( "", builder.obj() ) ;
       }
 

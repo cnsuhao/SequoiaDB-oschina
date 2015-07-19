@@ -1,0 +1,60 @@
+{
+    "public": {
+        "nav": [
+		  		{ "text": "Home" },
+				{ "text": "Deployment Wizard" },
+				{ "text": "Help", "child": [ "Language", "About SAC" ] },
+				{ "text": "User", "child": [ "Change Password", "Logout" ] },
+				{ "text": "Task" }
+        ],
+		  "button": {
+		  		"ok": "OK",
+				"close": "Close",
+				"return": "Return",
+				"next": "Next",
+				"complete": "Done",
+				"zoomin": "Zoom"
+		  },
+		  "tabPage": [
+		  		"Login",
+		  		"Overview",
+            "Scan Host",
+            "Add Host",
+            "Install Host",
+            "Config Module",
+            "Modify Module",
+            "Install Module",
+				"Uninstall Module",
+				"Uninstall Host",
+				"Module List",
+				"Hosts List"
+        ],
+		  "modal": {
+		  		"changePwd": {
+						"title": "Change Password",
+						"table": {
+							"title": [ "User:", "Password:", "New Password:" ]
+						}
+				},
+				"aboutSAC": {
+						"title": "About SAC",
+						"context": [
+							  "Version: 1.12",
+							  "SAC ( SequoiaDB Administration Center ) is a web-based service utility providing real-time performance analytic and operational management to SequoiaDB database."
+						]
+				},
+				"language": {
+						"title": "Language",
+						"table": {
+							  "title": [ "Language:" ]
+						}
+				},
+				"task": {
+						"title": "Task List",
+						"table": {
+							  "title": [ "ID", "Type", "Progress", "Status" ]
+						}
+				}
+		  }
+    }
+}

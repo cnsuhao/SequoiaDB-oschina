@@ -104,6 +104,7 @@ namespace engine
    /*
       _omaRemoveHost
    */
+/*
    class _omaRemoveHost : public _omaCommand
    {
       DECLARE_OACMD_AUTO_REGISTER()
@@ -115,7 +116,7 @@ namespace engine
          virtual const CHAR * name () { return OMA_CMD_REMOVE_HOST ; }
          virtual INT32 init ( const CHAR *pInfo ) ;
    } ;
-   
+*/
    /***************************** update hosts table info *********************/
    /*
       _omaUpdateHostsInfo

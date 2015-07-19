@@ -145,6 +145,9 @@ function _scanHost( user, passwd, hostname, sshport, ip )
             exception_handle( SDB_SYS, "Failed to get peer ip" ) ;
          retObj[IP] = removeLineBreak( tempStr ) ;
       }
+      // check info
+      if ( "127.0.0.1" == retObj[IP] )
+         exception_handle( SDB_INVALIDARG, "IP can't be 127.0.0.1" ) ;
    }
    catch( e )
    {
@@ -153,7 +156,7 @@ function _scanHost( user, passwd, hostname, sshport, ip )
       retObj[Errno] = GETLASTERROR() ;
       retObj[Detail] = GETLASTERRMSG() ;
       PD_LOG( arguments, PDERROR, FILE_NAME_SCAN_HOST,
-              "Failed to host[" + addr + "]'s name, rc: " + retObj[Errno] + ", detail: " + retObj[Detail] ) ;
+              "Failed to get host[" + addr + "]'s info, rc: " + retObj[Errno] + ", detail: " + retObj[Detail] ) ;
       return retObj ;
    }
    retObj[Status] = "finish" ;

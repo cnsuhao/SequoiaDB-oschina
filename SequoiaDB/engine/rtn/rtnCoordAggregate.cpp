@@ -42,10 +42,11 @@
 using namespace bson;
 namespace engine
 {
-   INT32 rtnCoordAggregate::execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                                    CHAR **ppResultBuffer, pmdEDUCB *cb,
-                                    MsgOpReply &replyHeader,
-                                    BSONObj **ppErrorObj )
+   INT32 rtnCoordAggregate::execute( CHAR *pReceiveBuffer,
+                                     SINT32 packSize,
+                                     pmdEDUCB *cb,
+                                     MsgOpReply &replyHeader,
+                                     rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK;
       MsgHeader *pHeader = (MsgHeader *)pReceiveBuffer;

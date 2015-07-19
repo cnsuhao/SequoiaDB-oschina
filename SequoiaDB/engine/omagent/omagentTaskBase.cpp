@@ -31,11 +31,12 @@
 *******************************************************************************/
 
 #include "ossTypes.h"
+#include "pmdDef.hpp"
+#include "pmdEDU.hpp"
 #include "omagentUtil.hpp"
 #include "omagentTaskBase.hpp"
 #include "omagentJob.hpp"
-#include "pmdDef.hpp"
-#include "pmdEDU.hpp"
+#include "omagentBackgroundCmd.hpp"
 
 using namespace std ;
 using namespace bson ;
@@ -140,6 +141,60 @@ namespace engine
    {
       ossScopedLock lock ( &_latch, EXCLUSIVE ) ;
       return _subTaskSerialNum++ ;
+   }
+
+   INT32 _omaTask::initJsEnv()
+   {
+      INT32 rc     = SDB_OK ;
+      INT32 tmpRc  = SDB_OK ;
+      INT32 errNum = 0 ;
+      const CHAR *pDetail = NULL ;
+      BSONObj obj ;
+      BSONObj retObj ;
+      _omaInitEnv runCmd( _taskID, obj ) ;
+
+      rc = runCmd.init( NULL ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDWARNING, "Failed to init for running js script, "
+                 "rc = %d", rc ) ;
+         goto error ;
+      }
+      rc = runCmd.doit( retObj ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDWARNING, "Failed to init for running js script, "
+                 "rc = %d", rc ) ;
+         goto error ;
+      }
+      rc = omaGetIntElement ( retObj, OMA_FIELD_ERRNO, errNum ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to get errno from js after initializing "
+                 "environment for execting js script, rc = %d", rc ) ;
+         goto error ;
+      }
+      if ( SDB_OK != errNum )
+      {
+         rc = errNum ;
+         tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pDetail ) ;
+         if ( SDB_OK != tmpRc )
+         {
+            PD_LOG( PDERROR, "Failed to get error detail from js after "
+                    "environment for execting js script, rc = %d", rc ) ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Failed to init environment for execting js"
+                    "script, rc = %d, detail = %s", rc, pDetail ) ;
+         }
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
    }
 
    /*

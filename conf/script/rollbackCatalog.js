@@ -21,14 +21,11 @@
    2014-7-26 Zhaobo Tan  Init
 @parameter
    BUS_JSON: the format is: {}
-   SYS_JSON: the format is: { "TaskID": 1, "TmpCoordSvcName": "10000" }
+   SYS_JSON: the format is: { "TaskID": 2, "TmpCoordSvcName": "10000" } ;
    ENV_JSON:
 @return
    RET_JSON: the format is: { "errrno": 0, "detail": "" }
 */
-
-// println
-//var SYS_JSON = { "TaskID": 2, "TmpCoordSvcName": "10000" } ;
 
 var FILE_NAME_ROLLBACK_CATALOG = "rollbackCatalog.js" ;
 var RET_JSON     = new removeRGResult() ;
@@ -36,8 +33,6 @@ var rc           = SDB_OK ;
 var errMsg       = "" ;
 
 var task_id      = "" ;
-// println
-var rg_name = OMA_SYS_CATALOG_RG ;
 
 /* *****************************************************************************
 @discretion: init
@@ -49,9 +44,7 @@ function _init()
 {           
    // 1. get task id
    task_id = getTaskID( SYS_JSON ) ;
-
-   setTaskLogFileName( task_id, rg_name ) ;
-   
+   setTaskLogFileName( task_id ) ;
    PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ROLLBACK_CATALOG,
             sprintf( "Begin to rollback catalog rg in task[?]", task_id ) ) ;
 }
@@ -85,6 +78,8 @@ function _removeCatalogGroup( db )
    {
       if ( SDB_CLS_GRP_NOT_EXIST == e )
       {
+         PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ROLLBACK_CATALOG,
+                  "No catalog group needs to rollback" ) ;
          return ;
       }
       else
@@ -120,6 +115,8 @@ function main()
    var tmpCoordSvcName    = null ;
    var db                 = null ;
 
+   _init() ;
+   
    try
    {
       // 1. get arguments
@@ -158,6 +155,8 @@ function main()
       // if catalog is not running, no need to rollback
       if ( false == isCatalogRunning( db ) )
       {
+         PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ROLLBACK_CATALOG,
+                  sprintf( "Catalog is not running, stop removing catalog group" ) ) ;
          _final() ;
          return RET_JSON ;
       }
@@ -177,7 +176,6 @@ function main()
    }
 
    _final() ;
-println("RET_JSON is: " + JSON.stringify(RET_JSON) ) ;
    return RET_JSON ;
 }
 

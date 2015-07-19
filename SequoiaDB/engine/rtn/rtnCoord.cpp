@@ -36,7 +36,7 @@
 
 #include "rtnCoord.hpp"
 #include "rtnCoordCommands.hpp"
-#include "rtnCoordImageCommands.hpp"
+#include "rtnCoordDCCommands.hpp"
 #include "rtnCoordOperator.hpp"
 #include "rtnCoordAuth.hpp"
 #include "rtnCoordAuthCrt.hpp"
@@ -133,7 +133,7 @@ namespace engine
    RTN_COORD_CMD_ADD( COORD_CMD_LIST_CL_IN_DOMAIN, rtnCoordCMDListCLInDomain )
    RTN_COORD_CMD_ADD( COORD_CMD_INVALIDATE_CACHE, rtnCoordCMDInvalidateCache )
    RTN_COORD_CMD_ADD( COORD_CMD_LIST_LOBS, rtnCoordCMDListLobs )
-   RTN_COORD_CMD_ADD( COORD_CMD_ATTACH_IMAGE, rtnCoordAttachImage )
+   RTN_COORD_CMD_ADD( COORD_CMD_ALTER_IMAGE, rtnCoordAlterImage )
    RTN_COORD_CMD_ADD( COORD_CMD_REELECT, rtnCoordCMDReelection )
    RTN_COORD_CMD_END
 

@@ -98,7 +98,6 @@ namespace engine
       _SDB_KRCB *krcb = pmdGetKRCB() ;
       SDB_ROLE role = krcb->getDBRole() ;
       CHAR *msg = NULL ;
-      BSONObj *err = NULL ;
       if ( SDB_ROLE_COORD == role )
       {
          INT32 bufSize = 0 ;
@@ -115,9 +114,8 @@ namespace engine
          }
 
          rc = del.execute( msg, *((SINT32 *)msg),
-                           NULL, eduCB, dummyReply,
-                           &err ) ;
-         SDB_ASSERT( NULL == err, "impossible" ) ;
+                           eduCB, dummyReply,
+                           NULL ) ;
       }
       else
       {

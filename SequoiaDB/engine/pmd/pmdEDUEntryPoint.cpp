@@ -58,7 +58,7 @@ namespace engine
          ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_RESTAGENT, FALSE,
                                 pmdRestAgentEntryPoint,
                                 "RestAgent" ),
-         ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_FAPAGENT, TRUE,
+         ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_FAPAGENT, FALSE,
                                 pmdFapAgentEntryPoint,
                                 "FAPAgent" ),
          ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_TCPLISTENER, TRUE,
@@ -119,7 +119,7 @@ namespace engine
          ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_SYNCCLOCK, TRUE,
                                 pmdSyncClockEntryPoint,
                                 "SyncClockWorker" ),
-         ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_FAPLISTENER, FALSE,
+         ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_FAPLISTENER, TRUE,
                                 pmdFapListenerEntryPoint,
                                 "FAPListener" ),
 

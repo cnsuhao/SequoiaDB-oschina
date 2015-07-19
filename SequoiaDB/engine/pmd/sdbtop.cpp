@@ -363,13 +363,15 @@ string hostname  = SDBTOP_DEFAULT_HOSTNAME ;
 string serviceName = SDBTOP_DEFAULT_SERVICENAME ;
 string usrName = NULLSTRING ;
 string password = NULLSTRING ;
+BOOLEAN useSSL = FALSE ;
 
-#define OPTION_HELP        "help"
+#define OPTION_HELP          "help"
 #define OPTION_CONFPATH      "confpath"
 #define OPTION_HOSTNAME      "hostname"
-#define OPTION_SERVICENAME      "servicename"
-#define OPTION_USRNAME      "usrname"
+#define OPTION_SERVICENAME   "servicename"
+#define OPTION_USRNAME       "usrname"
 #define OPTION_PASSWORD      "password"
+#define OPTION_SSL           "ssl"
 
 
 #define ADD_PARAM_OPTIONS_BEGIN( desc )\
@@ -632,7 +634,7 @@ class Event : public SDBObject
 {
 public: // features
    RootWindow root ;
-   sdb coord ;
+   sdb* coord ;
 public://consturct function
    Event() ;
    ~Event() ;
@@ -718,7 +720,7 @@ public: // operation
    INT32 refreshAll( HeadTailMap *header, BodyMap *body,
                      HeadTailMap *footer, BOOLEAN refreshAferClean ) ;
 
-   INT32 runSDBTOP( ) ;
+   INT32 runSDBTOP( BOOLEAN useSSL = FALSE ) ;
 };
 
 
@@ -2082,7 +2084,7 @@ error :
    goto done ;
 }
 
-Event::Event()
+Event::Event(): coord( NULL )
 {
    root.input.activatedPanel                 = NULL ;
    root.input.displayModeChooser             = 0 ;
@@ -2220,6 +2222,8 @@ Event::~Event()
    }
    if( root.footerLength )
       SDBTOP_SAFE_DELETE( root.footer ) ;
+
+   SAFE_OSS_DELETE( coord ) ;
 }
 
 INT32 Event::assignActivatedPanel( BodyMap **activatedPanel,
@@ -3145,7 +3149,7 @@ INT32 Event::getCurSnapshot()
       else
          condition = "{}" ;
       fromjson(condition, conditionObj ) ;
-      rc = coord.getSnapshot( cursor, snapType,
+      rc = coord->getSnapshot( cursor, snapType,
                               conditionObj, selectorObj, orderByObj) ;
    }
    else if( GROUP == root.input.snapshotModeChooser )
@@ -3159,7 +3163,7 @@ INT32 Event::getCurSnapshot()
          condition += "\"}" ;
 
       fromjson(condition, conditionObj ) ;
-      rc = coord.getSnapshot( cursor, snapType,
+      rc = coord->getSnapshot( cursor, snapType,
                               conditionObj, selectorObj, orderByObj) ;
    }
    else if( NODE == root.input.snapshotModeChooser )
@@ -3184,7 +3188,7 @@ INT32 Event::getCurSnapshot()
       else
          condition += "}" ;
       fromjson(condition, conditionObj ) ;
-      rc = coord.getSnapshot( cursor, snapType,
+      rc = coord->getSnapshot( cursor, snapType,
                               conditionObj, selectorObj, orderByObj) ;
    }
    else
@@ -5077,7 +5081,7 @@ error:
 struct timeval waitTime ;
 struct timeval startTime ;
 struct timeval endTime ;
-INT32 Event::runSDBTOP( )
+INT32 Event::runSDBTOP( BOOLEAN useSSL )
 {
    INT32 rc = SDB_OK ;
    HeadTailMap* header = NULL ;
@@ -5119,7 +5123,13 @@ INT32 Event::runSDBTOP( )
    }
    try
    {
-      rc = coord.connect( hostname.c_str(), serviceName.c_str(),
+      coord = new(std::nothrow) sdb( useSSL ) ;
+      if ( NULL == coord )
+      {
+         rc = SDB_OOM ;
+         goto error;
+      }
+      rc = coord->connect( hostname.c_str(), serviceName.c_str(),
                           usrName.c_str(), password.c_str() ) ;
    }
    catch( std::exception &e )
@@ -5267,6 +5277,9 @@ void init ( po::options_description &desc )
 {
    ADD_PARAM_OPTIONS_BEGIN ( desc )
       COMMANDS_OPTIONS
+#ifdef SDB_SSL
+      ( OPTION_SSL, "use SSL connection" ) 
+#endif
    ADD_PARAM_OPTIONS_END
 }
 
@@ -5370,6 +5383,14 @@ INT32 resolveArgument ( po::options_description &desc,
    {
       password = NULLSTRING ;
    }
+
+#ifdef SDB_SSL
+   if( vm.count ( OPTION_SSL ) )
+   {
+      useSSL = TRUE ;
+   }
+#endif
+
 done :
    return rc ;
 error :
@@ -5420,7 +5441,7 @@ INT32 main( INT32 argc, CHAR **argv)
    keypad( stdscr, FALSE ) ;
    noecho() ;
    curs_set( 1 ) ;
-   rc = sdbtop.runSDBTOP( ) ;
+   rc = sdbtop.runSDBTOP( useSSL ) ;
    if( rc && SDB_SDBTOP_DONE != rc )
    {
       ossSnprintf( errStrBuf, errStrLength, "%s",  errStr ) ;

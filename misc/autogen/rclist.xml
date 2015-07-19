@@ -2250,5 +2250,69 @@
          </description>
       </code>
 
+      <code>
+         <name>SDB_CLS_CAN_NOT_STEP_UP</name>
+         <description>
+            <en>can not step up when primary node exists or LSN is not the biggest</en>
+            <cn>当存在主节点或者本地LSN不为最大值时无法强行升主</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_CAT_IMAGE_ADDR_CONFLICT</name>
+         <description>
+            <en>Image address is conflict with the self cluster</en>
+            <cn>镜像地址和本集群地址冲突</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_CAT_GROUP_HASNOT_IMAGE</name>
+         <description>
+            <en>The data group does not have image group</en>
+            <cn>数据组不存在镜像</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_CAT_GROUP_HAS_IMAGE</name>
+         <description>
+            <en>The data group has image group</en>
+            <cn>数据组存在镜像</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_CAT_IMAGE_IS_ENABLED</name>
+         <description>
+            <en>The image is in enabled status</en>
+            <cn>镜像处于生效状态</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_CAT_IMAGE_NOT_CONFIG</name>
+         <description>
+            <en>The cluster's image does not configured</en>
+            <cn>集群未配置镜像</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_CAT_DUAL_ACTIVE</name>
+         <description>
+            <en>This cluster and image cluster is both active</en>
+            <cn>本集群和镜像集群都为激活状态</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_CAT_CLUSTER_NOT_ACTIVE</name>
+         <description>
+            <en>This cluster is not active</en>
+            <cn>集群未激活</cn>
+         </description>
+      </code>
+
    </codelist>
 </rclist>

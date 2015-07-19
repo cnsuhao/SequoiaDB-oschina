@@ -93,7 +93,7 @@ namespace SequoiaDB
             return ListCSCL(SDBConst.SDB_LIST_CS_IN_DOMAIN);
         }
 
-        /** \fn DBCursor listCL()
+        /** \fn DBCursor ListCL()
          *  \brief List all the collections in current domain.
          *  \return The DBCursor of result
          *  \exception SequoiaDB.BaseException
@@ -103,7 +103,7 @@ namespace SequoiaDB
         {
             return ListCSCL(SDBConst.SDB_LIST_CL_IN_DOMAIN);
         }
-
+        
         private DBCursor ListCSCL(int type)
         {
             // append argument

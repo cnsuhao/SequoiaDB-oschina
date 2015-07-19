@@ -1,0 +1,12 @@
+{
+    "modsdbs": {
+	 	  "title": "Module：",
+		  "tab": [ "General", "Advance" ],
+        "panel": {
+				"nodeConf": {
+						"title": [ "Property", "Value", "Description" ],
+						"hostName": "HostName"
+				}
+        }
+	 }
+}

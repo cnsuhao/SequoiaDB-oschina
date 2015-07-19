@@ -20,24 +20,18 @@
 @modify list:
    2014-7-26 Zhaobo Tan  Init
 @parameter
-   BUS_JSON: the format is: { "AuthUser": "", "AuthPasswd": "" }
-   SYS_JSON: the format is: { "TaskID: 2", "TmpCoordSvcName": "10000" }
+   BUS_JSON: the format is: { "AuthUser": "", "AuthPasswd": "" } ;
+   SYS_JSON: the format is: { "TaskID": 2, "TmpCoordSvcName": "10000" } ;
 @return
    RET_JSON: the format is: { "errno": 0, "detail": "" }
 */
-
-// println
-//var BUS_JSON = { "AuthUser": "", "AuthPasswd": "" } ;
-//var SYS_JSON = { "TaskID": 2, "TmpCoordSvcName": "10000" } ;
 
 var FILE_NAME_REMOVE_CATALOG_RG = "removeCatalogRG.js" ;
 var RET_JSON = new removeRGResult() ;
 var rc       = SDB_OK ;
 var errMsg   = "" ;
 
-var task_id = "" ;
-// println
-var rg_name = OMA_SYS_CATALOG_RG ;
+var task_id  = "" ;
 
 /* *****************************************************************************
 @discretion: init
@@ -49,9 +43,7 @@ function _init()
 {           
    // 1. get task id
    task_id = getTaskID( SYS_JSON ) ;
-
-   setTaskLogFileName( task_id, rg_name ) ;
-   
+   setTaskLogFileName( task_id ) ;
    PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_REMOVE_CATALOG_RG,
             sprintf( "Begin to remove catalog group in task[?]", task_id ) ) ;
 }
@@ -70,6 +62,8 @@ function _final()
 
 function main()
 {
+   _init() ;
+   
    try
    {
       var localHostName   = null ;
@@ -143,7 +137,6 @@ function main()
    }
    
    _final() ;
-println("RET_JSON is: " + JSON.stringify(RET_JSON) ) ;
    return RET_JSON ;
 }
 

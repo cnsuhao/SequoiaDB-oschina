@@ -80,23 +80,31 @@ namespace engine
 
    INT32 _omaAddHostSubTask::doit()
    {
-      INT32 rc = SDB_OK ;
-      INT32 tmpRc = SDB_OK ;
+      INT32 rc      = SDB_OK ;
+      INT32 tmpRc   = SDB_OK ;
 
       _pTask->setSubTaskStatus( _taskName, OMA_TASK_STATUS_RUNNING ) ;
       
       while( TRUE )
       {
          AddHostInfo *pInfo           = NULL ;
-         AddHostResultInfo resultInfo = { "", "", OMA_TASK_STATUS_INIT,
-                                          OMA_TASK_STATUS_DESC_INIT,
+         AddHostResultInfo resultInfo = { "", "", OMA_TASK_STATUS_RUNNING,
+                                          OMA_TASK_STATUS_DESC_RUNNING,
                                           SDB_OK, "" } ;
          CHAR flow[OMA_BUFF_SIZE + 1] = { 0 } ;
          const CHAR *pDetail          = NULL ;
          const CHAR *pIP              = NULL ;
          const CHAR *pHostName        = NULL ;
          INT32 errNum                 = 0 ;
+         stringstream ss ;
          BSONObj retObj ;
+
+         if ( TRUE == pmdGetThreadEDUCB()->isInterrupted() )
+         {
+            PD_LOG( PDEVENT, "Program has been interrupted, stop task[%s]",
+                    _taskName.c_str() ) ;
+            goto done ;
+         }
 
          pInfo = _pTask->getAddHostItem() ;
          if ( NULL == pInfo )
@@ -112,10 +120,6 @@ namespace engine
          resultInfo._hostName = pHostName ;
 
          ossSnprintf( flow, OMA_BUFF_SIZE, "Adding host[%s]", pIP ) ;
-         resultInfo._status     = OMA_TASK_STATUS_RUNNING ;
-         resultInfo._statusDesc = getTaskStatusDesc( OMA_TASK_STATUS_RUNNING ) ;
-         resultInfo._errno      = SDB_OK ;
-         resultInfo._detail     = "" ;
          resultInfo._flow.push_back( flow ) ;
          tmpRc = _pTask->updateProgressToTask( pInfo->_serialNum, resultInfo ) ;
          if ( tmpRc )
@@ -132,20 +136,8 @@ namespace engine
                     "host[%s], rc = %d", pIP, rc ) ;
             pDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
             if ( NULL == pDetail || 0 == *pDetail )
-               pDetail = "Failed to init for adding host " ;
-            ossSnprintf( flow, OMA_BUFF_SIZE, "Failed to add host[%s]", pIP ) ;
-            resultInfo._status     = OMA_TASK_STATUS_FINISH ;
-            resultInfo._statusDesc = getTaskStatusDesc( OMA_TASK_STATUS_FINISH ) ;
-            resultInfo._errno      = rc ;
-            resultInfo._detail     = pDetail ;
-            resultInfo._flow.push_back( flow ) ;
-            rc = _pTask->updateProgressToTask( pInfo->_serialNum, resultInfo ) ;
-            if ( rc )
-            {
-               PD_LOG( PDWARNING, "Failed to update add host[%s]'s progress, "
-                       "rc = %d", pIP, rc ) ;
-            }
-            continue ;
+               pDetail = "Failed to init for adding host" ;
+            goto build_error_result ;
          }
          rc = runCmd.doit( retObj ) ;
          if ( rc )
@@ -158,41 +150,17 @@ namespace engine
                if ( NULL == pDetail || 0 == *pDetail )
                   pDetail = "Not exeute js file yet" ;
             }
-            ossSnprintf( flow, OMA_BUFF_SIZE, "Failed to add host[%s]", pIP ) ;
-            resultInfo._status     = OMA_TASK_STATUS_FINISH ;
-            resultInfo._statusDesc = getTaskStatusDesc( OMA_TASK_STATUS_FINISH ) ;
-            resultInfo._errno      = rc ;
-            resultInfo._detail     = pDetail ;
-            resultInfo._flow.push_back( flow ) ;
-            tmpRc = _pTask->updateProgressToTask( pInfo->_serialNum, resultInfo ) ;
-            if ( tmpRc )
-            {
-               PD_LOG( PDWARNING, "Failed to update add host[%s]'s progress, "
-                       "rc = %d", pIP, tmpRc ) ;
-            }
-            continue ;
+            goto build_error_result ;
          }
          rc = omaGetIntElement ( retObj, OMA_FIELD_ERRNO, errNum ) ;
          if ( rc )
          {
             PD_LOG( PDERROR, "Failed to get errno from js after "
                     "adding host[%s], rc = %d", pIP, rc ) ;
-            pDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
-            if ( NULL == pDetail || 0 == *pDetail )
-               pDetail = "Failed to get errno from js after adding host" ;
-            ossSnprintf( flow, OMA_BUFF_SIZE, "Failed to add host[%s]", pIP ) ;
-            resultInfo._status     = OMA_TASK_STATUS_FINISH ;
-            resultInfo._statusDesc = getTaskStatusDesc( OMA_TASK_STATUS_FINISH ) ;
-            resultInfo._errno      = rc ;
-            resultInfo._detail     = pDetail ;
-            resultInfo._flow.push_back( flow ) ;
-            tmpRc =_pTask->updateProgressToTask( pInfo->_serialNum, resultInfo ) ;
-            if ( tmpRc )
-            {
-               PD_LOG( PDWARNING, "Failed to update add host[%s]'s progress, "
-                       "rc = %d", pIP, tmpRc ) ;
-            }
-            continue ;
+            ss << "Failed to get errno from js after adding host[" <<
+               pIP << "]" ;
+            pDetail = ss.str().c_str() ;
+            goto build_error_result ;
          }
          if ( SDB_OK != errNum )
          {
@@ -201,23 +169,13 @@ namespace engine
             {
                PD_LOG( PDERROR, "Failed to get error detail from js after "
                        "adding host[%s], rc = %d", pIP, rc ) ;
-               pDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
-               if ( NULL == pDetail || 0 == *pDetail )
-                  pDetail = "Failed to get error detail from js after adding host" ;
+               ss << "Failed to get error detail from js after adding host[" <<
+                  pIP << "]" ;
+               pDetail = ss.str().c_str() ;
+               goto build_error_result ;
             }
-            ossSnprintf( flow, OMA_BUFF_SIZE, "Failed to add host[%s]", pIP ) ;
-            resultInfo._status     = OMA_TASK_STATUS_FINISH ;
-            resultInfo._statusDesc = getTaskStatusDesc( OMA_TASK_STATUS_FINISH ) ;
-            resultInfo._errno      = errNum ;
-            resultInfo._detail     = pDetail ;
-            resultInfo._flow.push_back( flow ) ;
-            tmpRc = _pTask->updateProgressToTask( pInfo->_serialNum, resultInfo ) ;
-            if ( tmpRc )
-            {
-               PD_LOG( PDWARNING, "Failed to update add host[%s]'s progress, "
-                       "rc = %d", pIP, tmpRc ) ;
-            }
-            continue ;
+            rc = errNum ;
+            goto build_error_result ;
          }
          else
          {
@@ -233,6 +191,23 @@ namespace engine
                        "rc = %d", pIP, tmpRc ) ;
             }
          }
+         continue ; // if we success, nerver go to "build_error_result"
+         
+      build_error_result:
+         ossSnprintf( flow, OMA_BUFF_SIZE, "Failed to add host[%s]", pIP ) ;
+         resultInfo._status     = OMA_TASK_STATUS_FINISH ;
+         resultInfo._statusDesc = getTaskStatusDesc( OMA_TASK_STATUS_FINISH ) ;
+         resultInfo._errno      = rc ;
+         resultInfo._detail     = pDetail ;
+         resultInfo._flow.push_back( flow ) ;
+         tmpRc = _pTask->updateProgressToTask( pInfo->_serialNum, resultInfo ) ;
+         if ( tmpRc )
+         {
+            PD_LOG( PDWARNING, "Failed to update add host[%s]'s progress, "
+                    "rc = %d", pIP, tmpRc ) ;
+         }
+         continue ;
+         
       }
 
    done:
@@ -240,7 +215,6 @@ namespace engine
       _pTask->notifyUpdateProgress() ;
       return SDB_OK ;
    }
-
 
    /*
       install db business sub task
@@ -280,8 +254,13 @@ namespace engine
 
    INT32 _omaInstDBBusSubTask::doit()
    {
-      INT32 rc = SDB_OK ;
-      INT32 tmpRc = SDB_OK ;
+      INT32 rc                     = SDB_OK ;
+      INT32 tmpRc                  = SDB_OK ;
+      CHAR flow[OMA_BUFF_SIZE + 1] = { 0 } ;
+      const CHAR *pDetail          = NULL ;
+      const CHAR *pHostName        = NULL ;
+      const CHAR *pSvcName         = NULL ;
+      INT32 errNum                 = 0 ;
       OMA_TASK_STATUS taskStatus ;
 
       _pTask->setSubTaskStatus( _taskName, OMA_TASK_STATUS_RUNNING ) ;
@@ -290,6 +269,18 @@ namespace engine
       {
          string instRGName ;
 
+         if ( TRUE == pmdGetThreadEDUCB()->isInterrupted() )
+         {
+            PD_LOG( PDEVENT, "Program has been interrupted, stop task[%s]",
+                    _taskName.c_str() ) ;
+            goto done ;
+         }
+         if ( TRUE == _pTask->getIsTaskFail() )
+         {
+            PD_LOG( PDEVENT, "Install db business task had failed, "
+                    "sub task[%s] exits", _taskName.c_str() ) ;
+            goto done ;
+         }
          instRGName = _pTask->getDataRGToInst() ;
          if ( instRGName.empty() )
          {
@@ -300,14 +291,9 @@ namespace engine
 
          while( TRUE )
          {
-            InstDBBusInfo *pInfo         = NULL ;
+            InstDBBusInfo *pInfo = NULL ;
             InstDBResult instResult ;
-                                        
-            CHAR flow[OMA_BUFF_SIZE + 1] = { 0 } ;
-            const CHAR *pDetail          = NULL ;
-            const CHAR *pHostName        = NULL ;
-            const CHAR *pSvcName         = NULL ;
-            INT32 errNum                 = 0 ;
+            stringstream ss ;
             BSONObj retObj ;
 
             pInfo = _pTask->getDataNodeInfo( instRGName ) ;
@@ -382,26 +368,25 @@ namespace engine
                PD_LOG( PDERROR, "Failed to get errno from js after "
                        "installing data node[%s:%s], rc = %d",
                        pHostName, pSvcName, rc ) ;
-               pDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
-               if ( NULL == pDetail || 0 == *pDetail )
-                  pDetail = "Failed to get errno from js after "
-                            "installing data node" ;
+               ss << "Failed to get errno from js after installing data node[" <<
+                  pHostName << ":" << pSvcName << "]" ;
+               pDetail = ss.str().c_str() ;
                goto build_error_result ;
             }
             if ( SDB_OK != errNum )
             {
-               rc = errNum ;
-               tmpRc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pDetail ) ;
-               if ( SDB_OK != tmpRc )
+               rc = omaGetStringElement ( retObj, OMA_FIELD_DETAIL, &pDetail ) ;
+               if ( SDB_OK != rc )
                {
                   PD_LOG( PDERROR, "Failed to get error detail from js after "
                           "installing data node[%s:%s], rc = %d",
-                          pHostName, pSvcName, tmpRc ) ;
-                  pDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
-                  if ( NULL == pDetail || 0 == *pDetail )
-                     pDetail = "Failed to get error detail from js "
-                               "after installing data node" ;
+                          pHostName, pSvcName, rc ) ;
+                  ss << "Failed to get error detail from js after installing "
+                        "data node[" << pHostName << ":" << pSvcName << "]" ;
+                  pDetail = ss.str().c_str() ;
+                  goto build_error_result ;
                }
+               rc = errNum ;
                goto build_error_result ;
             }
             else
@@ -449,7 +434,10 @@ namespace engine
       _pTask->setSubTaskStatus( _taskName, OMA_TASK_STATUS_FINISH ) ;
       _pTask->notifyUpdateProgress() ;
       return rc ;
+      
    error:
+      _pTask->setIsTaskFail() ;
+      _pTask->setErrInfo( rc, pDetail ) ;
       goto done ;
    }
 

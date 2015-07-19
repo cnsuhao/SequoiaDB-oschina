@@ -96,6 +96,9 @@ PHP_METHOD ( SequoiaDB, dropDomain ) ;
 PHP_METHOD ( SequoiaDB, getDomain ) ;
 PHP_METHOD ( SequoiaDB, listDomains ) ;
 
+PHP_METHOD ( SecureSdb, __construct ) ;
+PHP_METHOD ( SecureSdb, __destruct ) ;
+
 PHP_METHOD ( SequoiaCS, __construct ) ;
 PHP_METHOD ( SequoiaCS, __destruct ) ;
 PHP_METHOD ( SequoiaCS, selectCollection ) ;

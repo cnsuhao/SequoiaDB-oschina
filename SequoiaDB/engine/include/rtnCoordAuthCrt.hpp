@@ -40,10 +40,11 @@ namespace engine
    class rtnCoordAuthCrt : public rtnCoordAuthBase
    {
    public:
-      virtual INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                             CHAR **ppResultBuffer, pmdEDUCB *cb,
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
                              MsgOpReply &replyHeader,
-                             BSONObj **ppErrorObj ) ;
+                             rtnContextBuf *buf ) ;
    } ;
 }
 

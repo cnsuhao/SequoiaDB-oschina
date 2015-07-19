@@ -218,8 +218,8 @@ namespace engine
          goto error ;
       }
 
-      rc = _coordQuery.execute ( qMsg, *(SINT32*)qMsg, NULL, eduCB,
-                                 dummyReply, &err ) ;
+      rc = _coordQuery.execute ( qMsg, *(SINT32*)qMsg, eduCB,
+                                 dummyReply, NULL ) ;
       SDB_ASSERT( NULL == err, "impossible" ) ;
       PD_RC_CHECK ( rc, PDERROR,
                     "Failed to execute coordQuery, rc = %d", rc ) ;

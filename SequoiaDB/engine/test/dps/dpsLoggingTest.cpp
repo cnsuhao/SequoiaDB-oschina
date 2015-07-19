@@ -100,7 +100,8 @@ TEST(logWrapperTest, recordInsert_1)
    INT32 rc = SDB_OK ;
    deleteFiles();
    _dpsLogWrapper wrapper ;
-   ASSERT_TRUE ( 0 == wrapper.getLogMgr()->init (".", DPS_DFT_LOG_BUF_SZ ) ) ;
+   ASSERT_TRUE ( 0 == wrapper.getLogMgr()->init ( ".", DPS_DFT_LOG_BUF_SZ,
+                                                  NULL ) ) ;
    ACTIVE_THREAD(&wrapper)
    string name("recordInsert.collection");
    BSONObj obj;

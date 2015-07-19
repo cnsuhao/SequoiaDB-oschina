@@ -39,9 +39,11 @@
 #include "clsCatalogMatcher.hpp"
 #include "catDef.hpp"
 #include "clsCataHashMatcher.hpp"
+#include "utilBsonHash.hpp"
 
 #include "../bson/lib/md5.hpp"
 #include "../bson/lib/md5.h"
+
 
 using namespace bson ;
 
@@ -404,6 +406,7 @@ namespace engine
       ossIsPowerOf2( _partition, &_square ) ;
       _attribute = 0 ;
       _isMainCL = FALSE ;
+      _internalV = 0 ;
    }
 
    _clsCatalogSet::~_clsCatalogSet ()
@@ -710,7 +713,7 @@ namespace engine
 
    INT32 _clsCatalogSet::_hash( const BSONObj &key )
    {
-      return clsPartition( key, _square ) ;
+      return clsPartition( key, _square, getInternalV() ) ;
    }
 
    PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCTSET__FINDIM, "_clsCatalogSet::_findItem" )
@@ -822,23 +825,35 @@ namespace engine
 
       if ( isHashSharding() )
       {
-         clsCataHashMatcher hashMatcher( _shardingKey );
-         rc = hashMatcher.loadPattern( matcher, _square );
-         PD_RC_CHECK( rc, PDERROR,
-                     "failed to load match-info(rc=%d)",
-                     rc );
-         iter = _mapItems.begin();
-         while( iter != _mapItems.end() )
+         if ( !CAT_INTERNAL_VERSION_IS_OLD( getInternalV() ) )
          {
-            rc = hashMatcher.matches( iter->second, result );
+            clsCataHashMatcher hashMatcher( _shardingKey );
+            rc = hashMatcher.loadPattern( matcher, _square );
             PD_RC_CHECK( rc, PDERROR,
-                        "failed to match sharding-key(rc=%d)",
+                        "failed to load match-info(rc=%d)",
                         rc );
-            if ( result )
+            iter = _mapItems.begin();
+            while( iter != _mapItems.end() )
+            {
+               rc = hashMatcher.matches( iter->second, result );
+               PD_RC_CHECK( rc, PDERROR,
+                           "failed to match sharding-key(rc=%d)",
+                           rc );
+               if ( result )
+               {
+                  vecGroup.push_back( iter->second->getGroupID() );
+               }
+               ++iter;
+            }
+         }
+         else
+         {
+            iter = _mapItems.begin();
+            while( iter != _mapItems.end() )
             {
                vecGroup.push_back( iter->second->getGroupID() );
+               ++iter ;
             }
-            ++iter;
          }
          goto done ;
       }
@@ -1492,6 +1507,12 @@ namespace engine
          PD_CHECK( ossIsPowerOf2( (UINT32)_partition, &_square ), SDB_SYS,
                    error, PDERROR, "Parition[%d] is not power of 2",
                    _partition ) ;
+
+         ele = catSet.getField( CAT_INTERNAL_VERSION ) ;
+         if ( NumberInt == ele.type() )
+         {
+            _internalV = ele.Int() ;
+         }
       }
 
       if ( isRangeSharding() )
@@ -2599,6 +2620,30 @@ namespace engine
       return _groupMap.size() ;
    }
 
+   INT32 _clsNodeMgrAgent::getGroupsID( vector< UINT32 > &groups )
+   {
+      groups.clear() ;
+      GROUP_MAP_IT it = _groupMap.begin() ;
+      while ( it != _groupMap.end() )
+      {
+         groups.push_back( it->first ) ;
+         ++it ;
+      }
+      return (INT32)groups.size() ;
+   }
+
+   INT32 _clsNodeMgrAgent::getGroupsName( vector< string > &groups )
+   {
+      groups.clear() ;
+      GROUP_NAME_MAP_IT it = _groupNameMap.begin() ;
+      while ( it != _groupNameMap.end() )
+      {
+         groups.push_back( it->first ) ;
+         ++it ;
+      }
+      return (INT32)_groupNameMap.size() ;
+   }
+
    PD_TRACE_DECLARE_FUNCTION ( SDB__CLSNDMGRAG_GPVS, "_clsNodeMgrAgent::groupVersion" )
    INT32 _clsNodeMgrAgent::groupVersion ( UINT32 id )
    {
@@ -2900,17 +2945,26 @@ namespace engine
    }
 
 
-   INT32 clsPartition( const BSONObj & keyObj, UINT32 partitionBit )
+   INT32 clsPartition( const BSONObj & keyObj,
+                       UINT32 partitionBit,
+                       UINT32 internalVersion )
    {
-      md5::md5digest digest ;
-      md5::md5( keyObj.objdata(), keyObj.objsize(), digest ) ;
-      UINT32 hashValue = 0 ;
-      UINT32 i = 0 ;
-      while ( i++ < 4 )
+      if ( !CAT_INTERNAL_VERSION_IS_OLD( internalVersion ) )
       {
-         hashValue |= ( (UINT32)digest[i] << ( 32 - 8 * i ) ) ;
+         return BSON_HASHER::hash( keyObj, partitionBit ) ;
       }
-      return (INT32)( hashValue >> ( 32 - partitionBit ) ) ;
+      else
+      {
+         md5::md5digest digest ;
+         md5::md5( keyObj.objdata(), keyObj.objsize(), digest ) ;
+         UINT32 hashValue = 0 ;
+         UINT32 i = 0 ;
+         while ( i++ < 4 )
+         {
+            hashValue |= ( (UINT32)digest[i] << ( 32 - 8 * i ) ) ;
+         }
+         return (INT32)( hashValue >> ( 32 - partitionBit ) ) ;
+      }
    }
 
    INT32 clsPartition( const bson::OID &oid, UINT32 sequence, UINT32 partitionBit )

@@ -257,11 +257,11 @@ namespace engine
                   goto error ;
                }
             }
+            clusterName = oneHost.getStringField( OM_BSON_FIELD_CLUSTER_NAME ) ;
+            sdbGetOMManager()->updateClusterVersion( clusterName ) ;
          }
       }
 
-      clusterName = taskInfo.getStringField( OM_BSON_FIELD_CLUSTER_NAME ) ;
-      sdbGetOMManager()->updateClusterVersion( clusterName ) ;
    done:
       return rc ;
    error:
@@ -279,6 +279,196 @@ namespace engine
    }
 
    INT32 omAddHostTask::checkUpdateInfo( const BSONObj &updateInfo )
+   {
+      INT32 rc = SDB_OK ;
+      BSONElement resultInfoEle ;
+      BSONObj agentResultInfo ;
+
+      BSONObj localTask ;
+      BSONObj localResultInfo ;
+
+      rc = omTaskBase::checkUpdateInfo( updateInfo ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "omTaskBase::checkUpdateInfo failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      {
+         BSONObj filterResult = BSON( OM_TASKINFO_FIELD_RESULTINFO << "" ) ;
+         BSONObj selector ;
+         BSONObj matcher = BSON( OM_TASKINFO_FIELD_TASKID << _taskID ) ;
+         BSONObj orderBy ;
+         BSONObj hint ;
+         rc = queryOneTask( selector, matcher, orderBy, hint, localTask ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "query task failed:taskID="OSS_LL_PRINT_FORMAT
+                    ",rc=%d", _taskID, rc ) ;
+            goto error ;
+         }
+
+         localResultInfo = localTask.filterFieldsUndotted( filterResult, 
+                                                           true ) ;
+      }
+
+      resultInfoEle = updateInfo.getField( OM_TASKINFO_FIELD_RESULTINFO ) ;
+      if ( Array != resultInfoEle.type() )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG( PDERROR, "%s is not Array type", 
+                 OM_TASKINFO_FIELD_RESULTINFO ) ;
+         goto error ;
+      }
+      agentResultInfo = resultInfoEle.embeddedObject() ;
+      {
+         BSONObj filter = BSON( OM_HOST_FIELD_NAME << "" ) ;
+         BSONObjIterator iterResult( agentResultInfo ) ;
+         while ( iterResult.more() )
+         {
+            BSONObj find ;
+            BSONObj oneResult ;
+            BSONElement ele = iterResult.next() ;
+            if ( ele.type() != Object )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "%s's element is not Object type", 
+                       OM_TASKINFO_FIELD_RESULTINFO ) ;
+               goto error ;
+            }
+
+            oneResult = ele.embeddedObject() ;
+            find      = oneResult.filterFieldsUndotted( filter, true ) ;
+            if ( !isInElement( localResultInfo, OM_TASKINFO_FIELD_RESULTINFO, 
+                               find ) )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG( PDERROR, "agent's result is not in localTask:"
+                       "agentResult=%s", find.toString().c_str() ) ;
+               goto error ;
+            }
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   omRemoveHostTask::omRemoveHostTask( INT64 taskID )
+   {
+      _taskID   = taskID ;
+      _taskType = OM_TASK_TYPE_REMOVE_HOST ;
+   }
+
+   omRemoveHostTask::~omRemoveHostTask()
+   {
+
+   }
+
+   INT32 omRemoveHostTask::_getSuccessHost( BSONObj &resultInfo, 
+                                         set<string> &successHostSet )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj hosts ;
+      hosts = resultInfo.getObjectField( OM_TASKINFO_FIELD_RESULTINFO ) ;
+      BSONObjIterator iter( hosts ) ;
+      while ( iter.more() )
+      {
+         BSONElement ele = iter.next() ;
+         BSONObj tmpHost = ele.embeddedObject() ;
+         string hostName = tmpHost.getStringField( OM_HOST_FIELD_NAME ) ;
+         INT32 retCode   = tmpHost.getIntField( OM_REST_RES_RETCODE ) ;
+         if ( SDB_OK == retCode )
+         {
+            successHostSet.insert( hostName ) ;
+         }
+      }
+
+      return rc ;
+   }
+
+   INT32 omRemoveHostTask::finish( BSONObj &resultInfo )
+   {
+      INT32 rc     = SDB_OK ;
+      pmdEDUCB *cb = pmdGetThreadEDUCB() ;
+      string clusterName ;
+      BSONObj taskInfoValue ;
+      BSONObj hosts ;
+      set<string> successHostSet ;
+
+      BSONObj selector ;
+      BSONObj matcher ;
+      BSONObj orderBy ;
+      BSONObj hint ;
+      BSONObj taskInfo ;
+
+      rc = _getSuccessHost( resultInfo, successHostSet ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "get success host failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      selector = BSON( OM_TASKINFO_FIELD_INFO << 1 ) ;
+      matcher  = BSON( OM_TASKINFO_FIELD_TASKID << _taskID ) ;
+      rc = queryOneTask( selector, matcher, orderBy, hint, taskInfo ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "get task info failed:taskID="OSS_LL_PRINT_FORMAT
+                 ",rc=%d", _taskID, rc ) ;
+         goto error ;
+      }
+
+      taskInfoValue = taskInfo.getObjectField( OM_TASKINFO_FIELD_INFO ) ;
+      hosts = taskInfoValue.getObjectField( OM_BSON_FIELD_HOST_INFO ) ;
+      SDB_ASSERT( !hosts.isEmpty(), "" ) ;
+      {
+         string clusterName ;
+         BSONObjIterator iter( hosts ) ;
+         while ( iter.more() )
+         {
+            BSONElement ele = iter.next() ;
+            BSONObj oneHost = ele.embeddedObject() ;
+            string hostName = oneHost.getStringField( OM_HOST_FIELD_NAME ) ;
+            if ( successHostSet.find( hostName ) == successHostSet.end() )
+            {
+               continue ;
+            }
+
+            BSONObj condition = BSON( OM_HOST_FIELD_NAME << hostName ) ;
+            rc = rtnDelete( OM_CS_DEPLOY_CL_HOST, condition, hint, 0, cb );
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "failed to delete record from table:%s,"
+                       "%s=%s,rc=%d", OM_CS_DEPLOY_CL_HOST, 
+                       OM_HOST_FIELD_NAME, hostName.c_str(), rc ) ;
+               goto error ;
+            }
+
+            clusterName = oneHost.getStringField( OM_BSON_FIELD_CLUSTER_NAME ) ;
+            sdbGetOMManager()->updateClusterVersion( clusterName ) ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 omRemoveHostTask::getType()
+   {
+      return _taskType ;
+   }
+
+   INT64 omRemoveHostTask::getTaskID()
+   {
+      return _taskID ;
+   }
+
+   INT32 omRemoveHostTask::checkUpdateInfo( const BSONObj &updateInfo )
    {
       INT32 rc = SDB_OK ;
       BSONElement resultInfoEle ;
@@ -936,6 +1126,10 @@ namespace engine
       {
       case OM_TASK_TYPE_ADD_HOST :
          pTask = SDB_OSS_NEW omAddHostTask( taskID ) ;
+         break ;
+
+      case OM_TASK_TYPE_REMOVE_HOST :
+         pTask = SDB_OSS_NEW omRemoveHostTask( taskID ) ;
          break ;
 
       case OM_TASK_TYPE_ADD_BUSINESS :

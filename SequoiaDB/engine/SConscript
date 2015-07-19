@@ -129,7 +129,8 @@ utilFiles = [
       "client/jstobs.c",
       "util/csv2rawbson.cpp",
       "util/utilCommon.cpp",
-      "util/url.c"
+      "util/url.c",
+      "util/utilBsonHash.cpp"
       ]
 
 rtnFiles = [
@@ -149,7 +150,7 @@ rtnFiles = [
       "rtn/rtnBackup.cpp",
       "rtn/rtnReorg.cpp",
       "rtn/rtnCoordCommands.cpp",
-      "rtn/rtnCoordImageCommands.cpp",
+      "rtn/rtnCoordDCCommands.cpp",
       "rtn/rtnCoordQuery.cpp",
       "rtn/rtnCoordCommon.cpp",
       "rtn/rtnCoordOperator.cpp",
@@ -343,7 +344,8 @@ clsFiles = [
       "cls/clsReplBucket.cpp",
       "cls/clsCataHashMatcher.cpp",
       "cls/clsCommand.cpp",
-      "cls/clsReelection.cpp"
+      "cls/clsReelection.cpp",
+      "cls/clsDCMgr.cpp"
       ]
 
 dpsFiles = [
@@ -391,8 +393,10 @@ catFiles = [
       "cat/catalogueCB.cpp",
       "cat/catNodeManager.cpp",
       "cat/catCatalogManager.cpp",
+      "cat/catDCManager.cpp",
       "cat/catLevelLock.cpp",
-      "cat/catSplit.cpp"
+      "cat/catSplit.cpp",
+      "cat/catDCLogMgr.cpp"
       ]
 
 coordFiles = [
@@ -805,7 +809,7 @@ if hasTool:
           _LIBDEPS='$_LIBDEPS_OBJS' )
 
    sdbdmsdump = env.Program("sdbdmsdump", sdbdmsdumpMain,
-         LIBDEPS=["qgm","bar","rest","cat","coord","snappy","cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","dps","net", "sql","auth", "aggr","spd", "omsvc"],
+         LIBDEPS=["qgm","bar","rest","cat","coord","snappy","util","cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","mon","dps","net", "sql","auth", "aggr","spd", "omsvc"],
          _LIBDEPS='$_LIBDEPS_OBJS' )
 # Install testcases
 if hasTestcase:

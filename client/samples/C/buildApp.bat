@@ -33,7 +33,7 @@ for /r "%~dp0" %%f in (*.*) do (
 
       cl /Fo"!BUILDPATH!\!PROGRAM!!STATIC!.obj" /c "!SCRIPTPATH!\!FULLPROGRAM!" /I!SCRIPTPATH!\..\..\include /wd4047 /DSDB_STATIC_BUILD
       cl /Fo"!BUILDPATH!\!COMMON!!STATIC!.obj" /c "!SCRIPTPATH!\!COMMON!!LANG!" /I!SCRIPTPATH!\..\..\include /wd4047 /DSDB_STATIC_BUILD
-      link /OUT:!BUILDPATH!\!PROGRAM!!STATIC!.exe /LIBPATH:!SCRIPTPATH!\..\..\lib staticsdbc.lib "!BUILDPATH!\!PROGRAM!!STATIC!.obj" "!BUILDPATH!\!COMMON!!STATIC!.obj" /debug
+      link /OUT:!BUILDPATH!\!PROGRAM!!STATIC!.exe /LIBPATH:!SCRIPTPATH!\..\..\lib staticsdbc.lib "!BUILDPATH!\!PROGRAM!!STATIC!.obj" "!BUILDPATH!\!COMMON!!STATIC!.obj" gdi32.lib advapi32.lib crypt32.lib user32.lib /debug /NODEFAULTLIB:LIBCMT
       
       goto :end
    )

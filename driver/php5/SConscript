@@ -22,6 +22,9 @@ clientThreadSafe = [
       root_dir + "/../../SequoiaDB/engine/oss/ossLatch.cpp"
       ]
 clientLibFiles = [
+      root_dir + "/../../SequoiaDB/engine/oss/ossSSLCertificate.c",
+      root_dir + "/../../SequoiaDB/engine/oss/ossSSLWrapper.c",
+      root_dir + "/../../SequoiaDB/engine/oss/ossSSLContext.c",
       root_dir + "/../../SequoiaDB/engine/oss/oss.c",
       root_dir + "/../../SequoiaDB/engine/oss/oss.cpp",
       root_dir + "/../../SequoiaDB/engine/oss/ossUtil.c",
@@ -69,6 +72,9 @@ for file in clientLibFiles2:
    env.Execute(Copy(root_dir + "/ext/temp/bson", file))
 srcFile = [
       root_dir + "/ext/temp/clientcpp.cpp",
+      root_dir + "/ext/temp/ossSSLCertificate.c",
+      root_dir + "/ext/temp/ossSSLWrapper.c",
+      root_dir + "/ext/temp/ossSSLContext.c",
       root_dir + "/ext/temp/oss.cpp",
       root_dir + "/ext/temp/ossUtil.cpp",
       root_dir + "/ext/temp/ossSocket.cpp",

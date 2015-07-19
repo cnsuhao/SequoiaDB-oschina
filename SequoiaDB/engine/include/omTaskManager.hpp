@@ -89,6 +89,30 @@ namespace engine
          INT32             _taskType ;
    } ;
 
+   class omRemoveHostTask : public omTaskBase
+   {
+      public:
+         omRemoveHostTask( INT64 taskID ) ;
+         virtual ~omRemoveHostTask() ;
+
+      public:
+         virtual INT32     finish( BSONObj &resultInfo ) ;
+
+         virtual INT32     getType() ;
+
+         virtual INT64     getTaskID() ;
+
+         virtual INT32     checkUpdateInfo( const BSONObj &updateInfo ) ;
+
+      private:
+         INT32             _getSuccessHost( BSONObj &resultInfo, 
+                                            set<string> &successHostSet ) ;
+
+      private:
+         INT64             _taskID ;
+         INT32             _taskType ;
+   } ;
+
    class omAddBusinessTask : public omTaskBase
    {
       public:

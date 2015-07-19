@@ -37,7 +37,7 @@
 #include "msgBuffer.hpp"
 #include "util.hpp"
 
-INT32 _msgBuffer::alloc( CHAR *&ptr, const UINT32 size )
+INT32 _msgBuffer::alloc( const UINT32 size )
 {
    INT32 rc = SDB_OK ;
 
@@ -47,8 +47,8 @@ INT32 _msgBuffer::alloc( CHAR *&ptr, const UINT32 size )
       goto error ;
    }
 
-   ptr = ( CHAR *) SDB_OSS_MALLOC( size ) ;
-   if ( NULL == ptr )
+   _data = ( CHAR *) SDB_OSS_MALLOC( size ) ;
+   if ( NULL == _data )
    {
       rc = SDB_OOM ;
       goto error ;
@@ -62,9 +62,10 @@ error:
    goto done ;
 }
 
-INT32 _msgBuffer::realloc( CHAR *&ptr, const UINT32 size )
+INT32 _msgBuffer::realloc( const UINT32 size )
 {
    INT32 rc = SDB_OK ;
+   CHAR* ptr = NULL ;
    if ( 0 == size )
    {
       rc = SDB_INVALIDARG ;
@@ -76,13 +77,14 @@ INT32 _msgBuffer::realloc( CHAR *&ptr, const UINT32 size )
       goto done ;
    }
 
-   ptr = ( CHAR * )SDB_OSS_REALLOC( ptr, size ) ;
+   ptr = ( CHAR * )SDB_OSS_REALLOC( _data, size ) ;
    if ( NULL == ptr )
    {
       rc = SDB_OOM ;
       goto error ;
    }
 
+   _data = ptr ;
    _capacity = size ;
    ossMemset( _data + _size, 0, _capacity - _size ) ;
 
@@ -110,7 +112,7 @@ INT32 _msgBuffer::write( const CHAR *in, const UINT32 inLen,
       num = ( inLen + _size ) / MEMERY_BLOCK_SIZE + 1 ;
       size = num * MEMERY_BLOCK_SIZE ;
 
-      rc = realloc( _data, size ) ;
+      rc = realloc( size ) ;
       if( SDB_OK != rc )
       {
          goto error ;
@@ -144,7 +146,7 @@ INT32 _msgBuffer::write( const bson::BSONObj &obj, BOOLEAN align, INT32 bytes )
       num = ( objsize + _size ) / MEMERY_BLOCK_SIZE + 1 ;
       size = num * MEMERY_BLOCK_SIZE ;
 
-      rc = realloc( _data, size ) ;
+      rc = realloc( size ) ;
       if( SDB_OK != rc )
       {
          goto error ;

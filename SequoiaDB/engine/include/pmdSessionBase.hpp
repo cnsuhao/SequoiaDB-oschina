@@ -101,6 +101,17 @@ namespace engine
          INT32       sniffData( INT32 timeout = OSS_ONE_SEC ) ;
 
       protected:
+         inline BOOLEAN _isAwaitingHandshake () const
+         {
+            return _awaitingHandshake ;
+         }
+
+         inline void   _setHandshakeReceived ()
+         {
+            _awaitingHandshake = FALSE ;
+         }
+
+      protected:
 
          _pmdEDUCB                        *_pEDUCB ;
          EDUID                            _eduID ;
@@ -109,6 +120,7 @@ namespace engine
          pmdExternClient                  _client ;
          _pmdProcessor                    *_processor ;
          _dpsLogWrapper                   *_pDPSCB ;
+         BOOLEAN                          _awaitingHandshake ;
 
       protected:
          CHAR                             *_pBuff ;

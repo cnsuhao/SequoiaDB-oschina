@@ -77,7 +77,6 @@ namespace engine
       _restoreFlag = FALSE ;
 
       _transCB = NULL ;
-      _pEventHander = NULL ;
    }
 
    _dpsReplicaLogMgr::~_dpsReplicaLogMgr()
@@ -89,14 +88,35 @@ namespace engine
       }
    }
 
+   void _dpsReplicaLogMgr::regEventHandler( dpsEventHandler *pEventHandler )
+   {
+      _vecEventHandler.push_back( pEventHandler ) ;
+   }
+
+   void _dpsReplicaLogMgr::unregEventHandler( dpsEventHandler *pEventHandler )
+   {
+      vector< dpsEventHandler* >::iterator it = _vecEventHandler.begin() ;
+      while ( it != _vecEventHandler.end() )
+      {
+         if ( *it == pEventHandler )
+         {
+            _vecEventHandler.erase( it ) ;
+            break ;
+         }
+         ++it ;
+         continue ;
+      }
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSRPCMGR_INIT, "_dpsReplicaLogMgr::init" )
-   INT32 _dpsReplicaLogMgr::init ( const CHAR *path, UINT32 pageNum )
+   INT32 _dpsReplicaLogMgr::init ( const CHAR *path, UINT32 pageNum,
+                                   dpsTransCB *pTransCB )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR_INIT );
       SDB_ASSERT ( path, "path can't be NULL" ) ;
 
-      _transCB = sdbGetTransCB() ;
+      _transCB = pTransCB ;
 
       _pages = SDB_OSS_NEW _dpsLogPage[pageNum];
       if ( NULL == _pages )
@@ -261,47 +281,51 @@ namespace engine
 
       if ( !block.isRow() )
       {
-      if ( ( _lsn.offset / logFileSz ) !=
-            ( _lsn.offset + head._length - 1 ) / logFileSz )
-      {
-         SDB_ASSERT ( !block.isRow(), "replicated log record should never"
-                      " hit this part" ) ;
-         UINT32 dummyLogSize = logFileSz - ( _lsn.offset % logFileSz ) ;
-         SDB_ASSERT ( dummyLogSize >= sizeof ( dpsLogRecordHeader ),
-                      "dummy log size is smaller than log head" ) ;
-         SDB_ASSERT ( dummyLogSize % sizeof(SINT32) == 0,
-                      "dummy log size is not 4 bytes aligned" ) ;
-
-         dpsLogRecordHeader &dummyhead =
-                           info.getDummyBlock().record().head() ;
-         dummyhead._length = dummyLogSize ;
-         dummyhead._type   = LOG_TYPE_DUMMY ;
-         _allocate ( dummyhead._length, info.getDummyBlock().pageMeta() ) ;
-
-         SHARED_LOCK_NODES ( info.getDummyBlock().pageMeta()) ;
-         _push2SendQueue ( info.getDummyBlock().pageMeta() ) ;
-         dummyhead._lsn = _lsn.offset ;
-         dummyhead._version = _lsn.version ;
-         dummyhead._preLsn = _currentLsn.offset ;
-         _currentLsn = _lsn ;
-         _lsn.offset += dummyhead._length ;
-
-         if ( info.isNeedNotify() && _pEventHander )
+         if ( ( _lsn.offset / logFileSz ) !=
+               ( _lsn.offset + head._length - 1 ) / logFileSz )
          {
-            _pEventHander->onPrepareLog( info.getCSLID(), info.getCLLID(),
-                                         info.getExtentLID(),
-                                         dummyhead._lsn ) ;
-         }
-      }
+            SDB_ASSERT ( !block.isRow(), "replicated log record should never"
+                         " hit this part" ) ;
+            UINT32 dummyLogSize = logFileSz - ( _lsn.offset % logFileSz ) ;
+            SDB_ASSERT ( dummyLogSize >= sizeof ( dpsLogRecordHeader ),
+                         "dummy log size is smaller than log head" ) ;
+            SDB_ASSERT ( dummyLogSize % sizeof(SINT32) == 0,
+                         "dummy log size is not 4 bytes aligned" ) ;
 
-      if ( ( (_lsn.offset+head._length) / logFileSz ) !=
-           ( (_lsn.offset+head._length+
-              sizeof(dpsLogRecordHeader)) / logFileSz ) )
-      {
-         SDB_ASSERT ( !block.isRow(), "replicated log record should never"
-                      " hit this part" ) ;
-         head._length = logFileSz - _lsn.offset % logFileSz ;
-      }
+            dpsLogRecordHeader &dummyhead =
+                              info.getDummyBlock().record().head() ;
+            dummyhead._length = dummyLogSize ;
+            dummyhead._type   = LOG_TYPE_DUMMY ;
+            _allocate ( dummyhead._length, info.getDummyBlock().pageMeta() ) ;
+
+            SHARED_LOCK_NODES ( info.getDummyBlock().pageMeta()) ;
+            _push2SendQueue ( info.getDummyBlock().pageMeta() ) ;
+            dummyhead._lsn = _lsn.offset ;
+            dummyhead._version = _lsn.version ;
+            dummyhead._preLsn = _currentLsn.offset ;
+            _currentLsn = _lsn ;
+            _lsn.offset += dummyhead._length ;
+
+            if ( info.isNeedNotify() && _vecEventHandler.size() > 0 )
+            {
+               for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
+               {
+                  _vecEventHandler[i]->onPrepareLog( info.getCSLID(),
+                                                     info.getCLLID(),
+                                                     info.getExtentLID(),
+                                                     head._lsn ) ;
+               }
+            }
+         }
+
+         if ( ( (_lsn.offset+head._length) / logFileSz ) !=
+              ( (_lsn.offset+head._length+
+                 sizeof(dpsLogRecordHeader)) / logFileSz ) )
+         {
+            SDB_ASSERT ( !block.isRow(), "replicated log record should never"
+                         " hit this part" ) ;
+            head._length = logFileSz - _lsn.offset % logFileSz ;
+         }
       }
       _allocate( head._length, block.pageMeta() );
 
@@ -321,11 +345,15 @@ namespace engine
       _currentLsn = _lsn ;
       _lsn.offset += head._length ;
 
-      if ( info.isNeedNotify() && _pEventHander )
+      if ( info.isNeedNotify() && _vecEventHandler.size() > 0 )
       {
-         _pEventHander->onPrepareLog( info.getCSLID(), info.getCLLID(),
-                                      info.getExtentLID(),
-                                      head._lsn ) ;
+         for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
+         {
+            _vecEventHandler[i]->onPrepareLog( info.getCSLID(),
+                                               info.getCLLID(),
+                                               info.getExtentLID(),
+                                               head._lsn ) ;
+         }
       }
 
    done:
@@ -345,7 +373,6 @@ namespace engine
    {
       SDB_ASSERT ( info.getMergeBlock().pageMeta().valid(),
                    "block not prepared" ) ;
-      SDB_ASSERT ( _transCB != NULL, "transCB can't be null!" ) ;
       PD_TRACE_ENTRY ( SDB__DPSRPCMGR_WRITEDATA );
 
       if ( info.hasDummy() )
@@ -357,7 +384,10 @@ namespace engine
       _mergeLogs( info.getMergeBlock(), info.getMergeBlock().pageMeta() );
       SHARED_UNLOCK_NODES( info.getMergeBlock().pageMeta() );
 
-      _transCB->saveTransInfoFromLog( info.getMergeBlock().record() ) ;
+      if ( _transCB )
+      {
+         _transCB->saveTransInfoFromLog( info.getMergeBlock().record() ) ;
+      }
 
       PD_TRACE_EXIT ( SDB__DPSRPCMGR_WRITEDATA );
    }
@@ -937,7 +967,7 @@ namespace engine
 
       {
       dpsLogRecord::iterator itr( &(block.record()) ) ;
-      if ( block.isRow())
+      if ( block.isRow() )
       {
          BOOLEAN res = itr.next() ;
          SDB_ASSERT( res, "impossible" ) ;
@@ -1142,9 +1172,16 @@ namespace engine
    INT32 _dpsReplicaLogMgr::checkSyncControl( UINT32 reqLen, _pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK ;
-      if ( _pEventHander )
+      if ( _vecEventHandler.size() > 0 )
       {
-         rc = _pEventHander->canAssignLogPage( reqLen, cb ) ;
+         for( UINT32 i = 0 ; i < _vecEventHandler.size() ; ++i )
+         {
+            _vecEventHandler[i]->canAssignLogPage( reqLen, cb ) ;
+            if ( rc )
+            {
+               break ;
+            }
+         }
       }
       return rc ;
    }

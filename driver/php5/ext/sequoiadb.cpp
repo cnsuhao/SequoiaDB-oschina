@@ -25,6 +25,7 @@
 #include "php_sequoiadb.h"
 #include "cJSON.h"
 #include <zend_exceptions.h>
+#include <zend_interfaces.h>
 
 #ifndef PHP_FE_END
 #define PHP_FE_END {NULL,NULL,NULL}
@@ -98,6 +99,19 @@
      ossSnprintf ( temp,22, "%lld", (UINT64)fsdb ) ;\
      zend_update_property_string ( Z_OBJCE_P(obj), (obj), \
 ZEND_STRL(name), temp TSRMLS_CC ) ; \
+     out = fsdb ; \
+  } \
+}
+
+#define CREATECLASS2(obj,name,classname,out,para) \
+{ \
+  classname *fsdb = new(std::nothrow) classname ( para ) ; \
+  if ( !fsdb ) { out = NULL ; } \
+  else { \
+     CHAR temp[22] = {0} ; \
+     ossSnprintf ( temp,22, "%lld", (UINT64)fsdb ) ;\
+     zend_update_property_string ( Z_OBJCE_P(obj), (obj), \
+     ZEND_STRL(name), temp TSRMLS_CC ) ; \
      out = fsdb ; \
   } \
 }
@@ -222,6 +236,7 @@ ZEND_STRL("_return_model"), 0 TSRMLS_CC ) ; \
 
 static int le_sequoiadb;
 static zend_class_entry *pSequoiadbSdb ;
+static zend_class_entry *pSecureSdb ;
 static zend_class_entry *pSequoiadbCollectionSpace ;
 static zend_class_entry *pSequoiadbCollection ;
 static zend_class_entry *pSequoiadbCursor ;
@@ -256,6 +271,12 @@ const zend_function_entry sequoiadb_sdb_functions[] = {
    PHP_ME ( SequoiaDB, dropDomain      , NULL, ZEND_ACC_PUBLIC )
    PHP_ME ( SequoiaDB, getDomain       , NULL, ZEND_ACC_PUBLIC )
    PHP_ME ( SequoiaDB, listDomains     , NULL, ZEND_ACC_PUBLIC )
+   PHP_FE_END
+};
+
+const zend_function_entry secure_sdb_functions[] = {
+   PHP_ME ( SecureSdb, __construct     , NULL, ZEND_ACC_PUBLIC )
+   PHP_ME ( SecureSdb, __destruct      , NULL, ZEND_ACC_PUBLIC )
    PHP_FE_END
 };
 
@@ -384,6 +405,7 @@ ZEND_GET_MODULE(sequoiadb)
 PHP_MINIT_FUNCTION(sequoiadb)
 {
    zend_class_entry sequoiadbSdb ;
+   zend_class_entry secureSdb ;
    zend_class_entry sequoiadbCollectionSpace ;
    zend_class_entry sequoiadbCollection ;
    zend_class_entry sequoiadbCursor ;
@@ -397,6 +419,7 @@ PHP_MINIT_FUNCTION(sequoiadb)
    zend_class_entry sequoiaNode ;
 
    INIT_CLASS_ENTRY ( sequoiadbSdb, "SequoiaDB", sequoiadb_sdb_functions ) ;
+   INIT_CLASS_ENTRY ( secureSdb, "SecureSdb", secure_sdb_functions ) ;
    INIT_CLASS_ENTRY ( sequoiadbCollectionSpace,
                       "SequoiaCS",sequoiadb_cs_functions  ) ;
    INIT_CLASS_ENTRY ( sequoiadbCollection,
@@ -421,6 +444,8 @@ PHP_MINIT_FUNCTION(sequoiadb)
 
    pSequoiadbSdb             =
 zend_register_internal_class( &sequoiadbSdb TSRMLS_CC ) ;
+   pSecureSdb                =
+zend_register_internal_class_ex( &secureSdb, pSequoiadbSdb, "SequoiaDB" TSRMLS_CC ) ;
    pSequoiadbCollectionSpace =
 zend_register_internal_class( &sequoiadbCollectionSpace TSRMLS_CC ) ;
    pSequoiadbCollection      =
@@ -447,15 +472,15 @@ zend_register_internal_class( &sequoiaNode TSRMLS_CC ) ;
 
    zend_declare_property_null( pSequoiadbSdb,
                                ZEND_STRL("_connection"),
-                               ZEND_ACC_PRIVATE TSRMLS_CC ) ;
+                               ZEND_ACC_PROTECTED TSRMLS_CC ) ;
    zend_declare_property_long( pSequoiadbSdb,
                                ZEND_STRL("_return_model"),
                                1,
-                               ZEND_ACC_PRIVATE TSRMLS_CC ) ;
+                               ZEND_ACC_PROTECTED TSRMLS_CC ) ;
    zend_declare_property_long( pSequoiadbSdb,
                                ZEND_STRL("_error"),
                                0,
-                               ZEND_ACC_PRIVATE TSRMLS_CC ) ;
+                               ZEND_ACC_PROTECTED TSRMLS_CC ) ;
    zend_declare_property_null( pSequoiadbCollectionSpace,
                                ZEND_STRL("_collectionSpace"),
                                ZEND_ACC_PUBLIC TSRMLS_CC ) ;
@@ -1456,6 +1481,57 @@ PHP_METHOD ( SequoiaDB, __destruct )
       close ( connection ) ;
       delete connection ;
    }
+}
+
+/* **************  SequoiaSSL class  ****************/
+
+PHP_METHOD ( SecureSdb, __construct )
+{
+   INT32 rc = SDB_OK ;
+   CHAR *hostName     = NULL ;
+   INT32 hostName_len = 0    ;
+   sdb *connection    = NULL ;
+   CHAR *userName     = NULL ;
+   INT32 userName_len = 0    ;
+   CHAR *password     = NULL ;
+   INT32 password_len = 0    ;
+
+   zend_update_property_long( Z_OBJCE_P( getThis() ), getThis(),
+                              ZEND_STRL ("_return_model"),
+                              1 TSRMLS_CC ) ;
+
+   CREATECLASS2 ( getThis(), "_connection", sdb, connection, TRUE ) ;
+   if ( connection )
+   {
+      if ( !(zend_parse_parameters ( ZEND_NUM_ARGS () TSRMLS_CC,
+                                     "|sss",
+                                     &hostName,
+                                     &hostName_len,
+                                     &userName,
+                                     &userName_len,
+                                     &password,
+                                     &password_len ) == FAILURE ) )
+      {
+         if ( hostName_len > 0 )
+         {
+            if ( userName_len > 0 && password_len > 0 )
+            {
+               rc = connect ( connection, hostName, userName, password ) ;
+            }
+            else
+            {
+               rc = connect ( connection, hostName ) ;
+            }
+            SETERROR2 ( getThis(), rc ) ;
+         }
+      }
+   }
+}
+
+PHP_METHOD ( SecureSdb, __destruct )
+{
+   zval *pThis = getThis() ;
+   zend_call_method_with_0_params( &pThis, pSequoiadbSdb, NULL, "__destruct", NULL ) ;
 }
 
 /* **************  SequoiaCS class  ****************/

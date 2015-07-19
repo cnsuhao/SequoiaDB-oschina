@@ -83,7 +83,7 @@ namespace engine
          BOOLEAN     isGeneralAgent() const { return _isGeneralAgent && !_useStandAlone ; }
          PDLEVEL     getDiagLevel() const ;
 
-         vector< _pmdOptionsMgr::_pmdAddrPair > omAddrs() const
+         vector< _pmdAddrPair > omAddrs() const
          {
             return _vecOMAddr ;
          }

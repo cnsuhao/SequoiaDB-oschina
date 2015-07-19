@@ -577,7 +577,7 @@ namespace engine
 
          pInfo->_errNum = 0 ;
 
-         if ( SDB_START_CRASH == startUpFile.getStartType() )
+         if ( startUpFile.needRestart() )
          {
             pInfo->_status = OMNODE_CRASH ;
          }
@@ -1167,8 +1167,15 @@ namespace engine
       rc = nodeOptions.initFromFile( cfgFile, FALSE ) ;
       if ( rc )
       {
-         PD_LOG( PDERROR, "Extract node[%s] config failed, rc: %d",
-                 pSvcName, rc ) ;
+         if ( SDB_FNE == rc )
+         {
+            rc = SDBCM_NODE_NOTEXISTED ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "Extract node[%s] config failed, rc: %d",
+                    pSvcName, rc ) ;
+         }
          goto error ;
       }
       if ( omsvc )
@@ -1182,6 +1189,36 @@ namespace engine
          PD_LOG( PDERROR, "Role[%s] is not expect[%s]",
                  nodeOptions.dbroleStr(), roleStr ) ;
          rc = SDB_PERM ;
+         goto error ;
+      }
+
+      try
+      {
+         BSONObj configObj( arg1 ) ;
+         BSONObjIterator itr( configObj ) ;
+         while ( itr.more() )
+         {
+            BSONElement e = itr.next() ;
+            if ( 0 != ossStrcmp( e.fieldName(), PMD_OPTION_CLUSTER_NAME ) &&
+                 0 != ossStrcmp( e.fieldName(), PMD_OPTION_BUSINESS_NAME ) &&
+                 0 != ossStrcmp( e.fieldName(), PMD_OPTION_USERTAG ) )
+            {
+               continue ;
+            }
+            string name ;
+            nodeOptions.getFieldStr( e.fieldName(), name, "" ) ;
+            if ( 0 != ossStrcmp( e.valuestrsafe(), name.c_str() ) )
+            {
+               rc = SDBCM_NODE_NOTEXISTED ;
+               goto error ;
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "Extrace config obj occur exception: %s",
+                 e.what() ) ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
 

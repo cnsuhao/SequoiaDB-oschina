@@ -54,6 +54,16 @@
 #define SPT_SPEOBJ_TYPE "$type"
 #define SPT_SPEOBJ_OID "$oid"
 
+extern JSBool is_objectid( JSContext *, JSObject * ) ;
+extern JSBool is_bindata( JSContext *, JSObject * ) ;
+extern JSBool is_jsontypes( JSContext *, JSObject * ) ;
+extern JSBool is_timestamp( JSContext *, JSObject * ) ;
+extern JSBool is_regex( JSContext *, JSObject * ) ;
+extern JSBool is_minkey( JSContext *, JSObject * ) ;
+extern JSBool is_maxkey( JSContext *, JSObject * ) ;
+extern JSBool is_numberlong( JSContext *, JSObject * ) ;
+extern JSBool is_sdbdate( JSContext *, JSObject * ) ;
+
 INT32 sptConvertor::toBson( JSObject *obj , bson **bs )
 {
    INT32 rc = SDB_OK ;
@@ -152,12 +162,368 @@ INT32 sptConvertor::_traverse( JSObject *obj , bson *bs )
          goto error ;
       }
 
-      _appendToBson( name, fieldValue, bs ) ;
+      rc = _appendToBson( name, fieldValue, bs ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
    }
 done:
    return rc ;
 error:
    goto done ;
+}
+
+INT32 sptConvertor::_addObjectId( JSObject *obj,
+                                  const CHAR *key,
+                                  bson *bs )
+{
+   INT32 rc = SDB_OK ;
+   std::string strValue ;
+   jsval value ;
+   if ( !_getProperty( obj, "_str", JSTYPE_STRING, value ))
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+   rc = _toString( value, strValue ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+   if ( 24 != strValue.length() )
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+   bson_oid_t oid ;
+   bson_oid_from_string( &oid, strValue.c_str() ) ;
+   bson_append_oid( bs, key, &oid ) ;
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 sptConvertor::_addBinData( JSObject *obj,
+                                 const CHAR *key,
+                                 bson *bs )
+{
+   INT32 rc = SDB_OK ;
+   std::string typeName ;
+   std::string strBin, strType ;
+   jsval jsBin, jsType ;
+   CHAR *decode = NULL ;
+   UINT32 decodeSize = 0 ;
+   INT32 binType = 0 ;
+
+   if ( !_getProperty( obj, "_data",
+                       JSTYPE_STRING, jsBin ))
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+   if ( !_getProperty( obj, "_type",
+                       JSTYPE_STRING, jsType ))
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+   rc = _toString( jsBin, strBin ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+   rc = _toString( jsType, strType ) ;
+   if ( SDB_OK != rc || strType.empty())
+   {
+      goto error ;
+   }
+
+   try
+   {
+      binType = boost::lexical_cast<INT32>( strType.c_str() ) ;
+   }
+   catch ( std::bad_cast &e )
+   {
+      PD_LOG( PDERROR, "bad type for binary:%s", strType.c_str() ) ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   decodeSize = getDeBase64Size( strBin.c_str() ) ;
+   if ( decodeSize <= 1 )
+   {
+      PD_LOG( PDERROR, "invalid decode size:%d", decodeSize ) ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   decode = ( CHAR * )SDB_OSS_MALLOC( decodeSize ) ;
+   if ( NULL == decode )
+   {
+      PD_LOG( PDERROR, "failed to allocate mem." ) ;
+      rc = SDB_OOM ;
+      goto error ;
+   }
+
+   if ( !base64Decode( strBin.c_str(), decode, decodeSize ) )
+   {
+      PD_LOG( PDERROR, "failed to decode base64 code" ) ;
+      rc = SDB_INVALIDARG ;
+      SDB_OSS_FREE( decode ) ;
+      goto error ;
+   }
+
+   bson_append_binary( bs, key, binType,
+                       decode, decodeSize - 1 ) ;
+done:
+   SDB_OSS_FREE( decode ) ;
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 sptConvertor::_addTimestamp( JSObject *obj,
+                                   const CHAR *key,
+                                   bson *bs )
+{
+   INT32 rc = SDB_OK ;
+   std::string strValue ;
+   jsval value ;
+   time_t tm ;
+   UINT64 usec = 0 ;
+   bson_timestamp_t btm ;
+   if ( !_getProperty( obj, "_t", JSTYPE_STRING, value ))
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+   rc = _toString( value, strValue ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+   rc = engine::utilStr2TimeT( strValue.c_str(),
+                               tm,
+                               &usec ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+   btm.t = tm;
+   btm.i = usec ;
+   bson_append_timestamp( bs, key, &btm ) ;
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 sptConvertor::_addRegex( JSObject *obj,
+                               const CHAR *key,
+                               bson *bs )
+{
+   INT32 rc = SDB_OK ;
+   std::string optionName ;
+   std::string strRegex, strOption ;
+   jsval jsRegex, jsOption ;
+
+   if ( !_getProperty( obj, "_regex",
+                       JSTYPE_STRING, jsRegex ))
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+   if ( !_getProperty( obj, "_option",
+                       JSTYPE_STRING, jsOption ))
+   {
+      rc = SDB_SYS ;
+      goto error ;
+   }
+
+   rc = _toString( jsRegex, strRegex ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+   rc = _toString( jsOption, strOption ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+   bson_append_regex( bs, key, strRegex.c_str(), strOption.c_str() ) ;
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 sptConvertor::_addMinKey( JSObject *obj,
+                                const CHAR *key,
+                                bson *bs )
+{
+   bson_append_minkey( bs, key ) ;
+   return SDB_OK ;
+}
+
+INT32 sptConvertor::_addMaxKey( JSObject *obj,
+                                const CHAR *key,
+                                bson *bs )
+{
+   bson_append_maxkey( bs, key ) ;
+   return SDB_OK ;
+}
+
+INT32 sptConvertor::_addNumberLong( JSObject *obj,
+                                    const CHAR *key,
+                                    bson *bs )
+{
+   INT32 rc = SDB_OK ;
+   jsval jsV = JSVAL_VOID ;
+   FLOAT64 fv = 0 ;
+   INT64 n = 0 ;
+   string strv ;
+
+   if ( !_getProperty( obj, "_v",
+                       JSTYPE_NUMBER, jsV ))
+   {
+      if ( !_getProperty( obj, "_v",
+                          JSTYPE_STRING, jsV ) )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      rc = _toString( jsV, strv ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      try
+      {
+         n = boost::lexical_cast<INT64>( strv ) ;
+      }
+      catch ( std::bad_cast &e )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+   }
+   else
+   {
+      rc = _toDouble( jsV, fv ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+      n = fv ;
+   }
+
+   bson_append_long( bs, key, n ) ;
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 sptConvertor::_addSdbDate( JSObject *obj,
+                                 const CHAR *key,
+                                 bson *bs )
+{
+   INT32 rc = SDB_OK ;
+   std::string strValue ;
+   jsval value ;
+   UINT64 tm ;
+   bson_date_t datet ;
+   if ( !_getProperty( obj, "_d", JSTYPE_STRING, value ))
+   {
+      goto error ;
+   }
+
+   rc = _toString( value, strValue ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+
+   if ( SDB_OK != engine::utilStr2Date( strValue.c_str(),
+                                        tm ) )
+   {
+      goto error ;
+   }
+
+   datet = tm ;
+   bson_append_date( bs, key, datet ) ;
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 sptConvertor::_addJsonTypes( JSObject *obj,
+                                   const CHAR *key,
+                                   bson *bs )
+{
+   INT32 rc = SDB_OK ;
+   if ( is_objectid( _cx, obj ) )
+   {
+      rc = _addObjectId( obj, key, bs ) ;
+   }
+   else if ( is_bindata( _cx, obj ) )
+   {
+      rc = _addBinData( obj, key, bs ) ;
+   }
+   else if ( is_timestamp( _cx, obj ) )
+   {
+      rc = _addTimestamp( obj, key, bs ) ;
+   }
+   else if ( is_regex( _cx, obj ) )
+   {
+      rc = _addRegex( obj, key, bs ) ;
+   }
+   else if ( is_minkey( _cx, obj ) )
+   {
+      rc = _addMinKey( obj, key, bs ) ;
+   }
+   else if ( is_maxkey( _cx, obj ) )
+   {
+      rc = _addMaxKey( obj, key, bs ) ;
+   }
+   else if ( is_numberlong( _cx, obj ) )
+   {
+      rc = _addNumberLong( obj, key, bs ) ; 
+   }
+   else if ( is_sdbdate( _cx, obj ) )
+   {
+      rc = _addSdbDate( obj, key, bs ) ;
+   }
+   else
+   {
+      rc = SDB_INVALIDARG ;
+   }
+
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+done:
+   return rc ;
+error:
+   goto done ; 
 }
 
 BOOLEAN sptConvertor::_addSpecialObj( JSObject *obj,
@@ -532,6 +898,14 @@ INT32 sptConvertor::_appendToBson( const std::string &name,
             if ( NULL == obj )
             {
                bson_append_null( bs, name.c_str() ) ;
+            }
+            else if( is_jsontypes( _cx, obj ) )
+            {
+               rc = _addJsonTypes( obj, name.c_str(), bs ) ;
+               if ( SDB_OK != rc )
+               {
+                  goto error ;
+               }
             }
             else if ( !_addSpecialObj( obj, name.c_str(), bs ) )
             {

@@ -65,6 +65,9 @@ namespace engine
       string getLocalIPAddr() ;
       string getPeerIPAddr() ;
 
+      void   close() ;
+      BOOLEAN isOpened() const { return _isOpen ; }
+
    public:
       INT32 open() ;
 
@@ -93,6 +96,7 @@ namespace engine
       INT32       _port ;
       std::string _usr ;
       std::string _passwd ;
+      BOOLEAN     _isOpen ;
       _ossSocket *_sock ;
 
    } ;

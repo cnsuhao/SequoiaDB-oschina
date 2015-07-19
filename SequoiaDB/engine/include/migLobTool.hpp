@@ -117,7 +117,7 @@ namespace lobtool
       UINT32 _bufSize ;
       UINT32 _written ;
 
-      sdbclient::sdb _db ;
+      sdbclient::sdb* _db ;
       sdbclient::sdbCollection _cl ;
    } ;
    typedef class _migLobTool migLobTool ;

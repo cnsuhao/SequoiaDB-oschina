@@ -39,6 +39,9 @@
 #include <stdio.h>
 #include "pdTrace.hpp"
 #include "ossTrace.hpp"
+#ifdef SDB_SSL
+#include "ossSSLWrapper.h"
+#endif
 
 const UINT32 MAX_INTR_RETRIES = 5 ;
 
@@ -60,6 +63,9 @@ _ossSocket::_ossSocket ( UINT32 port, INT32 timeoutMilli )
    _sockAddress.sin_addr.s_addr = htonl ( INADDR_ANY ) ;
    _sockAddress.sin_port = htons ( port ) ;
    _addressLen = sizeof ( _sockAddress ) ;
+#ifdef SDB_SSL
+   _sslHandle = NULL;
+#endif
    PD_TRACE_EXIT ( SDB__OSSSK__OSSSK );
 }
 
@@ -106,6 +112,9 @@ _ossSocket::_ossSocket ( const CHAR *pHostname, UINT32 port,
    }
    _sockAddress.sin_port = htons ( port ) ;
    _addressLen = sizeof ( _sockAddress ) ;
+#ifdef SDB_SSL
+   _sslHandle = NULL;
+#endif
    PD_TRACE_EXIT ( SDB__OSSSK__OSSSK2 );
 }
 // PD_TRACE_DECLARE_FUNCTION ( SDB__OSSSK__OSSSK3, "_ossSocket::_ossSocket" )
@@ -140,6 +149,9 @@ _ossSocket::_ossSocket ( SOCKET *sock, INT32 timeoutMilli )
       }
    }
    setTimeout ( _timeout ) ;
+#ifdef SDB_SSL
+   _sslHandle = NULL;
+#endif
    PD_TRACE_EXIT ( SDB__OSSSK__OSSSK3 );
 }
 
@@ -150,6 +162,12 @@ _ossSocket::~_ossSocket ()
       close () ;
    }
 
+#ifdef SDB_SSL
+   if ( NULL != _sslHandle )
+   {
+      ossSSLFreeHandle ( &_sslHandle ) ;
+   }
+#endif
 }
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSSK_INITTSK, "ossSocket::initSocket" )
@@ -309,6 +327,28 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
    }
    while ( len > 0 )
    {
+#ifdef SDB_SSL
+      if ( NULL != _sslHandle )
+      {
+         rc = ossSSLWrite ( _sslHandle, pMsg, len ) ;
+         if ( rc <= 0 )
+         {
+            if ( SSL_AGAIN == rc )
+            {
+               rc = SDB_TIMEOUT ;
+               goto error;
+            }
+
+            INT32 error = ossSSLGetError ( _sslHandle ) ;
+            char* errorMsg = ossSSLGetErrorMessage ( error ) ;
+            PD_LOG ( PDERROR, "SSL failed to send, error = %d, %s",
+                     error, errorMsg ) ;
+            rc = SDB_NETWORK ;
+            goto error;
+         }
+      }
+      else
+#endif /* SDB_SSL */
       {
 #if defined (_WINDOWS)
       rc = ::send ( _fd, pMsg, len, flags ) ;
@@ -382,7 +422,7 @@ BOOLEAN _ossSocket::isConnected ()
 INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
                          INT32 &receivedLen,
                          INT32 timeout, INT32 flags,
-                         BOOLEAN block )
+                         BOOLEAN block, BOOLEAN recvRawData )
 {
    INT32 rc = SDB_OK ;
    SDB_ASSERT ( pMsg, "message is NULL" ) ;
@@ -400,6 +440,56 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
       goto done ;
    }
 
+#ifdef SDB_SSL
+   if ( NULL != _sslHandle && !recvRawData )
+   {
+      while ( len > 0 )
+      {
+         if ( flags & MSG_PEEK )
+         {
+            rc = ossSSLPeek ( _sslHandle, pMsg, len ) ;
+         }
+         else
+         {
+            rc = ossSSLRead ( _sslHandle, pMsg, len ) ;
+         }
+
+         if ( rc <= 0 )
+         {
+            if ( SSL_AGAIN == rc || SSL_TIMEOUT == rc)
+            {
+               rc = SDB_TIMEOUT ;
+               goto error;
+            }
+
+            INT32 err = ossSSLGetError ( _sslHandle ) ;
+            char* errMsg = ossSSLGetErrorMessage ( err ) ;
+            PD_LOG ( PDERROR, "SSL failed to recv, error = %d, %s",
+                     err, errMsg ) ;
+            rc = SDB_NETWORK ;
+            goto error;
+         }
+
+         receivedLen += rc ;
+         len -= rc ;
+         pMsg += rc ;
+         rc = SDB_OK;
+
+         if ( flags & MSG_PEEK )
+         {
+            goto done;
+         }
+
+         if ( !block )
+         {
+            goto done ;
+         }
+      }
+
+      rc = SDB_OK;
+      goto done;
+   }
+#endif /* SDB_SSL */
 
    maxSelectTime.tv_sec = timeout / 1000 ;
    maxSelectTime.tv_usec = ( timeout % 1000 ) * 1000 ;
@@ -588,6 +678,13 @@ void _ossSocket::close ()
    PD_TRACE_ENTRY ( SDB_OSSSK_CLOSE );
    if ( _init )
    {
+#ifdef SDB_SSL
+      if ( NULL != _sslHandle )
+      {
+         ossSSLShutdown ( _sslHandle ) ;
+         ossSSLFreeHandle ( &_sslHandle ) ;
+      }
+#endif
 
 #if defined (_WINDOWS)
       closesocket ( _fd ) ;
@@ -711,6 +808,147 @@ void _ossSocket::quickAck ()
 #endif // _LINUX
 }
 
+#ifdef SDB_SSL
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_OSSSK_SECURE, "ossSocket::secure" )
+INT32 _ossSocket::secure ()
+{
+   SSLContext* ctx = NULL ;
+   INT32 ret ;
+
+   PD_TRACE_ENTRY ( SDB_OSSSK_SECURE );
+
+   if ( NULL != _sslHandle )
+   {
+      PD_LOG ( PDERROR, "_sslHandle already exists" ) ;
+      ret = SDB_NETWORK ;
+      goto error2 ;
+   }
+
+   if ( SOCKET_INVALIDSOCKET == _fd )
+   {
+      PD_LOG ( PDERROR, "_fd can't be invalid" ) ;
+      ret = SDB_NETWORK ;
+      goto error ;
+   }
+
+   ctx = ossSSLGetContext () ;
+   if ( NULL == ctx )
+   {
+      PD_LOG ( PDERROR, "failed to get SSL context" ) ;
+      ret = SDB_NETWORK ;
+      goto error;
+   }
+
+   ret = ossSSLNewHandle ( &_sslHandle, ctx, _fd, NULL, 0 ) ;
+   if ( SSL_OK != ret )
+   {
+      INT32 error = ossSSLERRGetError () ;
+      char* errorMsg = ossSSLERRGetErrorMessage ( error ) ;
+      PD_LOG ( PDERROR, "failed to create SSL handle, error = %d, %s",
+               error, errorMsg ) ;
+      ret = SDB_NETWORK ;
+      goto error ;
+   }
+
+   ret = ossSSLConnect ( _sslHandle ) ;
+   if ( SSL_OK != ret )
+   {
+      INT32 error = ossSSLGetError ( _sslHandle ) ;
+      char* errorMsg = ossSSLGetErrorMessage ( error ) ;
+      PD_LOG ( PDERROR, "SSL failed to connect, error = %d, %s",
+               error, errorMsg ) ;
+      ret = SDB_NETWORK ;
+      goto error ;
+   }
+
+   PD_LOG ( PDEVENT, "create a SSL connection" ) ;
+   ret = SDB_OK ;
+
+done:
+   PD_TRACE_EXITRC ( SDB_OSSSK_SECURE, ret );
+   return ret;
+error:
+   if ( NULL != _sslHandle )
+   {
+      ossSSLFreeHandle ( &_sslHandle ) ;
+   }
+   goto done;
+error2: // do not free _sslHandle
+   goto done;
+}
+
+// PD_TRACE_DECLARE_FUNCTION ( SDB_OSSSK_DOSSLHANDSHAKE, "ossSocket::doSSLHandshake" )
+INT32 _ossSocket::doSSLHandshake ( const CHAR* initialBytes, INT32 len )
+{
+   SSLContext* ctx = NULL ;
+   INT32 ret ;
+
+   PD_TRACE_ENTRY ( SDB_OSSSK_DOSSLHANDSHAKE );
+
+   SDB_ASSERT ( len >= 0, "len must be >= 0" ) ;
+
+   if ( NULL != _sslHandle )
+   {
+      PD_LOG ( PDERROR, "_sslHandle already exists" ) ;
+      ret = SDB_NETWORK ;
+      goto error2 ;
+   }
+
+   if ( SOCKET_INVALIDSOCKET == _fd )
+   {
+      PD_LOG ( PDERROR, "_fd can't be invalid" ) ;
+      ret = SDB_NETWORK ;
+      goto error ;
+   }
+
+   ctx = ossSSLGetContext () ;
+   if ( NULL == ctx )
+   {
+      PD_LOG ( PDERROR, "failed to get SSL context" ) ;
+      ret = SDB_NETWORK ;
+      goto error;
+   }
+
+   ret = ossSSLNewHandle ( &_sslHandle, ctx, _fd, initialBytes, len ) ;
+   if ( SSL_OK != ret )
+   {
+      INT32 error = ossSSLERRGetError () ;
+      char* errorMsg = ossSSLERRGetErrorMessage ( error ) ;
+      PD_LOG ( PDERROR, "Failed to create SSL handle, error = %d, %s",
+               error, errorMsg ) ;
+      ret = SDB_NETWORK ;
+      goto error ;
+   }
+
+   ret = ossSSLAccept ( _sslHandle ) ;
+   if ( SSL_OK != ret )
+   {
+      INT32 error = ossSSLGetError ( _sslHandle ) ;
+      char* errorMsg = ossSSLGetErrorMessage ( error ) ;
+      PD_LOG ( PDERROR, "SSL failed to accept, error = %d, %s",
+               error, errorMsg ) ;
+      ret = SDB_NETWORK ;
+      goto error ;
+   }
+
+   PD_LOG ( PDEVENT, "accept a SSL connection" ) ;
+   ret = SDB_OK ;
+
+done:
+   PD_TRACE_EXITRC ( SDB_OSSSK_DOSSLHANDSHAKE, ret );
+   return ret;
+error:
+   if ( NULL != _sslHandle )
+   {
+      ossSSLFreeHandle ( &_sslHandle ) ;
+   }
+   goto done;
+error2: // do not free _sslHandle
+   goto done;
+}
+
+#endif /* SDB_SSL */
 
 UINT32 _ossSocket::_getPort ( sockaddr_in *addr )
 {

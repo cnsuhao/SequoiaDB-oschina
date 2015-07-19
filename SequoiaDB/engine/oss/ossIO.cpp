@@ -2140,16 +2140,16 @@ INT32 ossSeekAndReadN( OSSFILE *file,
 {
    INT32 rc = SDB_OK ;
    SINT64 total = len ;
-   SINT64 totalRead = 0 ;
    SINT64 seek = offset ;
+   read = 0 ;
 
    while ( 0 < total )
    {
       SINT64 onceRead = 0 ;
-      rc = ossSeekAndRead( file, seek, buf + totalRead, total, &onceRead ) ;
+      rc = ossSeekAndRead( file, seek, buf + read, total, &onceRead ) ;
       if ( SDB_OK == rc )
       {
-         totalRead += onceRead ;
+         read += onceRead ;
          total -= onceRead ;
          seek += onceRead ;
          continue ;
@@ -2159,7 +2159,7 @@ INT32 ossSeekAndReadN( OSSFILE *file,
          rc = SDB_OK ;
          continue ;
       }
-      else if ( SDB_EOF == rc && 0 < totalRead )
+      else if ( SDB_EOF == rc && 0 < read )
       {
          rc = SDB_OK ;
          break ;
@@ -2170,7 +2170,6 @@ INT32 ossSeekAndReadN( OSSFILE *file,
       }
    }
 
-   read = totalRead ;
 done:
    return rc ;
 error:
@@ -2204,6 +2203,46 @@ INT32 ossWriteN( OSSFILE *file,
          goto error ;
       }
    }
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 ossSeekAndWriteN( OSSFILE *file,
+                        SINT64 offset,
+                        const CHAR *pBufferWrite,
+                        SINT64      iLenToWrite,
+                        SINT64 &written )
+{
+   INT32 rc = SDB_OK ;
+   SINT64 total = iLenToWrite ;
+   SINT64 seek = offset ;
+   written = 0 ;
+
+   while ( 0 < total )
+   {
+      SINT64 onceWrite = 0 ;
+      rc = ossSeekAndWrite( file, seek, pBufferWrite + written , total,
+                            &onceWrite ) ;
+      if ( SDB_OK == rc )
+      {
+         written += onceWrite ;
+         total -= onceWrite ;
+         seek += onceWrite ;
+         continue ;
+      }
+      else if ( SDB_INTERRUPT == rc )
+      {
+         rc = SDB_OK ;
+         continue ;
+      }
+      else
+      {
+         goto error ;
+      }
+   }
+
 done:
    return rc ;
 error:

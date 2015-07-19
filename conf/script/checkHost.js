@@ -27,10 +27,6 @@
    RET_JSON: the format is: {"IP":"192.168.20.165","HostName":"rhel64-test8","OS":{"Distributor":"RedHatEnterpriseServer","Release":"6.4","Bit":64},"OM":{"Version":"1.8","Path":"/opt/sequoiadb/bin/","Port":"11790","Release":15348},"CPU":[{"ID":"","Model":"","Core":2,"Freq":"2.00GHz"}],"Memory":{"Model":"","Size":2887,"Free":174},"Disk":[{"Name":"/dev/mapper/vg_rhel64test8-lv_root","Mount":"/","Size":43659,"Free":35065,"IsLocal":false},{"Name":"/dev/sda1","Mount":"/boot","Size":460,"Free":423,"IsLocal":true},{"Name":"//192.168.20.10/files","Mount":"/mnt","Size":47836,"Free":29332,"IsLocal":false}],"Net":[{"Name":"lo","Model":"","Bandwidth":"","IP":"127.0.0.1"},{"Name":"eth0","Model":"","Bandwidth":"","IP":"192.168.20.165"}],"Port":[{"Port":"","CanUse":false}],"Service":[{"Name":"","IsRunning":false,"Version":""}],"Safety":{"Name":"","Context":"","IsRunning":false}} 
 */
 
-//println
-//var BUS_JSON = { "IP": "192.168.20.165", "HostName": "rhel64-test8", "User": "root", "Passwd": "sequoiadb" } ;
-//var BUS_JSON = { "IP": "192.168.20.42", "HostName": "susetzb", "User": "root", "Passwd": "sequoiadb" } ;
-
 var FILE_NAME_CHECK_HOST = "checkHost.js" ;
 var errMsg           = "" ;
 var rc               = SDB_OK ;
@@ -48,47 +44,74 @@ RET_JSON[Port]       = "" ;
 RET_JSON[Service]    = "" ;
 RET_JSON[Safety]     = "" ;
 
+function OMAOption()
+{
+   this.role   = "cm" ;
+   this.mode   = "run" ;
+   this.expand = true ;
+}
+
+function OMAFilter()
+{
+   this.type   = "sdbcm" ;
+}
+
 /* *****************************************************************************
 @discretion: extract OM Agent's version, release number, path and port,
    when it has been installed
 @author: Tanzhaobo
 @parameter
-   obj[object]:
+   installInfoObj[object]:
+   omaInfoObj[object]:
 @return
    retObj[object]: an OMAInfo object
 ***************************************************************************** */
-function _extractOMAInfo ( obj )
+function _extractOMAInfo( installInfoObj, omaInfoObj )
 {
-   var retObj = new OMAInfo() ;
+   var retObj      = new OMAInfo() ;
+   var installpath = "" ;
    
    if ( SYS_LINUX == SYS_TYPE )
-   {
-      // 1. get install path
-      var installpath = "" ;
+   {  
+      // 1. get OM Agent SdbUser
       try
       {
-         installpath = obj[INSTALL_DIR] ;
-         retObj[Path] = adaptPath( installpath ) + OMA_PATH_BIN_L ;
+         retObj[SdbUser] = installInfoObj[SDBADMIN_USER] ;
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         errMsg = "Failed to get OM Agent's SdbUser" ;
+         rc = GETLASTERROR() ;
+         PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_HOST,
+                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
+      }
+      
+      // 2. get OM Agent installed path
+      try
+      {
+         installpath = installInfoObj[INSTALL_DIR] ;
+         retObj[Path] = installpath ;
       }
       catch( e )
       {
          SYSEXPHANDLE( e ) ;
          errMsg = "Failed to get OM Agent's install path" ;
          rc = GETLASTERROR() ;
-         // record error message in log
          PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_HOST,
                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
          exception_handle( rc, errMsg ) ;
       }
       
-      // 2. get sdbcm port
-      var configfile = "" ;
+      // 3. get OM Agent's service
       try
       {
-         configfile = adaptPath( installpath ) + OMA_FILE_SDBCM_CONF2_L ;
-         retObj[Port] = "" + Oma.getAOmaSvcName("localhost", configfile ) ;
+         if ( "undefined" == typeof(omaInfoObj) || null == omaInfoObj )
+            exception_handle( SDB_INVALIDARG, "OM Agent's info is " + omaInfoObj ) ;
+         retObj[Service] = omaInfoObj[SvcName2] ;
       }
-      catch ( e )
+      catch( e )
       {
          SYSEXPHANDLE( e ) ;
          errMsg = "Failed to get OM Agent's service" ;
@@ -98,7 +121,7 @@ function _extractOMAInfo ( obj )
          exception_handle( rc, errMsg ) ;
       }
       
-      // 3. get version
+      // 4. get version
       var cmd = null ;
       var sdbcmprog = null ;
       var str = null ;
@@ -108,7 +131,7 @@ function _extractOMAInfo ( obj )
       try
       {
          cmd = new Cmd() ;
-         sdbcmprog = adaptPath( installpath ) + OMA_PROG_BIN_SDBCM_L ;
+         sdbcmprog = adaptPath( installpath ) + OMA_PROG_BIN_SDBCM ;
          str = cmd.run( sdbcmprog + " --version ", "", OMA_GTE_VERSION_TIME ) ;
          beg = str.indexOf( OMA_MISC_OM_VERSION ) ;
          end = str.indexOf( '\n' ) ;
@@ -129,7 +152,7 @@ function _extractOMAInfo ( obj )
          exception_handle( rc, errMsg ) ;
       }
 
-      // 4. get release
+      // 5. get release
       var subStr = "" ;
       try
       {
@@ -155,57 +178,154 @@ function _extractOMAInfo ( obj )
    return retObj ;
 }
 
+// om agent's status and version
+function _getOMAInfo()
+{
+   var installInfoObj = null ;
+   var installPath    = null ;
+   var omaArr         = null ;
+   var omaObj         = null ;
+   var runNum         = 0 ;
+   var localNum       = 0 ;
+   
+   try
+   {      
+      // 1. get the amount of existed OM Agent and the OM Agent's info obj
+      try
+      {
+         var option = new OMAOption() ;
+         var filter = new OMAFilter() ;
+         // check whether running OM Agent exists or not
+         PD_LOG( arguments, PDEVENT, FILE_NAME_CHECK_HOST,
+                 sprintf( "Check whether running OM Agent exists passes: " +
+                          "option[?], filter[?]", JSON.stringify(option),
+                          JSON.stringify(filter) ) ) ;
+         omaArr = Sdbtool.listNodes( option, filter ) ;
+         runNum = omaArr.size() ;
+         PD_LOG( arguments, PDEVENT, FILE_NAME_CHECK_HOST,
+                 sprintf( "The amount of running OM Agent in host[?] is [?]", System.getHostName(), runNum ) ) ;
+         if ( 0 != runNum )
+         {
+            omaObj = eval( '(' + omaArr.pos() + ')' ) ;
+            // get installed SequoiaDB info
+            installInfoObj = getInstallInfoObj() ;
+         }
+         else
+         {
+            // get installed SequoiaDB info
+            try
+            {
+               installInfoObj = getInstallInfoObj() ;
+               installPath =  adaptPath( installInfoObj[INSTALL_DIR] ) + OMA_PATH_BIN ;
+            }
+            catch( e )
+            {
+               if ( SDB_FNE == e )
+               {
+                  PD_LOG( arguments, PDWARNING, FILE_NAME_CHECK_HOST,
+                          sprintf( "Take OM Agent does not exist in host[?]",
+                                   System.getHostName() ) ) ;
+                  RET_JSON[OMA] = new OMAInfo() ;
+                  return ;
+               }
+               else
+               {
+                  SYSEXPHANDLE( e ) ;
+                  rc = GETLASTERROR() ;
+                  errMsg = sprintf( "Failed to get SequoiaDB install info in host[?]",
+                                    System.getHostName() ) ;
+                  PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_HOST,
+                          sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+                  exception_handle( rc, errMsg ) ;
+               }
+            }
+            // when no running OM Agent exists, get the amount of local OM Agent
+            option["mode"] = "local" ;
+            PD_LOG( arguments, PDEVENT, FILE_NAME_CHECK_HOST,
+                    sprintf( "Check whether local OM Agent exists passes: " +
+                             "option[?], filter[?], installPath[?]", JSON.stringify(option),
+                             JSON.stringify(filter), installPath ) ) ;
+            try
+            {
+               omaArr = Sdbtool.listNodes( option, filter, installPath ) ;
+            }
+            catch( e )
+            {
+               SYSEXPHANDLE( e ) ;
+               rc = GETLASTERROR() ;
+               errMsg = sprintf( "Failed to check whether local OM Agent exists in host[?] or not, " +
+                                 "take it not exists", System.getHostName() ) ;
+               PD_LOG( arguments, PDWARNING, FILE_NAME_CHECK_HOST,
+                       sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+               RET_JSON[OMA] = new OMAInfo() ;
+               return ;
+            }
+            localNum = omaArr.size() ;
+            PD_LOG( arguments, PDEVENT, FILE_NAME_CHECK_HOST,
+                    sprintf( "The amount of local OM Agent in host[?] is [?]", System.getHostName(), localNum ) ) ;
+            if ( 0 != localNum )
+            {
+               omaObj = eval( '(' + omaArr.pos() + ')' ) ;
+            }
+         }
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         rc = GETLASTERROR() ;
+         errMsg = sprintf( "Failed to check whether OM Agent exists in host[?] or not", System.getHostName() ) ;
+         PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_HOST,
+                 sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
+      }
+      
+      // 3.get OM Agent info
+      if ( 0 != runNum || 0 != localNum )
+      {
+         RET_JSON[OMA] = _extractOMAInfo( installInfoObj, omaObj ) ;
+      }
+      else
+      {
+         RET_JSON[OMA] = new OMAInfo() ;
+      }
+      
+      return ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = sprintf( "Failed to get OM Agent's info in host[?]", System.getHostName() ) ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_HOST,
+              sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+}
+
 // os info
 function _getOSInfo()
 {
    var osInfo = new OSInfo() ;
+   
    try
    {
       var obj             = eval( '(' + System.getReleaseInfo() + ')' ) ;
       osInfo[Distributor] = obj[Distributor] ;
       osInfo[Release]     = obj[Release] ;
+      osInfo[Description] = obj[Description] ;
       osInfo[Bit]         = obj[Bit] ;
    }
    catch( e )
    {
       SYSEXPHANDLE( e ) ;
-      errMsg = "Failed to get os info, rc: ?, detail: ?" ;
+      errMsg = "Failed to get os's information" ;
       PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_HOST,
-              sprintf( errMsg, GETLASTERROR(), GETLASTERRMSG() ) ) ;
-   }
-   RET_JSON[OS] = osInfo ;
-}
-
-// om agent's status and version
-function _getOMAInfo()
-{
-   var omaInfo = new OMAInfo() ;
-   var obj = null ;
-   var info = null ;
-
-   // 1. when db had not been install
-   try
-   {
-      obj = Oma.getOmaInstallInfo() ;
-   }
-   catch( e )
-   {
-      SYSEXPHANDLE( e ) ;
-      errMsg = sprintf( "Failed to get install info in host[?], take it has not install OM agent yet",
-                        System.getHostName() ) ;
-      PD_LOG( arguments, PDWARNING, FILE_NAME_CHECK_HOST,
-              sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
-      RET_JSON[OMA] = omaInfo ;
+              sprintf( errMsg + "rc: ?, detail: ?",
+              GETLASTERROR(), GETLASTERRMSG() ) ) ;
+      RET_JSON[OS] = new OSInfo() ;
       return ;
    }
-   // 2. get om info
-   // if we fail, let exception throws out to CPP
-   info = _extractOMAInfo( eval( '(' + obj + ')' ) ) ;
-   omaInfo[Version] = info[Version] ;
-   omaInfo[Path]    = info[Path] ;
-   omaInfo[Port]    = info[Port] ;
-   omaInfo[Release] = info[Release] ;
-   RET_JSON[OMA]    = omaInfo ;
+   RET_JSON[OS] = osInfo ;
 }
 
 // memory
@@ -215,7 +335,7 @@ function _getMemInfo()
    
    try
    {
-      obj = eval( '(' + System.getMemInfo() + ')' ) ;
+      var obj = eval( '(' + System.getMemInfo() + ')' ) ;
       // TODO: model is not offer
       memInfo[Model]   = "" ;
       memInfo[Size]    = obj[Size] ;
@@ -224,9 +344,12 @@ function _getMemInfo()
    catch( e )
    {
       SYSEXPHANDLE( e ) ;
-      errMsg = "Failed to get memory information, rc: ?, detail: ?" ;
+      errMsg = "Failed to get memory's information" ;
       PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_HOST,
-              sprintf( errMsg, GETLASTERROR(), GETLASTERRMSG() ) ) ;
+              sprintf( errMsg + "rc: ?, detail: ?",
+              GETLASTERROR(), GETLASTERRMSG() ) ) ;
+      RET_JSON[Memory] = new MemoryInfo() ;
+      return ;
    }
    RET_JSON[Memory] = memInfo ;
 }
@@ -256,9 +379,13 @@ function _getDiskInfo()
    catch( e )
    {
       SYSEXPHANDLE( e ) ;
-      errMsg = "Failed to get disk information, rc: ?, detail: ?" ;
+      errMsg = "Failed to get disk's information" ;
       PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_HOST,
-              sprintf( errMsg, GETLASTERROR(), GETLASTERRMSG() ) ) ;
+              sprintf( errMsg + "rc: ?, detail: ?",
+              GETLASTERROR(), GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+      RET_JSON[Disk] = [] ;
+      return ;
    }
    
    RET_JSON[Disk] = diskInfos ;
@@ -290,9 +417,12 @@ function _getCPUInfo()
    catch( e )
    {
       SYSEXPHANDLE( e ) ;
-      errMsg = "Failed to get cpu information, rc: ?, detail: ?" ;
+      errMsg = "Failed to get cpu's information" ;
       PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_HOST,
-              sprintf( errMsg, GETLASTERROR(), GETLASTERRMSG() ) ) ;
+              sprintf( errMsg + "rc: ?, detail: ?",
+              GETLASTERROR(), GETLASTERRMSG() ) ) ;
+      RET_JSON[CPU] = [] ;
+      return ;
    }
    
    RET_JSON[CPU] = cpuInfos ;
@@ -323,9 +453,12 @@ function _getNetCardInfo()
    catch( e )
    {
       SYSEXPHANDLE( e ) ;
-      errMsg = "Failed to get network card information, rc: ?, detail: ?" ;
+      errMsg = "Failed to get network card's information" ;
       PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_HOST,
-              sprintf( errMsg, GETLASTERROR(), GETLASTERRMSG() ) ) ;
+              sprintf( errMsg + "rc: ?, detail: ?",
+              GETLASTERROR(), GETLASTERRMSG() ) ) ;
+      RET_JSON[Net] = [] ;
+      return ;
    }
    RET_JSON[Net] = netcardInfos ;
 }
@@ -361,9 +494,12 @@ function _getSafetyInfo()
    catch( e )
    {
       SYSEXPHANDLE( e ) ;
-      errMsg = "Failed to get safety information, rc: ?, detail: ?" ;
+      errMsg = "Failed to get safety's information" ;
       PD_LOG( arguments, PDERROR, FILE_NAME_CHECK_HOST,
-              sprintf( errMsg, GETLASTERROR(), GETLASTERRMSG() ) ) ;
+              sprintf( errMsg + "rc: ?, detail: ?",
+              GETLASTERROR(), GETLASTERRMSG() ) ) ;
+      RET_JSON[Safety] = new SafetyInfo() ;
+      return ;
    }
 
    RET_JSON[Safety] = safetyInfo ;
@@ -388,7 +524,6 @@ function main()
    _getSafetyInfo() ;
    
    PD_LOG( arguments, PDEVENT, FILE_NAME_CHECK_HOST, "Finish checking host[" + RET_JSON[IP] + "]" ) ;
-println("RET_JSON is: " + JSON.stringify(RET_JSON) ) ;
    return RET_JSON ;
 }
 

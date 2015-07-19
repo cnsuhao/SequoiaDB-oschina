@@ -54,7 +54,7 @@ function SYSEXPHANDLE( exp )
 function GETLASTERROR ()
 {
    var errno = getLastError() ;
-   if ( undefined == errno )
+   if ( undefined == errno || "number" != typeof(errno) || 0 < errno )
       errno = SDB_SYS ;
    return errno ;
 }
@@ -95,11 +95,6 @@ function exception_handle( exp, msg )
       setLastError( SDB_SYS ) ;
       throw SDB_SYS ;
    }
-}
-
-function exception_msg( exp )
-{
-   return ((null != exp.message) && undefined != exp.message) ? exp.message : exp ;
 }
 
 /* *****************************************************************************
@@ -167,13 +162,9 @@ function isInLocalHost( ssh )
    var ip1 = ssh.getLocalIP() ;
    var ip2 = ssh.getPeerIP() ;
    if( ip1 == ip2 )
-   {
       return true ;
-   }
    else
-   {
       return false ;
-   }
 }
 
 /* *****************************************************************************
@@ -303,23 +294,22 @@ function createTmpDir( ssh )
 {
    var str = "" ;
    // directories make in target host /tmp   
-   var dirs = [ OMA_PATH_TEMP_OMA_DIR_L,
-                OMA_PATH_TEMP_BIN_DIR_L,
-                OMA_PATH_TEMP_PACKET_DIR_L,
-                OMA_PATH_TEMP_CONF_DIR_L,
+   var dirs = [ OMA_PATH_TEMP_OMA_DIR,
+                OMA_PATH_TEMP_BIN_DIR,
+                OMA_PATH_TEMP_PACKET_DIR,
+                OMA_PATH_TEMP_CONF_DIR,
                 OMA_PATH_TEMP_DATA_DIR,
                 OMA_PATH_TMP_WEB_DIR,
-                OMA_PATH_TEMP_LOG_DIR_L,
-                OMA_PATH_TEMP_LOCAL_DIR_L,
-                OMA_PATH_TEMP_SPT_DIR_L,
-                OMA_PATH_TEMP_TEMP_DIR_L,
-                OMA_PATH_TMP_WEB_LOG_DIR ] ;
+                OMA_PATH_TEMP_LOG_DIR,
+                OMA_PATH_TEMP_LOCAL_DIR,
+                OMA_PATH_TEMP_SPT_DIR,
+                OMA_PATH_TEMP_TEMP_DIR ] ;
    try
    {
       if ( SYS_LINUX == SYS_TYPE )
       {
         // rm /tmp/omatmp
-        str = "rm " + OMA_PATH_TEMP_OMA_DIR_L + " -rf " ;
+        str = "rm " + OMA_PATH_TEMP_OMA_DIR + " -rf " ;
         ssh.exec( str ) ;
         // mkdir dirs
         for ( var i = 0; i < dirs.length; i++ )
@@ -359,7 +349,7 @@ function removeTmpDir( ssh )
    {   
       if ( SYS_LINUX == SYS_TYPE )
       {
-         str = "rm -rf " + OMA_PATH_TEMP_OMA_DIR_L2 ;
+         str = "rm -rf " + OMA_PATH_TEMP_OMA_DIR2 ;
          ssh.exec( str ) ;
       }
       else
@@ -388,10 +378,11 @@ function removeTmpDir2( ssh )
 {
    var str = "" ;
    // directories need to be removed in target host
-   var dirs = [ OMA_PATH_TEMP_BIN_DIR_L,
-                OMA_PATH_TEMP_PACKET_DIR_L,
-                OMA_PATH_TEMP_SPT_DIR_L,
-                OMA_PATH_TEMP_LOCAL_DIR_L ] ;
+   var dirs = [ OMA_PATH_TEMP_BIN_DIR,
+                OMA_PATH_TEMP_PACKET_DIR,
+                OMA_PATH_TEMP_SPT_DIR,
+                OMA_PATH_TEMP_LOCAL_DIR,
+                OMA_PATH_TMP_WEB_DIR ] ;
    try
    {
       if ( SYS_LINUX == SYS_TYPE )
@@ -412,7 +403,7 @@ function removeTmpDir2( ssh )
    {
       SYSEXPHANDLE( e ) ;
       rc = GETLASTERROR() ;
-      errMsg = "Failed to remove temporary directory but leave log file in host[" + ssh.getPeerIP() + "]" ;
+      errMsg = "Failed to remove temporary directory in host[" + ssh.getPeerIP() + "]" ;
       PD_LOG( arguments, PDWARNING, FILE_NAME_FUNC,
               errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
    }
@@ -454,207 +445,42 @@ function getSptPath( path )
 }
 
 /* *****************************************************************************
-@discretion: get the total number of program about sdbcm in remote host
-             according the result of sdblist
+@discretion: get the service of local formal sdbcm
 @author: Tanzhaobo
-@parameter
-   str[string]: the result of sdblist
-@return
-   retNum[number]: the total nunber or -1
-***************************************************************************** */
-function extractTotalNumber( str )
-{
-   var retNum = -1 ;
-   var symbol = "Total:" ;
-
-   var pos = str.lastIndexOf( symbol ) ;
-   if ( -1 != pos )
-   {
-      var subStr = str.substring( pos + symbol.length, str.length ) ;
-      retNum = parseInt( subStr ) ;
-   }
-   return retNum ;
-}
-
-/* *****************************************************************************
-@discretion: get remote sdbcm port according the result of sdblist
-@author: Tanzhaobo
-@parameter
-   str[string]: the result of sdblist
-@return
-   retPort[number]: the port or -1
-***************************************************************************** */
-function extractPort( str )
-{
-   var retPort = -1 ;
-   var symbol = "(" ;
-
-   var pos = str.indexOf( symbol ) ;
-   if ( -1 != pos )
-   {
-      var subStr = str.substring( pos + symbol.length, str.length ) ;
-      retNum = parseInt( subStr ) ;
-   }
-   return retNum ;
-}
-
-/* *****************************************************************************
-@discretion: get sdbcm port in target host
-@author: Tanzhaobo
-@parameter
-   ssh[object]: ssh object
+@parameter void
 @exception
 @return
-   retPort[number]: the port of target sdbcm
+   retStr[string]: the service of local formal sdbcm
 ***************************************************************************** */
-function getSdbcmPort( ssh )
+function getLocalCMSvc()
 {
-   var retPort = -1 ;
-   var str = "" ;
-   var errMsg = "" ;
-
-   if ( SYS_LINUX == SYS_TYPE )
+   var retStr      = "" ;
+   var option      = null ;
+   var filter      = null ;
+   var arr         = null ;
+   var obj         = null ;
+   
+   try
    {
-      var installInfoObj = null ;
-      var installPath = null ;
-      var prog = null ;
-      var cmd = null ;
-      var ret = SDB_OK ;
-      var isLocal = isInLocalHost( ssh ) ;
-      if ( isLocal )
+      option = eval( '(' + '{role:"cm",mode:"run",showalone:false}' + ')' ) ;
+      filter = eval( '(' + '{type:"sdbcm"}' + ')' ) ;
+      arr = Sdbtool.listNodes( option, filter ) ;
+      if ( arr.size() > 0 )
       {
-         try
-         {
-            installInfoObj = eval( '(' + Oma.getOmaInstallInfo() + ')' ) ;
-            installPath = adaptPath( installInfoObj[INSTALL_DIR] ) ;
-            prog = installPath  + OMA_PROG_BIN_SDBLIST_L ;
-         }
-         catch( e )
-         {
-            errMsg = "Failed to get sdbcm's port in host[" + ssh.getPeerIP() + "]" ;
-            PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
-                    errMsg + ", rc: " + getLastError() + ", detail: " + getLastErrMsg() ) ;
-            exception_handle( SDB_SYS, errMsg ) ;
-         }
-      }
-      else
-      {
-         prog = OMA_PATH_TEMP_BIN_DIR_L + OMA_PROG_SDBLIST_L ;
-      }
-      cmd = prog + " -t cm " ;
-      try
-      {
-         str = ssh.exec( cmd ) ;
-      }
-      catch ( e )
-      {
-         SYSEXPHANDLE( e ) ;
-         ret = ssh.getLastRet() ;
-         if ( ret < 0 )
-         {
-            errMsg = "Failed to get sdbcm's port in host[" + ssh.getPeerIP() + "]" ;
-            PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
-                    errMsg + ", rc: " + getLastError() + ", detail: " + getLastErrMsg() ) ;
-            exception_handle( SDB_SYS, errMsg ) ;
-         }
-         else if ( ret > 0 )
-         {
-            errMsg = "sdbcm is not running in host[" + ssh.getPeerIP() + "]" ;
-            PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
-                    errMsg + ", rc: " + getLastError() + "detail: " + getLastErrMsg() ) ;
-            exception_handle( SDB_SYS, errMsg ) ;
-         }
-      }
-      retPort = extractPort ( str ) ;
-      if ( -1 == retPort )
-      {
-         errMsg = ( "Failed to get sdbcm's port in host[" + ssh.getPeerIP() + "]" ) ;
-         PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
-                 errMsg + ", rc: " + getLastError() + "detail: " + getLastErrMsg() ) ;
-         exception_handle( SDB_SYS, errMsg ) ;
+         obj = eval( '(' + arr.pos() + ')' ) ;
+         retStr = obj[SvcName2] ;
       }
    }
-   else
+   catch( e )
    {
-      //TODO:
+      SYSEXPHANDLE( e ) ;
+      errMsg = "Failed to get the service of local sdbcm" ;
+      rc = GETLASTERROR() ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_FUNC,
+               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( SDB_SYS, errMsg ) ; 
    }
-   return retPort ;
-}
-
-/* *****************************************************************************
-@discretion: check whether sdbcm is running in target host
-@author: Tanzhaobo
-@parameter
-   ssh[object]: ssh object
-@exception
-@return
-   isRunning[bool]: whether sdbcm is running
-***************************************************************************** */
-function isSdbcmRunning( ssh, host )
-{
-   var isRunning = false ;
-   var str = null ;
-   var ret = SDB_OK ;
-   if ( SYS_LINUX == SYS_TYPE )
-   {
-      var installInfoObj = null ;
-      var installPath = null ;
-      var prog = null ;
-      var cmd = null ;
-      var isLocal = isInLocalHost( ssh ) ;
-      if ( isLocal )
-      {
-         installInfoObj = eval( '(' + Oma.getOmaInstallInfo() + ')' ) ;
-         installPath = adaptPath( installInfoObj[INSTALL_DIR] ) ;
-         prog = installPath  + OMA_PROG_BIN_SDBLIST_L ;
-      }
-      else
-      {
-         prog = OMA_PATH_TEMP_BIN_DIR_L + OMA_PROG_SDBLIST_L ;   
-      }
-      cmd = prog + " -t cm " ;
-      try
-      {
-         str = ssh.exec( cmd ) ;
-      }
-      catch ( e )
-      {
-         SYSEXPHANDLE( e ) ;
-         ret = ssh.getLastRet() ;
-         if ( ret > 0 )
-         {
-            isRunning = false ;
-            return isRunning ;
-         }
-         else if ( ret < 0 )
-         {
-            setLastErrMsg( "Unkown sdbcm's status in[" + ssh.getPeerIP() + "]" ) ;
-            setLastError( SDB_SYS ) ;
-            throw SDB_SYS ;
-         }
-      }
-      // when sdbcm is running
-      var num = extractTotalNumber ( str ) ;
-      if ( -1 == num )
-      {
-         setLastErrMsg( "Unkown sdbcm's status in[" + ssh.getPeerIP() + "]" ) ;
-         setLastError( SDB_SYS ) ;
-         throw SDB_SYS ;
-      }
-      else if ( 0 == num )
-      {
-         isRunning = false ;
-      }
-      else
-      {
-         isRunning = true ;
-      }
-   }
-   else
-   {
-      // TODO:
-   }
-   return isRunning ;
+   return retStr ;
 }
 
 /* *****************************************************************************
@@ -932,7 +758,9 @@ function getOMASvcFromCfgFile( hostname )
       {
          var key = hostname + OMA_MISC_CONFIG_PORT ;
          var obj =  eval ( '(' + Oma.getOmaConfigs() + ')' ) ;
-         var retPort = obj[key]
+         PD_LOG( arguments, PDDEBUG, FILE_NAME_FUNC,
+                 sprintf( "obj info is[?]", JSON.stringify(obj) ) ) ;
+         retPort = obj[key]
          if ( "undefined" == typeof(retPort) )
             retPort = OMA_PORT_DEFAULT_SDBCM_PORT + "" ;
       }
@@ -940,12 +768,13 @@ function getOMASvcFromCfgFile( hostname )
    catch( e )
    {
       SYSEXPHANDLE( e ) ;
-      errMsg = sprintf( "Failed to get OM Agent's port of host [?] from local sdbcm's config file", hostname ) ;
+      errMsg = sprintf( "Failed to get OM Agent's service of host[?] from local OM Agent's config file", hostname ) ;
       rc = GETLASTERROR() ;
       PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
               errMsg + "rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
       exception_handle( rc, errMsg ) ;
    }
+
    return retPort + "" ;
 }
 
@@ -953,37 +782,69 @@ function getOMASvcFromCfgFile( hostname )
 @discretion: get local host name or ip address from hosts table
 @parameter void
 @return
-   retStr[string]: local host name or ip address
+   retArr[Array]: local host name or ip address
 ***************************************************************************** */
 function _getLocalHostNameOrIP( type )
 {
-   var retStr = null ;
+   var retArr = [] ;
    var cmd = new Cmd() ;
-   var osInfo = System.type() ;
    try
    {
-      if ( SYS_LINUX == SYS_TYPE )
+      if ( "hostname" == type )
       {
-         var str = null ;
-         if ( "hostname" == type )
-            str = cmd.run( "hostname" ) ;
-         else if ( "ip" == type )
-            str = cmd.run("hostname -i") ;
+         retArr.push( System.getHostName() ) ;
+      }
+      else if ( "ip" == type )
+      {
+         var cmd = new Cmd() ;
+         var str = "" ;
+         var arr = [] ;
+         if ( SYS_LINUX == SYS_TYPE )
+         {
+            str = removeLineBreak( cmd.run( "hostname -i" ) ) ;
+         }
          else
-           throw SDB_INVALIDARG ;
-         str = removeLineBreak( str ) ;
-         var arr = str.split(" ") ;
-         retStr = arr[0] ;
+         {
+            // TODO:
+         }
+         arr = str.split(" ") ;
+         if ( 0 == arr.length )
+         {
+            exception_handle( SDB_SYS, "No ip address to get" ) ;
+         }
+         for ( var i = 0; i < arr.length; i++ )
+         {
+            if ( "127.0.0.1" != arr[i] )
+            {
+               retArr.push( arr[i] ) ;
+               break ;
+            }
+         }
+         if ( 0 == retArr.length )
+         {
+            retArr.push( arr[0] ) ;
+         }
+      }
+      else if ( "ips" == type )
+      {
+         var netCardInfo = eval( '(' + System.getNetcardInfo() + ')' ) ;
+         var tmpArr = netCardInfo[Netcards] ;
+         for( var i = 0; i < tmpArr.length; i++ )
+         {
+            retArr.push( tmpArr[i][Ip] ) ;
+         }
       }
       else
       {
-         // TODO:
+        throw SDB_INVALIDARG ;
       }
+
+      return retArr ;
    }
    catch ( e )
    {
       SYSEXPHANDLE( e ) ;
-      errMsg = "Failed to get localhost host name or ip address" ;
+      errMsg = "Failed to get localhost host name or ip addresses" ;
       exception_handle( e, errMsg ) ;
    }
    return retStr ;
@@ -997,70 +858,31 @@ function _getLocalHostNameOrIP( type )
 ***************************************************************************** */
 function getLocalHostName()
 {
-   return _getLocalHostNameOrIP( "hostname" ) ;
+   var arr = _getLocalHostNameOrIP( "hostname" ) ;
+   return arr[0] ;
 }
 
 /* *****************************************************************************
-@discretion: get local ip from hosts table
+@discretion: get local ips from net card
+@parameter void
+@return
+   [Array]: local ip addresses
+***************************************************************************** */
+function getLocalIPs()
+{
+   return _getLocalHostNameOrIP( "ips" ) ;
+}
+
+/* *****************************************************************************
+@discretion: get local ips from net card
 @parameter void
 @return
    [string]: local ip address
 ***************************************************************************** */
 function getLocalIP()
 {
-   return _getLocalHostNameOrIP( "ip" ) ;
-}
-
-/* *****************************************************************************
-@discretion: stop the temporary sdbcm installed in remote host
-@author: Tanzhaobo
-@parameter
-   ssh[object]: ssh object
-@return void
-***************************************************************************** */
-function stopRemoteSdbcmProgram( ssh )
-{
-   var cmd = "" ;
-
-   if ( SYS_LINUX == SYS_TYPE )
-   {
-      cmd += OMA_PATH_TEMP_BIN_DIR_L ;
-      cmd += OMA_PROG_SDBCMTOP_L ;
-      cmd += " " + OMA_OPTION_SDBCMART_I ;
-      try
-      {
-         ssh.exec( cmd ) ;
-      }
-      catch ( e )
-      {
-         setLastErrMsg( "Failed to stop sdbcm in host[" + ssh.getPeerIP() + "]" ) ;
-         setLastError( SDB_SYS ) ;
-         throw SDB_SYS ;
-      }
-      // check wether sdb is stop in target host
-      var times = 0 ;
-      for ( ; times < OMA_TRY_TIMES; times++ )
-      {
-         var isRunning = isSdbcmRunning ( ssh ) ;
-         if ( isRunning )
-         {
-            sleep( OMA_SLEEP_TIME ) ;
-         }
-         else
-         {
-            break ;
-         }
-      }
-      if ( OMA_TRY_TIMES <= times )
-      {
-         setLastErrMsg( "Time out, failed to stop sdbcm in host[" + ssh.getPeerIP() + "]" ) ;
-         throw e ;
-      }
-   }
-   else
-   {
-      // TODO: tanzhaobo
-   }
+   var arr = _getLocalHostNameOrIP( "ip" ) ;
+   return arr[0] ;
 }
 
 /* *****************************************************************************
@@ -1092,23 +914,20 @@ function getTaskID( obj )
 }
 
 /* *****************************************************************************
-@discretion: name the name of the task log after ip
+@discretion: set the name of task log file
 @author: Tanzhaobo
 @parameter
    task_id[number]:
-   host_ip[string]: ip used to name a log file, e.g. 192.168.20.42.log
 @return void
 ***************************************************************************** */
-function setTaskLogFileName( task_id, host_ip )
+function setTaskLogFileName( task_id )
 {
    try
    {
-      var task_dir = adaptPath( LOG_FILE_PATH + Task ) + task_id ;
-      if ( false == File.exist( task_dir ) )
-         File.mkdir( task_dir ) ;
-      LOG_FILE_NAME = adaptPath( adaptPath( Task ) + task_id ) + host_ip + ".log" ;
-      PD_LOG( arguments, PDDEBUG, FILE_NAME_FUNC,
-              sprintf( "Js log file's name of task[?] is: ?", task_id, LOG_FILE_NAME ) ) ;
+      var task_log_dir = LOG_FILE_PATH + Task ;
+      if ( false == File.exist( task_log_dir ) )
+         File.mkdir( task_log_dir ) ;
+      LOG_FILE_NAME = adaptPath( Task ) + task_id + ".log" ;
    }
    catch ( e )
    {
@@ -1117,6 +936,119 @@ function setTaskLogFileName( task_id, host_ip )
       PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
               sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
       exception_handle( SDB_SYS, errMsg ) ;
-   }   
+   }
 }
+
+/* *****************************************************************************
+@discretion: push some tool programs and js scripts to target host for checking
+@author: Tanzhaobo
+@parameter
+   ssh[object]: Ssh object
+@return void
+***************************************************************************** */
+function pushProgAndSpt( ssh, progs, spts )
+{
+   var src = "" ;
+   var dest = "" ;
+   var local_prog_path = "" ;
+   var local_spt_path  = ""  ;
+
+   try
+   {
+      // 1. get tool program's path
+      try
+      {
+         local_prog_path = adaptPath( System.getEWD() ) ;
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         rc = GETLASTERROR() ;
+         errMsg = "Failed to get local tool program's path" ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_FUNC,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
+      }
+      PD_LOG2( task_id, arguments, PDDEBUG, FILE_NAME_FUNC,
+               "Local tool program's path is: " + local_prog_path ) ;
+      // 2. get js script file's path
+      try
+      {
+         local_spt_path = getSptPath( local_prog_path ) ;
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         rc = GETLASTERROR() ;
+         errMsg = "Failed to get local js script files' path" ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_FUNC,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
+      }
+      PD_LOG2( task_id, arguments, PDDEBUG, FILE_NAME_FUNC,
+               "Local js script file's path is: " + local_spt_path ) ;
+      
+      // 3. push program and script
+      if ( SYS_LINUX == SYS_TYPE )
+      {
+         // push programs
+         for ( var i = 0; i < progs.length; i++ )
+         {
+            src = local_prog_path + progs[i] ;
+            dest = OMA_PATH_TEMP_BIN_DIR + progs[i] ;
+            ssh.push( src, dest ) ;
+         }
+         
+         // push js files
+         for ( var i = 0; i < spts.length; i++ )
+         {
+            src = local_spt_path + spts[i] ;
+            dest = OMA_PATH_TEMP_SPT_DIR + spts[i] ;
+            ssh.push( src, dest ) ;
+         }
+      }
+      else
+      {
+         // TODO:
+      }
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = "Failed to push programs to host[" + ssh.getPeerIP() + "]" ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_FUNC,
+               sprintf( errMsg + " src[?], dest[?], rc: ?, detail: ?",
+               src, dest, rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+}
+
+/* *****************************************************************************
+@discretion: get install info from /etc/default/sequoiadb
+@author: Tanzhaobo
+@parameter void
+@return
+   installInfoObj[object]: info object of installed SequoiaDB
+***************************************************************************** */
+function getInstallInfoObj()
+{
+   var installInfoObj = null ;
+   try
+   {
+      installInfoObj = eval( '(' + Oma.getOmaInstallInfo() + ')' ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = sprintf( "Failed to get SequoiaDB install info in host[?]",
+                        System.getHostName() ) ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_FUNC,
+              sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+   return installInfoObj ;
+}
+
 

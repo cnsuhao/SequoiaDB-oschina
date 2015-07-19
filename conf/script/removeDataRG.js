@@ -20,25 +20,18 @@
 @modify list:
    2014-7-26 Zhaobo Tan  Init
 @parameter
-   BUS_JSON: the format is: { "AuthUser": "", "AuthPasswd": "", "UninstallGroupNames": ["group1", "group2"] }
-   SYS_JSON: the format is: { "TaskID": 1, "TmpCoordSvcName": "10000" }
+   BUS_JSON: the format is: { "AuthUser": "", "AuthPasswd": "", "UninstallGroupNames": ["group1", "group2"] } ;
+   SYS_JSON: the format is: { "TaskID": 1, "TmpCoordSvcName": "10000" } ;
 @return
    RET_JSON: the format is: { "errrno": 0, "detail": "" }
 */
-
-// println
-//var BUS_JSON = { "AuthUser": "", "AuthPasswd": "", "UninstallGroupNames": ["group1", "group2"] } ;
-//var SYS_JSON = { "TaskID": 1, "TmpCoordSvcName": "10000" } ;
-
 
 var FILE_NAME_REMOVE_DATA_RG = "removeDataRG.js" ;
 var RET_JSON = new removeRGResult() ;
 var rc       = SDB_OK ;
 var errMsg   = "" ;
 
-var task_id = "" ;
-// println
-var rg_name = "datagroup" ;
+var task_id  = "" ;
 
 /* *****************************************************************************
 @discretion: init
@@ -50,9 +43,7 @@ function _init()
 {           
    // 1. get task id
    task_id = getTaskID( SYS_JSON ) ;
-
-   setTaskLogFileName( task_id, rg_name ) ;
-   
+   setTaskLogFileName( task_id ) ;
    PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_REMOVE_DATA_RG,
             sprintf( "Begin to remove data group in task[?]", task_id ) ) ;
 }
@@ -123,6 +114,8 @@ function main()
       {
          try
          {
+            PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_REMOVE_DATA_RG,
+                     sprintf( "Removing data group[?]", groupNames[i] ) ) ;
             db.removeRG( groupNames[i] ) ;
          }
          catch( e )
@@ -157,7 +150,6 @@ function main()
    }
 
    _final() ;
-println("RET_JSON is: " + JSON.stringify(RET_JSON) ) ;
    return RET_JSON ;
 }
 

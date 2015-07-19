@@ -1,0 +1,18 @@
+{
+    "hostlist": {
+	 	  "title": "Cluster: ",
+		  "tab": {
+		  		"button": [ [ "Edit", "Done" ],
+								[ "Selection", "All", "Inverse" ],
+								[ "Operations", "Remove Hosts" ],
+								"Add Host"
+							 ]
+		  },
+	 	  "hostGrid": {
+		  		   "title": [ "HostName", "IP", "OS", "CPU Cores", "Memory Capacity", "Module Name", "Module Type" ]
+		  },
+		  "isRemoveHost": {
+		  			"title": "Tips"
+		  }
+    }
+}

@@ -126,13 +126,13 @@ namespace engine
       pmdSetPrimary( TRUE ) ; // set global primary
       _info()->mtx.release_w() ;
 
-      sdbGetReplCB()->callCatalog( (MsgHeader *)&msg ) ;
-
       sdbGetReplCB()->reelectionDone() ;
 
       PD_LOG ( PDEVENT, "Change to Primary" ) ;
 
       sdbGetClsCB()->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_AFTER ) ;
+
+      sdbGetReplCB()->callCatalog( (MsgHeader *)&msg ) ;
 
       PD_TRACE_EXIT ( SDB__CLSVSPMY_ACTIVE ) ;
       return ;

@@ -377,8 +377,6 @@ namespace engine
          INT32           _removeTask( INT64 taskID ) ;
 
          INT32           _checkTaskExistence( list<BSONObj> &hostInfoList ) ;
-
-         BOOLEAN         _isHostExistInTask( const string &hostName ) ;
    };
 
    class omListHostCommand : public omCreateClusterCommand
@@ -719,12 +717,12 @@ namespace engine
          virtual INT32  doCommand() ;
 
       private:
+         INT32          _generateTaskInfo( list<string> &hostNameList, 
+                                           BSONObj &taskInfo, 
+                                           BSONArray &resultInfo ) ;
          INT32          _getHostExistBusinessFlag( const string &hostName, 
                                                    BOOLEAN &flag ) ;
-         INT32          _removeHost( const simpleHostInfo &hostInfo, 
-                                     BOOLEAN isForced ) ;
-         INT32          _removeHostByAgent( const simpleHostInfo &hostInfo ) ;
-         INT32          _getHostName( string &hostName, BOOLEAN &isForced ) ;
+         INT32          _getHostName( list<string> &hostNameList ) ;
    } ;
 
    class omRemoveBusinessCommand : public omStartBusinessCommand
@@ -817,7 +815,65 @@ namespace engine
                                            UINT32 &redundancyRate ) ;
    } ;
 
-   class omGetFileCommand : public omRestCommandBase
+   class omGetLogCommand : public omAuthCommand
+   {
+      public:
+         omGetLogCommand( restAdaptor *pRestAdaptor, 
+                          pmdRestSession *pRestSession ) ;
+         virtual ~omGetLogCommand() ;
+
+      public:
+         virtual INT32   doCommand() ;
+
+      protected:
+         INT32           _getFileContent( string filePath, CHAR **pFileContent, 
+                                          INT32 &fileContentLen ) ;
+
+      protected:
+   } ;
+
+   class omSetBusinessAuthCommand : public omAuthCommand
+   {
+      public:
+         omSetBusinessAuthCommand( restAdaptor *pRestAdaptor, 
+                                   pmdRestSession *pRestSession ) ;
+         virtual ~omSetBusinessAuthCommand() ;
+
+      public:
+         virtual INT32   doCommand() ;
+
+      protected:
+         INT32           _getBusinessAuthInfo( string &businessName, 
+                                               string &userName,
+                                               string &passwd ) ;
+   } ;
+
+   class omRemoveBusinessAuthCommand : public omAuthCommand
+   {
+      public:
+         omRemoveBusinessAuthCommand( restAdaptor *pRestAdaptor, 
+                                      pmdRestSession *pRestSession ) ;
+         virtual ~omRemoveBusinessAuthCommand() ;
+
+      public:
+         virtual INT32   doCommand() ;
+   } ;
+
+   class omQueryBusinessAuthCommand : public omAuthCommand
+   {
+      public:
+         omQueryBusinessAuthCommand( restAdaptor *pRestAdaptor, 
+                                     pmdRestSession *pRestSession ) ;
+         virtual ~omQueryBusinessAuthCommand() ;
+
+      public:
+         virtual INT32   doCommand() ;
+
+      protected:
+         void            _sendAuthInfo2Web( list<BSONObj> &authInfo ) ;
+   } ;
+
+   class omGetFileCommand : public omGetLogCommand
    {
       public:
          omGetFileCommand( restAdaptor *pRestAdaptor, 
@@ -829,13 +885,7 @@ namespace engine
          virtual INT32   doCommand() ;
          virtual INT32   undoCommand() ;
 
-      private:
-         INT32           _getFileContent( string filePath, CHAR **pFileContent, 
-                                          INT32 &fileContentLen ) ;
-
-      private:
-         restAdaptor*    _restAdaptor ;
-         pmdRestSession* _restSession ;
+      protected:
          string          _rootPath ;
          string          _subPath ;
    };

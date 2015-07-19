@@ -1,0 +1,81 @@
+{
+    "error": {
+        "system": {
+		  		"errModalTitle": "Error",
+            "networkErr": "Error: Network error.",
+				"scanErr": [
+					 "Connection successful",
+					 "Network error",
+					 "SSH Authentication Failed",
+					 "Unable to retreive host information",
+					 "The host already exists in the list"
+				]
+        },
+        "web": {
+            "input": [
+                "Error: ? Please input a number.",
+					 "Error: ? Min value ?.",
+					 "Error: ? Max value ?.",
+					 "Error: ? Invalid port.",
+					 "Error: ? A value must be selected."
+            ],
+				"create": [
+					 "Error: Invalid cluster name. Only alphabetic charameters, numbers and '_' are valid. The length must be less than 255 charaters.",
+					 "Error: Invalid user name. User name must be less than 1024 characters.",
+					 "Error: Invalid password. Password must be less than 1024 characters.",
+					 "Error: Invalid user's group. Group must be less than 1024 characters.",
+					 "Error: Invalid install path. Path must be less than 4096 characters.",
+					 "Error: Invalid module name. Only alphabetic charameters, numbers and '_' are valid. The length must be less than 255 charaters.",
+					 "Error: Module already exist.",
+					 "Error: Unable to add module into a cluster without any host.",
+					 "Error: Invalid password. Password must be less than 1024 characters.",
+					 "Error: Invalid new password. New password must be less than 1024 characters."
+				],
+				"scanhost": [
+					 "Error: IP / HostName must be less than 255 characters.",
+					 "Error: User name must be less than 255 characters.",
+					 "Error: Password must be less than 255 characters.",
+					 "Error: Invalid SSH Port.",
+					 "Error: Invalid Agent Port.",
+					 "Error: Please choose at least one host."
+				],
+				"addhost": [
+					 "Error: No active hosts detected."
+				],
+				"confsdb": [
+					 "Error: At leaset one host is required."
+				],
+				"modsdbd": [
+					 "Error: Unable to remove non-empty Replica Group ?.",
+					 "Error: Invalid replica group name. Only alphabetic charameters, numbers and '_' are valid. The length must be less than 255 charaters.",
+					 "Error: Replica Group already exist.",
+					 "Error: Invalid Service."
+				]
+        }
+    },
+	 "info": {
+	 		"web": {
+				"create": [
+					 "Info: Password updated successfully."
+				]
+			}
+	 },
+	 "tip": {
+	 	  "web": {
+		  		"modsdbd": [
+					 "Warning: At least one node is required."
+				],
+				"index": [
+					 "Info: Previous operation \"?\" is detected, do you want to continue?",
+					 "Warning: This operation is non-recoverable, do you want to continue?"
+				],
+				"businesslist": [
+					 "Warning: This operation is non-recoverable, do you want to continue?"
+				],
+				"hostlist": [
+					 "Warning：This operation is non-recoverable, do you want to continue?",
+					 "Warning：At least one host is required."
+				]
+		  }
+	 }
+}

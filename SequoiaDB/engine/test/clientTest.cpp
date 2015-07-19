@@ -2016,7 +2016,7 @@ INT32 calcPartition()
       goto error ;
    }
 
-   partition = engine::clsPartition( keyObj, squre ) ;
+   partition = engine::clsPartition( keyObj, squre, 2 ) ;
    printf(" partition: %d\n", partition ) ;
 
 done:

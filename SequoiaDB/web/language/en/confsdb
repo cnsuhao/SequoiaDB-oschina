@@ -1,0 +1,30 @@
+{
+    "confsdb": {
+        "leftPanel": {
+            "title": "Module Parameters",
+				"button": [ "Select Host", "Data Preview", "Module Preview" ],
+				"grid": [ "Property", "Value", "Description" ]
+        },
+        "rightPanel": [
+		  		{
+					"title": "Module Preview",
+					"table": [ "Host Number", "Node Number", "Disk Number", "Node Distribution Rate", "Total Space", "Available Capacity", "Redundant Capacity", "Redundant Rate" ],
+					"pie": {
+							"title": "Capacity Information",
+							"data": [ "Available Capacity", "Redundant Capacity", "Total Capacity" ]
+					}
+				},
+				{
+					"title": "Select Hosts to Install Module",
+					"dropDown": {
+							"button": "Selection",
+							"menu": [ "All", "Inverse" ]
+					},
+					"grid": [ "HostName", "IP" ]
+				}
+		  ],
+		  "hostModal": {
+		  		"title": "Host Information"
+		  }
+    }
+}

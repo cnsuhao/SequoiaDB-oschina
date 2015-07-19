@@ -1,0 +1,49 @@
+{
+    "scanhost": {
+        "leftPanel": {
+            "title": "Scan Host",
+            "tip": [
+                "Notice: Use IP or HostName to add hosts in batch, click for ",
+					 "help"
+            ],
+				"input": [
+					 "IP / HostName:",
+					 "User:",
+					 "Password:",
+					 "SSH Port:",
+					 "Agent Port:"
+				],
+				"button": [
+					 "Clean",
+					 "Scan"
+				]
+        },
+        "rightPanel": {
+            "title": "Host List",
+				"grid": [
+					 "HostName",
+					 "IP",
+					 "User",
+					 "Password",
+					 "SSH Port",
+					 "Proxy Port",
+					 "Status"
+				]
+        },
+		  "help": {
+		  		"title": "Help",
+				"body": {
+					 "context_1": [ "Please enter the HostName or IP, then click ", "'Scan'", ". Or you can enter the range of IP or HostName" ],
+					 "table": {
+					 		"title": [ "Range of IP/HostName", "Hosts to Scan" ]
+					 },
+					 "context_2": [
+					 		"You can add multiple IP/HostName or IP/HostName Range, but the IP/HostName must be unique.",
+							"Result includes all scanning IP/HostName, only hosts using SSH service will be included. If User,Password or SSH port is incorrect, you can click the row in the Host List to edit.",
+							"Notice",
+							"If you don't know the exact IP/HostNxame of hosts you want to use, you can extend the range to scan. However the scanning time may increase."
+					 ]
+				}
+		  }
+    }
+}

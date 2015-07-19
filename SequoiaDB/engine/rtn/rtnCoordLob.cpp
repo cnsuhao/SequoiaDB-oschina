@@ -39,13 +39,15 @@
 namespace engine
 {
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOORDOPENLOB_EXECUTE, "rtnCoordOpenLob::execute" )
-   INT32 rtnCoordOpenLob::execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                                   CHAR **ppResultBuffer, pmdEDUCB *cb,
-                                   MsgOpReply &replyHeader,
-                                   BSONObj** ppErrorObj )
+   INT32 rtnCoordOpenLob::execute( CHAR * pReceiveBuffer,
+                                   SINT32 packSize,
+                                   pmdEDUCB * cb,
+                                   MsgOpReply & replyHeader,
+                                   rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNCOORDOPENLOB_EXECUTE ) ;
+      SDB_ASSERT( NULL != buf, "can not be null" ) ;
       const MsgOpLob *header = NULL ;
       const MsgHeader *baseHeader = ( const MsgHeader * )pReceiveBuffer ;
       BSONObj obj ;
@@ -79,8 +81,7 @@ namespace engine
       }
 
       replyHeader.contextID = contextID ;
-      *ppResultBuffer = ( CHAR * )( meta.objdata() ) ;  /// TODO: ppResultBuffer should be const char **
-      replyHeader.header.messageLength += meta.objsize() ;
+      *buf = rtnContextBuf( meta ) ;
    done:
       PD_TRACE_EXITRC( SDB_RTNCOORDOPENLOB_EXECUTE, rc ) ;
       return rc ;
@@ -90,10 +91,11 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOORDWRITELOB_EXECUTE, "rtnCoordWriteLob::execute" )
-   INT32 rtnCoordWriteLob::execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                                    CHAR **ppResultBuffer, pmdEDUCB *cb,
-                                    MsgOpReply &replyHeader,
-                                    BSONObj** ppErrorObj )
+   INT32 rtnCoordWriteLob::execute( CHAR * pReceiveBuffer,
+                                    SINT32 packSize,
+                                    pmdEDUCB * cb,
+                                    MsgOpReply & replyHeader,
+                                    rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNCOORDWRITELOB_EXECUTE ) ;
@@ -137,13 +139,15 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOORDREADLOB_EXECUTE, "rtnCoordReadLob::execute" )
-   INT32 rtnCoordReadLob::execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                                   CHAR **ppResultBuffer, pmdEDUCB *cb,
-                                   MsgOpReply &replyHeader,
-                                   BSONObj** ppErrorObj )
+   INT32 rtnCoordReadLob::execute( CHAR * pReceiveBuffer,
+                                   SINT32 packSize,
+                                   pmdEDUCB * cb,
+                                   MsgOpReply & replyHeader,
+                                   rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNCOORDREADLOB_EXECUTE ) ;
+      SDB_ASSERT( NULL != buf, "can not be null" ) ;
       const MsgOpLob *header = NULL ;
       const MsgHeader *baseHeader = ( const MsgHeader * )pReceiveBuffer ;
       BSONObj obj ;
@@ -178,8 +182,7 @@ namespace engine
          goto error ;   
       }
 
-      *ppResultBuffer = ( CHAR * )data ;
-      replyHeader.header.messageLength += readLen ;
+      *buf = rtnContextBuf( data, readLen, 1 ) ;
    done:
       PD_TRACE_EXITRC( SDB_RTNCOORDREADLOB_EXECUTE, rc ) ;
       return rc ;
@@ -189,10 +192,11 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOORDCLOSELOB_EXECUTE, "rtnCoordCloseLob::execute" )
-   INT32 rtnCoordCloseLob::execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                                    CHAR **ppResultBuffer, pmdEDUCB *cb,
-                                    MsgOpReply &replyHeader,
-                                    BSONObj** ppErrorObj )
+   INT32 rtnCoordCloseLob::execute( CHAR * pReceiveBuffer,
+                                    SINT32 packSize,
+                                    pmdEDUCB * cb,
+                                    MsgOpReply & replyHeader,
+                                    rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNCOORDCLOSELOB_EXECUTE ) ;
@@ -231,10 +235,11 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOORDREMOVELOB_EXECUTE, "rtnCoordRemoveLob::execute" )
-   INT32 rtnCoordRemoveLob::execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                                     CHAR **ppResultBuffer, pmdEDUCB *cb,
-                                     MsgOpReply &replyHeader,
-                                     BSONObj** ppErrorObj )
+   INT32 rtnCoordRemoveLob::execute( CHAR * pReceiveBuffer,
+                                     SINT32 packSize,
+                                     pmdEDUCB * cb,
+                                     MsgOpReply & replyHeader,
+                                     rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNCOORDREMOVELOB_EXECUTE ) ;

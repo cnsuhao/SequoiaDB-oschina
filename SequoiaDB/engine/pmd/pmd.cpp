@@ -51,6 +51,10 @@ namespace engine
       ossMemset( _hostName, 0, sizeof( _hostName ) ) ;
       ossMemset( _groupName, 0, sizeof( _groupName ) ) ;
 
+      _exitCode = SDB_OK ;
+      _businessOK = TRUE ;
+      _restart = FALSE ;
+
       for ( INT32 i = 0 ; i < SDB_CB_MAX ; ++i )
       {
          _arrayCBs[ i ] = NULL ;
@@ -71,9 +75,6 @@ namespace engine
       _monCfgCB.timestampON = TRUE ;
       _monDBCB.recordActivateTimestamp () ;
 #endif // SDB_ENGINE
-
-      setBusinessOK( TRUE ) ;
-      setExitCode( SDB_OK ) ;
 
       _optioncb.setConfigHandler( this ) ;
    }

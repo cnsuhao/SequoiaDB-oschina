@@ -621,7 +621,7 @@ namespace engine
             goto error ;
          }
 
-         else if ( ossStrcasecmp( pSubCommand, OM_CHANGE_PASSWD_REQ ) == 0 )
+         if ( ossStrcasecmp( pSubCommand, OM_CHANGE_PASSWD_REQ ) == 0 )
          {
             commandIf = SDB_OSS_NEW omChangePasswdCommand( pAdptor, this ) ;
          }
@@ -729,6 +729,26 @@ namespace engine
          else if ( ossStrcasecmp( pSubCommand, OM_QUERY_TASK_REQ ) == 0 )
          {
             commandIf = SDB_OSS_NEW omQueryTaskCommand( pAdptor, this ) ;
+         }
+         else if ( ossStrcasecmp( pSubCommand, OM_GET_LOG_REQ ) == 0 )
+         {
+            commandIf = SDB_OSS_NEW omGetLogCommand( pAdptor, this ) ;
+         }
+         else if ( ossStrcasecmp( pSubCommand, OM_SET_BUSINESS_AUTH_REQ ) == 0 )
+         {
+            commandIf = SDB_OSS_NEW omSetBusinessAuthCommand( pAdptor, this ) ;
+         }
+         else if ( ossStrcasecmp( pSubCommand, 
+                                  OM_REMOVE_BUSINESS_AUTH_REQ ) == 0 )
+         {
+            commandIf = SDB_OSS_NEW omRemoveBusinessAuthCommand( pAdptor, 
+                                                                 this ) ;
+         }
+         else if ( ossStrcasecmp( pSubCommand, 
+                                  OM_QUERY_BUSINESS_AUTH_REQ ) == 0 )
+         {
+            commandIf = SDB_OSS_NEW omQueryBusinessAuthCommand( pAdptor, 
+                                                                this ) ;
          }
          else
          {
@@ -885,19 +905,17 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       const CHAR *pSubCommand = NULL ;
-      if ( COM_GETFILE == command )
-      {
-         rc = SDB_UNKNOWN_MESSAGE ;
-         PD_LOG_MSG( PDERROR, "unsupported command:command=%d", command ) ;
-         goto error ;
-      }
 
       pAdaptor->getQuery( _restSession, OM_REST_FIELD_COMMAND, &pSubCommand ) ;
       if ( NULL == pSubCommand )
       {
          rc = SDB_UNKNOWN_MESSAGE ;
-         PD_LOG_MSG( PDERROR, "can't resolve field:field=%s", 
-                     OM_REST_FIELD_COMMAND ) ;
+         if ( !pmdGetKRCB()->isCBValue( SDB_CB_OMSVC ) )
+         {
+            PD_LOG_MSG( PDERROR, "can't resolve field:field=%s", 
+                        OM_REST_FIELD_COMMAND ) ;
+         }
+         
          goto error ;
       }
 
@@ -955,7 +973,11 @@ namespace engine
       }
       else
       {
-         PD_LOG_MSG( PDERROR, "unsupported command:command=%s", pSubCommand ) ;
+         if ( !pmdGetKRCB()->isCBValue( SDB_CB_OMSVC ) )
+         {
+            PD_LOG_MSG( PDERROR, "unsupported command:command=%s", 
+                        pSubCommand ) ;
+         }
          rc = SDB_UNKNOWN_MESSAGE ;
       }
 

@@ -98,15 +98,21 @@
    SYSINFO CollectionSpace define
 */
 #define CAT_SYSINFO_SPACE_NAME            "SYSINFO"
-#define CAT_SYSBASE_COLLECTION_NAME       CAT_SYSINFO_SPACE_NAME".SYSBASE"
-#define CAT_SYSIMAGE_COLLECTION_NAME      CAT_SYSINFO_SPACE_NAME".SYSIMAGE"
+#define CAT_SYSDCBASE_COLLECTION_NAME     CAT_SYSINFO_SPACE_NAME".SYSDCBASE"
 
-#define CAT_BASEINFO_TYPE_INDEX           "{name:\"SYSTYPE\",key: {"\
+#define CAT_DCBASEINFO_TYPE_INDEX         "{name:\"SYSTYPE\",key: {"\
                                           FIELD_NAME_TYPE":1}, unique: true, enforced: true } "
-#define CAT_IMAGE_SRC_INDEX               "{name:\"SYSSRC\",key: {"\
-                                          FIELD_NAME_SOURCE":1}, unique: true, enforced: true } "
 
 #define CAT_BASE_TYPE_GLOBAL_STR          "GLOBAL"
+
+#define CAT_SYSLOG_COLLECTION_NAME        CAT_SYSINFO_SPACE_NAME".SYSLOG"
+#define CAT_SYSLOG_CL_NUM                 ( 5 )
+#define CAT_SYSLOG_CL_MAX_COUNT           ( 100000 )
+
+#define CAT_SYSLOG_TYPE_LSNVER            "{name:\"SYSLSNVER\",key: {"\
+                                          FIELD_NAME_LSN_VERSION":1}, unique: false } "
+#define CAT_SYSLOG_TYPE_LSNOFF            "{name:\"SYSLSNOFF\",key: {"\
+                                          FIELD_NAME_LSN_OFFSET":1}, unique: true, enforced: true } "
 
 #endif // CATDEF_HPP__
 

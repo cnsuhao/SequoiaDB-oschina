@@ -1,6 +1,11 @@
 import os
 
 Import("clientCEnv")
+Import("linux")
+Import("windows")
+Import("ssllib_file")
+Import("ssllib_file1")
+Import("mergeStaticLibrary")
 
 clientCFiles = [
       "client/client.c"
@@ -8,6 +13,9 @@ clientCFiles = [
 
 clientCLibFiles = [
       clientCFiles,
+      "oss/ossSSLCertificate.c",
+      "oss/ossSSLWrapper.c",
+      "oss/ossSSLContext.c",
       "oss/oss.c",
       "oss/ossUtil.c",
       "oss/ossMem.c",
@@ -22,12 +30,27 @@ clientCLibFiles = [
       "bson/md5.c"
       ]
 
-#Client Library
+#Shared Library
 clientCLib = clientCEnv.SharedLibrary('sdbc', clientCLibFiles)
-clientCLibStatic = clientCEnv.StaticLibrary('staticsdbc', clientCLibFiles)
-
 clientCEnv.Install( '#/client/lib', clientCLib )
-clientCEnv.Install( '#/client/lib', clientCLibStatic )
+
+#Static Library
+dir = ''
+def merge(target, source = None, env = clientCEnv):
+    pureLib = dir + '/libstaticpuresdbc.a'
+    clientCLibStatic = dir + '/libstaticsdbc.a'
+    mergeStaticLibrary(clientCLibStatic, ssllib_file, ssllib_file1, pureLib)
+    clientCEnv.Install( '#/client/lib/', clientCLibStatic )
+
+if linux:
+   staticPureSdbCLib = clientCEnv.StaticLibrary('staticpuresdbc', clientCLibFiles)
+   dir = os.path.dirname(staticPureSdbCLib[0].get_abspath())
+   clientCEnv.AddPostAction(staticPureSdbCLib, Action(merge))
+elif windows:
+   clientCLibStatic = clientCEnv.StaticLibrary('staticsdbc', [clientCLibFiles, ssllib_file, ssllib_file1])
+   clientCEnv.Install( '#/client/lib/', clientCLibStatic )
+
+#Header files
 clientCEnv.Install( '#/client/include', "client/client.h" )
 clientCEnv.Install( '#/client/include', "client/jstobs.h" )
 clientCEnv.Install( '#/client/include', "client/base64c.h" )

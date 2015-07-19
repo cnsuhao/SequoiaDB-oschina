@@ -20,15 +20,12 @@
 @modify list:
    2014-7-26 Zhaobo Tan  Init
 @parameter
-   BUS_JSON: the format is: { "HostName": "rhel64-test8", "IP": "192.168.20.42", "User": "root", "Passwd": "sequoiadb", "HostInfo": [ { "HostName": "rhel64-test8", "IP": "192.168.20.165" }, { "HostName": "rhel64-test9", "IP": "192.168.20.166", "AgentService":"11790" } ] }
+   BUS_JSON: the format is: { "HostName": "susetzb", "IP": "192.168.20.42", "User": "root", "Passwd": "sequoiadb", "HostInfo": [ { "HostName": "rhel64-test8", "IP": "192.168.20.165", "AgentService": "11790" }, { "HostName": "rhel64-test9", "IP": "192.168.20.166", "AgentService": "20000" }, { "HostName": "susetzb", "IP": "192.168.20.42", "AgentService": "11790" } ] } ;
    SYS_JSON: the format is:
    ENV_JSON:
 @return
    RET_JSON: the format is: {}
 */
-
-//println
-//var BUS_JSON = { "HostName": "susetzb", "IP": "192.168.20.42", "User": "root", "Passwd": "sequoiadb", "HostInfo": [ { "HostName": "rhel64-test8", "IP": "192.168.20.165" }, { "HostName": "rhel64-test9", "IP": "192.168.20.166" }, { "HostName": "susetzb", "IP": "192.168.20.42" } ] } ;
 
 var RET_JSON          = new Object() ;
 var rc                = SDB_OK ;
@@ -74,35 +71,6 @@ function _final()
 }
 
 /* *****************************************************************************
-@discretion: get local db business install path
-@author: Tanzhaobo
-@parameter
-   localhostip[string]: ip of localhost
-@return
-   installpath[string]: the db business install director
-***************************************************************************** */
-function getLocalDBInstallPath( localhostip )
-{
-   var omaInstallInfo = null ;
-   var installpath = null ;
-   try
-   {
-      omaInstallInfo = eval( '(' + Oma.getOmaInstallInfo() + ')' ) ;
-   }
-   catch( e )
-   {
-      SYSEXPHANDLE( e ) ;
-      rc = GETLASTERROR() ;
-      errMsg = "Failed to get db install path in host[" + localhostip + "]" ;
-      PD_LOG( arguments, PDERROR, FILE_NAME_UPDATE_HOSTS_INFO,
-              sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
-      exception_handle( rc, errMsg ) ;
-   }
-   installpath = adaptPath ( omaInstallInfo[INSTALL_DIR] ) ;
-   return installpath ;
-}
-
-/* *****************************************************************************
 @discretion: update host table
 @author: Tanzhaobo
 @parameter
@@ -110,38 +78,38 @@ function getLocalDBInstallPath( localhostip )
    arr[Array]: update info
 @return void
 ***************************************************************************** */
-function updateHostInfo( localhostip, arr )
+function _updateHostInfo( localhostip, arr )
 {
-   var installpath = getLocalDBInstallPath( localhostip ) ;
+   var omtool = null ;
    var cmd = new Cmd() ;
    if ( SYS_LINUX == SYS_TYPE )
    {
-      var omtoolpath = installpath + OMA_PROG_BIN_SDBOMTOOL_L ;
-      for ( var i = 0; i < arr.length; i++ )
-      {
-         var str      = null ;
-         var obj      = arr[i] ;
-         var hostname = obj[HostName] ;
-         var ip       = obj[IP] ;
-         str = omtoolpath + ' -m addhost --hostname ' + hostname + ' --ip ' + ip ;
-         try
-         {
-            cmd.run( str ) ;
-         }
-         catch ( e )
-         {
-            SYSEXPHANDLE( e ) ;
-            rc = GETLASTERROR() ;
-            errMsg = sprintf( "Failed to add info [ ? ? ] to hosts table in host[?]", ip, hostname, localhostip ) ;
-            PD_LOG( arguments, PDERROR, FILE_NAME_UPDATE_HOSTS_INFO,
-                    sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
-            exception_handle( rc, errMsg ) ;
-         }
-      }
+      omtool = adaptPath( System.getEWD() ) + 'sdbomtool' ;
    }
    else
    {
       // TODO: windows
+   }
+   for ( var i = 0; i < arr.length; i++ )
+   {
+      var str      = null ;
+      var obj      = arr[i] ;
+      var hostname = obj[HostName] ;
+      var ip       = obj[IP] ;
+      str = omtool + ' -m addhost --hostname ' + hostname + ' --ip ' + ip ;
+      try
+      {
+         cmd.run( str ) ;
+      }
+      catch ( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         rc = GETLASTERROR() ;
+         errMsg = sprintf( "Failed to add info [ ? ? ] to hosts table in host[?]", ip, hostname, localhostip ) ;
+         PD_LOG( arguments, PDERROR, FILE_NAME_UPDATE_HOSTS_INFO,
+                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
+      }
    }
 }
 
@@ -153,7 +121,7 @@ function updateHostInfo( localhostip, arr )
    arr[Array]: update info
 @return void
 ***************************************************************************** */
-function updateSdbcmCfgFile( lcoalhostip, arr )
+function _updateSdbcmCfgFile( lcoalhostip, arr )
 {
    var agentport = null ;
    var hostname  = null ;
@@ -182,8 +150,16 @@ function updateSdbcmCfgFile( lcoalhostip, arr )
       {
          continue ;
       }
-      var str = hostname + OMA_MISC_CONFIG_PORT ;
-      configobj[str] = agentport ; 
+      if ( OMA_PORT_DEFAULT_SDBCM_PORT != ( "" + agentport ) )
+      {
+         var str = hostname + OMA_MISC_CONFIG_PORT ;
+         configobj[str] = agentport ; 
+      }
+      else
+      {
+         // TODO: it seems don't work
+         Oma.delAOmaSvcName( hostname ) ;
+      }
    }
    try
    {
@@ -215,9 +191,9 @@ function main()
       updateInfoArr    = BUS_JSON[HostInfo] ;
 
       // update host table
-      updateHostInfo( ip, updateInfoArr ) ;     
+      _updateHostInfo( ip, updateInfoArr ) ;     
       // update sdbcm comfig file
-      updateSdbcmCfgFile( ip, updateInfoArr ) ;
+      _updateSdbcmCfgFile( ip, updateInfoArr ) ;
    }
    catch( e )
    {

@@ -38,6 +38,7 @@
 
 #include "pmd.hpp"
 #include "netDef.hpp"
+#include "rtnContextBuff.hpp"
 
 using namespace bson ;
 
@@ -55,7 +56,7 @@ namespace engine
    {
    public:
       catNodeManager() ;
-      virtual ~catNodeManager() ;
+      ~catNodeManager() ;
       INT32 init() ;
 
       void  attachCB( _pmdEDUCB *cb ) ;
@@ -65,8 +66,6 @@ namespace engine
 
       INT32 active() ;
       INT32 deactive() ;
-
-      INT32 updateGlobalAddr() ;
 
    protected:
       INT32 processCommandMsg( const NET_HANDLE &handle, MsgHeader *pMsg,
@@ -80,27 +79,30 @@ namespace engine
                                   const CHAR *pSelector ) ;
       INT32 processCmdDelNode( const NET_HANDLE &handle,
                                const CHAR *pQuery ) ;
+      INT32 processCmdRemoveGrp( const NET_HANDLE &handle,
+                                 const CHAR *pQuery ) ;
+      INT32 processCmdActiveGrp( const NET_HANDLE &handle,
+                                 const CHAR *pQuery,
+                                 rtnContextBuf &ctxBuff );
 
       INT32 processGrpReq( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
       INT32 processRegReq( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
       INT32 processPrimaryChange( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
-      INT32 processRemoveGrp( const NET_HANDLE &handle, MsgHeader *pMsg ) ;
-      INT32 processActiveGrp( const NET_HANDLE &handle, MsgHeader *pMsg );
 
       INT32 readCataConf();
       INT32 parseCatalogConf( CHAR *pData, const SINT64 sDataSize,
                               SINT64 &sParseBytes );
       INT32 parseLine( const CHAR *pLine, BSONObj &obj );
-      INT32 generateGroupInfo( bson::BSONObj &boConf,
-                               bson::BSONObj &boGroupInfo );
-      INT32 saveGroupInfo ( bson::BSONObj &boGroupInfo, INT16 w );
-      INT32 parseIDInfo( bson::BSONObj &obj );
-      INT32 getNodeInfo( const bson::BSONObj &boReq,
-                         bson::BSONObj &boNodeInfo );
+      INT32 generateGroupInfo( BSONObj &boConf,
+                               BSONObj &boGroupInfo );
+      INT32 saveGroupInfo ( BSONObj &boGroupInfo, INT16 w );
+      INT32 parseIDInfo( BSONObj &obj );
+      INT32 getNodeInfo( const BSONObj &boReq,
+                         BSONObj &boNodeInfo );
       INT32 removeGrp( const CHAR *groupName ) ;
       INT32 activeGrp( const std::string &strGroupName,
                        UINT32 groupID,
-                       bson::BSONObj &boGroupInfo );
+                       BSONObj &boGroupInfo );
 
       INT32 _count( const CHAR *collection, const BSONObj &matcher,
                     UINT64 &count ) ;
@@ -134,17 +136,7 @@ namespace engine
       INT32 _getNodeInfoByConf( BSONObj &boConf, BSONObjBuilder &bobNodeInfo ) ;
       INT32 _checkLocalHost( BOOLEAN &isValid ) ;
 
-      INT32 _updateGlobalInfo() ;
-
    private:
-      typedef enum _SDB_CAT_MODULE_STATUS
-      {
-         SDB_CAT_MODULE_ACTIVE    =  0,
-         SDB_CAT_MODULE_DEACTIVE
-      }SDB_CAT_MODULE_STATUS;
-
-   private:
-      SDB_CAT_MODULE_STATUS      _status;
       _SDB_DMSCB                 *_pDmsCB;
       _dpsLogWrapper             *_pDpsCB;
       _SDB_RTNCB                 *_pRtnCB;

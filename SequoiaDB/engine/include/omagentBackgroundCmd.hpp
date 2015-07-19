@@ -73,6 +73,24 @@ namespace engine
    } ;
 
    /*
+      _omaRemoveHost
+   */
+   class _omaRemoveHost : public _omaCommand
+   {
+      public:
+         _omaRemoveHost ( RemoveHostInfo &info ) ;
+         ~_omaRemoveHost () ;
+         virtual const CHAR * name () { return OMA_CMD_REMOVE_HOST ; }
+         virtual INT32 init ( const CHAR *pInstallInfo ) ;
+
+      private:
+         INT32 _getRemoveHostInfo( BSONObj &retObj1, BSONObj &retObj2 ) ;
+         
+      private:
+         RemoveHostInfo   _removeHostInfo ;
+   } ;
+
+   /*
       _omaCreateTmpCoord
    */
    class _omaCreateTmpCoord : public _omaCommand
@@ -331,7 +349,7 @@ namespace engine
    {
       public:
          _omaRmDataRG ( INT64 taskID,
-                        string &tmpCoordSvcNamem,
+                        string &tmpCoordSvcName,
                         BSONObj &info ) ;
          virtual ~_omaRmDataRG () ;
 
@@ -342,6 +360,24 @@ namespace engine
       private:
          INT64     _taskID ;
          string    _tmpCoordSvcName ;
+         BSONObj   _info ;
+   } ;
+
+   /*
+      init for execute js script
+   */
+   class _omaInitEnv : public _omaCommand
+   {
+      public:
+         _omaInitEnv ( INT64 taskID, BSONObj &info ) ;
+         virtual ~_omaInitEnv () ;
+
+      public:
+         virtual const CHAR* name () { return OMA_INIT_ENV ; }
+         virtual INT32 init ( const CHAR *pInfo ) ;
+
+      private:
+         INT64     _taskID ;
          BSONObj   _info ;
    } ;
 

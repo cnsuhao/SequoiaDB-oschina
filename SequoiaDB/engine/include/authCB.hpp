@@ -77,7 +77,7 @@ namespace engine
 
       BOOLEAN needAuthenticate()
       {
-         return _needAuth ;
+         return _authEnabled && _needAuth ;
       }
 
    private:
@@ -86,6 +86,7 @@ namespace engine
       INT32 _valid( BSONObj &obj, BOOLEAN notEmpty ) ;
    private:
       BOOLEAN _needAuth ;
+      BOOLEAN _authEnabled ;
    } ;
 
    typedef class _authCB SDB_AUTHCB ;

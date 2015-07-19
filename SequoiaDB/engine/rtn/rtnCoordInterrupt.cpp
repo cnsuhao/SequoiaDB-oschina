@@ -45,10 +45,11 @@
 namespace engine
 {
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOINTERRUPT_EXECUTE, "rtnCoordInterrupt::execute" )
-   INT32 rtnCoordInterrupt::execute( CHAR * pReceiveBuffer, SINT32 packSize,
-                                     CHAR * * ppResultBuffer, pmdEDUCB * cb,
+   INT32 rtnCoordInterrupt::execute( CHAR * pReceiveBuffer,
+                                     SINT32 packSize,
+                                     pmdEDUCB * cb,
                                      MsgOpReply & replyHeader,
-                                     BSONObj **ppErrorObj )
+                                     rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOINTERRUPT_EXECUTE ) ;

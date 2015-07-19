@@ -1,19 +1,19 @@
 <DeployModList type="array">
 	<FILLER>
 		<DeployMod>distribution</DeployMod>
-		<WebName>集群模式</WebName>
+		<WebName>Distribution Mode</WebName>
 		<BusinessType>sequoiadb</BusinessType>
                 <Property type="array">
                 	<FILLER>
                 		<Name>replicanum</Name>
                 		<Type>int</Type>
                 		<Default>3</Default>
-                		<Valid>1,2,3,4,5,6,7</Valid>
+                		<Valid>1,3,5,7</Valid>
                 		<Display>select box</Display>
                 		<Edit>true</Edit>
-                		<Desc>数据拷贝数</Desc>
+                		<Desc>Data Copies Number</Desc>
                 		<Level>0</Level>
-                		<WebName>副本数</WebName>
+                		<WebName>Replica Number</WebName>
                 	</FILLER>
                 	<FILLER>
                 		<Name>datagroupnum</Name>
@@ -22,20 +22,20 @@
                 		<Valid>1-</Valid>
                 		<Display>edit box</Display>
                 		<Edit>true</Edit>
-                		<Desc>数据分区组的数量</Desc>
+                		<Desc>Data Replica Group Number</Desc>
                 		<Level>0</Level>
-                		<WebName>分区组数</WebName>
+                		<WebName>Replica Group Number</WebName>
                 	</FILLER>
                 	<FILLER>
                 		<Name>catalognum</Name>
                 		<Type>int</Type>
                 		<Default>3</Default>
-                		<Valid>1,2,3,4,5,6,7</Valid>
+                		<Valid>1,3,5,7</Valid>
                 		<Display>select box</Display>
                 		<Edit>true</Edit>
-                		<Desc>编码节点的数量</Desc>
+                		<Desc>Catalog Node Number</Desc>
                 		<Level>0</Level>
-                		<WebName>编目节点数</WebName>
+                		<WebName>Catalog Node Number</WebName>
                 	</FILLER>
                 	<FILLER>
                 		<Name>coordnum</Name>
@@ -44,15 +44,15 @@
                 		<Valid>0-993</Valid>
                 		<Display>edit box</Display>
                 		<Edit>true</Edit>
-                		<Desc>协调节点的数量，填0则所有主机都安装一个协调节点</Desc>
+                		<Desc> Coord Node Number,0 means that all hosts will install one coord node.</Desc>
                 		<Level>0</Level>
-                		<WebName>协调节点数</WebName>
+                		<WebName>Coord Node Number</WebName>
                 	</FILLER>
                 </Property>
  	</FILLER>
  	<FILLER>
 		<DeployMod>standalone</DeployMod>
-		<WebName>独立模式</WebName>
+		<WebName>Standalone Mode</WebName>
 		<BusinessType>sequoiadb</BusinessType>
                 <Property type="array">
                 	<FILLER>
@@ -62,9 +62,9 @@
                 		<Valid>1</Valid>
                 		<Display>select box</Display>
                 		<Edit>false</Edit>
-                		<Desc>数据拷贝数</Desc>
+                		<Desc>Data Copies</Desc>
                 		<Level>0</Level>
-                		<WebName>副本数</WebName>
+                		<WebName>Replica Numbers</WebName>
                 	</FILLER>
                 	<FILLER>
                 		<Name>datagroupnum</Name>
@@ -73,9 +73,9 @@
                 		<Valid>1</Valid>
                 		<Display>edit box</Display>
                 		<Edit>false</Edit>
-                		<Desc>数据分区组的数量</Desc>
+                		<Desc>Data Replica Group Number</Desc>
                 		<Level>0</Level>
-                		<WebName>分区组数</WebName>
+                		<WebName>Replica Group Number</WebName>
                 	</FILLER>
                 	<FILLER>
                 		<Name>catalognum</Name>
@@ -84,9 +84,9 @@
                 		<Valid>1</Valid>
                 		<Display>select box</Display>
                 		<Edit>false</Edit>
-                		<Desc>编码节点的数量</Desc>
+                		<Desc>Catalog Nodes Number</Desc>
                 		<Level>0</Level>
-                		<WebName>编目节点数</WebName>
+                		<WebName>Catalog Node Number</WebName>
                 	</FILLER>
                 	<FILLER>
                 		<Name>coordnum</Name>
@@ -95,9 +95,9 @@
                 		<Valid>1</Valid>
                 		<Display>edit box</Display>
                 		<Edit>false</Edit>
-                		<Desc>协调节点的数量，填0则所有主机都安装一个协调节点</Desc>
+                		<Desc>Coord Node Number,0 means that all hosts will install one coord node.</Desc>
                 		<Level>0</Level>
-                		<WebName>协调节点数</WebName>
+                		<WebName>Coord Node Number</WebName>
                 	</FILLER>
                 </Property>
  	</FILLER>

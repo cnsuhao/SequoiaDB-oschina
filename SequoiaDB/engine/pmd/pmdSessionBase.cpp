@@ -53,6 +53,7 @@ namespace engine
       _eduID   = PMD_INVALID_EDUID ;
       _pBuff   = NULL ;
       _buffLen = 0 ;
+      _awaitingHandshake = TRUE ;
 
       _socket.disableNagle() ;
 
@@ -295,7 +296,7 @@ namespace engine
       INT32 recvLen  = 0 ;
 
       return _socket.recv( buff, sizeof( buff ), recvLen,
-                           timeout, MSG_PEEK ) ;
+                           timeout, MSG_PEEK, TRUE, TRUE ) ;
    }
 
    /*

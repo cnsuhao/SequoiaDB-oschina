@@ -102,9 +102,17 @@ namespace engine
    static INT32 _pmdSystemInit()
    {
       INT32 rc = SDB_OK ;
+      SDB_START_TYPE startType = SDB_START_NORMAL ;
+      BOOLEAN bOk = TRUE ;
 
       rc = pmdGetStartup().init( pmdGetOptionCB()->getDbPath() ) ;
       PD_RC_CHECK( rc, PDERROR, "Start up check failed[rc:%d]", rc ) ;
+
+      startType = pmdGetStartup().getStartType() ;
+      bOk = pmdGetStartup().isOK() ;
+      PD_LOG( PDEVENT, "Start up from %s, data is %s",
+              pmdGetStartTypeStr( startType ),
+              bOk ? "normal" : "abnormal" ) ;
 
       rc = getQgmStrategyTable()->init() ;
       PD_RC_CHECK( rc, PDERROR, "Init qgm strategy table failed, rc: %d",
@@ -120,7 +128,8 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
 
-      if ( SDB_ROLE_STANDALONE == pmdGetDBRole() )
+      if ( SDB_ROLE_STANDALONE == pmdGetDBRole() ||
+           SDB_ROLE_OM == pmdGetDBRole() )
       {
          pmdSetPrimary( TRUE ) ;
 
@@ -261,6 +270,10 @@ namespace engine
       PMD_SHUTDOWN_DB( rc ) ;
       pmdSetQuit() ;
       krcb->destroy () ;
+      if ( krcb->needRestart() )
+      {
+         pmdGetStartup().restart( TRUE, rc ) ;
+      }
       pmdGetStartup().final() ;
       PD_LOG ( PDEVENT, "Stop sequoiadb, exit code: %d",
                krcb->getExitCode() ) ;

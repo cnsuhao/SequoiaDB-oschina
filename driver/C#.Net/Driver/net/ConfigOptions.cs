@@ -18,6 +18,7 @@ namespace SequoiaDB
         private int receiveTimeout = 0;
 
         private bool useNagle = false;
+        private bool useSSL = false;
 
         /** \property MaxAutoConnectRetryTime
          *  \brief Get or group the max autoconnect retry time(seconds)
@@ -91,6 +92,23 @@ namespace SequoiaDB
             set
             {
                 useNagle = value;
+            }
+        }
+
+        /** \property UseSSL
+         *  \brief Get or set whether use the SSL or not
+         *  \author David Li
+         *  \since 1.12
+         */
+        public bool UseSSL
+        {
+            get
+            {
+                return useSSL;
+            }
+            set
+            {
+                useSSL = value;
             }
         }
     }

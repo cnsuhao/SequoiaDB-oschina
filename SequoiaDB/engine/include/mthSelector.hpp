@@ -77,6 +77,10 @@ namespace engine
    private:
       INT32 _buildCSV( const bson::BSONObj &obj,
                        bson::BSONObj &csv ) ;
+
+      INT32 _resortObj( const bson::BSONObj &pattern,
+                        const bson::BSONObj &src,
+                        bson::BSONObj &obj ) ;
    private:
       mthSColumnMatrix _matrix ;
       BOOLEAN _init ;

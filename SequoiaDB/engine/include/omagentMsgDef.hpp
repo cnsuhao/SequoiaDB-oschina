@@ -134,7 +134,8 @@
 #define OMA_FIELD_CLUSTERNAME2                     "clustername"
 #define OMA_FIELD_BUSINESSNAME                     "BusinessName"
 #define OMA_FIELD_BUSINESSNAME2                    "businessname"
-#define OMA_FIELD_USERTAG                          "usertag"
+#define OMA_FIELD_USERTAG                          "UserTag"
+#define OMA_FIELD_USERTAG2                         "usertag"
 
 #define OMA_FIELD_HOST                             "Host"
 #define OMA_FIELD_OS                               "OS"

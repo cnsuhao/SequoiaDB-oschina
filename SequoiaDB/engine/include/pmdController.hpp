@@ -105,7 +105,9 @@ namespace engine
          virtual void  registerCB( SDB_ROLE dbrole ) ;
 
       private:
-         INT32 loadForeignModule() ;
+         INT32 initForeignModule( const CHAR *strName ) ;
+         INT32 activeForeignModule() ;
+         void  finishForeignModule() ;
 
       private:
          ossSocket               *_pTcpListener ;

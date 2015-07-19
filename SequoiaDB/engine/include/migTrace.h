@@ -16,20 +16,20 @@
 /* This list file is automatically generated,you shoud NOT modify this file anyway! test comment*/
 #ifndef migTRACE_H__
 #define migTRACE_H__
-#define SDB__MIGLOADJSONPS__SENDMSG                        0x20000007faL
-#define SDB__MIGLOADJSONPS__GETBLOCK                       0x20000007fbL
-#define SDB__MIGLOADJSONPS__POPFROMQUEUE                   0x20000007fcL
-#define SDB__MIGLOADJSONPS__PUSHTOQUEUE                    0x20000007fdL
-#define SDB__MIGLOADJSONPS__INITIALIZE                     0x20000007feL
-#define SDB__MIGLOADJSONPS__STOPWAIT                       0x20000007ffL
-#define SDB__MIGLOADJSONPS__CHECKWORKER                    0x2000000800L
-#define SDB__MIGLOADJSONPS__RUN                            0x2000000801L
-#define SDB__MIGWORKER__GETBSON                            0x2000000802L
-#define SDB__MIGWORKER__IMPORT                             0x2000000803L
-#define SDB__MIGIMPORT__IMPRCD2                            0x2000000804L
-#define SDB__MIGIMPORT__IMPRCD                             0x2000000805L
-#define SDB__MIGIMPORT__GETRCD                             0x2000000806L
-#define SDB__MIGIMPORT__INIT                               0x2000000807L
-#define SDB__MIGIMPORT___RUN                               0x2000000808L
-#define SDB__MIGIMPORT__RUN                                0x2000000809L
+#define SDB__MIGIMPORT__IMPRCD2                            0x2000000371L
+#define SDB__MIGIMPORT__IMPRCD                             0x2000000372L
+#define SDB__MIGIMPORT__GETRCD                             0x2000000373L
+#define SDB__MIGIMPORT__INIT                               0x2000000374L
+#define SDB__MIGIMPORT___RUN                               0x2000000375L
+#define SDB__MIGIMPORT__RUN                                0x2000000376L
+#define SDB__MIGLOADJSONPS__SENDMSG                        0x2000000377L
+#define SDB__MIGLOADJSONPS__GETBLOCK                       0x2000000378L
+#define SDB__MIGLOADJSONPS__POPFROMQUEUE                   0x2000000379L
+#define SDB__MIGLOADJSONPS__PUSHTOQUEUE                    0x200000037aL
+#define SDB__MIGLOADJSONPS__INITIALIZE                     0x200000037bL
+#define SDB__MIGLOADJSONPS__STOPWAIT                       0x200000037cL
+#define SDB__MIGLOADJSONPS__CHECKWORKER                    0x200000037dL
+#define SDB__MIGLOADJSONPS__RUN                            0x200000037eL
+#define SDB__MIGWORKER__GETBSON                            0x200000037fL
+#define SDB__MIGWORKER__IMPORT                             0x2000000380L
 #endif

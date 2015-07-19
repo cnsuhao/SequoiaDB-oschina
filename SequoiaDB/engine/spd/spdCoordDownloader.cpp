@@ -75,7 +75,6 @@ namespace engine
 
       CHAR *msg = NULL ;
       INT32 bufSize = 0 ;
-      CHAR *resBuf = NULL ;
       MsgOpReply reply ;
 
       if ( -1 != _contextID )
@@ -94,8 +93,8 @@ namespace engine
          goto error ;
       }
 
-      rc = _command->queryOnCatalog( msg, bufSize, &resBuf,
-                                     _cb, reply, MSG_BS_QUERY_REQ ) ;
+      rc = _command->queryOnCatalog( msg, bufSize, MSG_BS_QUERY_REQ,
+                                     _cb, reply, NULL ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to query on catalog:%d", rc ) ;
@@ -108,10 +107,6 @@ namespace engine
       if ( NULL != msg )
       {
          SDB_OSS_FREE(msg) ;
-      }
-      if ( NULL != resBuf )
-      {
-         SDB_OSS_FREE(resBuf) ;
       }
       return rc ;
    error:

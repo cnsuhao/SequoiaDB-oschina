@@ -35,6 +35,9 @@
 
 #include "core.hpp"
 #include "msg.hpp"
+#include "oss.hpp"
+#include <vector>
+#include <string>
 
 namespace engine
 {
@@ -65,6 +68,17 @@ namespace engine
 
    typedef MsgRouteID   NodeID ;
    #define INVALID_NODE_ID       (MSG_INVALID_ROUTEID)
+
+   /*
+      _catlogServerInfo define
+   */
+   struct _catlogServerInfo : public SDBObject
+   {
+      NodeID      nodeID ;
+      std::string host ;
+      std::string service ;
+   } ;
+   typedef std::vector<_catlogServerInfo>             VECCATLOG ;
 
    #define SAFE_DELETE(p) \
       do { \

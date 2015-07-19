@@ -1,20 +1,27 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
-using System;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading;
-
 
 namespace SequoiaDB
 {
     internal class ConnectionTCPImpl : IConnection
     {
         private TcpClient connection;
-        private NetworkStream input, output;
+        private Stream input, output;
         private ConfigOptions options;
         private ServerAddress hostAddress;
 
         //private readonly Logger logger = new Logger("IConnectionICPImpl");
+
+        private static bool validateServerCertificate(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
+        {
+            // do not check certificate
+            return true;
+        }
 
         public ConnectionTCPImpl(ServerAddress addr, ConfigOptions opts)
         {
@@ -40,8 +47,18 @@ namespace SequoiaDB
                     connection.NoDelay = (!options.UseNagle);
                     connection.SendTimeout = options.SendTimeout;
                     connection.ReceiveTimeout = options.ReceiveTimeout;
-                    input = connection.GetStream();
-                    output = connection.GetStream();
+                    if (options.UseSSL)
+                    {
+                        SslStream sslStream = new SslStream(connection.GetStream(), false, validateServerCertificate, null);
+                        sslStream.AuthenticateAsClient("");
+                        input = sslStream;
+                        output = sslStream;
+                    }
+                    else
+                    {
+                        input = connection.GetStream();
+                        output = connection.GetStream();
+                    }
                     return;
                 }
                 catch(Exception e)

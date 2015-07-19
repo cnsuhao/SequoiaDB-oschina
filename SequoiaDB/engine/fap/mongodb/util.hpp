@@ -40,7 +40,7 @@
 #include "oss.hpp"
 #include "iostream"
 #include "msgBuffer.hpp"
-#include "../../bson/bson.h"
+#include "../../bson/bson.hpp"
 
 class _baseConverter : public SDBObject
 {
@@ -72,10 +72,6 @@ public:
       return SDB_OK ;
    }
 
-   virtual INT32 reConvert( msgBuffer *in, msgBuffer &out )
-   {
-      return SDB_OK ;
-   }
 
 protected:
    INT32   _msglen ;
@@ -102,16 +98,4 @@ inline BOOLEAN checkBigEndian()
    return bigEndian ;
 }
 
-inline bson::BSONObj removeField( bson::BSONObj &obj, const string& name )
-{
-   bson::BSONObjBuilder b;
-   bson::BSONObjIterator i(obj);
-   while ( i.more() ) {
-   bson::BSONElement e = i.next();
-   const char *fname = e.fieldName();
-   if ( name != fname )
-      b.append(e);
-   }
-   return b.obj();
-}
 #endif

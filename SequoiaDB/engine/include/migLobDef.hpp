@@ -44,6 +44,7 @@ namespace lobtool
 #define MIG_SERVICE "svcname"
 #define MIG_USRNAME "usrname"
 #define MIG_PASSWD "passwd"
+#define MIG_SSL "ssl"
 #define MIG_CL "collection"
 #define MIG_OP "operation"
 #define MIG_FILE "file"
@@ -82,6 +83,9 @@ enum MIG_OP_TYPE
       const CHAR *dstcl ;
       const CHAR *dstusrname ;
       const CHAR *dstpasswd ;
+#ifdef SDB_SSL
+      BOOLEAN     useSSL ;
+#endif
 
       migOptions()
       :hostname( NULL ),
@@ -98,7 +102,9 @@ enum MIG_OP_TYPE
        dstusrname( NULL ),
        dstpasswd( NULL )
       {
-
+#ifdef SDB_SSL
+         useSSL = FALSE ;
+#endif
       }
    } ;
 

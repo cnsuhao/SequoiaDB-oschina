@@ -179,7 +179,6 @@ namespace engine
                      loadSize ) < (INT32)valueSize )
          {
             PD_LOG( PDERROR, "get a invalid value size:%d", valueSize ) ;
-            SDB_ASSERT( FALSE, "impossible" ) ;
             rc = SDB_DPS_CORRUPTED_LOG ;
             goto error ;
          }

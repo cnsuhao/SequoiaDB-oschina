@@ -199,11 +199,12 @@ namespace engine
    const CHAR *getTaskTypeStr( INT32 type )
    {
       static CHAR *s_taskTypeStr[ OM_TASK_TYPE_END ] = 
-                                                   { 
-                                                       "ADD_HOST", 
-                                                       "ADD_BUSINESS",
-                                                       "REMOVE_BUSINESS"
-                                                    } ;
+                                            { 
+                                               OM_TASK_TYPE_ADD_HOST_STR, 
+                                               OM_TASK_TYPE_REMOVE_HOST_STR,
+                                               OM_TASK_TYPE_ADD_BUSINESS_STR,
+                                               OM_TASK_TYPE_REMOVE_BUSINESS_STR
+                                            } ;
       if ( type < OM_TASK_TYPE_END )
       {
          return s_taskTypeStr[type] ;
@@ -1001,7 +1002,7 @@ namespace engine
                                 << OM_BSON_FIELD_SCAN_STATUS 
                                 << OM_SCAN_HOST_STATUS_FINISH
                                 << OM_BSON_FIELD_HOST_NAME << iter->hostName ) ;
-                               
+
             hostResult.push_back( tmp ) ;
             hostInfoList.erase( iter++ ) ;
             continue ;
@@ -1347,7 +1348,7 @@ namespace engine
 
       om            = sdbGetOMManager() ;
       remoteSession = om->getRSManager()->addSession( _cb, 
-                                                      OM_WAIT_SCAN_RES_INTERVAL,
+                                                      OM_NOTIFY_TASK_TIMEOUT,
                                                       NULL ) ;
       if ( NULL == remoteSession )
       {
@@ -2666,62 +2667,6 @@ namespace engine
       }
    }
 
-   BOOLEAN omAddHostCommand::_isHostExistInTask( const string &hostName )
-   {
-      BSONObjBuilder bsonBuilder ;
-      BOOLEAN isExist = TRUE ;
-      BSONObj selector ;
-      BSONObj matcher ;
-      BSONObj order ;
-      BSONObj hint ;
-      SINT64 contextID = -1 ;
-      INT32 rc         = SDB_OK ;
-      rtnContextBuf buffObj ;
-
-      BSONObj hostNameObj = BSON( OM_HOST_FIELD_NAME << hostName ) ;
-      BSONObj elemMatch   = BSON( "$elemMatch" << hostNameObj ) ;
-
-      BSONArrayBuilder arrBuilder ;
-      arrBuilder.append( OM_TASK_STATUS_FINISH ) ;
-      arrBuilder.append( OM_TASK_STATUS_CANCEL ) ;
-      BSONObj status = BSON( "$nin" << arrBuilder.arr() ) ;
-
-      matcher = BSON( OM_TASKINFO_FIELD_RESULTINFO << elemMatch
-                      << OM_TASKINFO_FIELD_STATUS << status ) ;
-      rc = rtnQuery( OM_CS_DEPLOY_CL_TASKINFO, selector, matcher, order, hint, 
-                     0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
-      if ( rc )
-      {
-         PD_LOG( PDERROR, "Failed to query host:rc=%d,host=%s", rc, 
-                 matcher.toString().c_str() ) ;
-         goto done ;
-      }
-
-      rc = rtnGetMore ( contextID, 1, buffObj, _cb, _pRTNCB ) ;
-      if ( rc )
-      {
-         if ( SDB_DMS_EOC != rc )
-         {
-            PD_LOG( PDERROR, "Failed to retreive record, rc = %d", rc ) ;
-            goto done ;
-         }
-
-         isExist = FALSE ;
-         goto done ;
-      }
-      {
-         BSONObj result( buffObj.data() ) ;
-         BSONElement eleID = result.getField( OM_TASKINFO_FIELD_TASKID ) ;
-         PD_LOG( PDERROR, "host[%s] is exist in task["OSS_LL_PRINT_FORMAT"]",
-                 hostName.c_str(), eleID.numberLong() ) ;
-      }
-
-      _pRTNCB->contextDelete( contextID, _cb ) ;
-
-   done:
-      return isExist;
-   }
-   
    INT32 omAddHostCommand::_checkTaskExistence( list<BSONObj> &hostInfoList )
    {
       INT32 rc = SDB_OK ;
@@ -2852,7 +2797,7 @@ namespace engine
             itemBuilder.append( OM_TASKINFO_FIELD_FLOW, 
                                 tmpEmptyBuilder.arr() ) ;
          }
-         
+
 
          BSONObj resultItem = itemBuilder.obj() ;
          resultArrBuilder.append( resultItem ) ;
@@ -4919,6 +4864,14 @@ namespace engine
          goto error ;
       }
 
+      if ( _isBusinessExistInTask( _businessName ) )
+      {
+         rc = SDB_INVALIDARG ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+         _sendErrorRes2Web( rc, _errorDetail ) ;
+         goto error ;
+      }
+
       rc = _combineConfDetail( _businessType, _deployMod, bsonAllConf ) ;
       if ( SDB_OK != rc )
       {
@@ -5014,16 +4967,30 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       BSONObj selector ;
-      BSONObj matcher ;
       BSONObj order ;
       BSONObj hint ;
       SINT64 contextID = -1 ;
+
+      const CHAR *pFilter = NULL ;
+      BSONObj filter ;
+
+      _restAdaptor->getQuery( _restSession, FIELD_NAME_FILTER, &pFilter ) ;
+      if ( NULL != pFilter )
+      {
+         rc = fromjson( pFilter, filter ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG_MSG( PDERROR, "change rest field to BSONObj failed:src=%s,"
+                        "rc=%d", pFilter, rc ) ;
+            goto error ;
+         }
+      }
 
       selector = BSON( OM_TASKINFO_FIELD_TASKID << 1 
                        << OM_TASKINFO_FIELD_TYPE << 1
                        << OM_TASKINFO_FIELD_TYPE_DESC << 1
                        << OM_TASKINFO_FIELD_NAME << 1 ) ;
-      rc = rtnQuery( OM_CS_DEPLOY_CL_TASKINFO, selector, matcher, order, hint, 
+      rc = rtnQuery( OM_CS_DEPLOY_CL_TASKINFO, selector, filter, order, hint, 
                      0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
       {
@@ -5144,7 +5111,10 @@ namespace engine
          BSONObj tmp = iter->filterFieldsUndotted( filter, false ) ;
          BSONObjBuilder resultBuilder ;
          resultBuilder.appendElements( tmp ) ;
-         resultBuilder.append( OM_TASKINFO_FIELD_INFO, info ) ;
+         if ( iter->hasField( OM_TASKINFO_FIELD_INFO ) )
+         {
+            resultBuilder.append( OM_TASKINFO_FIELD_INFO, info ) ;
+         }
 
          BSONObj result = resultBuilder.obj() ;
          _restAdaptor->appendHttpBody( _restSession, result.objdata(), 
@@ -5428,8 +5398,11 @@ namespace engine
 
    void omQueryNodeConfCommand::_sendNodeInfo2Web( BSONObj &nodeInfo )
    {
-      _restAdaptor->appendHttpBody( _restSession, nodeInfo.objdata(), 
-                                    nodeInfo.objsize(), 1 ) ;
+      if ( !nodeInfo.isEmpty() ) 
+      {
+          _restAdaptor->appendHttpBody( _restSession, nodeInfo.objdata(), 
+                                        nodeInfo.objsize(), 1 ) ;
+      }
       _sendOKRes2Web() ;
       return ;
    }
@@ -5739,9 +5712,9 @@ namespace engine
       rc = _getHostInfo( hostName, hostInfo, isHostExist ) ;
       if ( SDB_OK != rc || !isHostExist )
       {
-         _errorDetail = string( "failed to get record from table:" )
-                        + OM_CS_DEPLOY_CL_HOST + ",host=" + hostName ;
-         PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+         PD_LOG( PDERROR, "get host info failed:host=%s,rc=%d", 
+                 hostName.c_str(), rc ) ;
          goto error ;
       }
 
@@ -5802,9 +5775,8 @@ namespace engine
                      0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
       {
-         _errorDetail = string( "fail to query table:" ) 
-                        + OM_CS_DEPLOY_CL_HOST ;
-         PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+         PD_LOG_MSG( PDERROR, "fail to query table:%s,rc=%d", 
+                     OM_CS_DEPLOY_CL_HOST, rc ) ;
          goto error ;
       }
 
@@ -5824,7 +5796,8 @@ namespace engine
             contextID = -1 ;
             _errorDetail = string( "failed to get record from table:" )
                            + OM_CS_DEPLOY_CL_HOST ;
-            PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+            PD_LOG_MSG( PDERROR, "failed to get record from table:%s,rc=%d", 
+                        OM_CS_DEPLOY_CL_HOST, rc ) ;
             goto error ;
          }
 
@@ -6060,6 +6033,8 @@ namespace engine
          goto error ;
       }
 
+      sdbGetOMManager()->removeClusterVersion( clusterName ) ;
+
       _sendOKRes2Web() ;
 
    done:
@@ -6082,32 +6057,59 @@ namespace engine
    {
    }
 
-   INT32 omRemoveHostCommand::_getHostName( string &hostName, 
-                                            BOOLEAN &isForced )
+   INT32 omRemoveHostCommand::_getHostName( list<string> &hostNameList )
    {
       INT32 rc              = SDB_OK ;
-      const CHAR *pHostName = NULL ;
-      const CHAR *pForce    = NULL ;
-      _restAdaptor->getQuery( _restSession, OM_REST_HOST_NAME, 
-                              &pHostName ) ;
-      if ( NULL == pHostName )
+      const CHAR *pHostInfo = NULL ;
+      BSONObj bsonHostInfo ;
+      BSONElement element ;
+      _restAdaptor->getQuery( _restSession, OM_REST_FIELD_HOST_INFO, 
+                              &pHostInfo ) ;
+      if ( NULL == pHostInfo )
       {
-         _errorDetail = "rest field:" + string( OM_REST_HOST_NAME )
-                        + " is null" ;
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
+         PD_LOG_MSG( PDERROR, "rest field [%s] is null", 
+                     OM_REST_FIELD_HOST_INFO ) ;
          goto error ;
       }
 
-      hostName = pHostName ;
-      isForced = FALSE ;
-      _restAdaptor->getQuery( _restSession, OM_REST_ISFORCE, 
-                              &pForce ) ;
-      if ( ( NULL != pForce ) && ( ossStrcasecmp( pForce, "1" ) == 0 ) )
+      rc = fromjson( pHostInfo, bsonHostInfo ) ;
+      if ( rc )
       {
-         isForced = TRUE ;
+         PD_LOG_MSG( PDERROR, "change rest field to BSONObj failed:src=%s,"
+                     "rc=%d", pHostInfo, rc ) ;
+         goto error ;
       }
 
+      element = bsonHostInfo.getField( OM_BSON_FIELD_HOST_INFO ) ;
+      if ( element.type() != Array )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "%s is not Array type", 
+                     OM_BSON_FIELD_HOST_INFO ) ;
+         goto error ;
+      }
+      {
+         BSONObjIterator i( element.embeddedObject() ) ;
+         while ( i.more() )
+         {
+            string hostName ;
+            BSONObjBuilder builder ;
+            BSONObj tmp ;
+            BSONElement ele = i.next() ;
+            if ( ele.type() != Object )
+            {
+               rc = SDB_INVALIDARG ;
+               PD_LOG_MSG( PDERROR, "element of %s is not Object type"
+                           ":type=%d", OM_BSON_FIELD_HOST_INFO, ele.type() ) ;
+               goto error ;
+            }
+            BSONObj oneHost = ele.embeddedObject() ;
+
+            hostNameList.push_back( 
+                           oneHost.getStringField( OM_BSON_FIELD_HOST_NAME ) ) ;
+         }
+      }
    done:
       return rc ;
    error:
@@ -6130,9 +6132,8 @@ namespace engine
                      0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
       if ( rc )
       {
-         _errorDetail = string( "fail to query table:" ) 
-                        + OM_CS_DEPLOY_CL_CONFIGURE ;
-         PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+         PD_LOG_MSG( PDERROR, "fail to query table:%s,rc=%d", 
+                     OM_CS_DEPLOY_CL_CONFIGURE, rc ) ;
          goto error ;
       }
 
@@ -6150,9 +6151,8 @@ namespace engine
             }
 
             contextID = -1 ;
-            _errorDetail = string( "failed to get record from table:" )
-                           + OM_CS_DEPLOY_CL_CONFIGURE ;
-            PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
+            PD_LOG_MSG( PDERROR, "failed to get record from table:%s,rc=%d", 
+                        OM_CS_DEPLOY_CL_CONFIGURE, rc ) ;
             goto error ;
          }
 
@@ -6169,109 +6169,96 @@ namespace engine
       goto done ;
    }
 
-   INT32 omRemoveHostCommand::_removeHostByAgent( 
-                                                const simpleHostInfo &hostInfo )
-   {
-      INT32 rc          = SDB_OK ;
-      SINT32 flag       = SDB_OK ;
-      CHAR *pContent    = NULL ;
-      INT32 contentSize = 0 ;
-      omManager *om     = NULL ;
-      MsgHeader *pMsg   = NULL ;
-
-      pmdRemoteSession *remoteSession = NULL ;
-      BSONObj bsonResponse ;
-      BSONObj bsonRequest ;
-      bsonRequest = BSON( OM_BSON_FIELD_HOST_NAME << hostInfo.hostName 
-                       << OM_BSON_FIELD_HOST_IP << hostInfo.ip 
-                       << OM_BSON_FIELD_HOST_USER << hostInfo.user 
-                       << OM_BSON_FIELD_HOST_PASSWD << hostInfo.passwd 
-                       << OM_BSON_FIELD_INSTALLPATH << hostInfo.installPath
-                       << OM_BSON_FIELD_HOST_SSHPORT << hostInfo.sshPort ) ;
-
-      PD_LOG( PDDEBUG, "remove host req:%s", 
-              bsonRequest.toString( false, true ).c_str() ) ;
-      rc = msgBuildQueryMsg( &pContent, &contentSize, 
-                             CMD_ADMIN_PREFIX OM_REMOVE_HOST_REQ, 
-                             0, 0, 0, -1, &bsonRequest, NULL, NULL, NULL ) ;
-      if ( SDB_OK != rc )
-      {
-         _errorDetail = string( "build message failed:cmd=" ) 
-                        + OM_REMOVE_HOST_REQ ;
-         PD_LOG( PDERROR, "%s,rc=%d", _errorDetail.c_str(), rc ) ;
-         goto error ;
-      }
-
-      om   = sdbGetOMManager() ;
-      remoteSession = om->getRSManager()->addSession( _cb, 
-                                                      OM_MSG_TIMEOUT_TWO_HOUR,
-                                                      NULL ) ;
-      if ( NULL == remoteSession )
-      {
-         rc = SDB_OOM ;
-         _errorDetail = string( "create remote session failed" ) ;
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
-         SDB_OSS_FREE( pContent ) ;
-         goto error ;
-      }
-
-      pMsg = (MsgHeader *)pContent ;
-      rc   = _sendMsgToLocalAgent( om, remoteSession, pMsg ) ;
-      if ( SDB_OK != rc )
-      {
-         _errorDetail = string( "send message to agent failed" ) ;
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
-         SDB_OSS_FREE( pContent ) ;
-         remoteSession->clearSubSession() ;
-         goto error ;
-      }
-
-      rc = _receiveFromAgent( remoteSession, flag, bsonResponse ) ;
-      if ( SDB_OK != rc )
-      {
-         _errorDetail = string( "receive from agent failed" ) ;
-         PD_LOG( PDERROR, "%s:rc=%d", _errorDetail.c_str(), rc ) ;
-         goto error ;
-      }
-
-      if ( SDB_OK != flag )
-      {
-         rc = flag ;
-         _errorDetail = bsonResponse.getStringField( OM_REST_RES_DETAIL ) ;
-         PD_LOG( PDERROR, "agent process failed:detail=%s,rc=%d", 
-                 _errorDetail.c_str(), rc ) ;
-         goto error ;
-      }
-
-   done:
-      _clearSession( om, remoteSession ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omRemoveHostCommand::_removeHost( const simpleHostInfo &hostInfo, 
-                                           BOOLEAN isForced )
+   INT32 omRemoveHostCommand::_generateTaskInfo( list<string> &hostNameList, 
+                                                 BSONObj &taskInfo, 
+                                                 BSONArray &resultInfo )
    {
       INT32 rc = SDB_OK ;
-      rc = _removeHostByAgent( hostInfo ) ;
-      if ( SDB_OK != rc )
+      BSONArrayBuilder taskArrayBuilder ;
+      BSONArrayBuilder resultArrayBuilder ;
+      list<string>::iterator iter = hostNameList.begin() ;
+      while ( iter != hostNameList.end() )
       {
-         PD_LOG( PDERROR, "agent remove host failed:rc=%d", rc ) ;
-         if ( !isForced )
+         BSONObj oneHostInfo ;
+         BSONObjBuilder resultBuilder ;
+         BSONObj oneResultInfo ;
+         string hostName = *iter ;
+         simpleHostInfo hostInfo ;
+         BOOLEAN isHostExist = FALSE ;
+         BOOLEAN isHostExistBusiness = FALSE ;
+         rc = _getHostInfo( hostName, hostInfo, isHostExist ) ;
+         if ( SDB_OK != rc )
          {
+            PD_LOG( PDERROR, "get host info failed:host=%s,rc=%d", 
+                    hostName.c_str(), rc ) ;
             goto error ;
          }
+
+         if ( !isHostExist )
+         {
+            rc = SDB_DMS_RECORD_NOTEXIST ;
+            PD_LOG_MSG( PDERROR, "host is not exist:host=%s:rc=%d", 
+                        hostName.c_str(), rc ) ;
+            goto done ;
+         }
+
+         rc = _getHostExistBusinessFlag( hostName, isHostExistBusiness ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "_getHostExistBusinessFlag failed:host=%s,rc=%d", 
+                    hostName.c_str(), rc ) ;
+            goto error ;
+         }
+
+         if ( isHostExistBusiness )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "business exist when removeing host,"
+                        "business should be removed first:host=%s", 
+                        hostName.c_str() ) ;
+            goto error ;
+         }
+
+         if ( _isHostExistInTask( hostName ) )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG_MSG( PDERROR, "host is exist in task:host=%s", 
+                        hostName.c_str() ) ;
+            goto error ;
+         }
+
+         oneHostInfo = BSON( OM_HOST_FIELD_NAME << hostInfo.hostName 
+                             << OM_HOST_FIELD_IP << hostInfo.ip 
+                             << OM_BSON_FIELD_CLUSTER_NAME 
+                             << hostInfo.clusterName
+                             << OM_BSON_FIELD_HOST_USER << hostInfo.user
+                             << OM_BSON_FIELD_HOST_PASSWD << hostInfo.passwd
+                             << OM_BSON_FIELD_INSTALLPATH 
+                             << hostInfo.installPath
+                             << OM_BSON_FIELD_HOST_SSHPORT 
+                             << hostInfo.sshPort ) ;
+         taskArrayBuilder.append( oneHostInfo ) ;
+
+         resultBuilder.append( OM_HOST_FIELD_IP, hostInfo.ip ) ;
+         resultBuilder.append( OM_HOST_FIELD_NAME, hostInfo.hostName ) ;
+         resultBuilder.append( OM_TASKINFO_FIELD_STATUS, OM_TASK_STATUS_INIT ) ;
+         resultBuilder.append( OM_TASKINFO_FIELD_STATUS_DESC, 
+                               OM_TASK_STATUS_INIT_STR ) ;
+         resultBuilder.append( OM_REST_RES_RETCODE, 0 ) ;
+         resultBuilder.append( OM_REST_RES_DETAIL, "" ) ;
+         {
+            BSONArrayBuilder tmpEmptyBuilder ;
+            resultBuilder.append( OM_TASKINFO_FIELD_FLOW, 
+                                  tmpEmptyBuilder.arr() ) ;
+         }
+
+         oneResultInfo = resultBuilder.obj() ;
+         resultArrayBuilder.append( oneResultInfo ) ;
+         iter++ ;
       }
 
-      _errorDetail = "" ;
-      rc = _deleteHost( hostInfo.hostName ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "delete host's record failed:host=%s,rc=%d", 
-                 hostInfo.hostName.c_str(), rc ) ;
-         goto error ;
-      }
+      taskInfo = BSON( OM_BSON_FIELD_HOST_INFO << taskArrayBuilder.arr() ) ;
+      resultInfo = resultArrayBuilder.arr() ;
 
    done:
       return rc ;
@@ -6282,71 +6269,57 @@ namespace engine
    INT32 omRemoveHostCommand::doCommand()
    {
       INT32 rc = SDB_OK ;
-      string hostName ;
-      BSONObj result ;
-      simpleHostInfo hostInfo ;
-      BOOLEAN isForced            = FALSE ;
-      BOOLEAN isHostExist         = FALSE ;
-      BOOLEAN isHostExistBusiness = FALSE ;
-
-      rc = _getHostName( hostName, isForced ) ;
+      list<string> hostNameList ;
+      BSONObj taskInfo ;
+      BSONArray resultInfo ;
+      INT64 taskID = 0 ;
+      rc = _getHostName( hostNameList ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
-         _sendErrorRes2Web( rc, _errorDetail ) ;
+         PD_LOG( PDERROR, "_getHostName failed:rc=%d", rc ) ;
          goto error ;
       }
 
-      rc = _getHostInfo( hostName, hostInfo, isHostExist ) ;
+      rc = _generateTaskInfo( hostNameList, taskInfo, resultInfo ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
-         _sendErrorRes2Web( rc, _errorDetail ) ;
+         PD_LOG( PDERROR, "generate task info failed:rc=%d", rc ) ;
          goto error ;
       }
 
-      if ( !isHostExist )
-      {
-         rc = SDB_DMS_RECORD_NOTEXIST ;
-         _errorDetail = hostName + " is not exist" ;
-         PD_LOG( PDERROR, "%s:rc=%d", _errorDetail.c_str(), rc ) ;
-         _sendErrorRes2Web( rc, _errorDetail ) ;
-         goto done ;
-      }
+      getMaxTaskID( taskID ) ;
+      taskID++ ;
 
-      rc = _getHostExistBusinessFlag( hostName, isHostExistBusiness ) ;
+      rc = createTask( OM_TASK_TYPE_REMOVE_HOST, taskID, 
+                       getTaskTypeStr( OM_TASK_TYPE_REMOVE_HOST ), 
+                       _localAgentHost, _localAgentService,
+                       taskInfo, resultInfo ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
-         _sendErrorRes2Web( rc, _errorDetail ) ;
+         PD_LOG( PDERROR, "fail to createTask:rc=%d", rc ) ;
          goto error ;
       }
 
-      if ( isHostExistBusiness )
-      {
-         rc = SDB_INVALIDARG ;
-         _errorDetail = string( "business exist in host, business should be "
-                                "removed first:host=" ) + hostName.c_str() ;
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
-         _sendErrorRes2Web( rc, _errorDetail ) ;
-         goto error ;
-      }
-
-      rc = _removeHost( hostInfo, isForced ) ;
+      rc = _notifyAgentTask( taskID ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
-         _sendErrorRes2Web( rc, _errorDetail ) ;
+         removeTask( taskID ) ;
+         PD_LOG( PDERROR, "fail to _notifyAgentTask:rc=%d", rc ) ;
          goto error ;
       }
 
-      sdbGetOMManager()->updateClusterVersion( hostInfo.clusterName ) ;
-
-      _sendOKRes2Web() ;
+      {
+         BSONObj result = BSON( OM_BSON_TASKID << (long long)taskID ) ;
+         _restAdaptor->appendHttpBody( _restSession, result.objdata(), 
+                                       result.objsize(), 1 ) ;
+         _sendOKRes2Web() ;
+      }
 
    done:
       return rc ;
    error:
+      _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+      _sendErrorRes2Web( rc, _errorDetail ) ;
       goto done ;
    }
 
@@ -6399,9 +6372,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       BSONObjBuilder taskInfoBuilder ;
       taskInfoBuilder.appendElements( nodeInfos ) ;
-      taskInfoBuilder.append( OM_SDB_AUTH_USER, "" ) ;
-      taskInfoBuilder.append( OM_SDB_AUTH_PASSWD, "" ) ;
 
+      string authUser ;
+      string authPasswd ;
       BSONObj businessInfo ;
       string clusterName ;
       string type ;
@@ -6414,6 +6387,8 @@ namespace engine
          goto error ;
       }
 
+      _getBusinessAuth( businessName, authUser, authPasswd ) ;
+
       clusterName = businessInfo.getStringField( 
                                                OM_BUSINESS_FIELD_CLUSTERNAME ) ;
       type        = businessInfo.getStringField( OM_BUSINESS_FIELD_TYPE ) ;
@@ -6423,6 +6398,8 @@ namespace engine
       taskInfoBuilder.append( OM_BSON_BUSINESS_TYPE, type ) ;
       taskInfoBuilder.append( OM_BSON_BUSINESS_NAME, businessName ) ;
       taskInfoBuilder.append( OM_BSON_DEPLOY_MOD, deployMod ) ;
+      taskInfoBuilder.append( OM_SDB_AUTH_USER, authUser ) ;
+      taskInfoBuilder.append( OM_SDB_AUTH_PASSWD, authPasswd ) ;
       taskInfo = taskInfoBuilder.obj() ;
 
       {
@@ -6475,10 +6452,9 @@ namespace engine
                               &pBusinessName ) ;
       if ( NULL == pBusinessName )
       {
-         _errorDetail = "rest field:" + string( OM_REST_BUSINESS_NAME )
-                        + " is null" ;
          rc = SDB_INVALIDARG ;
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
+         PD_LOG_MSG( PDERROR, "rest field:%s is null", OM_REST_BUSINESS_NAME ) ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
@@ -6486,7 +6462,9 @@ namespace engine
       rc = _getBusinessExistFlag( pBusinessName, isBusinessExist ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "%s", _errorDetail.c_str() ) ;
+         PD_LOG_MSG( PDERROR, "get business failed:business=%s", 
+                     pBusinessName ) ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
       }
@@ -6496,6 +6474,17 @@ namespace engine
          string detail = string( pBusinessName ) + " is not exist" ;
          _sendErrorRes2Web( SDB_DMS_RECORD_NOTEXIST, detail ) ;
          goto done ;
+      }
+
+      {
+         string tmp = pBusinessName ;
+         if ( _isBusinessExistInTask( tmp ) )
+         {
+            rc = SDB_INVALIDARG ;
+            _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+            _sendErrorRes2Web( rc, _errorDetail ) ;
+            goto done ;
+         }
       }
 
       rc = _getNodeInfo( pBusinessName, nodeInfos, isBusinessExistNode ) ;
@@ -6852,7 +6841,9 @@ namespace engine
                                              BSONObj &bsonStatus )
    {
       INT32 rc      = SDB_OK ;
+      INT32 tmpRC   = SDB_OK ;
       omManager *om = NULL ;
+      string tmpError ;
       BSONArrayBuilder arrayBuilder ;
       pmdRemoteSession *remoteSession = NULL ;
       VEC_SUB_SESSIONPTR subSessionVec ;
@@ -6861,20 +6852,18 @@ namespace engine
 
       om            = sdbGetOMManager() ;
       remoteSession = om->getRSManager()->addSession( _cb, 
-                                                      OM_CHECK_HOST_INTERVAL,
-                                                      NULL ) ;
+                                                  OM_QUERY_HOST_STATUS_TIMEOUT,
+                                                  NULL ) ;
       if ( NULL == remoteSession )
       {
          rc = SDB_OOM ;
          PD_LOG_MSG( PDERROR, "addSession failed:rc=%d", rc ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          goto error ;
       }
       rc = _addQueryHostStatusReq( om, remoteSession, hostInfoList ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG_MSG( PDERROR, "_addQueryHostStatusReq failed:rc=%d", rc ) ;
-         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          goto error ;
       }
 
@@ -6882,7 +6871,7 @@ namespace engine
       rc = _getAllReplay( remoteSession, &subSessionVec ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDERROR, "wait replay failed:rc=%d", rc ) ;
+         PD_LOG_MSG( PDERROR, "wait replay failed:rc=%d", rc ) ;
          goto error ;
       }
 
@@ -6898,56 +6887,57 @@ namespace engine
 
          string tmpHost = "" ;
          string tmpService ;
+         pmdGetThreadEDUCB()->resetInfo( EDU_INFO_ERROR ) ;
          om->getHostInfoByID( subSession->getNodeID(), tmpHost, tmpService ) ;
          if ( subSession->isDisconnect() )
          {
-            rc = SDB_NETWORK ;
+            tmpRC = SDB_NETWORK ;
             PD_LOG_MSG( PDERROR, "session disconnected:id=%s,rc=%d", 
-                        routeID2String(subSession->getNodeID()).c_str(), rc ) ;
-            _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
-            _appendErrorResult( arrayBuilder, tmpHost, rc, _errorDetail ) ;
+                        routeID2String(subSession->getNodeID()).c_str(), 
+                        tmpRC ) ;
+            tmpError = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+            _appendErrorResult( arrayBuilder, tmpHost, tmpRC, tmpError ) ;
             continue ;
          }
 
          pRspMsg = subSession->getRspMsg() ;
          if ( NULL == pRspMsg )
          {
-            rc = SDB_UNEXPECTED_RESULT ;
-            PD_LOG_MSG( PDERROR, "unexpected result:rc=%d", rc ) ;
-            _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
-            _appendErrorResult( arrayBuilder, tmpHost, rc, _errorDetail ) ;
+            tmpRC = SDB_UNEXPECTED_RESULT ;
+            PD_LOG_MSG( PDERROR, "unexpected result:rc=%d", tmpRC ) ;
+            tmpError = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+            _appendErrorResult( arrayBuilder, tmpHost, tmpRC, tmpError ) ;
             continue ;
          }
 
-         rc = msgExtractReply( (CHAR *)pRspMsg, &flag, &contextID, &startFrom, 
-                               &numReturned, objVec ) ;
-         if ( SDB_OK != rc )
+         tmpRC = msgExtractReply( (CHAR *)pRspMsg, &flag, &contextID, 
+                                  &startFrom, &numReturned, objVec ) ;
+         if ( SDB_OK != tmpRC )
          {
-            PD_LOG_MSG( PDERROR, "extract reply failed:rc=%d", rc ) ;
-            _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
-            _appendErrorResult( arrayBuilder, tmpHost, rc, _errorDetail ) ;
+            PD_LOG_MSG( PDERROR, "extract reply failed:rc=%d", tmpRC ) ;
+            tmpError = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+            _appendErrorResult( arrayBuilder, tmpHost, tmpRC, tmpError ) ;
             continue ;
          }
 
          if ( SDB_OK != flag )
          {
-            rc = flag ;
             if ( objVec.size() > 0 )
             {
-               _errorDetail = objVec[0].getStringField( OM_REST_RES_DETAIL ) ;
+               tmpError = objVec[0].getStringField( OM_REST_RES_DETAIL ) ;
             }
-            _appendErrorResult( arrayBuilder, tmpHost, rc, _errorDetail ) ;
+            _appendErrorResult( arrayBuilder, tmpHost, flag, tmpError ) ;
             PD_LOG( PDERROR, "agent process failed:detail=%s,rc=%d", 
-                    _errorDetail.c_str(), rc ) ;
+                    tmpError.c_str(), flag ) ;
             continue ;
          }
 
          if ( 1 != objVec.size() )
          {
-            rc = SDB_UNEXPECTED_RESULT ;
-            PD_LOG_MSG( PDERROR, "unexpected response size:rc=%d", rc ) ;
-            _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
-            _appendErrorResult( arrayBuilder, tmpHost, rc, _errorDetail ) ;
+            tmpRC = SDB_UNEXPECTED_RESULT ;
+            PD_LOG_MSG( PDERROR, "unexpected response size:rc=%d", tmpRC ) ;
+            tmpError = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+            _appendErrorResult( arrayBuilder, tmpHost, tmpRC, tmpError ) ;
             continue ;
          }
 
@@ -7201,6 +7191,7 @@ namespace engine
       rc = _getHostStatus( hostInfoList, bsonStatus ) ;
       if ( SDB_OK != rc )
       {
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
          PD_LOG( PDERROR, "_getHostStatus failed:rc=%d", rc ) ;
          _sendErrorRes2Web( rc, _errorDetail ) ;
          goto error ;
@@ -7561,73 +7552,21 @@ namespace engine
       goto done ;
    }
 
-   omGetFileCommand::omGetFileCommand( restAdaptor *pRestAdaptor, 
-                                       pmdRestSession *pRestSession, 
-                                       const CHAR *pRootPath,
-                                       const CHAR *pSubPath )
+   omGetLogCommand::omGetLogCommand( restAdaptor *pRestAdaptor, 
+                                     pmdRestSession *pRestSession )
+                   :omAuthCommand( pRestAdaptor, pRestSession )
    {
       _restAdaptor = pRestAdaptor ;
       _restSession = pRestSession ;
-      _rootPath    = pRootPath ;
-      _subPath     = pSubPath ;
    }
 
-   omGetFileCommand::~omGetFileCommand()
+   omGetLogCommand::~omGetLogCommand()
    {
    }
 
-   INT32 omGetFileCommand::doCommand() 
-   {
-      INT32 rc                      = SDB_OK ;
-      CHAR *pContent                = NULL ;
-      INT32 contentLength           = 0 ;
-      restFileController* transfer = NULL ;
-      string realSubPath            = _subPath ;
-
-      transfer = restFileController::getTransferInstance() ;
-      transfer->getTransferedPath( _subPath.c_str(), realSubPath ) ;
-
-      rc = _getFileContent( _rootPath + realSubPath, &pContent, 
-                            contentLength ) ;
-      if ( SDB_OK != rc )
-      {
-         if ( SDB_FNE == rc )
-         {
-            PD_LOG( PDEVENT, "OM: file no found:%s, rc=%d", 
-                    realSubPath.c_str(), rc ) ;
-            _restAdaptor->sendResponse( _restSession, HTTP_NOTFOUND ) ;
-         }
-         else
-         {
-            PD_LOG( PDEVENT, "OM: open file failed:%s, rc=%d", 
-                    realSubPath.c_str(), rc ) ;
-            _restAdaptor->sendResponse( _restSession, HTTP_SERVICUNAVA ) ;
-         }
-
-         goto error ;
-      }
-
-      _restAdaptor->appendHttpBody( _restSession, pContent, contentLength ) ;
-      _restAdaptor->sendResponse( _restSession, HTTP_OK ) ;
-
-   done:
-      if ( NULL != pContent )
-      {
-         _restSession->releaseBuff( pContent, contentLength ) ;
-      }
-      return rc ;
-   error:
-      goto done ;
-   }
-
-   INT32 omGetFileCommand::undoCommand()
-   {
-      return SDB_OK ;
-   }
-
-   INT32 omGetFileCommand::_getFileContent( string filePath, 
-                                            CHAR **pFileContent, 
-                                            INT32 &fileContentLen )
+   INT32 omGetLogCommand::_getFileContent( string filePath, 
+                                           CHAR **pFileContent, 
+                                           INT32 &fileContentLen )
    {
       OSSFILE file ;
       INT32 rc               = SDB_OK ;
@@ -7676,6 +7615,350 @@ namespace engine
       goto done ;
    }
 
+   INT32 omGetLogCommand::doCommand()
+   {
+      INT32 rc             = SDB_OK ;
+      CHAR *pContent       = NULL ;
+      INT32 contentLength  = 0 ;
+      const CHAR *pSubPath = NULL ;
+      CHAR currentPath[ OSS_MAX_PATHSIZE + 1 ] ;
+      CHAR logPath[ OSS_MAX_PATHSIZE + 1 ] ;
+
+      _restAdaptor->getQuery( _restSession, OM_REST_LOG_NAME, 
+                              &pSubPath ) ;
+      if ( NULL == pSubPath )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get rest field failed:field=%s", 
+                     OM_REST_LOG_NAME ) ;
+         goto error ;
+      }
+
+      rc = ossGetEWD( currentPath, OSS_MAX_PATHSIZE ) ;
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "get current path failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      ossSnprintf( logPath, OSS_MAX_PATHSIZE, "%s%s..%s%s%s%s%s%s", currentPath, 
+                   OSS_FILE_SEP, OSS_FILE_SEP, OM_CONF_PATH_STR, OSS_FILE_SEP, 
+                   OM_LOG_PATH_STR, OSS_FILE_SEP, pSubPath ) ;
+      rc = _getFileContent( logPath, &pContent, contentLength ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG_MSG( PDERROR, "OM: get file content failed:file=%s,rc=%d", 
+                     logPath, rc ) ;
+         goto error ;
+      }
+
+      _restAdaptor->appendHttpBody( _restSession, pContent, contentLength, 1, 
+                                    FALSE ) ;
+      _restAdaptor->sendResponse( _restSession, HTTP_OK ) ;
+
+   done:
+      if ( NULL != pContent )
+      {
+         _restSession->releaseBuff( pContent, contentLength ) ;
+      }
+      return rc ;
+   error:
+      _restAdaptor->appendHttpBody( _restSession, "1", 0, 1, FALSE ) ;
+      _restAdaptor->sendResponse( _restSession, HTTP_OK ) ;
+      goto done ;
+   }
+
+
+   omSetBusinessAuthCommand::omSetBusinessAuthCommand( 
+                                                  restAdaptor *pRestAdaptor, 
+                                                  pmdRestSession *pRestSession )
+                            :omAuthCommand( pRestAdaptor, pRestSession )
+   {
+   }
+
+   omSetBusinessAuthCommand::~omSetBusinessAuthCommand()
+   {
+   }
+
+   INT32 omSetBusinessAuthCommand::_getBusinessAuthInfo( string &businessName,
+                                                         string &userName,
+                                                         string &passwd )
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *pBusinessName = NULL ;
+      const CHAR *pUserName     = NULL ;
+      const CHAR *pPasswd       = NULL ;
+
+      _restAdaptor->getQuery( _restSession, OM_REST_BUSINESS_NAME, 
+                              &pBusinessName ) ;
+      if ( NULL == pBusinessName )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get rest field failed:field=%s", 
+                     OM_REST_BUSINESS_NAME ) ;
+         goto error ;
+      }
+
+      _restAdaptor->getQuery( _restSession, OM_REST_FIELD_LOGIN_NAME, 
+                              &pUserName ) ;
+      if ( NULL == pUserName )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get rest field failed:field=%s", 
+                     OM_REST_FIELD_LOGIN_NAME ) ;
+         goto error ;
+      }
+
+      _restAdaptor->getQuery( _restSession, OM_REST_FIELD_LOGIN_PASSWD, 
+                              &pPasswd ) ;
+      if ( NULL == pPasswd )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get rest field failed:field=%s", 
+                     OM_REST_FIELD_LOGIN_PASSWD ) ;
+         goto error ;
+      }
+
+      businessName = pBusinessName ;
+      userName     = pUserName ;
+      passwd       = pPasswd ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 omSetBusinessAuthCommand::doCommand()
+   {
+      INT32 rc        = SDB_OK ;
+      INT64 updateNum = 0 ;
+      BSONObj selector ;
+      BSONObj updator ;
+      BSONObj hint ;
+      string businessName ;
+      string userName ;
+      string passwd ;
+
+      rc = _getBusinessAuthInfo( businessName, userName, passwd ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "get rest field failed:rc=%d", rc ) ;
+         goto error ;
+      }
+
+      {
+         BSONObj businessInfo ;
+         _getBusinessInfo( businessName, businessInfo ) ;
+         if ( businessInfo.isEmpty() )
+         {
+            rc = SDB_INVALIDARG ;
+            pmdGetThreadEDUCB()->resetInfo( EDU_INFO_ERROR ) ;
+            PD_LOG_MSG( PDERROR, "business is not exist:business=%s", 
+                        businessName.c_str() ) ;
+            goto error ;
+         }
+      }
+
+      selector = BSON( OM_BUSINESSAUTH_BUSINESSNAME << businessName ) ;
+      {
+         BSONObj tmp = BSON( OM_BUSINESSAUTH_BUSINESSNAME << businessName
+                             << OM_BUSINESSAUTH_USER << userName
+                             << OM_BUSINESSAUTH_PASSWD << passwd ) ;
+         updator = BSON( "$set" << tmp ) ;
+      }
+
+      rc = rtnUpdate( OM_CS_DEPLOY_CL_BUSINESS_AUTH, selector, updator, hint, 
+                      FLG_UPDATE_UPSERT, _cb, &updateNum ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "set business authority failed:info=%s,rc=%d", 
+                 selector.toString().c_str(), rc ) ;
+         goto error ;
+      }
+
+      _sendOKRes2Web() ;
+   done:
+      return rc ;
+   error:
+      _sendErrorRes2Web( rc, pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ) ;
+      goto done ;
+   }
+   omRemoveBusinessAuthCommand::omRemoveBusinessAuthCommand( 
+                                                  restAdaptor *pRestAdaptor, 
+                                                  pmdRestSession *pRestSession )
+                               :omAuthCommand( pRestAdaptor, pRestSession )
+   {
+      
+   }
+
+   omRemoveBusinessAuthCommand::~omRemoveBusinessAuthCommand()
+   {
+   }
+
+   INT32 omRemoveBusinessAuthCommand::doCommand()
+   {
+      INT32 rc = SDB_OK ;
+      const CHAR *pBusinessName = NULL ;
+      BSONObj deletor ;
+      BSONObj hint ;
+
+      _restAdaptor->getQuery( _restSession, OM_REST_BUSINESS_NAME, 
+                              &pBusinessName ) ;
+      if ( NULL == pBusinessName )
+      {
+         rc = SDB_INVALIDARG ;
+         PD_LOG_MSG( PDERROR, "get rest field failed:field=%s", 
+                     OM_REST_BUSINESS_NAME ) ;
+         goto error ;
+      }
+
+      deletor = BSON( OM_BUSINESSAUTH_BUSINESSNAME << pBusinessName ) ;
+      rc = rtnDelete( OM_CS_DEPLOY_CL_BUSINESS_AUTH, deletor, hint, 0, _cb ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "rtnDelete failed:deletor=%s,rc=%d", 
+                 deletor.toString().c_str(), rc ) ;
+         goto error ;
+      }
+
+      _sendOKRes2Web() ;
+ 
+   done:
+      return rc ;
+   error:
+      _sendErrorRes2Web( rc, pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ) ;
+      goto done ;
+   }
+
+   omQueryBusinessAuthCommand::omQueryBusinessAuthCommand( 
+                                                  restAdaptor *pRestAdaptor, 
+                                                  pmdRestSession *pRestSession )
+                              :omAuthCommand( pRestAdaptor, pRestSession )
+   {
+   }
+
+   omQueryBusinessAuthCommand::~omQueryBusinessAuthCommand()
+   {
+   }
+
+   void omQueryBusinessAuthCommand::_sendAuthInfo2Web( list<BSONObj> &authInfo )
+   {
+      BSONObj filter = BSON( OM_BUSINESSAUTH_PASSWD << 1 ) ;
+      list<BSONObj>::iterator iter = authInfo.begin() ;
+      while ( iter != authInfo.end() )
+      {
+         BSONObj tmp = iter->filterFieldsUndotted( filter, false ) ;
+         _restAdaptor->appendHttpBody( _restSession, tmp.objdata(), 
+                                       tmp.objsize(), 1 ) ;
+         iter++ ;
+      }
+
+      _sendOKRes2Web() ;
+
+      return ;
+   }
+
+   INT32 omQueryBusinessAuthCommand::doCommand()
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj selector ;
+      BSONObj matcher ;
+      BSONObj order ;
+      BSONObj hint ;
+      list<BSONObj> authInfo ;
+
+      rc = _getQueryPara( selector, matcher, order, hint ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "get query parameter failed:rc=%d", rc ) ;
+         _errorDetail = pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ;
+         _sendErrorRes2Web( rc, _errorDetail ) ;
+         goto error ;
+      }
+
+      rc = _queryTable( OM_CS_DEPLOY_CL_BUSINESS_AUTH, selector, matcher, order, 
+                        hint, 0, 0, -1, authInfo ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "query table failed:table=%s,rc=%d", 
+                 OM_CS_DEPLOY_CL_BUSINESS_AUTH, rc ) ;
+         goto error ;
+      }
+
+      _sendAuthInfo2Web( authInfo ) ;
+   done:
+      return rc ;
+   error:
+      _sendErrorRes2Web( rc, pmdGetThreadEDUCB()->getInfo( EDU_INFO_ERROR ) ) ;
+      goto done ;
+   }
+
+   omGetFileCommand::omGetFileCommand( restAdaptor *pRestAdaptor, 
+                                       pmdRestSession *pRestSession, 
+                                       const CHAR *pRootPath,
+                                       const CHAR *pSubPath )
+                    :omGetLogCommand( pRestAdaptor, pRestSession )
+   {
+      _restAdaptor = pRestAdaptor ;
+      _restSession = pRestSession ;
+      _rootPath    = pRootPath ;
+      _subPath     = pSubPath ;
+   }
+
+   omGetFileCommand::~omGetFileCommand()
+   {
+   }
+
+   INT32 omGetFileCommand::doCommand() 
+   {
+      INT32 rc                      = SDB_OK ;
+      CHAR *pContent                = NULL ;
+      INT32 contentLength           = 0 ;
+      restFileController* transfer = NULL ;
+      string realSubPath            = _subPath ;
+
+      transfer = restFileController::getTransferInstance() ;
+      transfer->getTransferedPath( _subPath.c_str(), realSubPath ) ;
+
+      rc = _getFileContent( _rootPath + realSubPath, &pContent, 
+                            contentLength ) ;
+      if ( SDB_OK != rc )
+      {
+         if ( SDB_FNE == rc )
+         {
+            PD_LOG( PDEVENT, "OM: file no found:%s, rc=%d", 
+                    realSubPath.c_str(), rc ) ;
+            _restAdaptor->sendResponse( _restSession, HTTP_NOTFOUND ) ;
+         }
+         else
+         {
+            PD_LOG( PDEVENT, "OM: open file failed:%s, rc=%d", 
+                    realSubPath.c_str(), rc ) ;
+            _restAdaptor->sendResponse( _restSession, HTTP_SERVICUNAVA ) ;
+         }
+
+         goto error ;
+      }
+
+      _restAdaptor->appendHttpBody( _restSession, pContent, contentLength, 1,
+                                    FALSE ) ;
+      _restAdaptor->sendResponse( _restSession, HTTP_OK ) ;
+
+   done:
+      if ( NULL != pContent )
+      {
+         _restSession->releaseBuff( pContent, contentLength ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 omGetFileCommand::undoCommand()
+   {
+      return SDB_OK ;
+   }
 
    restFileController::restFileController()
    {

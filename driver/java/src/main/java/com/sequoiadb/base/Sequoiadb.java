@@ -1078,8 +1078,9 @@ public class Sequoiadb {
 			}
 			return evalResult;
 		}else{
-			long typeValue = rtn.getNumReturned();
-			evalResult.returnType = Sequoiadb.SptReturnType.getTypeByValue((int)typeValue);
+		    List<BSONObject> objList = rtn.getObjectList();
+		    int typeValue = (Integer) objList.get(0).get(SequoiadbConstants.FIELD_NAME_RETYE);
+			evalResult.returnType = Sequoiadb.SptReturnType.getTypeByValue(typeValue);
 			evalResult.cursor = new DBCursor(rtn, this);
 			return evalResult;
 		}
@@ -1330,9 +1331,14 @@ public class Sequoiadb {
 	 * @exception com.sequoiadb.exception.BaseException
 	 */
 	public void setSessionAttr( BSONObject options ) throws BaseException {
-		if ( null == options || 
-		     !options.containsField(SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE) )
+	    if ( null == options || options.isEmpty() ) {
+	        return;
+	    }
+	    
+		if ( !options.containsField(
+		        SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE) ) {
 			throw new BaseException( "SDB_INVALIDARG", options );
+		}
 		BSONObject newObj = new BasicBSONObject();
 		Object value = options.get( SequoiadbConstants.FIELD_NAME_PREFERED_INSTANCE );
 		int v = PreferInstanceType.INS_SLAVE.getCode();
@@ -1865,7 +1871,7 @@ public class Sequoiadb {
 		connection.sendMessage(request);
 
 		ByteBuffer byteBuffer = connection.receiveMessage(endianConvert);
-		SDBMessage rtnSDBMessage = SDBMessageHelper.msgExtractEvalReply(byteBuffer);
+		SDBMessage rtnSDBMessage = SDBMessageHelper.msgExtractReply(byteBuffer);
 		SDBMessageHelper.checkMessage(sdbMessage, rtnSDBMessage);
 
 		return rtnSDBMessage;

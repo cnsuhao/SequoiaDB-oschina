@@ -75,16 +75,6 @@ namespace engine
          INT32          _reply( MsgOpReply* responseMsg, const CHAR *pBody,
                                 INT32 bodyLen ) ;
 
-         inline BOOLEAN _isAwaitingHandshake () const
-         {
-            return _awaitingHandshake ;
-         }
-
-         inline void   _setHandshakeReceived ()
-         {
-            _awaitingHandshake = FALSE ;
-         }
-
       protected:
          virtual void            _onAttach () ;
          virtual void            _onDetach () ;
@@ -97,8 +87,6 @@ namespace engine
          BOOLEAN              _needRollback ;
 
          BSONObj              _errorInfo ;
-
-         BOOLEAN              _awaitingHandshake ;
 
    } ;
    typedef _pmdLocalSession pmdLocalSession ;

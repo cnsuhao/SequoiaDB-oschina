@@ -1,0 +1,27 @@
+{
+    "businesslist": {
+	 	  "title": "Cluster: ",
+		  "tab": {
+		  		"button": [ "Add Module" ]
+		  },
+	 	  "businessGrid": {
+		  		   "title": [ "Module Name", "Type", "Mode", "Auth", "Auth user", "Operation" ],
+		  			"button": [ "Operation", "Set Auth", "Remove Auth", "Uninstall" ],
+					"auth": [ "Yes", "No" ]
+		  },
+		  "isRemoveBusiness": {
+		  			"title": "Tips"
+		  },
+		  "addBusiness": {
+		  			"title": "Add Module",
+					"table": [
+						[ "Module Name", "Name of the Module" ],
+						[ "Module Type", "" ]
+					]
+		  },
+		  "setAuthModal": {
+		  			"title": "Set Auth",
+					"table": [ "User:", "Password:" ]
+		  }
+    }
+}

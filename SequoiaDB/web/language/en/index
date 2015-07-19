@@ -1,0 +1,129 @@
+{
+    "index": {
+        "clusterOperation": [
+            "Add Hosts",
+            "Hosts List",
+            "Add Module",
+            "Module List",
+            "Remove Cluster",
+            "Create Cluster"
+        ],
+        "leftPanel": {
+            "title": "Status",
+				"body": {
+					 "table": [ "Modules", "Hosts" ],
+					 "badgeTips": [
+					 		"? Hosts",
+							"? Modules",
+							"? Hosts have memory usage rate more than 90%",
+							"? Hosts have disks usage rate more than 90%",
+							"? Hosts have CPU usage rate more than 90%",
+							"? Hosts broke down"
+					 ]
+				},
+            "SAC": [
+                "Nodes"
+            ]
+        },
+        "rightPanel": {
+            "title": "? monitoring information",
+				"body": "No monitoring information currently, please create a new cluster!",
+				"pic": [
+					 { "title": "CPU", "subTitle": "percent" },
+					 { "title": "Memory", "subTitle": "percent" },
+					 { "title": "Disk", "subTitle": "percent" },
+					 { "title": "Inbond", "subTitle": "Kb/s" },
+					 { "title": "Outbond", "subTitle": "Kb/s" },
+					 { "title": "Inbond Packets", "subTitle": "Data Package" },
+					 { "title": "Outbond Packets", "subTitle": "Data Package" }
+				]
+        },
+        "modal": {
+            "deploy": {
+                "title": "Deployment Wizard",
+                "body": [
+                    {
+                        "name": "Cluster Name:",
+                        "desc": "Name of the Cluster"
+                    },
+						  {
+						  		"name": "Description:",
+								"desc": "Description of the Cluster"
+						  },
+						  {
+						  		"name": "Module Name:",
+								"desc": "Name of the Module"
+						  },
+						  {
+						  		"name": "Module type:",
+								"desc": ""
+						  },
+						  {
+						  		"name": "User:",
+								"desc": "User to operate this Module"
+						  },
+						  {
+						  		"name": "Password:",
+								"desc": "User's password"
+						  },
+						  {
+						  		"name": "User Group:",
+								"desc": "Users' group"
+						  },
+						  {
+						  		"name": "Installing Path:",
+								"desc": "Default installing path"
+						  }
+                ]
+            },
+				"createCluster": {
+                "title": "Create Cluster",
+                "body": [
+                    {
+                        "name": "Cluster Name:",
+                        "desc": "Name of the Cluster"
+                    },
+						  {
+						  		"name": "Description:",
+								"desc": "Description of the Cluster"
+						  },
+						  {
+						  		"name": "User:",
+								"desc": "User to operate the Module"
+						  },
+						  {
+						  		"name": "Password:",
+								"desc": "User's password"
+						  },
+						  {
+						  		"name": "User Group:",
+								"desc": "User's Group"
+						  },
+						  {
+						  		"name": "Installing Path:",
+								"desc": "Default installing path"
+						  }
+                ]
+            },
+				"addBusiness": {
+                "title": "Add Module",
+                "body": [
+						  {
+						  		"name": "Module Name:",
+								"desc": "Name of the Module"
+						  },
+						  {
+						  		"name": "Module type:",
+								"desc": ""
+						  }
+                ]
+            },
+				"isRemoveCluster": {
+					 "title": "Tips"
+				},
+				"isGoOnDeploy": {
+					 "title": "Tips"
+				}
+        }
+    }
+}

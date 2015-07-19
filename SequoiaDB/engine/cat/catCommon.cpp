@@ -97,7 +97,8 @@ namespace engine
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATDOMAINOPTIONSEXTRACT, "catDomainOptionsExtract" )
    INT32 catDomainOptionsExtract( const BSONObj &options,
                                   pmdEDUCB *cb,
-                                  BSONObjBuilder *builder )
+                                  BSONObjBuilder *builder,
+                                  vector< string > *pVecGroups )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_CATDOMAINOPTIONSEXTRACT ) ;
@@ -130,10 +131,13 @@ namespace engine
                goto error ;
             }
 
+            if ( pVecGroups )
+            {
+               pVecGroups->push_back( string( beGroupElement.valuestr() ) ) ;
+            }
+
             rc = catGetGroupObj( beGroupElement.valuestr(),
-                                 TRUE,
-                                 groupInfo,
-                                 cb ) ;
+                                 TRUE, groupInfo, cb ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to get group info of [%s]",
@@ -543,14 +547,14 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGROUPID2NAME, "catGroupID2Name" )
-   INT32 catGroupID2Name( INT32 groupID, string & groupName, pmdEDUCB *cb )
+   INT32 catGroupID2Name( UINT32 groupID, string & groupName, pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
       BSONObj groupObj ;
       const CHAR *name = NULL ;
 
       PD_TRACE_ENTRY ( SDB_CATGROUPID2NAME ) ;
-      rc = catGetGroupObj( (UINT32)groupID, groupObj, cb ) ;
+      rc = catGetGroupObj( groupID, groupObj, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get group obj by id[%d], rc: %d",
                    groupID, rc ) ;
 
@@ -568,20 +572,22 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGROUPNAME2ID, "catGroupName2ID" )
-   INT32 catGroupName2ID( const CHAR * groupName, INT32 & groupID,
+   INT32 catGroupName2ID( const CHAR * groupName, UINT32 &groupID,
                           pmdEDUCB * cb )
    {
       INT32 rc = SDB_OK ;
       BSONObj groupObj ;
+      INT32 tmpGrpID = CAT_INVALID_GROUPID ;
 
       PD_TRACE_ENTRY ( SDB_CATGROUPNAME2ID ) ;
       rc = catGetGroupObj( groupName, FALSE, groupObj, cb ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get group obj by name[%s], rc: %d",
                    groupName, rc ) ;
 
-      rc = rtnGetIntElement( groupObj, CAT_GROUPID_NAME, groupID ) ;
+      rc = rtnGetIntElement( groupObj, CAT_GROUPID_NAME, tmpGrpID ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to get field[%s], rc: %d",
                    CAT_GROUPID_NAME, rc ) ;
+      groupID = (UINT32)tmpGrpID ;
 
    done:
       PD_TRACE_EXITRC ( SDB_CATGROUPNAME2ID, rc ) ;
@@ -679,7 +685,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETDOMAINGROUPS, "catGetDomainGroups" )
    INT32 catGetDomainGroups( const BSONObj & domain,
-                             map < string, INT32 > & groups )
+                             map < string, UINT32 > & groups )
    {
       INT32 rc = SDB_OK ;
       const CHAR *groupName = NULL ;
@@ -738,7 +744,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATGETDOMAINGROUPS1, "catGetDomainGroups" )
    INT32 catGetDomainGroups( const BSONObj &domain,
-                             vector< INT32 > &groupIDs )
+                             vector< UINT32 > &groupIDs )
    {
       INT32 rc = SDB_OK ;
       INT32 groupID = CAT_INVALID_GROUPID ;
@@ -831,7 +837,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_CATDELGRPFROMDOMAIN, "catDelGroupFromDomain" )
    INT32 catDelGroupFromDomain( const CHAR *domainName, const CHAR *groupName,
-                                INT32 groupID, pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                                UINT32 groupID, pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                                 _dpsLogWrapper *dpsCB, INT16 w )
    {
       INT32 rc = SDB_OK ;
@@ -839,9 +845,9 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_CATDELGRPFROMDOMAIN ) ;
       BSONObj modifier = BSON( "$pull" << BSON( CAT_GROUPS_NAME <<
                                BSON( CAT_GROUPNAME_NAME << groupName <<
-                                     CAT_GROUPID_NAME << groupID ) ) ) ;
+                                     CAT_GROUPID_NAME << (INT32)groupID ) ) ) ;
       BSONObj modifier2 = BSON( "$pull" << BSON( CAT_GROUPS_NAME <<
-                                BSON( CAT_GROUPID_NAME << groupID <<
+                                BSON( CAT_GROUPID_NAME << (INT32)groupID <<
                                       CAT_GROUPNAME_NAME << groupName ) ) ) ;
       BSONObj matcher ;
       BSONObj dummy ;
@@ -852,7 +858,8 @@ namespace engine
       }
       else
       {
-         matcher = BSON( CAT_GROUPS_NAME"."CAT_GROUPID_NAME << groupID ) ;
+         matcher = BSON( CAT_GROUPS_NAME"."CAT_GROUPID_NAME <<
+                         (INT32)groupID ) ;
       }
 
       rc = rtnUpdate( CAT_DOMAIN_COLLECTION, matcher, modifier,
@@ -1092,7 +1099,7 @@ namespace engine
    }
 
    INT32 catGetCSGroupsFromCLs( const CHAR *csName, pmdEDUCB *cb,
-                                vector< INT32 > &groups )
+                                vector< UINT32 > &groups )
    {
       INT32 rc = SDB_OK ;
       BSONObj matcher ;
@@ -1100,8 +1107,8 @@ namespace engine
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_RTNCB *rtnCB = pmdGetKRCB()->getRTNCB() ;
       INT64 contextID = -1 ;
-      std::set< INT32 > groupSet ;
-      std::set< INT32 >::iterator itSet ;
+      std::set< UINT32 > groupSet ;
+      std::set< UINT32 >::iterator itSet ;
       BSONObjBuilder builder ;
       std::stringstream ss ;
 
@@ -1589,7 +1596,7 @@ namespace engine
       BSONObj matcher = BSON( FIELD_NAME_TYPE << pTypeStr ) ;
       BSONObj dummyObj ;
 
-      rc = catGetOneObj( CAT_SYSBASE_COLLECTION_NAME, dummyObj, matcher,
+      rc = catGetOneObj( CAT_SYSDCBASE_COLLECTION_NAME, dummyObj, matcher,
                          dummyObj, cb, obj ) ;
       if ( SDB_DMS_EOC == rc )
       {
@@ -1603,7 +1610,7 @@ namespace engine
       else
       {
          PD_LOG( PDERROR, "Failed to get obj(%s) from %s, rc: %d",
-                 matcher.toString().c_str(), CAT_SYSBASE_COLLECTION_NAME,
+                 matcher.toString().c_str(), CAT_SYSDCBASE_COLLECTION_NAME,
                  rc ) ;
          goto error ;
       }
@@ -1637,11 +1644,87 @@ namespace engine
                         ) ;
       }
 
-      rc = rtnUpdate( CAT_SYSBASE_COLLECTION_NAME, matcher, updator,
+      rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
                       BSONObj(), 0, cb, dmsCB, dpsCB, w, NULL ) ;
       PD_RC_CHECK( rc, PDERROR, "Update collection[%s] obj[%s] failed, rc: %d",
-                   CAT_SYSBASE_COLLECTION_NAME, updator.toString().c_str(),
+                   CAT_SYSDCBASE_COLLECTION_NAME, updator.toString().c_str(),
                    rc ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 catEnableImage( BOOLEAN enable, pmdEDUCB *cb, INT16 w,
+                         _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj updator ;
+      BSONObj matcher = BSON( FIELD_NAME_TYPE <<
+                              CAT_BASE_TYPE_GLOBAL_STR ) ;
+      INT64 updateNum = 0 ;
+      BSONObj hint ;
+
+      if ( enable )
+      {
+         updator = BSON( "$set" << BSON( FIELD_NAME_IMAGE"."FIELD_NAME_ENABLE
+                                         << true ) ) ;
+      }
+      else
+      {
+         updator = BSON( "$set" << BSON( FIELD_NAME_IMAGE"."FIELD_NAME_ENABLE
+                                         << false ) ) ;
+      }
+      rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
+                      hint, 0, cb, dmsCB, dpsCB, w, &updateNum ) ;
+      PD_RC_CHECK( rc, PDERROR, "Update obj[%s] to collection[%s] failed, "
+                   "rc: %d", updator.toString().c_str(),
+                   CAT_SYSDCBASE_COLLECTION_NAME, rc ) ;
+      if ( 0 == updateNum )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "No found obj[%s] in collection[%s]",
+                 matcher.toString().c_str(), CAT_SYSDCBASE_COLLECTION_NAME ) ;
+         goto error ;
+      }
+
+   done:
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   INT32 catActiveDC( BOOLEAN active, pmdEDUCB *cb, INT16 w,
+                      _SDB_DMSCB *dmsCB, _dpsLogWrapper *dpsCB )
+   {
+      INT32 rc = SDB_OK ;
+      BSONObj updator ;
+      BSONObj matcher = BSON( FIELD_NAME_TYPE <<
+                              CAT_BASE_TYPE_GLOBAL_STR ) ;
+      INT64 updateNum = 0 ;
+      BSONObj hint ;
+
+      if ( active )
+      {
+         updator = BSON( "$set" << BSON( FIELD_NAME_ACTIVE << true ) ) ;
+      }
+      else
+      {
+         updator = BSON( "$set" << BSON( FIELD_NAME_ACTIVE << false ) ) ;
+      }
+      rc = rtnUpdate( CAT_SYSDCBASE_COLLECTION_NAME, matcher, updator,
+                      hint, 0, cb, dmsCB, dpsCB, w, &updateNum ) ;
+      PD_RC_CHECK( rc, PDERROR, "Update obj[%s] to collection[%s] failed, "
+                   "rc: %d", updator.toString().c_str(),
+                   CAT_SYSDCBASE_COLLECTION_NAME, rc ) ;
+      if ( 0 == updateNum )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "No found obj[%s] in collection[%s]",
+                 matcher.toString().c_str(), CAT_SYSDCBASE_COLLECTION_NAME ) ;
+         goto error ;
+      }
 
    done:
       return rc ;

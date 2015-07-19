@@ -1,0 +1,64 @@
+/*******************************************************************************
+
+   Copyright (C) 2011-2014 SequoiaDB Ltd.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the term of the GNU Affero General Public License, version 3,
+   as published by the Free Software Foundation.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warrenty of
+   MARCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program. If not, see <http://www.gnu.org/license/>.
+
+   Source File Name = utilBsonHash.hpp
+
+   Dependencies: N/A
+
+   Restrictions: N/A
+
+   Change Activity:
+   defect Date        Who Description
+   ====== =========== === ==============================================
+          05/3/2015   YW  Initial Draft
+
+   Last Changed =
+
+*******************************************************************************/
+
+#ifndef UTIL_BSONHASH_HPP_
+#define UTIL_BSONHASH_HPP_
+
+#include "oss.hpp"
+#include "core.hpp"
+#include "../bson/bson.hpp"
+
+namespace engine
+{
+   class _utilBSONHasher : public SDBObject
+   {
+   private:
+      _utilBSONHasher() {}
+      ~_utilBSONHasher() {}
+
+   public:
+      static UINT32 hash( const bson::BSONObj &obj,
+                          UINT32 partition = 0 ) ;
+
+      static UINT32 hash( const bson::BSONElement &e ) ;
+
+      static UINT32 hash( const bson::OID &oid ) ;
+
+      static UINT32 hash( const void *v, UINT32 size ) ;
+
+      static UINT32 hash( const CHAR *str ) ;
+   } ;
+
+   typedef class _utilBSONHasher BSON_HASHER ;
+}
+
+#endif
+

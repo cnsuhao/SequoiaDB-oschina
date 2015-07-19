@@ -69,7 +69,8 @@ namespace engine
    #define OPTION_INSERTNUM         "insertnum"
    #define OPTION_ERRORSTOP         "errorstop"
    #define OPTION_FORCE             "force"
-   
+   #define OPTION_SSL               "ssl"
+
    #define DEFAULT_HOSTNAME         "localhost"
    #define DEFAULT_SVCNAME          "11810"
    
@@ -122,6 +123,9 @@ namespace engine
       utilSdbObj.getArgBool( OPTION_LINEPRIORITY, &imprtArg.linePriority ) ;
       utilSdbObj.getArgBool( OPTION_ERRORSTOP,    &imprtArg.errorStop ) ;
       utilSdbObj.getArgBool( OPTION_FORCE,        &imprtArg.force ) ;
+#ifdef SDB_SSL
+      utilSdbObj.getArgBool( OPTION_SSL,          &imprtArg.useSSL ) ;
+#endif
    
       if ( imprtArg.type == MIGIMPRT_CSV &&
            !imprtArg.isHeaderline && !imprtArg.pFields )
@@ -181,6 +185,7 @@ namespace engine
    #define EXPLAIN_LINEPRIORITY     "reverse the priority for record and character delimiter, default: true"
    #define EXPLAIN_ERRORSTOP        "whether stop by hitting error, default false"
    #define EXPLAIN_FORCE            "force to insert the records that are not in utf-8 format, default: false"
+   #define EXPLAIN_SSL              "use SSL connection (arg: [true|false], e.g. \"--ssl true\")"
    
    INT32 mainEntry ( INT32 argc, CHAR **argv )
    {
@@ -215,6 +220,9 @@ namespace engine
       APPENDARGBOOL  ( utilSdbObj, OPTION_LINEPRIORITY, OPTION_LINEPRIORITY,      EXPLAIN_LINEPRIORITY,     FALSE, TRUE  ) ;
       APPENDARGBOOL  ( utilSdbObj, OPTION_ERRORSTOP,    OPTION_ERRORSTOP,         EXPLAIN_ERRORSTOP,        FALSE, FALSE  ) ;
       APPENDARGBOOL  ( utilSdbObj, OPTION_FORCE,        OPTION_FORCE,             EXPLAIN_FORCE,            FALSE, FALSE  ) ;
+#ifdef SDB_SSL
+      APPENDARGBOOL  ( utilSdbObj, OPTION_SSL,          OPTION_SSL,               EXPLAIN_SSL,              FALSE, FALSE  ) ;
+#endif
    
       rc = utilSdbObj.init( setting, &isFull ) ;
       if ( rc )

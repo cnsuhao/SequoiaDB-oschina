@@ -216,8 +216,8 @@ add_option( "noscreenout", "do not send anything to screen", 0, True )
 #fap options
 add_option( "fap", "foreign access protocol", 0, False )
 
-#ssl options
-add_option( "ssl", "build engine with SSL (enterprise edition only) ", 0, False )
+#enterprise options
+add_option( "enterprise", "build enterprise sequoiadb ( with SSL )", 0, False )
 
 # don't run configure if user calls --help
 if GetOption('help'):
@@ -299,7 +299,13 @@ hasShell = has_option( "shell" )
 hasFmp = has_option("fmp")
 hasAll = has_option( "all" )
 hasFap = has_option("fap")
-hasSSL = has_option("ssl")
+hasEnterprise = has_option("enterprise")
+hasSSL = False
+
+# build enterprise edition
+if hasEnterprise:
+   hasSSL = True
+   env.Append( CPPDEFINES=[ "SDB_ENTERPRISE" ] )
 
 # if everything are set, let's set everything to true
 if hasAll:
@@ -552,8 +558,8 @@ elif "win32" == guess_os:
     # SSL
     env.Append( LIBS=['ssleay32'] )
     env.Append( LIBS=['libeay32'] )
-    ssllib_file = join(ssllib_dir, 'libeay32.dll')
-    ssllib_file1 = join(ssllib_dir, 'ssleay32.dll')
+    ssllib_file = join(ssllib_dir, 'libeay32.lib')
+    ssllib_file1 = join(ssllib_dir, 'ssleay32.lib')
     # UNICODE
     env.Append( CPPDEFINES=[ "_UNICODE" ] )
     env.Append( CPPDEFINES=[ "UNICODE" ] )
@@ -687,7 +693,10 @@ fapEnv.Append( CPPDEFINES=["SDB_ENGINE", "SDB_DLL_BUILD"])
 #fapEnv.Append( CPPPATH=[join(engine_dir, "bson")])
 
 # drivers always set SSL definition
+toolEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
 clientCppEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
+clientCEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
+shellEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
 if hasSSL:
     env.Append( CPPDEFINES=[ "SDB_SSL" ] )
 

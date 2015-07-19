@@ -1036,7 +1036,7 @@ BOOLEAN strSplit( const CHAR *strtemp, CHAR *left, CHAR *right, INT32 left_Size,
       if( ':' == str )
       {
          strncpy ( left, host, left_Size ) ;
-         strncpy ( right, "50000", right_size ) ;
+         strncpy ( right, "11810", right_size ) ;
          delete[] pBuffer ;
          pBuffer = NULL ;
          return TRUE ;

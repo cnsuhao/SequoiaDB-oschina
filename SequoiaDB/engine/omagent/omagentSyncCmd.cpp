@@ -47,7 +47,6 @@ namespace engine
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaPreCheckHost )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaCheckHost )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaPostCheckHost )
-   IMPLEMENT_OACMD_AUTO_REGISTER( _omaRemoveHost )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaUpdateHostsInfo )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaQueryHostStatus )
    IMPLEMENT_OACMD_AUTO_REGISTER( _omaHandleTaskNotify )
@@ -70,16 +69,14 @@ namespace engine
       INT32 rc = SDB_OK ;
       try
       {
-         BSONObj obj( pInstallInfo ) ;
-
-         ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; "
-                      "var %s = %s; var %s = %s; var %s = %s; ",
-                      JS_ARG_BUS, obj.toString(FALSE, TRUE).c_str(),
-                      JS_ARG_SYS, "{}",
-                      JS_ARG_ENV, "{}",
-                      JS_ARG_OTHER, "{}" ) ;
-         PD_LOG ( PDDEBUG, "Scan host passes argument: %s", _jsFileArgs ) ;
-         rc = addJsFile( FILE_SCAN_HOST, _jsFileArgs ) ;
+         stringstream ss ;
+         BSONObj bus( pInstallInfo ) ;
+         ss << "var " << JS_ARG_BUS << " = " 
+            << bus.toString(FALSE, TRUE).c_str() << " ; " ;
+         _jsFileArgs = ss.str() ;
+         PD_LOG ( PDDEBUG, "Scan host passes argument: %s",
+                  _jsFileArgs.c_str() ) ;
+         rc = addJsFile( FILE_SCAN_HOST, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to add js file[%s], rc = %d ",
@@ -115,17 +112,19 @@ namespace engine
    INT32 _omaPreCheckHost::init ( const CHAR *pInfo )
    {
       INT32 rc = SDB_OK ;
+      stringstream ss ;
       BSONObj bus( pInfo ) ;
 
-      ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
-                   JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
+      ss << "var " << JS_ARG_BUS << " = " 
+         << bus.toString(FALSE, TRUE).c_str() << " ; " ;
+      _jsFileArgs = ss.str() ;
       PD_LOG ( PDDEBUG, "Pre-check host passes argument: %s",
-               _jsFileArgs ) ;
-      rc = addJsFile( FILE_PRE_CHECK_HOST, _jsFileArgs ) ;
+               _jsFileArgs.c_str() ) ;
+      rc = addJsFile( FILE_CHECK_HOST_INIT, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to add js file[%s], rc = %d ",
-                  FILE_PRE_CHECK_HOST, rc ) ;
+                  FILE_CHECK_HOST_INIT, rc ) ;
          goto error ;
       }
 
@@ -153,12 +152,14 @@ namespace engine
 
       try
       {
+         stringstream ss ;
          BSONObj bus( pInstallInfo ) ;
 
-         ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
-                      JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
+         ss << "var " << JS_ARG_BUS << " = " 
+            << bus.toString(FALSE, TRUE).c_str() << " ; " ;
+         _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Check host info passes argument: %s",
-                  _jsFileArgs ) ;
+                  _jsFileArgs.c_str() ) ;
          rc = addJsFile( FILE_CHECK_HOST_ITEM ) ;
          if ( rc )
          {
@@ -166,7 +167,7 @@ namespace engine
                      FILE_CHECK_HOST_ITEM, rc ) ;
             goto error ;
          }
-         rc = addJsFile( FILE_CHECK_HOST, _jsFileArgs ) ;
+         rc = addJsFile( FILE_CHECK_HOST, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to add js file[%s], rc = %d ",
@@ -205,17 +206,19 @@ namespace engine
       INT32 rc = SDB_OK ;
       try
       {
+         stringstream ss ;
          BSONObj bus( pInstallInfo ) ;
 
-         ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
-                      JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
+         ss << "var " << JS_ARG_BUS << " = " 
+            << bus.toString(FALSE, TRUE).c_str() << " ; " ;
+         _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "Post-check host passes argument: %s",
-                  _jsFileArgs ) ;
-         rc = addJsFile( FILE_POST_CHECK_HOST, _jsFileArgs ) ;
+                  _jsFileArgs.c_str() ) ;
+         rc = addJsFile( FILE_CHECK_HOST_FINAL, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to add js file[%s], rc = %d ",
-                     FILE_POST_CHECK_HOST, rc ) ;
+                     FILE_CHECK_HOST_FINAL, rc ) ;
             goto error ;
          }
       }
@@ -237,6 +240,7 @@ namespace engine
    /*
       _omaRemoveHost
    */
+/*
    _omaRemoveHost::_omaRemoveHost ()
    {
    }
@@ -277,7 +281,7 @@ namespace engine
    error :
       goto done ;
    }
-
+*/
    /*************************** update hosts table info ***********************/
    /*
       _omaUpdateHostsInfo
@@ -293,12 +297,14 @@ namespace engine
    INT32 _omaUpdateHostsInfo::init ( const CHAR *pInstallInfo )
    {
       INT32 rc = SDB_OK ;
+      stringstream ss ;
       BSONObj bus( pInstallInfo ) ;
-      ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
-                   JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
+      ss << "var " << JS_ARG_BUS << " = " 
+         << bus.toString(FALSE, TRUE).c_str() << " ; " ;
+      _jsFileArgs = ss.str() ;
       PD_LOG ( PDDEBUG, "Update hosts info passes argument: %s",
-               _jsFileArgs ) ;
-      rc = addJsFile ( FILE_UPDATE_HOSTS_INFO, _jsFileArgs ) ;
+               _jsFileArgs.c_str() ) ;
+      rc = addJsFile ( FILE_UPDATE_HOSTS_INFO, _jsFileArgs.c_str() ) ;
       if ( rc )
       {
          PD_LOG ( PDERROR, "Failed to add js file[%s]", FILE_UPDATE_HOSTS_INFO ) ;
@@ -328,12 +334,14 @@ namespace engine
       INT32 rc = SDB_OK ;
       try
       {
+         stringstream ss ;
          BSONObj bus( pInstallInfo ) ;
 
-         ossSnprintf( _jsFileArgs, JS_ARG_LEN, "var %s = %s; ",
-                      JS_ARG_BUS, bus.toString(FALSE, TRUE).c_str() ) ;
+         ss << "var " << JS_ARG_BUS << " = " 
+            << bus.toString(FALSE, TRUE).c_str() << " ; " ;
+         _jsFileArgs = ss.str() ;
          PD_LOG ( PDDEBUG, "_omaQueryHostStatus passes argument: %s",
-                  _jsFileArgs ) ;
+                  _jsFileArgs.c_str() ) ;
 
          rc = addJsFile( FILE_QUERY_HOSTSTATUS_ITEM ) ;
          if ( rc )
@@ -343,7 +351,7 @@ namespace engine
             goto error ;
          }
 
-         rc = addJsFile( FILE_QUERY_HOSTSTATUS, _jsFileArgs ) ;
+         rc = addJsFile( FILE_QUERY_HOSTSTATUS, _jsFileArgs.c_str() ) ;
          if ( rc )
          {
             PD_LOG_MSG ( PDERROR, "Failed to add js file[%s], rc = %d ",

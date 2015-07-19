@@ -120,7 +120,7 @@
 		<Name>pagecleaninterval</Name>
 		<WebName>脏页清除最小间隔</WebName>
 		<Type>int</Type>
-		<Default>1000</Default>
+		<Default>10000</Default>
 		<Valid>1000-</Valid>
 		<Display>edit box</Display>
 		<Edit>true</Edit>
@@ -211,11 +211,24 @@
 		<Name>syncstrategy</Name>
 		<WebName>副本组之间数据同步控制策略</WebName>
 		<Type>string</Type>
-		<Default>none</Default>
+		<Default>keepnormal</Default>
 		<Valid>none,keepnormal,keepall</Valid>
 		<Display>select box</Display>
 		<Edit>true</Edit>
 		<Desc>副本组之间数据同步控制策略，取值：none，keepnormal，keepall，默认为 keepnormal</Desc>
+		<Level>1</Level>
+		<DynamicEdit>false</DynamicEdit>
+		<BatchEdit>true</BatchEdit>
+	</FILLER>
+	<FILLER>
+		<Name>weight</Name>
+		<WebName>选举权重</WebName>
+		<Type>int</Type>
+		<Default>10</Default>
+		<Valid>1-100</Valid>
+		<Display>edit box</Display>
+		<Edit>true</Edit>
+		<Desc>节点选举的权重，默认值10，取值范围：[1-100]</Desc>
 		<Level>1</Level>
 		<DynamicEdit>false</DynamicEdit>
 		<BatchEdit>true</BatchEdit>

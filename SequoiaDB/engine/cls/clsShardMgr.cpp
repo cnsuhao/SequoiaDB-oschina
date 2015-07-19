@@ -117,10 +117,10 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSHDMGR_INIT );
       UINT32 index = 0 ;
       UINT32 catGID = CATALOG_GROUPID ;
-      UINT16 catNID = CATA_NODE_ID_BEGIN + CLS_REPLSET_MAX_NODE_SIZE ;
+      UINT16 catNID = SYS_NODE_ID_BEGIN + CLS_REPLSET_MAX_NODE_SIZE ;
       MsgRouteID id ;
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
-      vector< _pmdOptionsMgr::_pmdAddrPair > catAddrs = optCB->catAddrs() ;
+      vector< _pmdAddrPair > catAddrs = optCB->catAddrs() ;
 
       if ( !_pNetRtAgent )
       {
@@ -769,7 +769,7 @@ namespace engine
          index++ ;
       }
       rc = SDB_SYS ;
-      PD_LOG ( PDERROR, "Catlog primary node to [%s] id error[%u:%u:%u]",
+      PD_LOG ( PDERROR, "Catalog primary node to [%s] id error[%u:%u:%u]",
                primary ? "primary" : "slave",
                id.columns.groupID,
                id.columns.nodeID,
@@ -1124,7 +1124,7 @@ namespace engine
          UINT32 groupID = 0 ;
 
          rc = _pNodeMgrAgent->updateGroupInfo( objdata, length, &groupID ) ;
-         PD_LOG ( (SDB_OK == rc)?PDEVENT:PDERROR,
+         PD_LOG ( ( SDB_OK == rc ? PDEVENT : PDERROR ),
                   "Update group[groupID:%u, rc: %d]", groupID, rc ) ;
 
          clsGroupItem* groupItem = NULL ;

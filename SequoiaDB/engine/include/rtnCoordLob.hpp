@@ -43,10 +43,11 @@ namespace engine
       rtnCoordOpenLob(){}
       virtual ~rtnCoordOpenLob(){}
    public:
-      virtual INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                             CHAR **ppResultBuffer, pmdEDUCB *cb,
-                             MsgOpReply &replyHeader,
-                             BSONObj** ppErrorObj ) ;
+      virtual INT32 execute( CHAR * pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB * cb,
+                             MsgOpReply & replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordWriteLob : public rtnCoordOperator
@@ -55,10 +56,11 @@ namespace engine
       rtnCoordWriteLob(){}
       virtual ~rtnCoordWriteLob(){}
    public:
-      virtual INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                             CHAR **ppResultBuffer, pmdEDUCB *cb,
-                             MsgOpReply &replyHeader,
-                             BSONObj** ppErrorObj ) ;
+      virtual INT32 execute( CHAR * pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB * cb,
+                             MsgOpReply & replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordReadLob : public rtnCoordOperator
@@ -67,10 +69,11 @@ namespace engine
       rtnCoordReadLob(){}
       virtual ~rtnCoordReadLob(){}
    public:
-      virtual INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                             CHAR **ppResultBuffer, pmdEDUCB *cb,
-                             MsgOpReply &replyHeader,
-                             BSONObj** ppErrorObj ) ;
+      virtual INT32 execute( CHAR * pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB * cb,
+                             MsgOpReply & replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCloseLob : public rtnCoordOperator
@@ -79,10 +82,11 @@ namespace engine
       rtnCoordCloseLob(){}
       virtual ~rtnCoordCloseLob(){}
    public:
-      virtual INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                             CHAR **ppResultBuffer, pmdEDUCB *cb,
-                             MsgOpReply &replyHeader,
-                             BSONObj** ppErrorObj ) ;
+      virtual INT32 execute( CHAR * pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB * cb,
+                             MsgOpReply & replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordRemoveLob : public rtnCoordOperator
@@ -91,10 +95,11 @@ namespace engine
       rtnCoordRemoveLob(){}
       virtual ~rtnCoordRemoveLob(){}
    public:
-      virtual INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                             CHAR **ppResultBuffer, pmdEDUCB *cb,
-                             MsgOpReply &replyHeader,
-                             BSONObj** ppErrorObj ) ;
+      virtual INT32 execute( CHAR * pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB * cb,
+                             MsgOpReply & replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 }
 

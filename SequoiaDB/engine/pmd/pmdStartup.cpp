@@ -40,16 +40,94 @@
 namespace engine
 {
 
-   #define PMD_STARTUP_START_CHAR         "SEQUOIADB:STARTUP"
-   #define PMD_STARTUP_STOP_CHAR          "SEQUOIADB:STOPOFF"
+   #define PMD_STARTUP_START_CHAR         "STARTUP"
+   #define PMD_STARTUP_STOP_CHAR          "STOPOFF"
+   #define PMD_STARTUP_RESTART_CHAR       "RESTART"
    #define PMD_STARTUP_START_CHAR_LEN     ossStrlen(PMD_STARTUP_START_CHAR)
    #define PMD_STARTUP_STOP_CHAR_LEN      ossStrlen(PMD_STARTUP_STOP_CHAR)
+   #define PMD_STARTUP_RESTART_CHAR_LEN   ossStrlen(PMD_STARTUP_RESTART_CHAR)
+
+   #define PMD_STARTUP_STR_LEN            ( 32 )
+
+   const CHAR *g_startupChars[] = {
+   /*SDB_START_NORMAL*/  "STOPOFF:DO",  "STOPOFF:OK",
+   /*SDB_START_CRASH*/   "STARTUP:DO",  "STARTUP:OK",
+   /*SDB_START_ERROR*/   "RESTART:DO",  "RESTART:OK"
+   } ;
+
+   static const CHAR* _getStartupStr( SDB_START_TYPE type, BOOLEAN ok )
+   {
+      UINT32 i = 0 ;
+      UINT32 j = ok ? 1 : 0 ;
+      if ( SDB_START_CRASH == type )
+      {
+         i = 1 ;
+      }
+      else if ( SDB_START_ERROR == type )
+      {
+         i = 2 ;
+      }
+      return g_startupChars[ i * 2 + j ] ;
+   }
+
+   static void _parseStartupStr( const CHAR *str, SDB_START_TYPE &type,
+                                 BOOLEAN &ok )
+   {
+      BOOLEAN find = FALSE ;
+      UINT32 pos = 0 ;
+      for ( ; pos < sizeof( g_startupChars ) / sizeof( CHAR* ) ; ++pos )
+      {
+         if ( 0 == ossStrncmp( g_startupChars[ pos ], str,
+                               ossStrlen( g_startupChars[ pos ] ) ) )
+         {
+            find = TRUE ;
+            break ;
+         }
+      }
+
+      if ( !find )
+      {
+         type = SDB_START_CRASH ;
+         ok   = FALSE ;
+      }
+      else
+      {
+         UINT32 i = 0 , j = 0 ;
+         i = pos / 2 ;
+         j = pos % 2 ;
+         ok = j > 0 ? TRUE : FALSE ;
+         type = SDB_START_CRASH ;
+         if ( 0 == i )
+         {
+            type = SDB_START_NORMAL ;
+         }
+         else if ( 2 == i )
+         {
+            type = SDB_START_ERROR ;
+         }
+      }
+   }
+
+   const CHAR* pmdGetStartTypeStr( SDB_START_TYPE type )
+   {
+      switch( type )
+      {
+         case SDB_START_NORMAL :
+            return "normal" ;
+         case SDB_START_ERROR :
+            return "fault" ;
+         default :
+            break ;
+      }
+      return "crash" ;
+   }
 
    _pmdStartup::_pmdStartup () :
    _ok(FALSE),
    _startType(SDB_START_NORMAL),
    _fileOpened ( FALSE ),
-   _fileLocked ( FALSE )
+   _fileLocked ( FALSE ),
+   _restart( FALSE )
    {
    }
 
@@ -67,13 +145,23 @@ namespace engine
       return _ok ;
    }
 
+   BOOLEAN _pmdStartup::needRestart() const
+   {
+      return SDB_START_NORMAL != _startType ? TRUE : FALSE ;
+   }
+
+   void _pmdStartup::restart( BOOLEAN bRestart, INT32 rc )
+   {
+      _restart = bRestart ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSTARTUP_INIT, "_pmdStartup::init" )
    INT32 _pmdStartup::init ( const CHAR *pPath, BOOLEAN onlyCheck )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__PMDSTARTUP_INIT );
       _fileOpened = FALSE ;
-      SINT64 written = 0 ;
+      SINT64 readden = 0 ;
       UINT32 mode = OSS_READWRITE ;
       const UINT32 maxTryLockTime = 2 ;
       UINT32 lockTime = 0 ;
@@ -159,20 +247,13 @@ namespace engine
 
       if ( !_ok )
       {
-         CHAR text[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
-         rc = ossSeekAndRead( &_file, 0, text, PMD_STARTUP_STOP_CHAR_LEN,
-                              &written ) ;
-         if ( SDB_OK == rc && 0 == ossStrncmp( text ,
-              PMD_STARTUP_STOP_CHAR, PMD_STARTUP_STOP_CHAR_LEN ) )
-         {
-            _startType = SDB_START_NORMAL ;
-         }
-         else
-         {
-            _startType = SDB_START_CRASH ;
-         }
-         PD_TRACE1 ( SDB__PMDSTARTUP_INIT,
-                     PD_PACK_INT ( _startType ) ) ;
+         CHAR text[ PMD_STARTUP_STR_LEN + 1 ] = { 0 } ;
+         rc = ossSeekAndReadN( &_file, 0, PMD_STARTUP_STR_LEN,
+                               text, readden ) ;
+         _parseStartupStr( text, _startType, _ok ) ;
+
+         PD_TRACE2 ( SDB__PMDSTARTUP_INIT, PD_PACK_INT ( _startType ),
+                     PD_PACK_UINT( _ok ) ) ;
          rc = SDB_OK ;
 
          if ( onlyCheck )
@@ -181,21 +262,10 @@ namespace engine
          }
       }
 
-      rc = ossSeekAndWrite ( &_file, 0, PMD_STARTUP_START_CHAR,
-                             PMD_STARTUP_START_CHAR_LEN, &written ) ;
+      rc = _writeStartStr( SDB_START_CRASH, FALSE ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
-      }
-      ossFsync( &_file ) ;
-
-      if ( SDB_START_NORMAL != _startType )
-      {
-         PD_LOG ( PDEVENT, "Start up from crash" ) ;
-      }
-      else
-      {
-         PD_LOG ( PDEVENT, "Start up from normal" ) ;
       }
 
    done:
@@ -215,21 +285,49 @@ namespace engine
       goto done ;
    }
 
+   INT32 _pmdStartup::_writeStartStr( SDB_START_TYPE startType, BOOLEAN ok )
+   {
+      INT32 rc = SDB_OK ;
+      CHAR szText [ PMD_STARTUP_STR_LEN + 1 ] = { 0 } ;
+      INT64 written = 0 ;
+      ossStrncpy( szText, _getStartupStr( startType, ok ),
+                  PMD_STARTUP_STR_LEN ) ;
+      if ( !_fileOpened )
+      {
+         rc = SDB_SYS ;
+         goto error ;
+      }
+
+      rc = ossSeekAndWriteN( &_file, 0, szText, PMD_STARTUP_STR_LEN,
+                             written ) ;
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Write %s to startup file failed, rc: %d",
+                 szText, rc ) ;
+         goto error ;
+      }
+      ossFsync( &_file ) ;
+
+   done:
+      return rc ;
+   error:
+      goto done ;      
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDSTARTUP_FINAL, "_pmdStartup::final" )
    INT32 _pmdStartup::final ()
    {
       PD_TRACE_ENTRY ( SDB__PMDSTARTUP_FINAL ) ;
       if ( _fileOpened && _fileLocked )
       {
-         INT64 write = 0 ;
-         INT32 rc = ossSeekAndWrite( &_file, 0, PMD_STARTUP_STOP_CHAR,
-                                     PMD_STARTUP_STOP_CHAR_LEN, &write ) ;
-         if ( rc )
+         SDB_START_TYPE tmpType = SDB_START_NORMAL ;
+         if ( _restart )
          {
-            PD_LOG( PDERROR, "Failed to write startup file stop char, rc: %d",
-                    rc ) ;
+            tmpType = SDB_START_ERROR ;
          }
+         _writeStartStr( tmpType, _ok ) ;
       }
+
       if ( _fileLocked )
       {
          ossLockFile ( &_file, OSS_LOCK_UN ) ;
@@ -238,7 +336,7 @@ namespace engine
       {
          ossClose( _file ) ;
       }
-      if ( _ok )
+      if ( _ok && !_restart )
       {
          ossDelete ( _fileName.c_str() ) ;
       }

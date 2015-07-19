@@ -88,12 +88,14 @@ namespace engine
    #define SDB_INSTALL_RUN_FILED             "NAME"
    #define SDB_INSTALL_USER_FIELD            "SDBADMIN_USER"
    #define SDB_INSTALL_PATH_FIELD            "INSTALL_DIR"
+   #define SDB_INSTALL_MD5_FIELD             "MD5"
 
    struct _utilInstallInfo
    {
       string      _run ;   // SDB_INSTALL_RUN_FILED
       string      _user ;  // SDB_INSTALL_USER_FIELD
       string      _path ;  // SDB_INSTALL_PATH_FIELD
+      string      _md5 ;   // SDB_INSTALL_MD5_FIELD
    } ;
    typedef _utilInstallInfo utilInstallInfo ;
 

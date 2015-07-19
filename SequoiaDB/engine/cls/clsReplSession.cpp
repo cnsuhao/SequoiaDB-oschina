@@ -462,7 +462,7 @@ namespace engine
             point.offset = ((dpsLogRecordHeader *)( _mb.offset(0) ))->_lsn ;
             point.version = ((dpsLogRecordHeader *)( _mb.offset(0) ))->_version ;
 
-            if ( 0 != point.compareVersion(msg->returnTo.version ) )
+            if ( 0 != point.compareVersion( msg->returnTo.version ) )
             {
                _fullSync() ;
                goto done ;
@@ -1032,7 +1032,7 @@ namespace engine
                returnTo.version = ((dpsLogRecordHeader *)(_mb.offset(0)))->_version ;
                search.offset = ((dpsLogRecordHeader *)(_mb.offset(0)))->_preLsn;
             }
-         }while ( returnTo.compareOffset( msg->current.offset ) < 0 ||
+         }while ( returnTo.compareOffset( msg->current.offset ) > 0 ||
                   ( 0 < returnTo.compareVersion( search.version - 1 ) &&
                     time( NULL ) - bTime <= CLS_REPL_MAX_TIME ) ) ;
 
@@ -1175,7 +1175,7 @@ namespace engine
                {
                   search.offset += header->_length ;
                }
-             }
+            }
          }
       }
 

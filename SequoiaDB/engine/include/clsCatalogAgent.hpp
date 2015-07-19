@@ -44,6 +44,7 @@
 #include "ixmIndexKey.hpp"
 #include "../bson/bson.h"
 #include "../bson/ordering.h"
+#include "msgCatalogDef.h"
 
 using namespace bson ;
 
@@ -218,6 +219,11 @@ namespace engine
 
          INT32 delSubCL ( const CHAR *subCLName );
 
+         UINT32 getInternalV() const
+         {
+            return _internalV ;
+         }
+
       protected:
          _clsCatalogSet    *next () ;
          INT32             next ( _clsCatalogSet * next ) ;
@@ -272,6 +278,7 @@ namespace engine
          std::vector<std::string> _subCLList ;
          BOOLEAN           _isMainCL ;
          std::string       _mainCLName;
+         UINT32            _internalV ;
 
    };
    typedef class _clsCatalogSet clsCatalogSet ;
@@ -406,6 +413,8 @@ namespace engine
          ~_clsNodeMgrAgent () ;
       public:
          INT32       groupCount () ;
+         INT32       getGroupsID( vector< UINT32 > &groups ) ;
+         INT32       getGroupsName( vector< string > &groups ) ;
 
          INT32       groupVersion ( UINT32 id ) ;
          INT32       groupID2Name ( UINT32 id, std::string &name ) ;
@@ -444,7 +453,7 @@ namespace engine
    typedef _clsNodeMgrAgent nodeMgrAgent ;
 
 
-   INT32    clsPartition( const BSONObj &keyObj, UINT32 partitionBit ) ;
+   INT32    clsPartition( const BSONObj &keyObj, UINT32 partitionBit, UINT32 internalV ) ;
    INT32    clsPartition( const bson::OID &oid, UINT32 sequence, UINT32 partitionBit ) ;
 
 }

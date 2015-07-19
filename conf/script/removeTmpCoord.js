@@ -20,15 +20,12 @@
 @modify list:
    2014-7-26 Zhaobo Tan  Init
 @parameter
-   BUS_JSON: the format is: { "TmpCoordSvcName": "10000" }
-   SYS_JSON: the format is: { "TaskID": 5 }
+   BUS_JSON: the format is: { "TmpCoordSvcName": "10000" } ;
+   SYS_JSON: the format is: { "TaskID": 5 } ;
    ENV_JSON:
 @return
    RET_JSON: the format is: {}
 */
-
-//var BUS_JSON = { "TmpCoordSvcName": "10000" } ;
-//var SYS_JSON = { "TaskID": 5 } ;
 
 var FILE_NAME_REMOVE_TEMPORARY_COORD = "removeTmpCoord.js" ;
 var RET_JSON = new removeTmpCoordResult() ;
@@ -49,9 +46,9 @@ function _init()
 {
    // get task id
    task_id = getTaskID( SYS_JSON ) ;
-
-   PD_LOG( arguments, PDEVENT, FILE_NAME_REMOVE_TEMPORARY_COORD,
-           sprintf( "Begin to remove temporary coord for task[?]", task_id ) ) ;
+   setTaskLogFileName( task_id ) ;
+   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_REMOVE_TEMPORARY_COORD,
+            sprintf( "Begin to remove temporary coord in task[?]", task_id ) ) ;
 }
 
 /* *****************************************************************************
@@ -62,8 +59,8 @@ function _init()
 ***************************************************************************** */
 function _final()
 {
-   PD_LOG( arguments, PDEVENT, FILE_NAME_REMOVE_TEMPORARY_COORD,
-           sprintf( "Finish removing temporary coord for task[?]", task_id ) ) ;
+   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_REMOVE_TEMPORARY_COORD,
+            sprintf( "Finish removing temporary coord in task[?]", task_id ) ) ;
 }
 
 /* *****************************************************************************
@@ -76,8 +73,8 @@ function _backupTmpCoordDiaglog( svcName )
 {
    var src = tmp_coord_install_path + "/diaglog/sdbdiag.log" ;
    var dst = tmp_coord_backup_path + "/diaglog/sdbdiag.log" + "." + genTimeStamp() ;
-   PD_LOG( arguments, PDDEBUG, FILE_NAME_REMOVE_TEMPORARY_COORD,
-           sprintf( "Backup temporary coord's diaglog, src[?], dst[?]", src, dst ) ) ;
+   PD_LOG2( task_id, arguments, PDDEBUG, FILE_NAME_REMOVE_TEMPORARY_COORD,
+            sprintf( "Backup temporary coord's diaglog, src[?], dst[?]", src, dst ) ) ;
    // mkdir director
    File.mkdir( tmp_coord_backup_path + "/diaglog/" ) ;
    // backup sdbdiag.log
@@ -112,15 +109,15 @@ function main()
          
          if ( "undefined" == typeof(tmpCoordSvcName) ||
               "" == tmpCoordSvcName )
-            exception_handle( SDB_INVALIDARG, "Invalid temporary coord service name" ) ;
+            exception_handle( SDB_INVALIDARG, sprintf( "Invalid temporary coord service name[?]", tmpCoordSvcName ) ) ;
       }
       catch( e )
       {
          SYSEXPHANDLE( e ) ;
          rc = GETLASTERROR() ;
          errMsg = "Failed to get arguments for removing temporary coord" ;
-         PD_LOG( arguments, PDERROR, FILE_NAME_REMOVE_TEMPORARY_COORD,
-                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_REMOVE_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
          exception_handle( rc, errMsg ) ;
       }
       
@@ -134,8 +131,8 @@ function main()
          SYSEXPHANDLE( e ) ;
          rc = GETLASTERROR() ;
          errMsg = "Failed to connect to OM Agent in local host" ;
-         PD_LOG( arguments, PDERROR, FILE_NAME_REMOVE_TEMPORARY_COORD,
-                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_REMOVE_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
          exception_handle( rc, errMsg ) ;
       }
       
@@ -149,8 +146,8 @@ function main()
          SYSEXPHANDLE( e ) ;
          rc = GETLASTERROR() ;
          errMsg = "Failed to backup temporary coord's diaglog in local host" ;
-         PD_LOG( arguments, PDWARNING, FILE_NAME_REMOVE_TEMPORARY_COORD,
-                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         PD_LOG2( task_id, arguments, PDWARNING, FILE_NAME_REMOVE_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
          exception_handle( rc, errMsg ) ;
       }
 
@@ -164,8 +161,8 @@ function main()
          SYSEXPHANDLE( e ) ;
          rc = GETLASTERROR() ;
          errMsg = "Failed to stop temporary coord" ;
-         PD_LOG( arguments, PDWARNING, FILE_NAME_REMOVE_TEMPORARY_COORD,
-                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         PD_LOG2( task_id, arguments, PDWARNING, FILE_NAME_REMOVE_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
          exception_handle( rc, errMsg ) ;
       }
 
@@ -179,8 +176,8 @@ function main()
          SYSEXPHANDLE( e ) ;
          rc = GETLASTERROR() ;
          errMsg = "Failed to remove temporary coord" ;
-         PD_LOG( arguments, PDWARNING, FILE_NAME_REMOVE_TEMPORARY_COORD,
-                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         PD_LOG2( task_id, arguments, PDWARNING, FILE_NAME_REMOVE_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
          exception_handle( rc, errMsg ) ;
       }
    
@@ -193,8 +190,8 @@ function main()
       SYSEXPHANDLE( e ) ;
       rc = GETLASTERROR() ;
       errMsg = "Failed to remove temporary coord in local host" ;
-      PD_LOG( arguments, PDERROR, FILE_NAME_REMOVE_TEMPORARY_COORD,
-              sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_REMOVE_TEMPORARY_COORD,
+               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
       if ( null != oma && "undefined" != typeof(oma) )
       {
          try
@@ -211,7 +208,6 @@ function main()
    }
    
    _final() ;
-println( "RET_JSON is: " + JSON.stringify(RET_JSON) ) ;
    return RET_JSON ;
 }
 

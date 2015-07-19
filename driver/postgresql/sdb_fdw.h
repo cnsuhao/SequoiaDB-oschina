@@ -32,6 +32,8 @@
 #define SDB_MAX_KEY_COLUMN_COUNT       (10)
 #define SDB_MAX_KEY_COLUMN_LENGTH      (20)
 
+#define SDB_MAX_SERVICE_LENGTH         (256)
+
 #define POSTGRES_TO_UNIX_EPOCH_DAYS (POSTGRES_EPOCH_JDATE - UNIX_EPOCH_JDATE)
 #define POSTGRES_TO_UNIX_EPOCH_USECS (POSTGRES_TO_UNIX_EPOCH_DAYS * USECS_PER_DAY)
 struct SdbInputOption
@@ -55,13 +57,13 @@ static const SdbInputOption SdbInputOptionList[] =
 
 struct SdbInputOptions
 {
-   CHAR *address ;
-   CHAR *service ;
-   CHAR *user ;
-   CHAR *password ;
-   CHAR *collectionspace ;
-   CHAR *collection ;
-   CHAR *preference_instance;
+   CHAR  *serviceList[ INITIAL_ARRAY_CAPACITY ] ;
+   INT32 serviceNum ;
+   CHAR  *user ;
+   CHAR  *password ;
+   CHAR  *collectionspace ;
+   CHAR  *collection ;
+   CHAR  *preference_instance;
 } ;
 typedef struct SdbInputOptions SdbInputOptions ;
 
@@ -127,12 +129,12 @@ struct SdbExecState
    sdbbson queryDocument ; /* query request */
 
    /* sdb server options */
-   char *sdbServerHost;
-   char *sdbServerPort;
+   char *sdbServerList[ INITIAL_ARRAY_CAPACITY ];
+   int sdbServerNum;
    char *usr;
    char *passwd;
    char *preferenceInstance;
-   
+
    char *sdbcs;
    char *sdbcl;
 

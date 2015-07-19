@@ -127,10 +127,10 @@ namespace engine
       INT32 rc = SDB_OK ;
       CoordGroupInfo *pGroupInfo = NULL ;
       UINT32 catGID = CATALOG_GROUPID ;
-      UINT16 catNID = CATA_NODE_ID_BEGIN + CLS_REPLSET_MAX_NODE_SIZE ;
+      UINT16 catNID = SYS_NODE_ID_BEGIN + CLS_REPLSET_MAX_NODE_SIZE ;
       MsgRouteID id ;
       pmdOptionsCB *optCB = pmdGetOptionCB() ;
-      vector< _pmdOptionsMgr::_pmdAddrPair > catAddrs = optCB->catAddrs() ;
+      vector< _pmdAddrPair > catAddrs = optCB->catAddrs() ;
 
       _pNetWork = SDB_OSS_NEW _netRouteAgent( &_multiRouteAgent ) ;
       if ( !_pNetWork )

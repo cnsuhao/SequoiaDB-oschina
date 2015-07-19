@@ -1,0 +1,35 @@
+{
+    "installsdb": {
+        "leftPanel": {
+            "title": "Task information",
+				"taskInfo": [
+						"Task ID",
+						"Cluster",
+						"Task type",
+						"Subjects number",
+						"Status",
+						"Progress",
+						"Estimated remaining time",
+						"Log"
+				],
+				"logButton": "View",
+				"time": "minutes"
+        },
+        "rightPanel": {
+            "title": "Installing Progress",
+				"hostGrid": [
+						"HostName",
+						"Port",
+						"Role",
+						"Group",
+						"Status",
+						"Progress"
+				],
+				"taskStatus": [ "Initializing", "Running", "Rolling Back", "Cancelling", "Completed", "Unknown", "Failed" ],
+				"hostStatus": [ "Initializing", "Running", "Rolling Back", "Cancelling", "Completed", "Unknown", "Failed" ]
+        },
+		  "logModal": {
+		  		"title": "Log"
+		  }
+    }
+}

@@ -560,6 +560,12 @@ INT32 ossSeekAndReadN( OSSFILE *file,
                        CHAR *buf,
                        SINT64 &read ) ;
 
+INT32 ossSeekAndWriteN( OSSFILE *file,
+                        SINT64 offset,
+                        const CHAR *pBufferWrite,
+                        SINT64      iLenToWrite,
+                        SINT64 &written ) ;
+
 INT32 ossGetFileUserInfo( const CHAR *filename, OSSUID &uid, OSSGID &gid ) ;
 
 INT32 ossGetUserInfo( const CHAR *username, OSSUID &uid, OSSGID &gid ) ;

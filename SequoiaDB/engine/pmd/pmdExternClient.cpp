@@ -152,15 +152,18 @@ namespace engine
          CHAR *pResult = NULL ;
          MsgOpReply replayHeader ;
          BSONObj *pErrObj = NULL ;
+         rtnContextBuf buf ;
 
          CoordCB *pCoordcb = pmdGetKRCB()->getCoordCB();
          rtnCoordProcesserFactory *pProcesserFactory =
             pCoordcb->getProcesserFactory();
          rtnCoordOperator *pOperator = NULL ;
          pOperator = pProcesserFactory->getOperator( pMsg->opCode );
-         rc = pOperator->execute( (CHAR*)pMsg, pMsg->messageLength,
-                                  &pResult, _pEDUCB, replayHeader,
-                                  &pErrObj ) ;
+         rc = pOperator->execute( (CHAR*)pMsg,
+                                  pMsg->messageLength,
+                                  _pEDUCB,
+                                  replayHeader,
+                                  NULL ) ;
          SDB_ASSERT( NULL == pErrObj, "ErrObj must be NULL" ) ;
          SDB_ASSERT( NULL == pResult, "Result must be NULL" ) ;
          if ( MSG_AUTH_VERIFY_REQ == pMsg->opCode &&
@@ -238,6 +241,10 @@ namespace engine
       }
       return rc ;
    error:
+      if ( SDB_AUTH_AUTHORITY_FORBIDDEN == rc )
+      {
+         _pEDUCB->printInfo( EDU_INFO_ERROR, "username or passwd is wrong" ) ;
+      }
       goto done ;
 #else
    _isAuthed = TRUE ;

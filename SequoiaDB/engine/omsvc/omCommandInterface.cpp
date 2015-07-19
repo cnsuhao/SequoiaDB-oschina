@@ -78,6 +78,58 @@ namespace engine
       return SDB_OK ;
    }
 
+   INT32 omRestCommandBase::_getBusinessAuth( const string &businessName, 
+                                              string &authUser, 
+                                              string &authPasswd )
+   {
+      BSONObjBuilder bsonBuilder ;
+      BSONObj selector ;
+      BSONObj matcher ;
+      BSONObj order ;
+      BSONObj hint ;
+      BSONObj result ;
+      SINT64 contextID = -1 ;
+      INT32 rc         = SDB_OK ;
+
+      matcher = BSON( OM_BUSINESS_FIELD_NAME << businessName ) ;
+      rc = rtnQuery( OM_CS_DEPLOY_CL_BUSINESS_AUTH, selector, matcher, order, 
+                     hint, 0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "fail to query table:%s,rc=%d",
+                 OM_CS_DEPLOY_CL_BUSINESS_AUTH, rc ) ;
+         goto error ;
+      }
+
+      while ( TRUE )
+      {
+         BSONObjBuilder innerBuilder ;
+         BSONObj tmp ;
+         rtnContextBuf buffObj ;
+         rc = rtnGetMore ( contextID, 1, buffObj, _cb, _pRTNCB ) ;
+         if ( rc )
+         {
+            contextID = -1 ;
+            PD_LOG( PDERROR, "failed to get record from table:%s,rc=%d", 
+                    OM_CS_DEPLOY_CL_BUSINESS_AUTH, rc ) ;
+            goto error ;
+         }
+
+         BSONObj result( buffObj.data() ) ;
+         authUser   = result.getStringField( OM_BUSINESSAUTH_USER ) ;
+         authPasswd = result.getStringField( OM_BUSINESSAUTH_PASSWD ) ;
+         break ;
+      }
+   done:
+      if ( -1 != contextID )
+      {
+         _pRTNCB->contextDelete ( contextID, _cb ) ;
+      }
+      return rc ;
+   error:
+      goto done ;
+   }
+
    INT32 omRestCommandBase::_getBusinessInfo( string business, 
                                               BSONObj &businessInfo )
    {
@@ -542,6 +594,117 @@ namespace engine
       goto done ;
    }
 
+   BOOLEAN omRestCommandBase::_isHostExistInTask( const string &hostName )
+   {
+      BSONObjBuilder bsonBuilder ;
+      BOOLEAN isExist = TRUE ;
+      BSONObj selector ;
+      BSONObj matcher ;
+      BSONObj order ;
+      BSONObj hint ;
+      SINT64 contextID = -1 ;
+      INT32 rc         = SDB_OK ;
+      rtnContextBuf buffObj ;
+
+      BSONObj hostNameObj = BSON( OM_HOST_FIELD_NAME << hostName ) ;
+      BSONObj elemMatch   = BSON( "$elemMatch" << hostNameObj ) ;
+
+      BSONArrayBuilder arrBuilder ;
+      arrBuilder.append( OM_TASK_STATUS_FINISH ) ;
+      arrBuilder.append( OM_TASK_STATUS_CANCEL ) ;
+      BSONObj status = BSON( "$nin" << arrBuilder.arr() ) ;
+
+      matcher = BSON( OM_TASKINFO_FIELD_RESULTINFO << elemMatch
+                      << OM_TASKINFO_FIELD_STATUS << status ) ;
+      rc = rtnQuery( OM_CS_DEPLOY_CL_TASKINFO, selector, matcher, order, hint, 
+                     0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
+      if ( rc )
+      {
+         PD_LOG( PDERROR, "Failed to query host:rc=%d,host=%s", rc, 
+                 matcher.toString().c_str() ) ;
+         goto done ;
+      }
+
+      rc = rtnGetMore ( contextID, 1, buffObj, _cb, _pRTNCB ) ;
+      if ( rc )
+      {
+         if ( SDB_DMS_EOC != rc )
+         {
+            PD_LOG( PDERROR, "Failed to retreive record, rc = %d", rc ) ;
+            goto done ;
+         }
+
+         isExist = FALSE ;
+         goto done ;
+      }
+      {
+         BSONObj result( buffObj.data() ) ;
+         BSONElement eleID = result.getField( OM_TASKINFO_FIELD_TASKID ) ;
+         PD_LOG( PDERROR, "host[%s] is exist in task["OSS_LL_PRINT_FORMAT"]",
+                 hostName.c_str(), eleID.numberLong() ) ;
+      }
+
+      _pRTNCB->contextDelete( contextID, _cb ) ;
+
+   done:
+      return isExist;
+   }
+
+   BOOLEAN omRestCommandBase::_isBusinessExistInTask( 
+                                                   const string &businessName )
+   {
+      BOOLEAN isExist = TRUE ;
+      BSONObj selector ;
+      BSONObj matcher ;
+      BSONObj order ;
+      BSONObj hint ;
+      SINT64 contextID = -1 ;
+      INT32 rc         = SDB_OK ;
+      string businessKey ;
+      rtnContextBuf buffObj ;
+
+      BSONArrayBuilder arrBuilder ;
+      arrBuilder.append( OM_TASK_STATUS_FINISH ) ;
+      arrBuilder.append( OM_TASK_STATUS_CANCEL ) ;
+      BSONObj status = BSON( "$nin" << arrBuilder.arr() ) ;
+
+      businessKey = OM_TASKINFO_FIELD_INFO"."OM_BSON_BUSINESS_NAME ;
+      matcher = BSON( businessKey << businessName
+                      << OM_TASKINFO_FIELD_STATUS << status ) ;
+      rc = rtnQuery( OM_CS_DEPLOY_CL_TASKINFO, selector, matcher, order, hint, 
+                     0, _cb, 0, -1, _pDMSCB, _pRTNCB, contextID );
+      if ( rc )
+      {
+         PD_LOG_MSG( PDERROR, "Failed to query business:rc=%d,matcher=%s", rc, 
+                     matcher.toString().c_str() ) ;
+         goto done ;
+      }
+
+      rc = rtnGetMore ( contextID, 1, buffObj, _cb, _pRTNCB ) ;
+      if ( rc )
+      {
+         if ( SDB_DMS_EOC != rc )
+         {
+            PD_LOG_MSG( PDERROR, "Failed to retreive record, rc = %d", rc ) ;
+            goto done ;
+         }
+
+         isExist = FALSE ;
+         goto done ;
+      }
+      {
+         BSONObj result( buffObj.data() ) ;
+         BSONElement eleID = result.getField( OM_TASKINFO_FIELD_TASKID ) ;
+         PD_LOG_MSG( PDERROR, "business[%s] is exist in task["
+                     OSS_LL_PRINT_FORMAT"]", businessName.c_str(), 
+                     eleID.numberLong() ) ;
+      }
+
+      _pRTNCB->contextDelete( contextID, _cb ) ;
+
+   done:
+      return isExist;
+   }
 
    omAgentReqBase::omAgentReqBase( BSONObj &request )
                   :_request( request.copy() ), _response( BSONObj() )

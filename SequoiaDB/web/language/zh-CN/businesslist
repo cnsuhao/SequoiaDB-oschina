@@ -1,0 +1,27 @@
+{
+    "businesslist": {
+	 	  "title": "集群: ",
+		  "tab": {
+		  		"button": [ "添加业务" ]
+		  },
+	 	  "businessGrid": {
+		  		   "title": [ "业务名", "业务类型", "业务模式", "鉴权", "鉴权用户名", "操作" ],
+		  			"button": [ "操作", "设置鉴权", "删除鉴权", "卸载" ],
+					"auth": [ "是", "否" ]
+		  },
+		  "isRemoveBusiness": {
+		  			"title": "提示"
+		  },
+		  "addBusiness": {
+		  			"title": "添加业务",
+					"table": [
+						[ "业务名", "安装的业务名" ],
+						[ "业务类型", "" ]
+					]
+		  },
+		  "setAuthModal": {
+		  			"title": "设置鉴权",
+					"table": [ "鉴权用户名:", "鉴权密码:" ]
+		  }
+    }
+}

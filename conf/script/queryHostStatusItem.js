@@ -16,7 +16,7 @@
 
 *******************************************************************************/
 /*
-@description: the following items are need to check by checkHost.js
+@description: the following items are need to check by queryHostStatus.js
 @modify list:
    2014-9-30 Youbin Lin  Init
 */

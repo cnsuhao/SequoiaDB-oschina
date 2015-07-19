@@ -48,11 +48,11 @@ namespace engine
 {
 
    INT32 catSplitPrepare( const BSONObj &splitInfo, const CHAR *clFullName,
-                          clsCatalogSet *cataSet, INT32 &groupID,
+                          clsCatalogSet *cataSet, UINT32 &groupID,
                           pmdEDUCB *cb ) ;
 
    INT32 catSplitReady( const BSONObj &splitInfo, const CHAR *clFullName,
-                        clsCatalogSet *cataSet, INT32 &groupID,
+                        clsCatalogSet *cataSet, UINT32 &groupID,
                         clsTaskMgr &taskMgr, pmdEDUCB *cb, INT16 w,
                         UINT64 *pTaskID = NULL ) ;
 
@@ -66,7 +66,7 @@ namespace engine
    INT32 catSplitFinish( const BSONObj &splitInfo, pmdEDUCB *cb, INT16 w ) ;
 
    INT32 catSplitCancel( const BSONObj &splitInfo, pmdEDUCB *cb,
-                         INT32 &groupID, INT16 w ) ;
+                         UINT32 &groupID, INT16 w ) ;
 
    INT32 catSplitCheckConflict( BSONObj &match, clsSplitTask &splitTask,
                                 BOOLEAN &conflict, pmdEDUCB *cb ) ;

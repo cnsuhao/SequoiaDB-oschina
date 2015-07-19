@@ -548,7 +548,8 @@ retry:
                else if ( _isHashSharding )
                {
                   INT32 hashValue = clsPartition( keyObj,
-                                                  catSet->getPartitionBit() ) ;
+                                                  catSet->getPartitionBit(),
+                                                  catSet->getInternalV() ) ;
                   if ( hashValue >= _splitKeyObj.firstElement().numberInt() &&
                        ( _splitEndKeyObj.isEmpty() ||
                       hashValue < _splitEndKeyObj.firstElement().numberInt() ) &&

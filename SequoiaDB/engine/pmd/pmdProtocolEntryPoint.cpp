@@ -58,7 +58,7 @@ namespace engine
       pmdEDUMgr * eduMgr = cb->getEDUMgr() ;
       EDUID agentEDU = PMD_INVALID_EDUID ;
 
-      pmdEDUParam* param = ( pmdEDUParam * )pData ;
+      pmdEDUParam *param = ( pmdEDUParam * )pData ;
       ossSocket *pListerner = (ossSocket *)(param->pSocket) ;
       IPmdAccessProtocol *protocol = param->protocol ;
       SDB_OSS_DEL param ;
@@ -108,6 +108,9 @@ namespace engine
          {
             ossSocket newsock ( &s ) ;
             newsock.close () ;
+
+            SDB_OSS_DEL pParam ;
+            pParam = NULL ;
             continue ;
          }
 
@@ -120,6 +123,9 @@ namespace engine
 
             ossSocket newsock ( &s ) ;
             newsock.close () ;
+
+            SDB_OSS_DEL pParam ;
+            pParam = NULL ;
             continue ;
          }
       } //while ( ! cb->isDisconnected() )

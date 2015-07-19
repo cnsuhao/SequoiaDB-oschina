@@ -59,10 +59,12 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOAUTHBASE_FORWARD, "rtnCoordAuthBase::forward" )
-   INT32 rtnCoordAuthBase::forward( CHAR *pReceiveBuffer, SINT32 packSize,
-                                    CHAR **ppResultBuffer, pmdEDUCB *cb,
-                                    MsgOpReply &replyHeader, INT32 msgType,
-                                    BOOLEAN sWhenNoPrimary )
+   INT32 rtnCoordAuthBase::forward( CHAR *pReceiveBuffer,
+                                    SINT32 packSize,
+                                    pmdEDUCB *cb,
+                                    INT32 msgType,
+                                    BOOLEAN sWhenNoPrimary,
+                                    MsgOpReply &replyHeader )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOAUTHBASE_FORWARD ) ;

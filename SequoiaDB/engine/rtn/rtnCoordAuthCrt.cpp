@@ -37,16 +37,17 @@
 namespace engine
 {
    PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOAUTHCRT_EXECUTE, "rtnCoordAuthCrt::execute" )
-   INT32 rtnCoordAuthCrt::execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                                   CHAR **ppResultBuffer, pmdEDUCB *cb,
-                                   MsgOpReply &replyHeader,
-                                   BSONObj **ppErrorObj )
+   INT32 rtnCoordAuthCrt::execute( CHAR * pReceiveBuffer,
+                                   SINT32 packSize,
+                                   pmdEDUCB * cb,
+                                   MsgOpReply & replyHeader,
+                                   rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCOAUTHCRT_EXECUTE ) ;
       rc = forward( pReceiveBuffer, packSize,
-                      ppResultBuffer, cb, replyHeader,
-                      MSG_AUTH_CRTUSR_RES, FALSE ) ;
+                    cb, MSG_AUTH_CRTUSR_RES,
+                    FALSE, replyHeader ) ;
       PD_TRACE_EXITRC ( SDB_RTNCOAUTHCRT_EXECUTE, rc ) ;
       return rc ;
    }

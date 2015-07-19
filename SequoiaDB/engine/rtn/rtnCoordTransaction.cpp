@@ -41,10 +41,11 @@
 
 namespace engine
 {
-   INT32 rtnCoordTransBegin::execute( CHAR * pReceiveBuffer, SINT32 packSize,
-                                    CHAR * * ppResultBuffer, pmdEDUCB * cb,
-                                    MsgOpReply & replyHeader,
-                                    BSONObj **ppErrorObj )
+   INT32 rtnCoordTransBegin::execute( CHAR * pReceiveBuffer,
+                                      SINT32 packSize,
+                                      pmdEDUCB * cb,
+                                      MsgOpReply & replyHeader,
+                                      rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK;
 
@@ -69,10 +70,11 @@ namespace engine
       goto done;
    }
 
-   INT32 rtnCoord2PhaseCommit::execute( CHAR * pReceiveBuffer, SINT32 packSize,
-                                    CHAR * * ppResultBuffer, pmdEDUCB * cb,
-                                    MsgOpReply & replyHeader,
-                                    BSONObj **ppErrorObj )
+   INT32 rtnCoord2PhaseCommit::execute( CHAR * pReceiveBuffer,
+                                        SINT32 packSize,
+                                        pmdEDUCB * cb,
+                                        MsgOpReply &replyHeader,
+                                        rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK;
       INT32 rcTmp = SDB_OK;
@@ -94,12 +96,12 @@ namespace engine
          goto error;
       }
 
-      rc = doPhase1( pReceiveBuffer, packSize, ppResultBuffer, cb, replyHeader );
+      rc = doPhase1( pReceiveBuffer, packSize, cb, replyHeader );
       PD_CHECK( SDB_OK == rc, rc, errorcancel, PDERROR,
                "execute failed on phase1(rc=%d)",
                rc );
 
-      rc = doPhase2( pReceiveBuffer, packSize, ppResultBuffer, cb, replyHeader );
+      rc = doPhase2( pReceiveBuffer, packSize, cb, replyHeader );
       PD_RC_CHECK( rc, PDERROR,
                   "execute failed on phase2(rc=%d)",
                   rc );
@@ -107,7 +109,7 @@ namespace engine
       return rc;
 
    errorcancel:
-      rcTmp = cancelOp( pReceiveBuffer, packSize, ppResultBuffer, cb, replyHeader );
+      rcTmp = cancelOp( pReceiveBuffer, packSize, cb, replyHeader );
       if ( rcTmp )
       {
          PD_LOG ( PDERROR,
@@ -120,9 +122,10 @@ namespace engine
       goto done;
    }
 
-   INT32 rtnCoord2PhaseCommit::doPhase1( CHAR * pReceiveBuffer, SINT32 packSize,
-                                 CHAR * * ppResultBuffer, pmdEDUCB * cb,
-                                 MsgOpReply & replyHeader )
+   INT32 rtnCoord2PhaseCommit::doPhase1( CHAR * pReceiveBuffer,
+                                         SINT32 packSize,
+                                         pmdEDUCB * cb,
+                                         MsgOpReply & replyHeader )
    {
       INT32 rc = SDB_OK;
       pmdKRCB *pKrcb                   = pmdGetKRCB();
@@ -156,8 +159,9 @@ namespace engine
       goto done;
    }
 
-   INT32 rtnCoord2PhaseCommit::doPhase2( CHAR * pReceiveBuffer, SINT32 packSize,
-                                         CHAR * * ppResultBuffer, pmdEDUCB * cb,
+   INT32 rtnCoord2PhaseCommit::doPhase2( CHAR * pReceiveBuffer,
+                                         SINT32 packSize,
+                                         pmdEDUCB * cb,
                                          MsgOpReply & replyHeader )
    {
       INT32 rc = SDB_OK;
@@ -192,8 +196,9 @@ namespace engine
       goto done;
    }
 
-   INT32 rtnCoord2PhaseCommit::cancelOp( CHAR * pReceiveBuffer, SINT32 packSize,
-                                         CHAR * * ppResultBuffer, pmdEDUCB * cb,
+   INT32 rtnCoord2PhaseCommit::cancelOp( CHAR * pReceiveBuffer,
+                                         SINT32 packSize,
+                                         pmdEDUCB * cb,
                                          MsgOpReply & replyHeader )
    {
       return SDB_OK;
@@ -280,16 +285,16 @@ namespace engine
       return msgBuildTransCommitMsg( pMsg, &bufferSize );
    }
 
-   INT32 rtnCoordTransCommit::execute( CHAR * pReceiveBuffer, SINT32 packSize,
-                                    CHAR * * ppResultBuffer, pmdEDUCB * cb,
-                                    MsgOpReply & replyHeader,
-                                    BSONObj **ppErrorObj )
+   INT32 rtnCoordTransCommit::execute( CHAR * pReceiveBuffer,
+                                       SINT32 packSize,
+                                       pmdEDUCB * cb,
+                                       MsgOpReply & replyHeader,
+                                       rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK;
       rtnCoordOperator *pRollbackOperator = NULL;
-      rc = rtnCoord2PhaseCommit::execute( pReceiveBuffer, packSize, ppResultBuffer,
-                                       cb, replyHeader, ppErrorObj );
-      SDB_ASSERT( NULL == *ppErrorObj, "impossible" ) ;
+      rc = rtnCoord2PhaseCommit::execute( pReceiveBuffer, packSize, 
+                                       cb, replyHeader, NULL );
       PD_RC_CHECK( rc, PDERROR,
                   "failed to commit the transaction(rc=%d)",
                   rc );
@@ -301,17 +306,17 @@ namespace engine
          )->getOperator( MSG_BS_TRANS_ROLLBACK_REQ );
       if ( pRollbackOperator )
       {
-         pRollbackOperator->execute( pReceiveBuffer, packSize, ppResultBuffer,
-                                    cb, replyHeader, ppErrorObj );
-         SDB_ASSERT( NULL == *ppErrorObj, "impossible" ) ;
+         pRollbackOperator->execute( pReceiveBuffer, packSize,
+                                    cb, replyHeader, NULL );
       }
       goto done;
    }
 
-   INT32 rtnCoordTransRollback::execute( CHAR * pReceiveBuffer, SINT32 packSize,
-                                         CHAR * * ppResultBuffer, pmdEDUCB * cb,
+   INT32 rtnCoordTransRollback::execute( CHAR * pReceiveBuffer,
+                                         SINT32 packSize,
+                                         pmdEDUCB * cb,
                                          MsgOpReply & replyHeader,
-                                         BSONObj **ppErrorObj )
+                                         rtnContextBuf *buf )
    {
       INT32 rc                         = SDB_OK;
       CHAR *pMsgReq                    = NULL;

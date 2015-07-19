@@ -74,16 +74,18 @@ protected:
    INT32 _reply( MsgOpReply *replyHeader, const CHAR *pBody, const INT32 len ) ;
 
 private:
-   void  resetBuffers() ;
+   void  _resetBuffers() ;
+   INT32 _setSeesionAttr() ;
+   void  _handleResponse( const INT32 opType, engine::rtnContextBuf &buff ) ;
 
 private:
    mongoConverter         *_converter ;
    MsgOpReply              _replyHeader ;
-   BOOLEAN                 _needReply ;
+   BOOLEAN                 _masterRead ;
    engine::rtnContextBuf   _contextBuff ;
    BSONObj                 _errorInfo ;
 
-   std::vector< msgBuffer* > _inBufferVec ;
+   msgBuffer               _inBuffer ;
    msgBuffer               _outBuffer ;
    engine::IResource      *_resource ;
 } ;

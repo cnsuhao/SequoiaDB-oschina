@@ -63,15 +63,20 @@ namespace engine
          return res ;
       }
 
-      UINT8 getShadowWeight() const
+      OSS_INLINE UINT8 getShadowWeight() const
       {
          return _shadowWeight ;
       }
 
-      void setShadowWeight( UINT8 weight )
+      OSS_INLINE void setShadowWeight( UINT8 weight )
       {
          _shadowWeight = weight ;
          return ;
+      }
+
+      OSS_INLINE BOOLEAN isInStepUp() const
+      {
+         return 0 < _forceMillis ;
       }
 
    public:
@@ -85,7 +90,8 @@ namespace engine
 
       INT32 active() ;
 
-      void force( const INT32 &id ) ;
+      void force( const INT32 &id,
+                  UINT32 mills = 0 ) ;
 
 
    private:
@@ -94,6 +100,7 @@ namespace engine
       _clsVoteStatus *_current ;
       _clsGroupInfo *_groupInfo ;
       UINT8 _shadowWeight ;
+      UINT32 _forceMillis ;
    } ;
 
    typedef class _clsVoteMachine clsVoteMachine ;

@@ -216,7 +216,6 @@ namespace engine
       MsgOpReply dummyReply ;
       SDB_DMSCB *dmsCB = pKrcb->getDMSCB() ;
       SDB_DPSCB *dpsCB = pKrcb->getDPSCB() ;
-      BSONObj *err = NULL ;
 
       if ( dpsCB && eduCB->isFromLocal() && !dpsCB->isLogLocal() )
       {
@@ -249,9 +248,8 @@ namespace engine
                   goto error ;
                }
 
-               rc = insert.execute ( pMsg, *(SINT32*)pMsg, NULL, eduCB,
-                                     dummyReply, &err ) ;
-               SDB_ASSERT( NULL == err, "impossible" ) ;
+               rc = insert.execute ( pMsg, *(SINT32*)pMsg, eduCB,
+                                     dummyReply, NULL ) ;
                PD_RC_CHECK ( rc, PDERROR, "Failed to execute insert on coord, "
                              "rc = %d", rc ) ;
             }

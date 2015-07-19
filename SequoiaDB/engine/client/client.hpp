@@ -2371,14 +2371,14 @@ namespace sdbclient
       virtual INT32 rmProcedure( const CHAR *spName ) = 0 ;
       virtual INT32 listProcedures( _sdbCursor **cursor, const bson::BSONObj &condition ) = 0 ;
       virtual INT32 listProcedures( sdbCursor &cursor, const bson::BSONObj &condition ) = 0 ;
-      virtual INT32 evalJS( _sdbCursor **cursor,
-                             const CHAR *code,
-                             SDB_SPD_RES_TYPE *type,
-                             const bson::BSONObj &errmsg ) = 0 ;
-      virtual INT32 evalJS( sdbCursor &cursor,
-                             const CHAR *code,
-                             SDB_SPD_RES_TYPE *type,
-                             const bson::BSONObj &errmsg ) = 0 ;
+      virtual INT32 evalJS( const CHAR *code,
+                            SDB_SPD_RES_TYPE &type,
+                            _sdbCursor **cursor,
+                            bson::BSONObj &errmsg ) = 0 ;
+      virtual INT32 evalJS( const CHAR *code,
+                            SDB_SPD_RES_TYPE &type,
+                            sdbCursor &cursor,
+                            bson::BSONObj &errmsg ) = 0 ;
 
       virtual INT32 backupOffline ( const bson::BSONObj &options) = 0 ;
       virtual INT32 listBackup ( _sdbCursor **cursor,
@@ -2483,8 +2483,9 @@ namespace sdbclient
 */
       _sdb *pSDB ;
 
-/** \fn sdb()
+/** \fn sdb ( BOOLEAN useSSL = FALSE )
     \brief Default constructor.
+    \param [in] useSSL Set whether use the SSL or not, default is FALSE.
 */
       sdb ( BOOLEAN useSSL = FALSE ) :
       pSDB ( _sdb::getObj( useSSL ) )
@@ -3370,37 +3371,38 @@ namespace sdbclient
          return pSDB->listProcedures( cursor, condition ) ;
       }
 
-     INT32 evalJS( _sdbCursor **cursor,
-                             const CHAR *code,
-                             SDB_SPD_RES_TYPE *type,
-                             const bson::BSONObj &errmsg )
-     {
-         if ( !pSDB )
-            return SDB_SYS ;
-         return pSDB->evalJS( cursor, code, type, errmsg ) ;
-     }
-
-/** \fn INT32 evalJS( sdbCursor &cursor,
-                             const CHAR *code,
-                             SDB_SPD_RES_TYPE *type,
-                             const bson::BSONObj &errmsg )
- * \brief eval a func.
- * \      type is declared in spd.h. see SDB_FMP_RES_TYPE.
+/**INT32 evalJS( const CHAR *code,
+                 SDB_SPD_RES_TYPE &type,
+                 _sdbCursor **cursor,
+                 bson::BSONObj &errmsg )
+ * brief eval a func.
+ * \     type is declared in spd.h. see SDB_FMP_RES_TYPE.
  * \param [in] code The code to eval
  * \param [out] type The type of value
  * \param [out] cursor The cursor handle of current eval
  * \param [out] errmsg The errmsg from eval
  * \retval SDB_OK Operation Success
  * \retval Others  Operation Fail
- */
-     INT32 evalJS( sdbCursor &cursor,
-                             const CHAR *code,
-                             SDB_SPD_RES_TYPE *type,
-                             const bson::BSONObj &errmsg )
+ *   */
+
+     INT32 evalJS( const CHAR *code,
+                   SDB_SPD_RES_TYPE &type,
+                   _sdbCursor **cursor,
+                   bson::BSONObj &errmsg )
      {
          if ( !pSDB )
             return SDB_SYS ;
-         return pSDB->evalJS( cursor, code, type, errmsg ) ;
+         return pSDB->evalJS( code, type, cursor, errmsg ) ;
+     }
+
+     INT32 evalJS( const CHAR *code,
+                   SDB_SPD_RES_TYPE &type,
+                   sdbCursor &cursor,
+                   bson::BSONObj &errmsg )
+     {
+         if ( !pSDB )
+            return SDB_SYS ;
+         return pSDB->evalJS( code, type, cursor, errmsg ) ;
      }
 
 /** \fn INT32 backupOffline ( const bson::BSONObj &options)

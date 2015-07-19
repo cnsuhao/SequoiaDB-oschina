@@ -103,9 +103,22 @@ migExport::~migExport ()
 INT32 migExport::_connectDB()
 {
    INT32 rc = SDB_OK ;
-   rc = sdbConnect ( _pMigArg->pHostname, _pMigArg->pSvcname,
+
+#ifdef SDB_SSL
+   if ( _pMigArg->useSSL )
+   {
+      rc = sdbSecureConnect ( _pMigArg->pHostname, _pMigArg->pSvcname,
                      _pMigArg->pUser, _pMigArg->pPassword,
                      &_gConnection ) ;
+   }
+   else
+#endif
+   {
+      rc = sdbConnect ( _pMigArg->pHostname, _pMigArg->pSvcname,
+                     _pMigArg->pUser, _pMigArg->pPassword,
+                     &_gConnection ) ;
+   }
+
    if ( rc )
    {
       PD_LOG ( PDERROR, "Failed to connect database %s:%s, rc = %d",

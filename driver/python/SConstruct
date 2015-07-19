@@ -17,6 +17,9 @@ common_include_dir = join(root_dir, path + 'SequoiaDB/engine/client')
 bson_include_dir   = join(root_dir, path + 'SequoiaDB/engine/bson')
 boost_dir          = join(root_dir, path + 'thirdparty/boost')
 boost_lib_dir      = join(boost_dir, 'lib')
+ssl_dir            = join(root_dir, path + 'thirdparty/crypto/openssl-1.0.1c')
+ssl_include        = join(ssl_dir, 'include')
+ssl_lib_dir        = join(ssl_dir, 'lib')
 
 options = {}
 options_topass = {}
@@ -136,6 +139,7 @@ env = Environment( BUILD_DIR=variantDir )
 
 env.Append ( CPPDEFINES=[ "SDB_DLL_BUILD" ] )
 env.Append ( CPPDEFINES=[ "SDB_CLIENT" ] )
+env.Append ( CPPDEFINES=[ "SDB_SSL" ] )
 if guess_os == "win32":
    # check VC compiler
    for pathdir in env['ENV']['PATH'].split(os.pathsep):
@@ -153,6 +157,7 @@ if guess_os == "win32":
    winLibString = "ws2_32.lib kernel32.lib advapi32.lib Psapi.lib"
    winLibString += " user32.lib gdi32.lib winspool.lib comdlg32.lib shell32.lib ole32.lib oleaut32.lib "
    winLibString += " odbc32.lib odbccp32.lib uuid.lib dbghelp.lib "
+   winLibString += " ssleay32.lib libeay32.lib"
 
    env.Append( LIBS=Split(winLibString) )
    env.Append( CPPDEFINES=[ "_UNICODE" ] )
@@ -160,9 +165,11 @@ if guess_os == "win32":
 
    if guess_arch == "ia64":
       env.Append( LIBPATH=[join(boost_lib_dir,'win64')] )
+      env.Append( LIBPATH=[join(ssl_lib_dir,'win64')] )
    else:
       env.Append( CPPDEFINES=[ "_USE_32BIT_TIME_T=1"])
       env.Append( LIBPATH=[join(boost_lib_dir,'win32')] )
+      env.Append( LIBPATH=[join(ssl_lib_dir,'win32')] )
 
    env.Append( CPPDEFINES=[ "_CRT_RAND_S" ] )
    env.Append( CPPFLAGS=" /EHsc /W3 " )
@@ -188,19 +195,24 @@ elif guess_os == "linux":
    env['ENV']['HOME']=os.environ['HOME']
    env['ENV']['TERM']=os.environ['TERM']
    env.Append( CPPFLAGS="-ggdb" )
+   env.Append( LIBS=['ssl'] )
+   env.Append( LIBS=['crypto'] )
    if guess_arch == "ia64":
       env.Append( LIBPATH="/usr/lib64")
       env.Append( LIBPATH="/lib64")
       env.Append( LIBPATH=[join(boost_lib_dir,'linux64')] )
+      env.Append( LIBPATH=[join(ssl_lib_dir,'linux64')] )
    elif guess_arch == "ia32":
       env.Append( LIBPATH="/usr/lib")
       env.Append( LIBPATH="/lib")
       env.Append( LIBPATH=[join(boost_lib_dir,'linux32')] )
+      env.Append( LIBPATH=[join(ssl_lib_dir,'linux32')] )
    elif guess_arch == 'ppc64':
       env.Append( CPPDEFINES=[ "SDB_BIG_ENDIAN" ] )
       env.Append( LIBPATH="/usr/lib64")
       env.Append( LIBPATH="/lib64")
       env.Append( LIBPATH=[join(boost_lib_dir,'ppclinux64')] )
+      env.Append( LIBPATH=[join(ssl_lib_dir,'ppclinux64')] )
    if debugBuild:
       env.Append( CPPFLAGS=" -O0 -fstack-protector")
       env['ENV']['GLIBCXX_FORCE_NEW']=1
@@ -208,7 +220,7 @@ elif guess_os == "linux":
       env.Append( CPPFLAGS=" -O3")
 
 env.Append( CPPPATH=[ root_dir, client_include, boost_dir,
-                      common_include_dir, bson_include_dir, python_include ] )
+                      common_include_dir, bson_include_dir, python_include, ssl_include ] )
 env.Append( LIBPATH= python_lib)
 
 Export("env")

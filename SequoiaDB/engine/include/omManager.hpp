@@ -154,6 +154,8 @@ namespace engine
                                            INT32 flag, 
                                            rtnContextBuf &buffObj ) ;
 
+         void              _createVersionFile() ;
+
 
       protected:
 

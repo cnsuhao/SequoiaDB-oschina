@@ -3,14 +3,49 @@ import os
 Import("fapEnv")
 
 fapMongoFiles = [
+      "fap/mongodb/commands.cpp",
       "fap/mongodb/mongoAccess.cpp",
       "fap/mongodb/mongoConverter.cpp",
       "fap/mongodb/mongoSession.cpp",
-      "fap/mongodb/commands.cpp",
       "fap/mongodb/msgBuffer.cpp",
       "fap/mongodb/mongodef.cpp",
       "fap/mongodb/mongoReplyHelper.cpp"
       ]
 
-fapmongo = fapEnv.SharedLibrary( 'fapmongo', fapMongoFiles )
+rtnFiles = [
+      "rtn/rtnContextBuff.cpp",
+      ]
+
+pmdFiles = [
+      "pmd/pmdEnv.cpp",
+      "pmd/pmdEDU.cpp",
+      "pmd/pmdSessionBase.cpp",
+      ]
+
+pdFiles = [
+      "pd/pd.cpp",
+      "pd/pdTrace.cpp",
+      ]
+
+utilFiles = [
+      "util/utilCommon.cpp",
+      ]
+
+monFiles = [
+      "mon/monCB.cpp",
+      ]
+
+bsonFiles = [
+      "bson/bsonobj.cpp",
+      "bson/oid.cpp",
+      "bson/base64.cpp",
+      "bson/nonce.cpp",
+      "bson/md5.c",
+      "util/utilBsongen.cpp"
+     ]
+
+#fapmongo = fapEnv.SharedLibrary( 'fapmongo', [ bsonFiles, pdFiles, utilFiles, rtnFiles, pmdFiles, monFiles, fapMongoFiles ] )
+#fapmongo = fapEnv.SharedLibrary( 'fapmongo', [ bsonFiles, fapMongoFiles ] )
+fapmongo = fapEnv.SharedLibrary( 'fapmongo', [ pdFiles, fapMongoFiles ] )
+
 fapEnv.Install( '#/bin/fap', fapmongo )

@@ -153,6 +153,40 @@ SDB_EXPORT INT32 sdbConnect1 ( const CHAR **pConnAddrs, INT32 arrSize,
                                const CHAR *pUsrName, const CHAR *pPasswd ,
                                sdbConnectionHandle *handle ) ;
 
+/** \fn INT32 sdbSecureConnect ( const CHAR *pHostName, const CHAR *pServiceName,
+                           const CHAR *pUsrName, const CHAR *pPasswd ,
+                           sdbConnectionHandle *handle ) ;
+    \brief Connect to database with SSL
+    \param [in] pHostName The Host Name or IP Address of Database Server
+    \param [in] pServiceName The Service Name or Port of Database Server
+    \param [in] pUsrName The User's Name of the account
+    \param [in] pPasswd The Password  of the account
+    \param [out] handle The database connection handle,
+                      when fail to connect, *handle == SDB_INVALID_HANDLE and error code
+                      is return
+    \retval SDB_OK Connection Success
+    \retval Others Connection Fail
+*/
+SDB_EXPORT INT32 sdbSecureConnect ( const CHAR *pHostName, const CHAR *pServiceName,
+                              const CHAR *pUsrName, const CHAR *pPasswd ,
+                              sdbConnectionHandle *handle ) ;
+
+/** \fn INT32 sdbSecureConnect1 ( const CHAR **pConnAddrs, INT32 arrSize,
+                            const CHAR *pUsrName, const CHAR *pPasswd ,
+                            sdbConnectionHandle *handle )
+    \brief Connect to database used a random valid address in the array, with SSL.
+    \param [in] pConnAddrs The array of the coord's address
+    \param [in] arrSize The size of the array
+    \param [in] pUsrName The User's Name of the account
+    \param [in] pPasswd The Password  of the account
+    \param [out] handle The database connection handle
+    \retval SDB_OK Connection Success
+    \retval Others Connection Fail
+*/
+SDB_EXPORT INT32 sdbSecureConnect1 ( const CHAR **pConnAddrs, INT32 arrSize,
+                               const CHAR *pUsrName, const CHAR *pPasswd ,
+                               sdbConnectionHandle *handle ) ;
+
 /** \fn void sdbDisconnect ( sdbConnectionHandle handle )
     \brief Disconnect to database
     \param [in] handle The database connection handle
@@ -1999,6 +2033,16 @@ SDB_EXPORT INT32 sdbListLobPieces( sdbCollectionHandle cHandle,
  */
 SDB_EXPORT INT32 sdbReelect( sdbReplicaGroupHandle cHandle,
                              const bson *options ) ;
+
+/** \fn INT32 sdbForceStepUp( sdbConnectionHandle cHandle,
+ *                            const bson *options )
+ *  \param [in] cHandle The connection handle
+ *  \param [in] options The options of step up
+ *  \retval SDB_OK Operation Success
+ *  \retval Others Operation Fail
+ */
+SDB_EXPORT INT32 sdbForceStepUp( sdbConnectionHandle cHandle,
+                                 const bson *options ) ;
 
 SDB_EXTERN_C_END
 #endif

@@ -46,6 +46,7 @@ namespace engine
       _host.assign( host ) ;
       _usr.assign( usrname ) ;
       _passwd.assign( passwd ) ;
+      _isOpen = FALSE ;
 
       _port = SPT_SSH_PORT ;
       if ( port )
@@ -61,6 +62,16 @@ namespace engine
          _sock->close() ;
          SAFE_OSS_DELETE( _sock ) ;
       }
+   }
+
+   void _sptSshSession::close()
+   {
+      if ( NULL != _sock )
+      {
+         _sock->close() ;
+         SAFE_OSS_DELETE( _sock ) ;
+      }
+      _isOpen = FALSE ;
    }
 
    string _sptSshSession::getLocalIPAddr()
@@ -118,6 +129,8 @@ namespace engine
          PD_LOG( PDERROR, "failed to open ssh session:%d", rc ) ;
          goto error ;
       }
+      _isOpen = TRUE ;
+
    done:
       return rc ;
    error:

@@ -44,7 +44,7 @@
 class command
 {
 public:
-   command( const CHAR *cmdName ) ;
+   command( const CHAR *cmdName, const char* secondName = NULL ) ;
    virtual ~command() {} ;
 
    const CHAR *name() const
@@ -52,8 +52,7 @@ public:
       return _cmdName ;
    }
 
-   virtual INT32 convertRequest( mongoParser &parser,
-                                 std::vector<msgBuffer*> &sdbMsgs )
+   virtual INT32 convertRequest( mongoParser &parser, msgBuffer &sdbMsgs )
    {
       return SDB_OK ;
    }
@@ -88,7 +87,7 @@ public:
       return cmd ;
    }
 
-private:
+public:
    commandMgr()
    {
       _cmdMap.clear() ;
@@ -96,38 +95,34 @@ private:
 
    ~commandMgr()
    {
-      std::map< std::string, command* >::iterator it = _cmdMap.begin() ;
-      for ( ; it != _cmdMap.end(); ++it )
-      {
-         command *cmd = it->second ;
-         delete cmd ;
-         cmd = NULL ;
-      }
+      _cmdMap.clear() ;
    }
 
+private:
    std::map< std::string, command *> _cmdMap ;
 } ;
 
-#define __DECLARE_COMMAND( cmd, cmdClass )                           \
+#define __DECLARE_COMMAND( cmd, secondName, cmdClass )               \
 class cmdClass : public command                                      \
 {                                                                    \
 public:                                                              \
-   cmdClass() : command( cmd ) {}                                    \
+   cmdClass() : command( cmd, secondName ) {}                        \
    virtual INT32 convertRequest( mongoParser &parser,                \
-                                 std::vector<msgBuffer*> &sdbMsgs ) ;\
+                                 msgBuffer &sdbMsgs ) ;              \
 } ;
 
-#define __DECLARE_COMMAND_VAR( commandClass, var )                \
+#define __DECLARE_COMMAND_VAR( commandClass, var )                   \
         commandClass var ;
 
 
-#define DECLARE_COMMAND( command )                                \
-        __DECLARE_COMMAND( #command, command##Command )
+#define DECLARE_COMMAND( command )                                   \
+        __DECLARE_COMMAND( #command, NULL, command##Command )
 
-#define DECLARE_COMMAND_VAR( command )                            \
+#define DECLARE_COMMAND_WITH_SECONDNAME( command, secondName )       \
+        __DECLARE_COMMAND( #command, secondName, command##Command )
+
+#define DECLARE_COMMAND_VAR( command )                               \
         __DECLARE_COMMAND_VAR( command##Command, command##Cmd )
-
-
 
 DECLARE_COMMAND( insert )
 DECLARE_COMMAND( delete )
@@ -141,12 +136,15 @@ DECLARE_COMMAND( create )     // create collection
 DECLARE_COMMAND( drop )       // drop   collection
 DECLARE_COMMAND( count )
 DECLARE_COMMAND( aggregate )
+DECLARE_COMMAND( dropDatabase )
 
-DECLARE_COMMAND( createIndex )
-DECLARE_COMMAND( dropIndexes )
-DECLARE_COMMAND( getIndexes )
+DECLARE_COMMAND( createIndexes )
+DECLARE_COMMAND_WITH_SECONDNAME( deleteIndexes, "dropIndexes" )
+DECLARE_COMMAND( listIndexes )
 
 DECLARE_COMMAND( getlasterror )
-DECLARE_COMMAND( ismaster )
+DECLARE_COMMAND_WITH_SECONDNAME( ismaster, "isMaster" )
+
+DECLARE_COMMAND( ping )
 
 #endif

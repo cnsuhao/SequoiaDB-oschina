@@ -455,5 +455,83 @@ function assert( condition )
    }
 }
 
-// end Sdb
+// ObjectId
+if ( !ObjectId.prototype )
+   ObjectId.prototype = {}
+
+ObjectId.prototype.toString = function() {
+   return "ObjectId(\"" + this._str + "\")" ;
+}
+// end ObjectId
+
+// BinData
+if ( !BinData.prototype )
+   BinData.prototype = {}
+
+BinData.prototype.toString = function() {
+   return "BinData(\"" + this._data + "\", \"" + this._type + "\")"  ;
+}
+
+
+// end BinData
+
+// Timestamp
+if ( !Timestamp.prototype )
+   Timestamp.prototype = {}
+
+Timestamp.prototype.toString = function() {
+   return "Timestamp(\"" + this._t + "\")" ; 
+}
+// end Timestamp
+
+// Regex
+if ( !Regex.prototype )
+   Regex.prototype = {}
+
+Regex.prototype.toString = function () {
+   return "Regex(\"" + this._regex + "\", \"" + this._option + "\")" ;
+}
+// end Regex
+
+// MinKey
+if ( !MinKey.prototype )
+   MinKey.prototype = {}
+
+MinKey.prototype.toString = function() {
+   return "MinKey()" ;
+}
+// end MinKey
+
+// MaxKey
+if ( !MaxKey.prototype )
+   MaxKey.prototype = {}
+
+MaxKey.prototype.toString = function() {
+   return "MaxKey()" ;
+}
+// end MaxKey
+
+// NumberLong
+if ( !NumberLong.prototype )
+   NumberLong.prototype = {}
+
+NumberLong.prototype.toString = function() {
+   if ( typeof(this._v ) == "string" )
+   {
+      return "NumberLong(\"" + this._v + "\")" ;
+   }
+   return "NumberLong(" + this._v + ")" ;
+}
+
+// end NumberLong
+
+// SdbDate
+if ( !SdbDate.prototype )
+   SdbDate.prototype = {}
+
+SdbDate.prototype.toString = function() {
+   return "SdbDate(\"" + this._d + "\")" ;
+}
+// end SdbDate
+
 

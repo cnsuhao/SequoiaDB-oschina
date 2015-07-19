@@ -41,6 +41,7 @@ mongoParser::mongoParser()
      withIndex( FALSE ),
      nsLen( 0 ),
      opType( OP_INVALID ),
+     cmdName( NULL ),
      _dataStart( NULL ),
      _dataEnd( NULL ),
      _nextObj( NULL ),
@@ -63,6 +64,7 @@ void mongoParser::reset()
    withIndex  = FALSE ;
    nsLen      = 0 ;
    opType     = OP_INVALID ;
+   cmdName    = NULL ;
    _dataStart = NULL ;
    _dataEnd   = NULL ;
    _nextObj   = NULL ;

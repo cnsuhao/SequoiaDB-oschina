@@ -92,6 +92,7 @@ namespace engine
       {
          _pCatCB->getCatlogueMgr()->attachCB( cb ) ;
          _pCatCB->getCatNodeMgr()->attachCB( cb ) ;
+         _pCatCB->getCatDCMgr()->attachCB( cb ) ;
       }
 
       _attachEvent.signalAll() ;
@@ -103,6 +104,7 @@ namespace engine
 
       if ( _pCatCB )
       {
+         _pCatCB->getCatDCMgr()->detachCB( cb ) ;
          _pCatCB->getCatlogueMgr()->detachCB( cb ) ;
          _pCatCB->getCatNodeMgr()->detachCB( cb ) ;
       }
@@ -503,30 +505,41 @@ namespace engine
       {
          goto error ;
       }
-
-      rc = _createSysCollection( CAT_SYSBASE_COLLECTION_NAME, cb ) ;
+/*
+      rc = _createSysCollection( CAT_SYSDCBASE_COLLECTION_NAME, cb ) ;
       if ( rc )
       {
          goto error ;
       }
-      rc = _createSysIndex( CAT_SYSBASE_COLLECTION_NAME,
-                            CAT_BASEINFO_TYPE_INDEX, cb ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-      rc = _createSysCollection( CAT_SYSIMAGE_COLLECTION_NAME, cb ) ;
-      if ( rc )
-      {
-         goto error ;
-      }
-      rc = _createSysIndex( CAT_SYSIMAGE_COLLECTION_NAME,
-                            CAT_IMAGE_SRC_INDEX, cb ) ;
+      rc = _createSysIndex( CAT_SYSDCBASE_COLLECTION_NAME,
+                            CAT_DCBASEINFO_TYPE_INDEX, cb ) ;
       if ( rc )
       {
          goto error ;
       }
 
+      for ( UINT32 i = 0 ; i < CAT_SYSLOG_CL_NUM ; ++i )
+      {
+         CHAR clName[ DMS_COLLECTION_FULL_NAME_SZ + 1 ] = { 0 } ;
+         ossSnprintf( clName, DMS_COLLECTION_FULL_NAME_SZ, "%s%d",
+                      CAT_SYSLOG_COLLECTION_NAME, i ) ;
+         rc = _createSysCollection( clName, cb ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         rc = _createSysIndex( clName, CAT_SYSLOG_TYPE_LSNVER, cb ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+         rc = _createSysIndex( clName, CAT_SYSLOG_TYPE_LSNOFF, cb ) ;
+         if ( rc )
+         {
+            goto error ;
+         }
+      }
+*/
    done :
       PD_TRACE_EXITRC ( SDB_CATMAINCT__ENSUREMETADATA, rc ) ;
       return rc ;
@@ -556,6 +569,10 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Active catalog manager failed, rc: %d",
                    rc ) ;
 
+      rc = _pCatCB->getCatDCMgr()->active() ;
+      PD_RC_CHECK( rc, PDERROR, "Active cata dc manager failed, rc: %d",
+                   rc ) ;
+
    done:
       _changeEvent.signal() ;
       PD_TRACE_EXITRC ( SDB_CATMAINCT_ACTIVE, rc ) ;
@@ -570,6 +587,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATMAINCT_DEACTIVE ) ;
 
+      _pCatCB->getCatDCMgr()->deactive() ;
       _pCatCB->getCatNodeMgr()->deactive() ;
       _pCatCB->getCatlogueMgr()->deactive() ;
 
@@ -732,88 +750,9 @@ namespace engine
    INT32 catMainController::_processQueryMsg( const NET_HANDLE &handle,
                                               MsgHeader *pMsg )
    {
-      INT32 rc = SDB_OK;
-      MsgOpReply msgReply;
-      MsgOpQuery *pReq = (MsgOpQuery *)pMsg;
-      msgReply.contextID = -1;
-      msgReply.flags = SDB_OK;
-      msgReply.numReturned = 0;
-      msgReply.startFrom = 0;
-      msgReply.header.messageLength = sizeof(MsgOpReply);
-      msgReply.header.opCode = MSG_BS_QUERY_RES;
-      msgReply.header.requestID = pReq->header.requestID;
-      msgReply.header.routeID.value = 0;
-      msgReply.header.TID = pReq->header.TID;
-
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_CATMAINCT_QUERYMSG ) ;
-      do
-      {
-         SINT64 contextID      = 0 ;
-         INT32 flags           = 0 ;
-         SINT64 numToSkip      = -1 ;
-         SINT64 numToReturn    = -1 ;
-         CHAR *pCollectionName = NULL ;
-         CHAR *pQuery          = NULL ;
-         CHAR *pFieldSelector  = NULL ;
-         CHAR *pOrderBy        = NULL ;
-         CHAR *pHint           = NULL ;
-         rc = msgExtractQuery( (CHAR *)pMsg, &flags, &pCollectionName,
-                               &numToSkip, &numToReturn, &pQuery,
-                               &pFieldSelector, &pOrderBy, &pHint );
-         if ( rc != SDB_OK )
-         {
-            PD_LOG ( PDERROR,
-                     "failed to parse query request(rc=%d)",
-                     rc );
-            break;
-         }
-         BSONObj selector;
-         BSONObj matcher;
-         BSONObj orderBy;
-         BSONObj hint;
-         try
-         {
-            selector = BSONObj ( pFieldSelector );
-            matcher = BSONObj ( pQuery );
-            orderBy = BSONObj ( pOrderBy );
-            hint = BSONObj ( pHint );
-         }
-         catch ( std::exception &e )
-         {
-            rc = SDB_INVALIDARG;
-            PD_LOG ( PDERROR,
-                     "occured unexpected error:%s",
-                     e.what() );
-            break;
-         }
-         rc = rtnQuery( pCollectionName, selector, matcher, orderBy,
-                        hint, flags, _pEDUCB, numToSkip, numToReturn,
-                        _pDmsCB, _pRtnCB, contextID ) ;
-         if ( rc != SDB_OK )
-         {
-            if ( rc != SDB_DMS_EOC )
-            {
-               PD_LOG ( PDERROR, "Failed to query the collection:%s(rc=%d)",
-                        pCollectionName, rc );
-            }
-            break;
-         }
-         _addContext( handle, pReq->header.TID, contextID ) ;
-         msgReply.contextID = contextID ;
-      }while ( FALSE ) ;
-
-      msgReply.flags = rc;
-      PD_TRACE1 ( SDB_CATMAINCT_QUERYMSG,
-                  PD_PACK_INT ( rc ) ) ;
-      rc = _pCatCB->netWork()->syncSend ( handle, &msgReply );
-      if ( rc != SDB_OK )
-      {
-         PD_LOG ( PDERROR, "Failed to send the message "
-                  "( groupID=%d, nodeID=%d, serviceID=%d )",
-                  pReq->header.routeID.columns.groupID,
-                  pReq->header.routeID.columns.nodeID,
-                  pReq->header.routeID.columns.serviceID );
-      }
+      rc = _processQueryRequest( handle, pMsg, NULL ) ;
       PD_TRACE_EXITRC ( SDB_CATMAINCT_QUERYMSG, rc ) ;
       return rc ;
    }
@@ -856,10 +795,11 @@ namespace engine
       CHAR *pOrderByBuffer  = NULL ;
       CHAR *pHintBuffer     = NULL ;
       INT32 iNameLen        = 0 ;
+      rtnContextBuf buffObj ;
 
       PD_TRACE_ENTRY ( SDB_CATMAINCT_QUERYREQUEST ) ;
 
-      PD_CHECK( pmdIsPrimary(), SDB_CLS_NOT_PRIMARY, reply, PDWARNING,
+      PD_CHECK( pmdIsPrimary(), SDB_CLS_NOT_PRIMARY, error, PDWARNING,
                 "it is not primary node but received query request!" );
 
       rc = msgExtractQuery ( (CHAR *)pMsgHeader, &flags, &pCN,
@@ -870,15 +810,14 @@ namespace engine
       {
          PD_LOG ( PDERROR, "Failed to read query packet, rc = %d", rc ) ;
          rc = SDB_INVALIDARG ;
-         goto reply ;
+         goto error ;
       }
-      iNameLen = ossStrlen(pCN) ;
-      if ( iNameLen <= 0 || pCN[0]!='$')
+
+      if ( NULL == pCollectionName )
       {
-         PD_LOG ( PDERROR, "Invalid command-begin" ) ;
-         rc = SDB_INVALIDARG ;
-         goto reply ;
+         pCollectionName = pCN ;
       }
+
       try
       {
          BSONObj matcher ( pQuery ) ;
@@ -892,10 +831,40 @@ namespace engine
          {
             if ( rc != SDB_DMS_EOC )
             {
-               PD_LOG ( PDERROR, "Failed to list data-node-groups (rc=%d)",
-                        rc  ) ;
+               PD_LOG ( PDERROR, "Failed to query on collection[%s], rc: %d",
+                        pCollectionName, rc ) ;
             }
-            goto reply ;
+            goto error ;
+         }
+         else if ( flags & FLG_QUERY_WITH_RETURNDATA )
+         {
+            rtnContextDump contextDump( 0, _pEDUCB->getID() ) ;
+            rc = contextDump.open( BSONObj(), BSONObj(), -1, 0 ) ;
+            PD_RC_CHECK( rc, PDERROR, "Open dump context failed, rc: %d",
+                         rc ) ;
+
+            while ( TRUE )
+            {
+               rc = rtnGetMore( contextID, -1, buffObj, _pEDUCB, _pRtnCB ) ;
+               if ( rc )
+               {
+                  contextID = -1 ;
+                  if ( SDB_DMS_EOC != rc )
+                  {
+                     PD_LOG( PDERROR, "Get more failed, rc: %d", rc ) ;
+                     goto error ;
+                  }
+                  break ;
+               }
+               rc = contextDump.appendObjs( buffObj.data(), buffObj.size(),
+                                            buffObj.recordNum(), TRUE ) ;
+               PD_RC_CHECK( rc, PDERROR, "Append objs to dump context failed, "
+                            "rc: %d", rc ) ;
+            }
+
+            rc = contextDump.getMore( -1, buffObj, _pEDUCB ) ;
+            PD_RC_CHECK( rc, PDERROR, "Get more from dump context failed, "
+                         "rc: %d", rc ) ;
          }
       }
       catch ( std::exception &e )
@@ -903,22 +872,23 @@ namespace engine
          PD_LOG ( PDERROR, "Failed to create arg1 and arg2 for command: %s",
                   e.what() ) ;
          rc = SDB_INVALIDARG ;
-         goto reply ;
+         goto error ;
       }
-   reply :
-      msgReply.header.messageLength = sizeof(MsgOpReply);
+
+   done :
+      msgReply.header.messageLength = sizeof( MsgOpReply ) + buffObj.size() ;
       msgReply.header.opCode = MAKE_REPLY_TYPE( pMsgHeader->opCode );
       msgReply.header.TID = pMsgHeader->TID;
       msgReply.header.routeID.value = 0;
       msgReply.header.requestID = pMsgHeader->requestID;
-      msgReply.contextID = contextID;
-      msgReply.startFrom = 0;
-      msgReply.numReturned = 0;
+      msgReply.contextID = contextID ;
+      msgReply.startFrom = (INT32)buffObj.getStartFrom() ;
+      msgReply.numReturned = buffObj.recordNum() ;
 
       if ( rc != SDB_OK )
       {
-         msgReply.flags = rc;
-         if ( SDB_PERM == rc)
+         msgReply.flags = rc ;
+         if ( SDB_PERM == rc )
          {
             msgReply.flags = SDB_CLS_NOT_PRIMARY ;
          }
@@ -926,21 +896,34 @@ namespace engine
       else
       {
          _addContext( handle, pMsgHeader->TID, contextID );
-         msgReply.flags = 0;
+         msgReply.flags = SDB_OK ;
       }
       PD_TRACE1 ( SDB_CATMAINCT_QUERYREQUEST,
                   PD_PACK_INT ( msgReply.flags ) ) ;
-      rc = _pCatCB->netWork()->syncSend ( handle, &msgReply );
+
+      if ( 0 == buffObj.size() )
+      {
+         rc = _pCatCB->netWork()->syncSend ( handle, &msgReply );
+      }
+      else
+      {
+         rc = _pCatCB->netWork()->syncSend( handle, &msgReply.header,
+                                            (void*)buffObj.data(),
+                                            (UINT32)buffObj.size() ) ;
+      }
       if ( rc != SDB_OK )
       {
          PD_LOG ( PDERROR, "failed to send the message(routeID=%lld)",
-                  pMsgHeader->routeID.value);   //print the routeID, don't print handle,
-         goto error ;
+                  pMsgHeader->routeID.value ) ;
       }
-   done :
       PD_TRACE_EXITRC ( SDB_CATMAINCT_QUERYREQUEST, rc ) ;
       return rc ;
    error :
+      if ( -1 != contextID )
+      {
+         _pRtnCB->contextDelete( contextID, _pEDUCB ) ;
+         contextID = -1 ;
+      }
       goto done ;
    }
 
@@ -950,6 +933,7 @@ namespace engine
       INT32 rc = SDB_OK ;
 
       _isDelayed = FALSE ;
+      _pCatCB->getCatDCMgr()->onCommandBegin( msg ) ;
 
       if ( MSG_CAT_CATALOGUE_BEGIN < (UINT32)msg->opCode &&
            (UINT32)msg->opCode < MSG_CAT_CATALOGUE_END )
@@ -961,11 +945,17 @@ namespace engine
       {
          rc = _pCatCB->getCatNodeMgr()->processMsg( handle, msg ) ;
       }
+      else if ( MSG_CAT_DC_BEGIN < (UINT32)msg->opCode &&
+                (UINT32)msg->opCode < MSG_CAT_DC_END )
+      {
+         rc = _pCatCB->getCatDCMgr()->processMsg( handle, msg ) ;
+      }
       else
       {
          rc = _processMsg( handle, msg ) ;
       }
 
+      _pCatCB->getCatDCMgr()->onCommandEnd( msg, rc ) ;
       return rc ;
    }
 
@@ -1023,11 +1013,13 @@ namespace engine
          }
       case MSG_AUTH_CRTUSR_REQ :
          {
+            _pCatCB->getCatDCMgr()->setImageCommand( TRUE ) ;
             rc = _processAuthCrt( handle, pMsg ) ;
             break ;
          }
       case MSG_AUTH_DELUSR_REQ :
          {
+            _pCatCB->getCatDCMgr()->setImageCommand( TRUE ) ;
             rc = _processAuthDel( handle, pMsg ) ;
             break ;
          }
@@ -1094,6 +1086,12 @@ namespace engine
          rc = SDB_CLS_NOT_PRIMARY ;
          goto error ;
       }
+      else if ( _pCatCB->getCatDCMgr()->isImageCommand() &&
+                !_pCatCB->isDCActive() )
+      {
+         rc = SDB_CAT_CLUSTER_NOT_ACTIVE ;
+         goto error ;
+      }
 
       rc = extractAuthMsg( &(msg->header), obj ) ;
       if ( SDB_OK != rc )
@@ -1130,16 +1128,17 @@ namespace engine
       BSONObj obj ;
       MsgAuthReply reply ;
 
+      if ( !_pAuthCB->needAuthenticate() )
+      {
+         goto done ;
+      }
+
       if ( !pmdIsPrimary() && !_isActived )
       {
          rc = SDB_CLS_NOT_PRIMARY ;
          goto error ;
       }
 
-      if ( !_pAuthCB->needAuthenticate() )
-      {
-         goto done ;
-      }
       rc = extractAuthMsg( &(msg->header), obj ) ;
       if ( SDB_OK != rc )
       {
@@ -1177,6 +1176,12 @@ namespace engine
       if ( !pmdIsPrimary() || !_isActived )
       {
          rc = SDB_CLS_NOT_PRIMARY ;
+         goto error ;
+      }
+      else if ( _pCatCB->getCatDCMgr()->isImageCommand() &&
+                !_pCatCB->isDCActive() )
+      {
+         rc = SDB_CAT_CLUSTER_NOT_ACTIVE ;
          goto error ;
       }
 

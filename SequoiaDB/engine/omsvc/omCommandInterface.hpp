@@ -115,6 +115,15 @@ namespace engine
                                           VEC_SUB_SESSIONPTR *subSessionVec ) ;
          INT32             _receiveFromAgent( pmdRemoteSession *remoteSession,
                                               SINT32 &flag, BSONObj &result ) ;
+
+         INT32             _getBusinessAuth( const string &businessName, 
+                                             string &authUser, 
+                                             string &authPasswd ) ;
+         BOOLEAN           _isHostExistInTask( const string &hostName ) ;
+
+         BOOLEAN           _isBusinessExistInTask( 
+                                             const string &businessName ) ;
+         
       protected:
          SDB_RTNCB         *_pRTNCB ;
          SDB_DMSCB         *_pDMDCB ;

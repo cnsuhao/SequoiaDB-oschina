@@ -37,10 +37,12 @@
 
 namespace engine
 {
-   INT32 _rtnCoordSql::execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                                CHAR **ppResultBuffer, pmdEDUCB *cb,
-                                MsgOpReply &replyHeader,
-                                BSONObj **ppErrorObj )
+   INT32 _rtnCoordSql::execute( CHAR * pReceiveBuffer,
+                                SINT32 packSize,
+                                pmdEDUCB * cb,
+                                MsgOpReply & replyHeader,
+                                rtnContextBuf *buf )
+
    {
       INT32 rc = SDB_OK ;
       pmdKRCB *krcb = pmdGetKRCB();

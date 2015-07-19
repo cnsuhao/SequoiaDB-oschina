@@ -119,7 +119,8 @@ namespace engine
       INT32 appendHttpBody( pmdRestSession *pSession,
                             const CHAR *pBuffer,
                             INT32 length,
-                            INT32 number = 0 ) ;
+                            INT32 number = 0,
+                            BOOLEAN isObjBuffer = TRUE ) ;
       INT32 setChunkModal( pmdRestSession *pSession ) ;
       HTTP_FILE_TYPE getFileType( pmdRestSession *pSession ) ;
       void clearHtttpBody( pmdRestSession *pSession ) ;

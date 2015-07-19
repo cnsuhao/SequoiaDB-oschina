@@ -41,7 +41,7 @@ using namespace bson ;
 namespace engine
 {
 
-   static BOOLEAN isGroupInCataSet( INT32 groupID, clsCatalogSet &cataSet )
+   static BOOLEAN isGroupInCataSet( UINT32 groupID, clsCatalogSet &cataSet )
    {
       BOOLEAN findGroup = FALSE ;
 
@@ -50,7 +50,7 @@ namespace engine
       VEC_GROUP_ID::iterator itVec = vecGroups.begin() ;
       while ( itVec != vecGroups.end() )
       {
-         if ( *itVec == (UINT32)groupID )
+         if ( *itVec == groupID )
          {
             findGroup = TRUE ;
             break ;
@@ -103,7 +103,7 @@ namespace engine
 
    static INT32 _checkSplitKey( const BSONObj &splitKey,
                                 clsCatalogSet &cataSet,
-                                INT32 groupID,
+                                UINT32 groupID,
                                 BOOLEAN allowEmpty,
                                 BOOLEAN allowOnBound )
    {
@@ -128,12 +128,12 @@ namespace engine
          goto error ;
       }
 
-      if ( !cataSet.isKeyInGroup( splitKey, (UINT32)groupID ) )
+      if ( !cataSet.isKeyInGroup( splitKey, groupID ) )
       {
          rc = SDB_CLS_BAD_SPLIT_KEY ;
 
          if ( allowOnBound &&
-              cataSet.isKeyOnBoundary( splitKey, (UINT32*)&groupID ) )
+              cataSet.isKeyOnBoundary( splitKey, &groupID ) )
          {
             rc = SDB_OK ;
          }
@@ -192,7 +192,7 @@ namespace engine
       else if ( SDB_OK == rc )
       {
          BSONObj domainObj ;
-         map<string, INT32> groups ;
+         map<string, UINT32> groups ;
          rc = catGetDomainObj( domainName, domainObj, cb ) ;
          PD_RC_CHECK( rc, PDERROR, "Get domain[%s] failed, rc: %d",
                       domainName, rc ) ;
@@ -214,7 +214,7 @@ namespace engine
    }
 
    INT32 catSplitPrepare( const BSONObj &splitInfo, const CHAR *clFullName,
-                          clsCatalogSet *cataSet, INT32 &groupID,
+                          clsCatalogSet *cataSet, UINT32 &groupID,
                           pmdEDUCB *cb )
    {
       INT32 rc = SDB_OK ;
@@ -284,7 +284,7 @@ namespace engine
    }
 
    INT32 catSplitReady( const BSONObj & splitInfo, const CHAR * clFullName,
-                        clsCatalogSet * cataSet, INT32 & groupID,
+                        clsCatalogSet * cataSet, UINT32 & groupID,
                         clsTaskMgr &taskMgr, pmdEDUCB * cb, INT16 w,
                         UINT64 *pTaskID )
    {
@@ -297,7 +297,7 @@ namespace engine
       const CHAR* sourceName = NULL ;
       const CHAR* dstName = NULL ;
       groupID = CAT_INVALID_GROUPID ;
-      INT32 sourceID = CAT_INVALID_GROUPID ;
+      UINT32 sourceID = CAT_INVALID_GROUPID ;
       BOOLEAN dstInCSDomain = FALSE ;
 
       rc = rtnGetObjElement( splitInfo, CAT_SPLITVALUE_NAME, bKey ) ;
@@ -389,7 +389,7 @@ namespace engine
             PD_RC_CHECK( rc, PDERROR, "Calc hash percent partition split key "
                          "falied, rc: %d", rc ) ;
          }
-         rc = splitTask.init( clFullName, sourceID, sourceName, groupID,
+         rc = splitTask.init( clFullName, sourceID, sourceName, (INT32)groupID,
                               dstName, bKey, eKey, percent, *cataSet ) ;
          PD_RC_CHECK( rc, PDERROR, "Init split task failed, rc: %d", rc ) ;
 
@@ -700,10 +700,11 @@ namespace engine
    }
 
    INT32 catSplitCancel( const BSONObj & splitInfo, pmdEDUCB * cb,
-                         INT32 &groupID, INT16 w )
+                         UINT32 &groupID, INT16 w )
    {
       INT32 rc = SDB_OK ;
       UINT64 taskID = 0 ;
+      INT32 tmpGrpID = CAT_INVALID_GROUPID ;
 
       BSONElement ele = splitInfo.getField( CAT_TASKID_NAME ) ;
 
@@ -726,9 +727,10 @@ namespace engine
          PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                       CAT_STATUS_NAME, rc ) ;
 
-         rc = rtnGetIntElement( taskObj, CAT_TARGETID_NAME, groupID ) ;
+         rc = rtnGetIntElement( taskObj, CAT_TARGETID_NAME, tmpGrpID ) ;
          PD_RC_CHECK( rc, PDWARNING, "Failed to get field[%s], rc: %d",
                       CAT_TARGETID_NAME, rc ) ;
+         groupID = (UINT32)tmpGrpID ;
 
          if ( CLS_TASK_STATUS_META == status ||
               CLS_TASK_STATUS_FINISH == status )

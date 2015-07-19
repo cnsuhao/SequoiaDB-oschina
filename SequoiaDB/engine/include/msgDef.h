@@ -251,6 +251,11 @@
 #define FIELD_NAME_ADDRESS                   "Address"
 #define FIELD_NAME_IMAGE                     "Image"
 #define FIELD_NAME_ACTIVE                    "Active"
+#define FIELD_NAME_ENABLE                    "Enable"
+#define FIELD_NAME_ACTION                    "Action"
+#define FIELD_NAME_DATA                      "Data"
+#define FIELD_NAME_DATALEN                   "DataLen"
+#define FIELD_NAME_ORG_LSNOFFSET             "OrgOffset"
 
 #define FIELD_NAME_INSERT                    "Insert"
 #define FIELD_NAME_UPDATE                    "Update"
@@ -303,6 +308,9 @@
 #define FIELD_NAME_AUTO_INDEX_ID             "AutoIndexId"
 #define FIELD_NAME_REELECTION_TIMEOUT        "Seconds"
 #define FIELD_NAME_REELECTION_LEVEL          "Level"
+#define FIELD_NAME_FORCE_STEP_UP_TIME        FIELD_NAME_REELECTION_TIMEOUT
+#define FIELD_NAME_INTERNAL_VERSION          "InternalV"
+#define FIELD_NAME_RTYPE                      "ReturnType"
 
 #define IXM_FIELD_NAME_KEY                   "key"
 #define IXM_FIELD_NAME_NAME                  "name"
@@ -404,13 +412,18 @@
 #define CMD_NAME_INVALIDATE_CACHE            "invalidate cache"
 #define CMD_NAME_FORCE_SESSION               "force session"
 #define CMD_NAME_LIST_LOBS                   "list lobs"
-#define CMD_NAME_ATTACH_IMAGE                "attach image"
-#define CMD_NAME_DETACH_IMAGE                "detach image"
-#define CMD_NAME_ACTIVE_IMAGE                "active image"
-#define CMD_NAME_DEACTIVE_IMAGE              "deactive image"
+#define CMD_NAME_ALTER_IMAGE                 "alter image"
 #define CMD_NAME_REELECT                     "reelect"
+#define CMD_NAME_FORCE_STEP_UP               "force step up"
 
 #define CMD_NAME_JSON_LOAD                   "json load"
+
+#define CMD_VALUE_NAME_ATTACH                "attach"
+#define CMD_VALUE_NAME_DETACH                "detach"
+#define CMD_VALUE_NAME_ENABLE                "enable"
+#define CMD_VALUE_NAME_DISABLE               "disable"
+#define CMD_VALUE_NAME_ACTIVE                "activate"
+#define CMD_VALUE_NAME_DEACTIVE              "deactivate"
 
 #define CLS_REPLSET_MAX_NODE_SIZE            7
 #define SDB_MAX_MSG_LENGTH                   ( 512 * 1024 * 1024 )
@@ -426,10 +439,12 @@
 #define NODE_NAME_SERVICE_SEPCHAR            (((CHAR*)NODE_NAME_SERVICE_SEP)[0])
 #define INVALID_NODEID                       0
 #define CURRENT_NODEID                       -1
-#define CATA_NODE_ID_BEGIN                   1
+#define SYS_NODE_ID_BEGIN                    1
+#define SYS_NODE_ID_END                      ( DATA_NODE_ID_BEGIN - 1 )
 #define DATA_NODE_ID_BEGIN                   1000
+#define DATA_NODE_ID_END                     ( 60000 + DATA_NODE_ID_BEGIN )
 #define DATA_GROUP_ID_BEGIN                  1000
-#define DATA_NODE_MAX_NUM                    60000
+#define DATA_GROUP_ID_END                    ( 60000 + DATA_GROUP_ID_BEGIN )
 #define CATA_NODE_MAX_NUM                    CLS_REPLSET_MAX_NODE_SIZE
 
 #define SDB_ROLE_DATA_STR                    "data"

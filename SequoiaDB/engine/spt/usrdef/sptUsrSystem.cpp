@@ -54,6 +54,14 @@ using namespace bson ;
 #define SPT_MB_SIZE     ( 1024*1024 )
 #define SPT_DISK_SRC_FILE "/etc/mtab"
 
+#define SPT_DISK_IGNORE_TYPE_PROC         "proc"
+#define SPT_DISK_IGNORE_TYPE_SYSFS        "sysfs"
+#define SPT_DISK_IGNORE_TYPE_BINFMT_MISC  "binfmt_misc"
+#define SPT_DISK_IGNORE_TYPE_DEVPTS       "devpts"
+#define SPT_DISK_IGNORE_TYPE_FUSECTL      "fusectl"
+#define SPT_DISK_IGNORE_TYPE_SECURITYFS   "securityfs"
+
+
 namespace engine
 {
    JS_STATIC_FUNC_DEFINE( _sptUsrSystem, ping )
@@ -1525,7 +1533,6 @@ namespace engine
                                            bson::BSONObj &detail )
    {
       INT32 rc = SDB_OK ;
-      INT64 fileSz = 0 ;
       SINT64 read = 0 ;
       OSSFILE file ;
       stringstream ss ;
@@ -1547,7 +1554,7 @@ namespace engine
       do
       {
          read = 0 ;
-         ossMemset( buf, bufSize, '\0' ) ;
+         ossMemset( buf, '\0', bufSize ) ;
          rc = ossReadN( &file, bufSize, buf, read ) ;
          if ( SDB_OK != rc )
          {
@@ -1611,6 +1618,17 @@ namespace engine
          rc = ossGetDiskInfo( mount, totalBytes, freeBytes ) ;
          if ( SDB_OK == rc )
          {
+            if ( ossStrcasecmp( SPT_DISK_IGNORE_TYPE_BINFMT_MISC, fsType ) == 0 
+                 || ossStrcasecmp( SPT_DISK_IGNORE_TYPE_SYSFS, fsType ) == 0
+                 || ossStrcasecmp( SPT_DISK_IGNORE_TYPE_PROC, fsType ) == 0
+                 || ossStrcasecmp( SPT_DISK_IGNORE_TYPE_DEVPTS, fsType ) == 0 
+                 || ossStrcasecmp( SPT_DISK_IGNORE_TYPE_FUSECTL, fsType ) == 0 
+                 || ossStrcasecmp( SPT_DISK_IGNORE_TYPE_SECURITYFS, 
+                                                                 fsType ) == 0 )
+            {
+               continue ;
+            }
+
             diskBuilder.append( SPT_USR_SYSTEM_FILESYSTEM,
                                 fs ) ;
             diskBuilder.append( SPT_USR_SYSTEM_FSTYPE, fsType ) ;

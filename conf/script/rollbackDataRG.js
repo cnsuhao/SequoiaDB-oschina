@@ -20,16 +20,12 @@
 @modify list:
    2014-7-26 Zhaobo Tan  Init
 @parameter
-   BUS_JSON: the format is:  { "UninstallGroupNames": [ "group1", "group2" ] }
-   SYS_JSON: the format is: { "TaskID": 2, "TmpCoordSvcName": "10000" }
+   BUS_JSON: the format is: { "UninstallGroupNames": [ "group1", "group2" ] } ;
+   SYS_JSON: the format is: { "TaskID": 2, "TmpCoordSvcName": "10000" } ;
    ENV_JSON:
 @return
    RET_JSON: the format is: { "errno": 0, "detail": "" }
 */
-
-// println
-//var BUS_JSON = { "UninstallGroupNames": [ "group1", "group2" ] } ;
-//var SYS_JSON = { "TaskID": 2, "TmpCoordSvcName": "10000" } ;
 
 var FILE_NAME_ROLLBACK_DATA_RG = "rollbackDataRG.js" ;
 var RET_JSON = new removeRGResult() ;
@@ -37,8 +33,6 @@ var rc       = SDB_OK ;
 var errMsg   = "" ;
 
 var task_id = "" ;
-// println
-var rg_name = "datagroup" ;
 
 /* *****************************************************************************
 @discretion: init
@@ -50,9 +44,7 @@ function _init()
 {           
    // 1. get task id
    task_id = getTaskID( SYS_JSON ) ;
-
-   setTaskLogFileName( task_id, rg_name ) ;
-   
+   setTaskLogFileName( task_id ) ;
    PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ROLLBACK_DATA_RG,
             sprintf( "Begin to remove data group in task[?]", task_id ) ) ;
 }
@@ -88,6 +80,8 @@ function _removeGroup( db, name )
    {
       if ( SDB_CLS_GRP_NOT_EXIST == e )
       {
+         PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ROLLBACK_DATA_RG,
+                  sprintf( "No data group[?] needs to rollback", name ) ) ;
          return ;
       }
       else
@@ -134,6 +128,8 @@ function _removeDataGroup( db, groups )
 {
    for ( var i = 0; i < groups.length; i++ )
    {
+      PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ROLLBACK_DATA_RG,
+               sprintf( "Removing data group[?]", groups[i] ) ) ;
       _removeGroup( db, groups[i] ) ;
    }
 }
@@ -188,6 +184,8 @@ function main()
       var flag = isCatalogRunning( db ) ;
       if ( false == isCatalogRunning( db ) )
       {
+         PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_ROLLBACK_DATA_RG,
+                  sprintf( "Catalog is not running, stop removing data groups" ) ) ;
          _final() ;
          return RET_JSON ;
       }
@@ -207,7 +205,6 @@ function main()
    }
 
    _final() ;
-println("RET_JSON is: " + JSON.stringify(RET_JSON) ) ;
    return RET_JSON ;
 
 }

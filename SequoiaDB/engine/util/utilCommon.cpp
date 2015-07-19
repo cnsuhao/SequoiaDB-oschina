@@ -243,6 +243,7 @@ namespace engine
                BSONObjBuilder berror ;
                berror.append ( OP_ERRNOFIELD, i ) ;
                berror.append ( OP_ERRDESP_FIELD, getErrDesp ( i ) ) ;
+               berror.append ( OP_ERR_DETAIL, "" ) ;
                _retObj[ i + SDB_MAX_ERROR ] = berror.obj() ;
             }
             _init = TRUE ;

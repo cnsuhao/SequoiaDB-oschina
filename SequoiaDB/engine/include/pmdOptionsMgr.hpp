@@ -165,18 +165,33 @@ namespace engine
    typedef _pmdCfgExchange pmdCfgExchange ;
 
    /*
+      _pmdAddrPair define
+   */
+   typedef class _pmdAddrPair
+   {
+      public :
+         CHAR _host[ OSS_MAX_HOSTNAME + 1 ] ;
+         CHAR _service[ OSS_MAX_SERVICENAME + 1 ] ;
+
+      _pmdAddrPair()
+      {
+         ossMemset( _host, 0, sizeof( _host ) ) ;
+         ossMemset( _service, 0, sizeof( _service ) ) ;
+      }
+      _pmdAddrPair( const string &hostname, const string &svcname )
+      {
+         ossStrncpy( _host, hostname.c_str(), OSS_MAX_HOSTNAME ) ;
+         _host[ OSS_MAX_HOSTNAME ] = 0 ;
+         ossStrncpy( _service, svcname.c_str(), OSS_MAX_SERVICENAME ) ;
+         _service[ OSS_MAX_SERVICENAME ] = 0 ;
+      }
+   } pmdAddrPair ;
+
+   /*
       _pmdCfgRecord define
    */
    class _pmdCfgRecord : public SDBObject, public _IParam
    {
-      public:
-         typedef class _pmdAddrPair
-         {
-            public :
-               CHAR _host[ OSS_MAX_HOSTNAME + 1 ] ;
-               CHAR _service[ OSS_MAX_SERVICENAME + 1 ] ;
-         } pmdAddrPair ;
-
       public:
          virtual  BOOLEAN hasField( const CHAR *pFieldName ) ;
          virtual  INT32   getFieldInt( const CHAR *pFieldName,
@@ -394,7 +409,7 @@ namespace engine
          {
             return _krcbSvcName ;
          }
-         OSS_INLINE vector< _pmdOptionsMgr::_pmdAddrPair > catAddrs() const
+         OSS_INLINE vector< _pmdAddrPair > catAddrs() const
          {
             return _vecCat ;
          }
@@ -455,6 +470,7 @@ namespace engine
          OSS_INLINE BOOLEAN useDirectIOInLob() const { return _directIOInLob ; }
          OSS_INLINE BOOLEAN sparseFile() const { return _sparseFile ; }
          OSS_INLINE UINT8 weight() const { return (UINT8)_weight ; }
+         OSS_INLINE BOOLEAN authEnabled() const { return _auth ; }
 
       protected: // rdx members
          CHAR        _krcbDbPath[ OSS_MAX_PATHSIZE + 1 ] ;
@@ -504,6 +520,7 @@ namespace engine
          BOOLEAN     _directIOInLob ;
          BOOLEAN     _sparseFile ;
          UINT32      _weight ;
+         BOOLEAN     _auth ;
 
       private: // other configs
          CHAR        _krcbConfPath[ OSS_MAX_PATHSIZE + 1 ] ;

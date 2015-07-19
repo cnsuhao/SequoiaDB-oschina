@@ -86,6 +86,10 @@ namespace engine
                      "valid: 0 <= status < status.size()" ) ;\
                  _current = _status.at( nextStatus ) ;\
               }\
+              if ( 0 != _forceMillis ) \
+              {\
+                 _forceMillis = 0 ;\
+              }\
            }
 
 
@@ -94,7 +98,8 @@ namespace engine
    :_agent( agent ),
     _current( NULL ),
     _groupInfo( info ),
-    _shadowWeight( CLS_ELECTION_WEIGHT_USR_MIN )
+    _shadowWeight( CLS_ELECTION_WEIGHT_USR_MIN ),
+    _forceMillis( 0 )
    {
 
    }
@@ -174,6 +179,18 @@ namespace engine
       {
          goto done ;
       }
+      else if ( 0 < _forceMillis )
+      {
+         if ( _forceMillis <= millisec )
+         {
+            _forceMillis = 0 ;
+         }
+         else
+         {
+            _forceMillis -= millisec ;
+         }
+      }
+      else
       {
          INT32 next = CLS_INVALID_VOTE_ID ;
          _current->handleTimeout( millisec, next ) ;
@@ -186,10 +203,15 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSVTMH_FORCE, "_clsVoteMachine::force" )
-   void _clsVoteMachine::force( const INT32 &id )
+   void _clsVoteMachine::force( const INT32 &id,
+                                UINT32 millis )
    {
       PD_TRACE_ENTRY ( SDB__CLSVTMH_FORCE ) ;
       CLS_VOTE_ACTIVE_STATUS( id )
+      if ( 0 < millis )
+      {
+         _forceMillis = millis ;
+      }
       PD_TRACE_EXIT ( SDB__CLSVTMH_FORCE ) ;
       return ;
    }

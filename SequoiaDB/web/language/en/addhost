@@ -1,0 +1,42 @@
+{
+    "addhost": {
+        "leftPanel": {
+            "title": "Hosts List",
+				"button": [
+						"Edit",
+						"Done"
+				],
+				"label": [
+						"Already choose ? disks",
+						"? disks don't have enough capacity",
+						"The host has been installed Agent"
+				]
+        },
+        "rightPanel": {
+            "title": "Host Information",
+				"disk": {
+						"title": "Disk",
+						"grid": [ "Disk", "Path", "Network Mapping", "Capacity" ],
+						"other": [ "Yes", "No" ]
+				},
+				"cpu": {
+						"title": "CPU",
+						"grid": [ "ID", "Type", "Cores", "Frequency" ]
+				},
+				"net": {
+						"title": "Network Card",
+						"grid": [ "Interface", "Type", "Speed", "IP" ]
+				},
+				"port": {
+						"title": "Port",
+						"grid": [ "Port", "Status" ],
+						"other": [ "Occupied", "Available" ]
+				},
+				"service": {
+						"title": "Service",
+						"grid": [ "Service Name", "Status", "Version" ],
+						"other": [ "Running", "Idle" ]
+				}
+        }
+    }
+}

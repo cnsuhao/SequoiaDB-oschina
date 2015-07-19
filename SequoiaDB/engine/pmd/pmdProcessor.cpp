@@ -915,9 +915,11 @@ namespace engine
                            pProcesserFactory->getCommandProcesser( pQueryMsg ) ;
                if ( NULL != pCmdProcesser )
                {
-                  rc = pCmdProcesser->execute( ( CHAR *)msg, msg->messageLength,
-                                               &_pResultBuff, eduCB(),
-                                               replyHeader, &_pErrorObj ) ;
+                  rc = pCmdProcesser->execute( ( CHAR *)msg,
+                                               msg->messageLength,
+                                               eduCB(),
+                                               replyHeader,
+                                               &contextBuff ) ;
                   break ;
                }
             }
@@ -927,9 +929,11 @@ namespace engine
             rtnContextBase *pContext = NULL ;
             rtnCoordOperator *pOperator = 
                            pProcesserFactory->getOperator( msg->opCode ) ;
-            rc = pOperator->execute( ( CHAR* )msg, msg->messageLength,
-                                     &_pResultBuff, eduCB(),
-                                     replyHeader, &_pErrorObj ) ;
+            rc = pOperator->execute( ( CHAR* )msg,
+                                     msg->messageLength,
+                                     eduCB(),
+                                     replyHeader,
+                                     &contextBuff ) ;
             if ( MSG_BS_QUERY_REQ == msg->opCode 
                  && ( ((MsgOpQuery*)msg)->flags & FLG_QUERY_WITH_RETURNDATA )
                  && -1 != replyHeader.contextID 
@@ -955,25 +959,6 @@ namespace engine
             }
          }
          break;
-      }
-
-      if ( ( MSG_BS_LOB_OPEN_REQ == msg->opCode ||
-             MSG_BS_LOB_READ_REQ == msg->opCode ) &&
-           NULL != _pResultBuff )
-      {
-         INT32 dataLen = replyHeader.header.messageLength 
-                         - sizeof( MsgOpReply ) ;
-         contextBuff   = rtnContextBuf( _pResultBuff, dataLen, 1 ) ;
-         _pResultBuff  = NULL ;
-      }
-      else
-      {
-         SDB_ASSERT( _pResultBuff == NULL, "Result must be NULL" ) ;
-         if ( replyHeader.numReturned != 0 )
-         {
-            contextBuff   = rtnContextBuf( (CHAR *)&replyHeader, 0, 
-                                           replyHeader.numReturned ) ;
-         }
       }
 
       if ( rc && contextBuff.size() == 0 )

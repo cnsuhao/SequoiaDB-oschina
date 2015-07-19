@@ -189,6 +189,11 @@ namespace engine
             return _srcSessionNum ;
          }
 
+         OSS_INLINE BOOLEAN isInStepUp() const
+         {
+            return _vote.isInStepUp() ;
+         }
+
          ossQueue< clsLSNNtyInfo >* getNtyQue() { return &_ntyQue ; }
          DPS_LSN_OFFSET getNtyLastOffset() const { return _ntyLastOffset ; }
          DPS_LSN_OFFSET getNtyProcessedOffset() const { return _ntyProcessedOffset ; }
@@ -246,6 +251,9 @@ namespace engine
 
          void reelectionDone() ;
 
+         INT32 stepUp( UINT32 seconds,
+                       pmdEDUCB *cb ) ;
+
          INT32 primaryCheck( pmdEDUCB *cb, INT16 w ) ;
 
       private:
@@ -267,6 +275,8 @@ namespace engine
          UINT32 _getThresholdTime( UINT64 diffSize ) ;
 
          INT32 _handleStepDown() ;
+
+         INT32 _handleStepUp( UINT32 seconds ) ;
 
       private:
          _netRouteAgent          *_agent ;

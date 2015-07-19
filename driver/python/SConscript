@@ -13,6 +13,9 @@ clientFiles = [
    path + "SequoiaDB/engine/client/clientcpp.cpp"
       ]
 clientLibFiles = [
+   path + "SequoiaDB/engine/oss/ossSSLCertificate.c",
+   path + "SequoiaDB/engine/oss/ossSSLWrapper.c",
+   path + "SequoiaDB/engine/oss/ossSSLContext.c",
    path + "SequoiaDB/engine/oss/oss.c",
    path + "SequoiaDB/engine/oss/oss.cpp",
    path + "SequoiaDB/engine/oss/ossUtil.c",
@@ -68,6 +71,9 @@ for file in clientLibFiles2:
 curPath += "/build/temp/"
 srcFiles = [
    curPath + "clientcpp.cpp",
+   curPath + "ossSSLCertificate.c",
+   curPath + "ossSSLWrapper.c",
+   curPath + "ossSSLContext.c",
    curPath + "oss.cpp",
    curPath + "ossUtil.cpp",
    curPath + "ossMem.cpp",

@@ -123,6 +123,7 @@ namespace engine
       oma background command
    */
    #define OMA_CMD_ADD_HOST                           OM_ADD_HOST_REQ
+   #define OMA_CMD_REMOVE_HOST                        OM_REMOVE_HOST_REQ
    #define OMA_CMD_CHECK_ADD_HOST_INFO                "check add host info"
    
    #define OMA_CMD_INSTALL_TMP_COORD                  "install temporary coord"
@@ -140,6 +141,8 @@ namespace engine
    #define OMA_ROLLBACK_COORD                         "rollback installed coord"
    #define OMA_ROLLBACK_DATA_RG                       "rollback installed data groups"
 
+   #define OMA_INIT_ENV                               "init for exeuting js"
+
    #define OMA_CMD_UPDATE_TASK                        "update task"
   
 
@@ -154,13 +157,13 @@ namespace engine
    
    #define FILE_SCAN_HOST                   "scanHost.js"
    
-   #define FILE_PRE_CHECK_HOST              "preCheckHost.js"
+   #define FILE_CHECK_HOST_INIT             "checkHostInit.js"
    #define FILE_CHECK_HOST                  "checkHost.js"
    #define FILE_CHECK_HOST_ITEM             "checkHostItem.js"
-   #define FILE_POST_CHECK_HOST             "postCheckHost.js"
+   #define FILE_CHECK_HOST_FINAL            "checkHostFinal.js"
    
    #define FILE_ADD_HOST                    "addHost.js"
-   #define FIEL_CHECK_ADD_HOST_INFO         "checkAddHostInfo.js"
+   #define FIEL_ADD_HOST_CHECK_INFO         "addHostCheckInfo.js"
    #define FILE_REMOVE_HOST                 "removeHost.js"
    #define FILE_UPDATE_HOSTS_INFO           "updateHostsInfo.js"
 
@@ -183,6 +186,8 @@ namespace engine
    #define FILE_ROLLBACK_CATALOG            "rollbackCatalog.js"
    #define FILE_ROLLBACK_COORD              "rollbackCoord.js"
    #define FILE_ROLLBACK_DATA_RG            "rollbackDataRG.js"
+
+   #define FILE_INIT_ENV                    "initEnv.js"
 
 
    /*
@@ -212,7 +217,6 @@ namespace engine
    */
    #define OMA_BUFF_SIZE                    (1024)
    #define JS_FILE_NAME_LEN                 (512)
-   #define JS_ARG_LEN                       (4096)
    #define WAITING_TIME                     (3000)
 
 }

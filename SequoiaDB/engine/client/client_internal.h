@@ -19,6 +19,7 @@
 
 #include "core.h"
 #include "client.h"
+#include "network.h"
 #define SDB_HANDLE_TYPE_INVALID      0
 #define SDB_HANDLE_TYPE_CONNECTION   1
 #define SDB_HANDLE_TYPE_COLLECTION   2
@@ -39,7 +40,7 @@ typedef struct _Node Node ;
 struct _sdbConnectionStruct
 {
    INT32 _handleType ;
-   SOCKET _sock ;
+   Socket* _sock ;
    CHAR *_pSendBuffer ;
    INT32 _sendBufferSize ;
    CHAR *_pReceiveBuffer ;
@@ -59,7 +60,7 @@ struct _sdbRGStruct
 {
    INT32 _handleType ;
    sdbConnectionHandle _connection ;
-   SOCKET _sock ;
+   Socket* _sock ;
    INT32 _offset ;
    CHAR *_pSendBuffer ;
    INT32 _sendBufferSize ;
@@ -77,7 +78,7 @@ struct _sdbRNStruct
 {
    INT32 _handleType ;
    sdbConnectionHandle _connection ;
-   SOCKET _sock ;
+   Socket* _sock ;
    INT32 _offset ;
    CHAR *_pSendBuffer ;
    INT32 _sendBufferSize ;
@@ -98,7 +99,7 @@ struct _sdbCSStruct
 {
    INT32 _handleType ;
    sdbConnectionHandle _connection ;
-   SOCKET _sock ;
+   Socket* _sock ;
    INT32 _offset ;
    CHAR *_pSendBuffer ;
    INT32 _sendBufferSize ;
@@ -114,7 +115,7 @@ struct _sdbCollectionStruct
 {
    INT32 _handleType ;
    sdbConnectionHandle _connection ;
-   SOCKET _sock ;
+   Socket* _sock ;
    INT32 _offset ;
    CHAR *_pSendBuffer ;
    INT32 _sendBufferSize ;
@@ -132,7 +133,7 @@ struct _sdbCursorStruct
 {
    INT32 _handleType ;
    sdbConnectionHandle _connection ;
-   SOCKET _sock ;
+   Socket* _sock ;
    INT32 _offset ;
    CHAR *_pSendBuffer ;
    INT32 _sendBufferSize ;
@@ -152,7 +153,7 @@ struct _sdbDomainStruct
 {
    INT32 _handleType ;
    sdbConnectionHandle _connection ;
-   SOCKET _sock ;
+   Socket* _sock ;
    INT32 _offset ;
    CHAR *_pSendBuffer ;
    INT32 _sendBufferSize ;
@@ -175,7 +176,7 @@ struct _sdbLobStruct
 {
    INT32 _handleType ;
    sdbConnectionHandle _connection ;
-   SOCKET _sock ;
+   Socket* _sock ;
    INT32 _offset ;
    CHAR *_pSendBuffer ;
    INT32 _sendBufferSize ;

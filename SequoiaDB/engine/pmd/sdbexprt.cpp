@@ -67,7 +67,8 @@ namespace engine
    #define OPTION_INCLUDEREGEX      "includeregex"
    #define OPTION_FILTER            "filter"
    #define OPTION_SORT              "sort"
-   
+   #define OPTION_SSL               "ssl"
+
    #define DEFAULT_HOSTNAME         "localhost"
    #define DEFAULT_SVCNAME          "11810"
    
@@ -118,7 +119,10 @@ namespace engine
       utilSdbObj.getArgBool( OPTION_INCLUDED,       &exprtArg.include ) ;
       utilSdbObj.getArgBool( OPTION_INCLUDEBINARY,  &exprtArg.includeBinary ) ;
       utilSdbObj.getArgBool( OPTION_INCLUDEREGEX,   &exprtArg.includeRegex ) ;
-   
+#ifdef SDB_SSL
+      utilSdbObj.getArgBool( OPTION_SSL,            &exprtArg.useSSL ) ;
+#endif
+
       if ( !exprtArg.pFields && exprtArg.type == MIGEXPRT_CSV )
       {
          ossPrintf ( "CSV format must complete the --fields"OSS_NEWLINE ) ;
@@ -170,6 +174,7 @@ namespace engine
    #define EXPLAIN_INCLUDEREGEX     "whether to output a compelete regex, default false( csv only )"
    #define EXPLAIN_FILTER           "the matching rule(e.g. --filter '{ age: 18 }')"
    #define EXPLAIN_SORT             "the ordered rule(e.g. --sort '{ name: 1 }')"
+   #define EXPLAIN_SSL              "use SSL connection (arg: [true|false], e.g. --ssl true)"
    
    INT32 mainEntry ( INT32 argc, CHAR **argv )
    {
@@ -202,7 +207,10 @@ namespace engine
       APPENDARGBOOL  ( utilSdbObj, OPTION_INCLUDEREGEX, OPTION_INCLUDEREGEX,      EXPLAIN_INCLUDEREGEX,     FALSE, FALSE  ) ;
       APPENDARGSTRING( utilSdbObj, OPTION_FILTER,       OPTION_FILTER,            EXPLAIN_FILTER,           FALSE, -1,                  NULL ) ;
       APPENDARGSTRING( utilSdbObj, OPTION_SORT,         OPTION_SORT,              EXPLAIN_SORT,             FALSE, -1,                  NULL ) ;
-   
+#ifdef SDB_SSL
+      APPENDARGBOOL  ( utilSdbObj, OPTION_SSL,          OPTION_SSL,               EXPLAIN_SSL,              FALSE, FALSE ) ;
+#endif
+
       rc = utilSdbObj.init( setting, NULL ) ;
       if ( rc )
       {

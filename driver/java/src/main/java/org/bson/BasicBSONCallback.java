@@ -166,10 +166,7 @@ public class BasicBSONCallback implements BSONCallback {
 	}
 
 	public void gotBinary(String name, byte type, byte[] data) {
-		if (type == BSON.B_GENERAL || type == BSON.B_BINARY)
-			_put(name, data);
-		else
-			_put(name, new Binary(type, data));
+	    _put(name, new Binary(type, data));
 	}
 
 	public void gotUUID(String name, long part1, long part2) {

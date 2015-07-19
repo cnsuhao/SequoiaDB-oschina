@@ -79,7 +79,7 @@ namespace engine
    {
       stringstream ss ;
       ss << "Sdbtool functions:" << endl
-         << " Sdbtool.listNodes( [option obj], [filter obj] )" << endl ;
+         << " Sdbtool.listNodes( [option obj], [filter obj], [rootPath] )" << endl ;
       rval.setStringVal( "", ss.str().c_str() ) ;
       return SDB_OK ;
    }
@@ -93,6 +93,7 @@ namespace engine
       BSONObj filterObj ;
       _sdbToolListParam optionParam ;
       UTIL_VEC_NODES nodes ;
+      string strpath ;
       CHAR rootPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       CHAR localPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
       vector< BSONObj > vecObj ;
@@ -115,13 +116,30 @@ namespace engine
             goto error ;
          }
       }
-
-      rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
-      if ( rc )
+      if ( arg.argc() > 2 )
       {
-         detail = BSON( SPT_ERR << "get current path failed" ) ;
-         goto error ;
+         rc = arg.getString( 2, strpath ) ;
+         if ( rc )
+         {
+            detail = BSON( SPT_ERR << "rootPath must be string" ) ;
+            goto error ;
+         }
       }
+
+      if ( strpath.empty() )
+      {
+         rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
+         if ( rc )
+         {
+            detail = BSON( SPT_ERR << "get current path failed" ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         ossStrncpy( rootPath, strpath.c_str(), OSS_MAX_PATHSIZE ) ;
+      }
+
       rc = utilBuildFullPath( rootPath, SDBCM_LOCAL_PATH,
                               OSS_MAX_PATHSIZE, localPath ) ;
       if ( rc )
@@ -177,14 +195,21 @@ namespace engine
                 SDB_ROLE_OMA == optionParam._roleFilter ) )
          {
             CHAR hostName[ OSS_MAX_HOSTNAME + 1 ] = { 0 } ;
+            CHAR confFile[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
             utilNodeInfo node ;
             node._orgname = "" ;
             node._pid = OSS_INVALID_PID ;
             node._role = SDB_ROLE_OMA ;
             node._type = SDB_TYPE_OMA ;
             ossGetHostName( hostName, OSS_MAX_HOSTNAME ) ;
-            utilGetCMService( rootPath, hostName, node._svcname, TRUE ) ;
-            nodes.push_back( node ) ;
+
+            utilBuildFullPath( rootPath, SDBCM_CONF_PATH_FILE,
+                               OSS_MAX_PATHSIZE, confFile ) ;
+            if ( 0 == ossAccess( confFile ) )
+            {
+               utilGetCMService( rootPath, hostName, node._svcname, TRUE ) ;
+               nodes.push_back( node ) ;
+            }
          }
 
          UTIL_VEC_NODES::iterator it = nodes.begin() ;

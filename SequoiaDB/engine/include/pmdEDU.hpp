@@ -504,9 +504,29 @@ namespace engine
       TOOL FUNCTIONS
    */
    INT32 pmdRecv ( CHAR *pBuffer, INT32 recvSize,
-                   ossSocket *sock, pmdEDUCB *cb ) ;
+                   ossSocket *sock, pmdEDUCB *cb,
+                   INT32 timeout = OSS_SOCKET_DFT_TIMEOUT ) ;
    INT32 pmdSend ( const CHAR *pBuffer, INT32 sendSize,
-                   ossSocket *sock, pmdEDUCB *cb ) ;
+                   ossSocket *sock, pmdEDUCB *cb,
+                   INT32 timeout = OSS_SOCKET_DFT_TIMEOUT ) ;
+   /*
+      NOTE: the ppRecvMsg is alloced, so need to free
+      useCBMem: TRUE: the memory is allocated by cb->allocBuf, so must free
+                by cb->releaseBuf
+                FALSE: the memory is allocated by SDB_OSS_MALLOC, so must
+                free by SDB_OSS_FREE
+   */
+   INT32 pmdSyncSendMsg( const MsgHeader *pMsg, MsgHeader **ppRecvMsg,
+                         ossSocket *sock, pmdEDUCB *cb,
+                         BOOLEAN useCBMem = TRUE,
+                         INT32 timeout = OSS_SOCKET_DFT_TIMEOUT ) ;
+
+   /*
+      NOTE: recv the msg to cb queue
+   */
+   INT32 pmdSendAndRecv2Que( const MsgHeader *pMsg, ossSocket *sock,
+                             pmdEDUCB *cb,
+                             INT32 timeout = OSS_SOCKET_DFT_TIMEOUT ) ;
 
    void  pmdEduEventRelase( pmdEDUEvent &event, pmdEDUCB *cb ) ;
 

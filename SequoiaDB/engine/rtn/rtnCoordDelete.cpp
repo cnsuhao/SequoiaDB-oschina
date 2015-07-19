@@ -161,10 +161,11 @@ namespace engine
    }
    
    //PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCODEL_EXECUTE, "rtnCoordDelete::execute" )
-   INT32 rtnCoordDelete::execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                              CHAR **ppResultBuffer, pmdEDUCB *cb,
-                              MsgOpReply &replyHeader,
-                              BSONObj **ppErrorObj )
+   INT32 rtnCoordDelete::execute( CHAR *pReceiveBuffer,
+                                  SINT32 packSize,
+                                  pmdEDUCB *cb,
+                                  MsgOpReply &replyHeader,
+                                  rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK;
       pmdKRCB *pKrcb                   = pmdGetKRCB();
@@ -255,9 +256,8 @@ namespace engine
                = pCoordcb->getProcesserFactory()->getOperator( MSG_BS_TRANS_ROLLBACK_REQ );
          if ( pRollbackOperator )
          {
-            pRollbackOperator->execute( pReceiveBuffer, packSize, ppResultBuffer,
-                                       cb, replyHeader, ppErrorObj );
-            SDB_ASSERT( NULL == *ppErrorObj, "impossible" ) ;
+            pRollbackOperator->execute( pReceiveBuffer, packSize,
+                                       cb, replyHeader, NULL );
          }
       }
       replyHeader.flags = rc;

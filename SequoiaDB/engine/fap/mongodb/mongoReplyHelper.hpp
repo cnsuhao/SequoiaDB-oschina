@@ -45,15 +45,20 @@ namespace fap
 {
    namespace mongo
    {
-      void buildIsMasterMsg( engine::IResource *resource,
+      void buildIsMasterReplyMsg( engine::IResource *resource,
                              engine::rtnContextBuf &buff ) ;
 
-      void buildGetNonceMsg( engine::rtnContextBuf &buff ) ;
+      void buildGetNonceReplyMsg( engine::rtnContextBuf &buff ) ;
 
-      void buildGetLastErrorMsg( const bson::BSONObj &err,
+      void buildGetLastErrorReplyMsg( const bson::BSONObj &err,
                                  engine::rtnContextBuf &buff ) ;
 
-      void buildNotSupportMsg( engine::rtnContextBuf &buff ) ;
+      void buildNotSupportReplyMsg( engine::rtnContextBuf &buff,
+                                    const char *cmdName ) ;
+
+      void buildPingReplyMsg( engine::rtnContextBuf &buff ) ;
+
+      void buildGetMoreMsg( msgBuffer &out ) ;
    }
 }
 #endif

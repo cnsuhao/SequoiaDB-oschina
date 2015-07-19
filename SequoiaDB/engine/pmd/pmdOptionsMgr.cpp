@@ -60,7 +60,7 @@ namespace engine
 
    #define JUDGE_RC( rc ) if ( SDB_OK != rc ) { goto error ; }
 
-   #define PMD_OPTION_BRK_TIME_DEFAULT (5000)
+   #define PMD_OPTION_BRK_TIME_DEFAULT (7000)
    #define PMD_MAX_PREF_POOL           (0) // modify 200 to 0
    #define PMD_MAX_SUB_QUERY           (10)
    #define PMD_MIN_SORTBUF_SZ          (RTN_SORT_MIN_BUFSIZE)
@@ -623,7 +623,7 @@ namespace engine
    }
 
    INT32 _pmdCfgRecord::parseAddressLine( const CHAR * pAddressLine,
-                                          vector < _pmdCfgRecord::pmdAddrPair > & vecAddr,
+                                          vector < pmdAddrPair > & vecAddr,
                                           const CHAR * pItemSep,
                                           const CHAR * pInnerSep ) const
    {
@@ -648,6 +648,7 @@ namespace engine
       if ( CLS_REPLSET_MAX_NODE_SIZE < addrs.size() )
       {
          std::cerr << "addr more than max member size" << endl ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
 
@@ -682,7 +683,7 @@ namespace engine
       goto done ;
    }
 
-   string _pmdCfgRecord::makeAddressLine( const vector < _pmdCfgRecord::pmdAddrPair > & vecAddr,
+   string _pmdCfgRecord::makeAddressLine( const vector < pmdAddrPair > & vecAddr,
                                           CHAR chItemSep,
                                           CHAR chInnerSep ) const
    {
@@ -753,7 +754,7 @@ namespace engine
       {
          if ( pDefault )
          {
-            tmpValue = *pDefault ;
+            tmpValue.assign( pDefault ) ;
          }
          else
          {
@@ -784,7 +785,7 @@ namespace engine
       {
          if ( pDefault )
          {
-            strValue = *pDefault ;
+            strValue.assign( pDefault ) ;
          }
          else
          {
@@ -1249,8 +1250,8 @@ namespace engine
       _dialogFileNum       = 0 ;
       _directIOInLob       = FALSE ;
       _sparseFile          = FALSE ;
-      _weight              = 0 ; 
-
+      _weight              = 0 ;
+      _auth                = TRUE ;
 
       ossMemset( _krcbConfPath, 0, sizeof( _krcbConfPath ) ) ;
       ossMemset( _krcbConfFile, 0, sizeof( _krcbConfFile ) ) ;
@@ -1356,8 +1357,7 @@ namespace engine
                    TRUE, FALSE ) ;
       rdxUInt( pEX, PMD_OPTION_SHARINGBRK, _sharingBreakTime, FALSE, TRUE,
                PMD_OPTION_BRK_TIME_DEFAULT, TRUE ) ;
-      rdvMinMax( pEX, _sharingBreakTime, PMD_OPTION_BRK_TIME_DEFAULT,
-                 300000, TRUE ) ;
+      rdvMinMax( pEX, _sharingBreakTime, 5000, 300000, TRUE ) ;
       rdxUInt( pEX, PMD_OPTION_START_SHIFT_TIME, _startShiftTime, FALSE, TRUE,
                PMD_DFT_START_SHIFT_TIME, TRUE ) ;
       rdvMinMax( pEX, _startShiftTime, 0, 7200, TRUE ) ;
@@ -1396,6 +1396,8 @@ namespace engine
                FALSE, TRUE, 10, FALSE ) ; 
       rdvMinMax( pEX, _weight, 1, 100, TRUE ) ;
 
+      rdxBooleanS( pEX, PMD_OPTION_AUTH, _auth,
+                   FALSE, FALSE, TRUE, FALSE ) ;
 
 
       return getResult () ;
@@ -1513,21 +1515,31 @@ namespace engine
       }
       if ( 0 == _krcbWWWPath[0] )
       {
+         CHAR wwwPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
          if ( !_exePath.empty() )
          {
             rc = utilBuildFullPath( _exePath.c_str(),
                                     ".."OSS_FILE_SEP PMD_OPTION_WWW_PATH_DIR,
-                                    OSS_MAX_PATHSIZE, _krcbWWWPath ) ;
+                                    OSS_MAX_PATHSIZE, wwwPath ) ;
          }
          else
          {
             rc = utilBuildFullPath( PMD_CURRENT_PATH,
                                     PMD_OPTION_WWW_PATH_DIR,
-                                    OSS_MAX_PATHSIZE, _krcbWWWPath ) ;
+                                    OSS_MAX_PATHSIZE, wwwPath ) ;
          }
          if ( SDB_OK != rc )
          {
             std::cerr << "www path is too long!" << endl ;
+            rc = SDB_INVALIDPATH ;
+            goto error ;
+         }
+
+         if ( NULL == ossGetRealPath( wwwPath, _krcbWWWPath,
+                                      OSS_MAX_PATHSIZE ) )
+         {
+            ossPrintf( "Error: Failed to get real path for %s\n",
+                       wwwPath ) ;
             rc = SDB_INVALIDPATH ;
             goto error ;
          }
@@ -1552,43 +1564,50 @@ namespace engine
       {
          if ( 0 == ossStrcmp( _krcbDbPath, _dmsTmpBlkPath))
          {
-            std::cerr << "tmp path and data path should not be the same" << endl ;
+            std::cerr << "tmp path and data path should not be the same"
+                      << endl ;
             rc = SDB_INVALIDPATH ;
             goto error ;
          }
          if ( 0 == ossStrcmp( _krcbIndexPath, _dmsTmpBlkPath))
          {
-            std::cerr << "tmp path and index path should not be the same" << endl ;
+            std::cerr << "tmp path and index path should not be the same"
+                      << endl ;
             rc = SDB_INVALIDPATH ;
             goto error ;
          }
          if ( 0 == ossStrcmp( _krcbLogPath, _dmsTmpBlkPath))
          {
-            std::cerr << "tmp path and log path should not be the same" << endl ;
+            std::cerr << "tmp path and log path should not be the same"
+                      << endl ;
             rc = SDB_INVALIDPATH ;
             goto error ;
          }
          if ( 0 == ossStrcmp( _krcbBkupPath, _dmsTmpBlkPath))
          {
-            std::cerr << "tmp path and bkup path should not be the same" << endl ;
+            std::cerr << "tmp path and bkup path should not be the same"
+                      << endl ;
             rc = SDB_INVALIDPATH ;
             goto error ;
          }
          if ( 0 == ossStrcmp( _krcbDiagLogPath, _dmsTmpBlkPath))
          {
-            std::cerr << "tmp path and diaglog path should not be the same" << endl ;
+            std::cerr << "tmp path and diaglog path should not be the same"
+                      << endl ;
             rc = SDB_INVALIDPATH ;
             goto error ;
          }
          if ( 0 == ossStrcmp( _krcbWWWPath, _dmsTmpBlkPath ) )
          {
-            std::cerr << "tmp path and www path should not be the same" << endl ;
+            std::cerr << "tmp path and www path should not be the same"
+                      << endl ;
             rc = SDB_INVALIDPATH ;
             goto error ;
          }
          if ( 0 == ossStrcmp( _krcbLobPath, _dmsTmpBlkPath ) )
          {
-            std::cerr << "tmp path and lob path should not be the same" << endl ;
+            std::cerr << "tmp path and lob path should not be the same"
+                      << endl ;
             rc = SDB_INVALIDPATH ;
             goto error ;
          }
@@ -1617,6 +1636,8 @@ namespace engine
          _maxPrefPool      = 0 ;
          _maxSubQuery      = 0 ;
          _maxReplSync      = 0 ;
+         _pagecleanNum     = 1 ;
+         _pagecleanInterval= PMD_DFT_PAGECLEANINTERVAL ;
       }
 
    done:
@@ -1909,7 +1930,7 @@ namespace engine
       rc = ossMkdir( _krcbLogPath, OSS_CREATE|OSS_READWRITE ) ;
       if ( rc && SDB_FE != rc )
       {
-         std::cerr << "Failed to create log dir: " << _krcbLogPath <<
+         std::cerr << "Failed to create repl-log dir: " << _krcbLogPath <<
                       ", rc = " << rc << std::endl ;
          goto error ;
       }
@@ -1917,24 +1938,24 @@ namespace engine
       rc = ossMkdir( _krcbBkupPath, OSS_CREATE|OSS_READWRITE ) ;
       if ( rc && SDB_FE != rc )
       {
-         PD_LOG ( PDERROR, "Failed to create backup dir: %s, rc = %d",
-                  _krcbBkupPath, rc ) ;
+         std::cerr << "Failed to create backup dir: " << _krcbBkupPath <<
+                      ", rc = " << rc << std::endl ;
          goto error ;
       }
 
       rc = ossMkdir( _dmsTmpBlkPath, OSS_CREATE|OSS_READWRITE ) ;
       if ( rc && SDB_FE != rc )
       {
-         PD_LOG ( PDERROR, "Failed to create tmp dir: %s, rc = %d",
-                  _krcbBkupPath, rc ) ;
+         std::cerr << "Failed to create tmp dir: " << _dmsTmpBlkPath <<
+                      ", rc = " << rc << std::endl ;
          goto error ;
       }
 
       rc = ossMkdir( _krcbLobPath, OSS_CREATE|OSS_READWRITE ) ;
       if ( rc && SDB_FE != rc )
       {
-         PD_LOG ( PDERROR, "Failed to create lob dir: %s, rc = %d",
-                  _krcbLobPath, rc ) ;
+         std::cerr << "Failed to create lob dir: " << _krcbLobPath <<
+                      ", rc = " << rc << std::endl ;
          goto error ;
       }
 

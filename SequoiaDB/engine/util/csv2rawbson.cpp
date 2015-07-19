@@ -2148,6 +2148,7 @@ the field appears delChar, rc = %d", rc ) ;
       else if ( !isString &&
                 ( _delField == *pCursor || _delRecord == *pCursor ) )
       {
+         BOOLEAN isRecordEnd = ( _delRecord == *pCursor ) ;
          fieldSize = pCursor - leftField ;
          leftField = _trim( leftField, fieldSize ) ;
          if ( fieldSize == 0 )
@@ -2241,7 +2242,7 @@ the field appears delChar, rc = %d", rc ) ;
             }
          }
          ++fieldNum ;
-         if ( _delRecord == *pCursor )
+         if ( TRUE == isRecordEnd )
          {
             break ;
          }

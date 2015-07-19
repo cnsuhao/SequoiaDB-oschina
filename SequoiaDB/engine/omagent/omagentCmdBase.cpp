@@ -54,7 +54,6 @@ namespace engine
       _buffSize   = 0 ;
       _readSize   = 0 ;
       ossMemset( _jsFileName, 0, OSS_MAX_PATHSIZE + 1 ) ;
-      ossMemset( _jsFileArgs, 0, JS_ARG_LEN + 1 ) ;
       prime() ;
    }
 

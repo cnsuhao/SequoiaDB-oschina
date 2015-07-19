@@ -31,6 +31,9 @@
    RET_JSON the result is as :{"HostName":"rhelt10","CPU":{"Sys":49944310,"Idle":25696260350,"Other":70182760,"User":204703470},"Memory":{"Size":3833,"Free":552,"Used":3281},"Disk":[{"Name":"/dev/sda1","Mount":"/","Size":34532,"Free":21441}],"Net":{"CalendarTime":1412059081,"Net":[{"Name":"eth1","RXBytes":4773973643,"RXPackets":12958460,"RXErrors":0,"RXDrops":0,"TXBytes":11956800291,"TXPackets":3906739,"TXErrors":0,"TXDrops":0}]}}
 */
 
+var FILE_NAME_QUEYR_HOST_STATUS = "queryHostStatus.js" ;
+var errMsg           = "" ;
+var rc               = SDB_OK ;
 var RET_JSON         = new Object() ;
 RET_JSON[HostName]   = "" ; 
 RET_JSON[CPU]        = {} ;
@@ -40,8 +43,21 @@ RET_JSON[Net]        = {} ;
 
 function snapshotCPUInfo()
 {
-   var obj             =  eval( '(' + System.snapshotCpuInfo() + ')' ) ;
-   var cpuInfo         = new CPUSnapInfo() ;
+   var obj     = null ;
+   var cpuInfo = new CPUSnapInfo() ;
+   try
+   {
+      obj =  eval( '(' + System.snapshotCpuInfo() + ')' ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = "Failed to snapshot cpu info" ;
+      rc = GETLASTERROR() ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_QUEYR_HOST_STATUS,
+              sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
    cpuInfo[User]       = obj[User] ;
    cpuInfo[Sys]        = obj[Sys] ;
    cpuInfo[Idle]       = obj[Idle] ;
@@ -51,8 +67,21 @@ function snapshotCPUInfo()
 
 function snapshotMemoryInfo()
 {
-   var obj             =  eval( '(' + System.snapshotMemInfo() + ')' ) ;
-   var Info            = new MemorySnapInfo() ;
+   var obj  = null ;
+   var Info = new MemorySnapInfo() ;
+   try
+   {
+      obj  = eval( '(' + System.snapshotMemInfo() + ')' ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = "Failed to snapshot memory info" ;
+      rc = GETLASTERROR() ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_QUEYR_HOST_STATUS,
+              sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
    Info[Size]          = obj[Size] ;
    Info[Used]          = obj[Used] ;
    Info[Free]          = obj[Free] ;
@@ -61,9 +90,22 @@ function snapshotMemoryInfo()
 
 function snapshotNetInfo()
 {
+   var obj               = null ;
    var netResult         = [] ;
-   var obj               = eval( '(' + System.snapshotNetcardInfo() + ')' ) ;
-   var arr               = obj[Netcards] ;
+   try
+   {
+      obj = eval( '(' + System.snapshotNetcardInfo() + ')' ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = "Failed to snapshot net card info" ;
+      rc = GETLASTERROR() ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_QUEYR_HOST_STATUS,
+              sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+   var arr = obj[Netcards] ;
    for ( var i = 0; i < arr.length; i++ )
    {
       var oneNet    = arr[i] ;
@@ -86,9 +128,22 @@ function snapshotNetInfo()
 
 function snapshotDiskInfo()
 {
+   var obj             = null ;
    var results         = [] ;
-   var obj             = eval( '(' + System.snapshotDiskInfo() + ')' ) ;
-   var arr             = obj[Disks] ;
+   try
+   {
+      obj = eval( '(' + System.snapshotDiskInfo() + ')' ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = "Failed to snapshot disk info" ;
+      rc = GETLASTERROR() ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_QUEYR_HOST_STATUS,
+              sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+   var arr = obj[Disks] ;
    for ( var i = 0; i < arr.length; i++ )
    {
       var oneDisk   = arr[i] ;
@@ -114,12 +169,25 @@ function snapshotDiskInfo()
 
 function main()
 {
-   RET_JSON[HostName] = BUS_JSON[HostName] ;
-   snapshotCPUInfo() ;
-   snapshotMemoryInfo() ;
-   snapshotNetInfo() ;
-   snapshotDiskInfo() ;
-   return RET_JSON ; 
+   try
+   {
+      RET_JSON[HostName] = BUS_JSON[HostName] ;
+      snapshotCPUInfo() ;
+      snapshotMemoryInfo() ;
+      snapshotNetInfo() ;
+      snapshotDiskInfo() ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = "Failed to query host status" ;
+      rc = GETLASTERROR() ;
+      PD_LOG( arguments, PDERROR, FILE_NAME_QUEYR_HOST_STATUS,
+              sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+   
+   return RET_JSON ;
 }
 
 

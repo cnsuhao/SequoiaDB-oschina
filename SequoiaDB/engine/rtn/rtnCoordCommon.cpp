@@ -1525,14 +1525,14 @@ namespace engine
             break;
          }
          isNeedRefresh = TRUE ;
-         }while( TRUE );
+      }while( TRUE );
 
-         if ( SDB_OK != rc )
-         {
-            PD_LOG ( PDERROR,
-                     "Failed to send the request to the group(%u), rc=%d",
-                     groupID, rc );
-         }
+      if ( SDB_OK != rc )
+      {
+         PD_LOG ( PDERROR,
+                  "Failed to send the request to the group(%u), rc=%d",
+                  groupID, rc );
+      }
       PD_TRACE_EXITRC( SDB_RTNCOSENDREQUESTTONODEGROUP, rc ) ;
       return rc ;
    }
@@ -2251,7 +2251,6 @@ namespace engine
       SDB_RTNCB *pRtncb = pKrcb->getRTNCB();
       CoordCB *pCoordcb = pKrcb->getCoordCB();
       INT32 bufferSize = 0;
-      CHAR *pResultBuffer;
       MsgOpReply replyHeader;
       rtnCoordCommand *pCmdProcesser = NULL;
       CHAR *pListReq = NULL;
@@ -2268,8 +2267,8 @@ namespace engine
                              0, 0, 0, -1, query ) ;
       PD_RC_CHECK( rc, PDERROR, "failed to build list groups request(rc=%d)",
                    rc );
-      rc = pCmdProcesser->execute( pListReq, 0, &pResultBuffer, cb,
-                                   replyHeader, &err ) ;
+      rc = pCmdProcesser->execute( pListReq, 0, cb,
+                                   replyHeader, NULL ) ;
       SDB_ASSERT( NULL == err, "impossible" ) ;
       PD_RC_CHECK( rc, PDERROR, "failed to list groups(rc=%d)", rc ) ;
 
@@ -2404,7 +2403,8 @@ namespace engine
    INT32 rtnCoordGetSubCLsByGroups( const CoordSubCLlist &subCLList,
                                     const CoordGroupList &sendGroupList,
                                     pmdEDUCB *cb,
-                                    CoordGroupSubCLMap &groupSubCLMap )
+                                    CoordGroupSubCLMap &groupSubCLMap,
+                                    const BSONObj *query )
    {
       INT32 rc = SDB_OK;
       CoordGroupList::const_iterator iterSend;
@@ -2420,7 +2420,14 @@ namespace engine
          PD_RC_CHECK( rc, PDWARNING,
                      "failed to get catalog info of sub-collection(%s)",
                      (*iterCL).c_str() );
-         cataInfo->getGroupLst( groupList );
+         if ( NULL == query || query->isEmpty() )
+         {
+            cataInfo->getGroupLst( groupList );
+         }
+         else
+         {
+            cataInfo->getGroupByMatcher( *query, groupList ) ;
+         }
          SDB_ASSERT( groupList.size() > 0, "group list can't be empty!" );
          iterGroup = groupList.begin();
          while( iterGroup != groupList.end() )

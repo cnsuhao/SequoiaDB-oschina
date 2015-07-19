@@ -29,15 +29,6 @@
    RET_JSON: the format is: { "Port", "10000" }
 */
 
-// println
-// var BUS_JSON = { "clustername": "c1", "businessname": "b1", "usertag": "tmpCoord", "CataAddr": [] };
-
-// var SYS_JSON = { "TaskID": 17 };
-
-//var BUS_JSON = { "clustername": "c1", "businessname": "b1", "usertag": "tmpCoord", "CataAddr": [ { "HostName": "rhel64-test8", "SvcName": "60003" }, { "HostName": "rhel64-test9", "SvcName": "61003" } ] };
-//var SYS_JSON = { "TaskID": 2 }
-
-
 var FILE_NAME_INSTALL_TEMPORARY_COORD = "installTmpCoord.js" ;
 var RET_JSON = new installTmpCoordResult() ;
 var rc       = SDB_OK ;
@@ -56,9 +47,9 @@ function _init()
 {
    // get task id
    task_id = getTaskID( SYS_JSON ) ;
-
-   PD_LOG( arguments, PDEVENT, FILE_NAME_INSTALL_TEMPORARY_COORD,
-           sprintf( "Begin to install temporary coord for task[?]", task_id ) ) ;
+   setTaskLogFileName( task_id ) ;
+   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_TEMPORARY_COORD,
+            sprintf( "Begin to install temporary coord in task[?]", task_id ) ) ;
 }
 
 /* *****************************************************************************
@@ -69,8 +60,8 @@ function _init()
 ***************************************************************************** */
 function _final()
 {
-   PD_LOG( arguments, PDEVENT, FILE_NAME_INSTALL_TEMPORARY_COORD,
-           sprintf( "Finish installing temporary coord for task[?]", task_id ) ) ;
+   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_TEMPORARY_COORD,
+            sprintf( "Finish installing temporary coord in task[?]", task_id ) ) ;
 }
 
 /* *****************************************************************************
@@ -79,9 +70,9 @@ function _final()
    cfgInfo[json]: catalog cfg info object
 @return
    retObj[json]: the return catalog address, e.g.
-                 { "clustername": "c1", "businessname": "b1", "usertag":     "tmpCoord","catalogaddr" : "rhel64-test8:11803,rhel64-test9:11803" }
+                 { "clustername": "c1", "businessname": "b1", "usertag": "tmpCoord","catalogaddr" : "rhel64-test8:11803,rhel64-test9:11803" }
 ***************************************************************************** */
-function _getCatalogCfg( cfgInfo )
+function _getCfgInfo( cfgInfo )
 {
    var retObj           = new Object() ;
    var addrArr          = [] ;
@@ -90,26 +81,26 @@ function _getCatalogCfg( cfgInfo )
    var str              = "" ;
    
    // get configure information
-   retObj[ClusterName]  = cfgInfo[ClusterName] ;
-   retObj[BusinessName] = cfgInfo[BusinessName] ;
-   retObj[UserTag]      = cfgInfo[UserTag] ;
-   retObj[CatalogAddr]  = "" ;
+   retObj[ClusterName2]  = cfgInfo[ClusterName2] ;
+   retObj[BusinessName2] = cfgInfo[BusinessName2] ;
+   retObj[UserTag2]      = cfgInfo[UserTag2] ;
+   retObj[CatalogAddr2] = "" ;
    addrArr              = cfgInfo[CataAddr] ;
    len                  = addrArr.length ;
    
    // check info
-   PD_LOG( arguments, PDDEBUG, FILE_NAME_INSTALL_TEMPORARY_COORD,
-           sprintf( "clustername[?], businessname[?], usertag[?]",
-                    retObj[ClusterName], retObj[BusinessName], retObj[UserTag] ) ) ;
+   PD_LOG2( task_id, arguments, PDDEBUG, FILE_NAME_INSTALL_TEMPORARY_COORD,
+            sprintf( "clustername[?], businessname[?], usertag[?]",
+                    retObj[ClusterName2], retObj[BusinessName2], retObj[UserTag2] ) ) ;
                     
-   if ( "undefined" == typeof(retObj[ClusterName]) ||
-        "undefined" == typeof(retObj[BusinessName]) ||
-        "undefined" == typeof(retObj[UserTag]) )
+   if ( "undefined" == typeof(retObj[ClusterName2]) ||
+        "undefined" == typeof(retObj[BusinessName2]) ||
+        "undefined" == typeof(retObj[UserTag2]) )
    {
       errMsg = "Invalid configure information for installing temporary coord" ;
-      PD_LOG( arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
-              sprintf( errMsg + " : clustername[?], businessname[?], usertag[?]",
-                       retObj[ClusterName], retObj[BusinessName], retObj[UserTag] ) ) ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+               sprintf( errMsg + " : clustername[?], businessname[?], usertag[?]",
+                       retObj[ClusterName2], retObj[BusinessName2], retObj[UserTag2] ) ) ;
       exception_handle( SDB_INVALIDARG, errMsg ) ;
    }
    if ( 0 == len )
@@ -131,13 +122,440 @@ function _getCatalogCfg( cfgInfo )
          addr += "," + hostname + ":" + svcname ;
       }
    }
-   retObj[CatalogAddr] = addr ;
+   retObj[CatalogAddr2] = addr ;
    return retObj ;
+}
+
+/* *****************************************************************************
+@discretion: get the information of temporary coord with the giving the condition
+@parameter
+   option[object]: the option for Sdbtool
+   matcher[object]: the matcher for Sdbtool
+@return
+   retNum[number]: the amount of temporary coord left last time
+***************************************************************************** */
+function _getTmpCoordInfo( option, matcher )
+{
+   var tmpCoordInfoArr = null ;
+   
+   try
+   {
+      tmpCoordInfoArr = Sdbtool.listNodes( option, matcher ) ;
+      if ( "undefined" == typeof( tmpCoordInfoArr ) )
+         exception_handle( SDB_SYS, "The information of temporary coord is undefined" ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = "Failed to get the information of temporary coord" ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+   return tmpCoordInfoArr ;
+}
+
+/* *****************************************************************************
+@discretion: get the amount of temporary coord with the giving information
+@parameter
+   option[object]: the option for Sdbtool
+   matcher[object]: the matcher for Sdbtool
+@return
+   retNum[number]: the amount of temporary coord left last time
+***************************************************************************** */
+function _getTmpCoordNum( tmpCoordInfoArr )
+{
+   var retNum = 0 ;
+   
+   try
+   {
+      retNum = tmpCoordInfoArr.size() ;
+      if ( "number" != typeof( retNum ) )
+         exception_handle( SDB_SYS, sprintf( "retNum is not a number" ) ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = "Failed to get the amount of temporary coord left last time" ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+   return retNum ;
+}
+
+/* *****************************************************************************
+@discretion: get the service of temporary coord with the giving condition
+@parameter
+   option[object]: the option for Sdbtool
+   matcher[object]: the matcher for Sdbtool
+@return
+   retSvc[string]: the service of temporary coord left last time
+***************************************************************************** */
+function _getTmpCoordSvc( tmpCoordInfoArr )
+{
+   var retSvc          = null ;
+   var tmpCoordInfoObj = null ;
+   var tmpCoordNum    = 0 ;
+   
+   try
+   {
+      tmpCoordNum = tmpCoordInfoArr.size() ;
+      if ( 1 == tmpCoordNum )
+      {
+         tmpCoordInfoObj  = eval( '(' + tmpCoordInfoArr.pos() + ')' ) ;
+         retSvc  = tmpCoordInfoObj[SvcName2] ;
+      }
+      else
+      {
+         exception_handle( SDB_SYS, sprintf( "Failed to get service of temporary coord, for [?] temporary coord left last time", tmpCoordNum ) ) ;
+      }
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = "Failed to get the service of the remaining temporary coord" ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+   return retSvc ;
+}
+
+/* *****************************************************************************
+@discretion: remove temporary coord
+@parameter
+   svcName[string]: the service of temporary coord
+@return void
+***************************************************************************** */
+function _removeTmpCoord( svcName )
+{
+   var omaHostName = null ;
+   var omaSvcName  = null ;
+   var oma         = null ;
+   // 1. connect to OM Agent in local host
+   try
+   {
+      omaHostName     = System.getHostName() ;
+      omaSvcName      = Oma.getAOmaSvcName( "localhost" ) ;
+      oma = new Oma( omaHostName, omaSvcName ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = "Failed to connect to OM Agent in local host to remove temporary coord" ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+   // 2. remove temporary coord
+   try
+   {
+      oma.removeCoord( svcName ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = "Failed to remove temporary coord left last time" ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+}
+
+/* *****************************************************************************
+@discretion: rollback the exist nodes
+@parameter
+@return
+***************************************************************************** */
+function _rollback( tmpCoordHostName, tmpCoordSvcName )
+{
+   try
+   {
+      var db       = null ;
+      var cur      = null ;
+      var obj      = null ;
+      var arr      = [] ;
+      var tryTimes = 5 ;
+      var i        = 0 ;
+      
+      // 1. connect to the remaining temporary coord
+      try
+      {
+         PD_LOG2( task_id, arguments, PDDEBUG, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( "Connect to the remaining temporary coord[?:?]",
+                           tmpCoordHostName, tmpCoordSvcName ) ) ;
+         for( i = 0; i < tryTimes; i++ )
+         {
+            try
+            {
+               db = new Sdb( tmpCoordHostName, tmpCoordSvcName ) ;
+            }
+            catch( e )
+            {
+               if ( SDB_TIMEOUT == e )
+               {
+                  PD_LOG2( task_id, arguments, PDDEBUG, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                           sprintf( "Connect to temporary coord[?:?] time time out",
+                           tmpCoordHostName, tmpCoordSvcName ) ) ;
+                  sleep( 1000 ) ; // l sec
+                  continue ;
+               }
+               else
+                  throw e ;
+            }
+            break ;
+         }
+         if ( tryTimes == i )
+         {
+            PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                     sprintf( "Failed to connect to temporary coord[?:?] left last time",
+                     tmpCoordHostName, tmpCoordSvcName ) ) ;
+            throw SDB_TIMEOUT ;
+         }
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         rc = GETLASTERROR() ;
+         errMsg = "Failed to connect to the remaining temporary coord" ;
+         PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
+      }
+      
+      // 2. test whether the temporary coord can connect to catalog or not
+      try
+      {
+         db.list( SDB_LIST_GROUPS ) ;
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         rc = GETLASTERROR() ;
+         errMsg = "The remaining temporary coord can't connect to catalog" ;
+         PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
+      }
+      
+      // 3. remove data groups
+      try
+      {
+         // list data groups
+         cur = db.list( SDB_LIST_GROUPS, {"Role": 0}, {"GroupName":""} ) ;
+         while( true )
+         {
+            obj = eval( '(' + cur.next() + ')' ) ;
+            if ( "undefined" == typeof(obj) )
+               break ;
+            arr.push( obj[GroupName] ) ;
+         }
+         if ( 0 != arr.length )
+         {
+            // remove data groups
+            for ( var i = 0; i < arr.length; i++ )
+            {
+               PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                        sprintf( "Removing data group[?] left last error", arr[i] ) ) ;
+               db.removeRG( arr[i] ) ;
+            }
+         }
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         rc = GETLASTERROR() ;
+         errMsg = "Failed to remove data group[?] left last error" ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
+      }
+      
+      // 4. remove coord group
+      try
+      {
+         // list coord group
+         cur = db.list( SDB_LIST_GROUPS, {"Role": 1}, {"GroupName":""} ) ;
+         obj = eval( '(' + cur.next() + ')' ) ;
+         if ( "undefined" != typeof(obj) )
+         {
+            // remove coord group
+            PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                     sprintf( "Removing coord group left last error" ) ) ;
+            db.removeCoordRG() ;
+         }
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         rc = GETLASTERROR() ;
+         errMsg = "Failed to remove coord group left last error" ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
+      }
+      
+      // 5. remove catalog group
+      try
+      {
+         // list coord group
+         cur = db.list( SDB_LIST_GROUPS, {"Role": 2}, {"GroupName":""} ) ;
+         obj = eval( '(' + cur.next() + ')' ) ;
+         if ( "undefined" != typeof(obj) )
+         {
+            // remove catalog group
+            PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                     "Removing catalog group left last error" ) ;
+            db.removeCatalogRG() ;
+         }
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         rc = GETLASTERROR() ;
+         errMsg = "Failed to remove catalog group left last error" ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
+      }
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = "Failed to rollback exist nodes" ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+}
+
+/* *****************************************************************************
+@discretion: check whether error had happen(when temporary coord is running),
+             if so, going to rollback and stop the temporary coord left last
+             error
+@parameter
+   tmpCoordHostName[string]: the host name of temporary coord
+   cfgInfoObj[object]: temporary coord configure info
+@return void
+***************************************************************************** */
+function _handleerror( tmpCoordHostName, cfgInfoObj )
+{
+   var option  = new tmpCoordOption() ;
+   var matcher = new tmpCoordMather() ;
+   var needToRollback = false ;
+   var oldTmpCoordInfoArr = null ;
+   var oldTmpCoordSvc     = null ;
+   var oldTmpCoordNum     = null ;
+   
+   // 1. get configure info for checking error
+   try
+   {
+      matcher[ClusterName2]  = cfgInfoObj[ClusterName2] ;
+      matcher[BusinessName2] = cfgInfoObj[BusinessName2] ;
+      matcher[UserTag2]      = cfgInfoObj[UserTag2] ;
+      // when no catalog address, we are installing business, and we need to rollback
+      if ( ( "undefined" == typeof( cfgInfoObj[CatalogAddr2] ) ) ||
+           ( "" == cfgInfoObj[CatalogAddr2] ) )
+      {
+         needToRollback = true ;
+      }
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = "Failed get info for checking whether error had happened" ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+   
+   // 2. get the information of remaining temporary coord
+   oldTmpCoordInfoArr = _getTmpCoordInfo( option, matcher ) ;
+   
+   // 3. get remaining temporary coord amount
+   oldTmpCoordNum = _getTmpCoordNum( oldTmpCoordInfoArr ) ;
+   if ( 0 == oldTmpCoordNum )
+   {
+      PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_TEMPORARY_COORD,
+               "No error happened last time" ) ;
+      return ;
+   }
+   else
+   {
+      PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_TEMPORARY_COORD,
+               "Error had happened last time" ) ;
+   }
+
+   // 4. get service of the remaining temporary coord
+   oldTmpCoordSvc = _getTmpCoordSvc( oldTmpCoordInfoArr ) ;
+
+   // 5. rollback
+   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_TEMPORARY_COORD,
+            sprintf( "Need to rollback: ?", needToRollback? "TRUE" : "FALSE" ) ) ;
+   if ( true == needToRollback )
+   {
+      try
+      {
+         _rollback( tmpCoordHostName, oldTmpCoordSvc ) ;
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         rc = GETLASTERROR() ;
+         errMsg = "Failed to rollback the remaining nodes left last time, going to remove remaining temporary coord anyway" ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      }
+   }
+   
+   // 6. remove the remaining temporary coord anyway
+   try
+   {
+      _removeTmpCoord( oldTmpCoordSvc ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = "Failed to remove the remaining temporary coord, stop installing business" ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+   
+   // 7. check whether the remaining coord still exist or not
+   try
+   {
+      oldTmpCoordInfoArr = _getTmpCoordInfo( option, matcher ) ;
+      oldTmpCoordNum = _getTmpCoordNum( oldTmpCoordInfoArr ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      rc = GETLASTERROR() ;
+      errMsg = "Failed to check whether remaining temporary still exist or not" ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+   if ( 0 != oldTmpCoordNum )
+      exception_handle( SDB_SYS, "After rollback, remaining still exist, stop install business" ) ;
+   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_TEMPORARY_COORD,
+            "Success to remove the remaining temporary coord left last time" ) ;
 }
 
 function main()
 {
    var oma                    = null ;
+   var tmpCoordHostName       = null ;
    var omaHostName            = null ;
    var omaSvcName             = null ;
    var tmpCoordSvcName        = null ;
@@ -152,41 +570,63 @@ function main()
       // 1. get install temporary coord arguments
       try
       {
-         omaHostName     = System.getHostName() ;
-         omaSvcName      = Oma.getAOmaSvcName( "localhost" ) ;
-         tmpCoordSvcName = getAUsablePortFromLocal() + "" ;
-         installInfoObj  = eval( '(' + Oma.getOmaInstallInfo() + ')' ) ;
-         dbInstallPath   = adaptPath( installInfoObj[INSTALL_DIR] ) ;
-         tmp_coord_install_path = dbInstallPath + "database/tmpCoord/" + tmpCoordSvcName ;
+         omaHostName      = System.getHostName() ;
+         omaSvcName       = Oma.getAOmaSvcName( "localhost" ) ;
+         tmpCoordHostName = omaHostName ;
+         tmpCoordSvcName  = getAUsablePortFromLocal() + "" ;
+         installInfoObj   = eval( '(' + Oma.getOmaInstallInfo() + ')' ) ;
+         dbInstallPath    = adaptPath( installInfoObj[INSTALL_DIR] ) ;
+         tmp_coord_install_path = adaptPath( dbInstallPath ) + "database/tmpCoord/" + tmpCoordSvcName ;
       }
       catch( e )
       {
          SYSEXPHANDLE( e ) ;
          rc = GETLASTERROR() ;
          errMsg = "Failed to get arguments for installing temporary coord" ;
-         PD_LOG( arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
-                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
          exception_handle( rc, errMsg ) ;
       }
       
-      // 2. get catalog address
+      // 2. get temporary coord configure info
       try
       {
-         cfgObj = _getCatalogCfg( BUS_JSON ) ;
+         cfgObj = _getCfgInfo( BUS_JSON ) ;
       }
       catch( e )
       {
          SYSEXPHANDLE( e ) ;
          rc = GETLASTERROR() ;
-         errMsg = "Failed to get catalog's address" ;
-         PD_LOG( arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
-                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         errMsg = "Failed to get configure info for temporary coord" ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
          exception_handle( rc, errMsg ) ;
       }
       
-      // 3. connet to OM Agent in local host
+      // 3. try to handle error happen last time
       try
       {
+         PD_LOG2( task_id, arguments, PDDEBUG, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( "Handle error passes arguments: tmpCoordHostName[?], cfgObj[?]",
+                          tmpCoordHostName, JSON.stringify(cfgObj) ) ) ;
+         _handleerror( tmpCoordHostName, cfgObj ) ;
+      }
+      catch( e )
+      {
+         SYSEXPHANDLE( e ) ;
+         rc = GETLASTERROR() ;
+         errMsg = "Failed to check and handle error may be happened last time" ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         exception_handle( rc, errMsg ) ;
+      }
+      
+      // begin to install a new temporary coord
+      // 4. connect to OM Agent in local host
+      try
+      {
+         PD_LOG2( task_id, arguments, PDDEBUG, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( "Connect to OM Agent[?:?] in local host", omaHostName, omaSvcName ) ) ;
          oma = new Oma( omaHostName, omaSvcName ) ;
       }
       catch( e )
@@ -194,17 +634,17 @@ function main()
          SYSEXPHANDLE( e ) ;
          rc = GETLASTERROR() ;
          errMsg = "Failed to connect to OM Agent in local host" ;
-         PD_LOG( arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
-                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
          exception_handle( rc, errMsg ) ;
       }
 
-      // 4. create temporary coord
+      // 5. create temporary coord
       try
       {
-         PD_LOG( arguments, PDDEBUG, FILE_NAME_INSTALL_TEMPORARY_COORD,
-                 sprintf( "Create temporary coord passes arguments: svc[?], path[?], cfgObj[?]",
-                          tmpCoordSvcName, tmp_coord_install_path, JSON.stringify(cfgObj) ) ) ;
+         PD_LOG2( task_id, arguments, PDDEBUG, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( "Create temporary coord passes arguments: svc[?], path[?], cfgObj[?]",
+                           tmpCoordSvcName, tmp_coord_install_path, JSON.stringify(cfgObj) ) ) ;
          oma.createCoord( tmpCoordSvcName, tmp_coord_install_path, cfgObj ) ;
       }
       catch( e )
@@ -212,11 +652,11 @@ function main()
          SYSEXPHANDLE( e ) ;
          rc = GETLASTERROR() ;
          errMsg = "Failed to create temporary coord" ;
-         PD_LOG( arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
-                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
          exception_handle( rc, errMsg ) ;
       }
-      // 5. start temporary coord
+      // 6. start temporary coord
       try
       {
          oma.startNode( tmpCoordSvcName ) ;
@@ -226,11 +666,14 @@ function main()
          SYSEXPHANDLE( e ) ;
          rc = GETLASTERROR() ;
          errMsg = "Failed to start temporary coord" ;
-         PD_LOG( arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
-                 sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+                  sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
          exception_handle( rc, errMsg ) ;
       }
-      // 6. close connection and return the port of temporary coord
+      PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_TEMPORARY_COORD,
+               sprintf( "Success to create new temporary coord[?:?]",
+                        tmpCoordHostName, tmpCoordSvcName ) ) ;
+      // 7. disconnect and return the port of temporary coord
       oma.close() ;
       oma = null ;
       RET_JSON[TmpCoordSvcName] = tmpCoordSvcName ;
@@ -240,8 +683,8 @@ function main()
       SYSEXPHANDLE( e ) ;
       errMsg = "Failed to install temporary coord in local host" ;
       rc = GETLASTERROR() ;
-      PD_LOG( arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
-              sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_TEMPORARY_COORD,
+               sprintf( errMsg + ", rc: ?, detail: ?", rc, GETLASTERRMSG() ) ) ;
       if ( null != oma && "undefined" != typeof(oma) )
       {
          try
@@ -265,7 +708,6 @@ function main()
    }
 
    _final() ;
-println( "RET_JSON is: " + JSON.stringify(RET_JSON) ) ;
    return RET_JSON ;
 }
 

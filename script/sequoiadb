@@ -217,15 +217,21 @@ do_start()
 
 #
 # Function that stops the daemon/service
-#
+#  arg1 isStopNode
 do_stop()
 {
         # Return
         #   0 if daemon has been stopped
         #   other if a failure occurred
         $INSTALL_DIR/bin/$DAEMON_STOP
-		$INSTALL_DIR/bin/$DB_STOP -t all
+
+        isStopAllNode=$1 ;
+        # if $isStopAllNode == "true" ; then stop all nodes
+        if [ "a${isStopAllNode}" != "afalse" ] ; then
+           $INSTALL_DIR/bin/$DB_STOP -t all
+        fi
         return $?
+
 }
 
 #
@@ -277,7 +283,7 @@ case "$1" in
 	# 'force-reload' alias
 	#
 	log_daemon_msg "Restarting $DESC" "$NAME"
-	do_stop
+	do_stop "false"
 	case "$?" in
 	  0)
 		do_start

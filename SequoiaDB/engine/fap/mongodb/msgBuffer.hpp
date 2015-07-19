@@ -40,7 +40,8 @@
 #include "oss.hpp"
 #include "ossUtil.hpp"
 #include "ossMem.hpp"
-#include "../../bson/bsonobj.h"
+#include "../../bson/bson.hpp"
+
 #define MEMERY_BLOCK_SIZE 4096
 
 class _msgBuffer : public SDBObject
@@ -48,7 +49,7 @@ class _msgBuffer : public SDBObject
 public:
    _msgBuffer() : _data( NULL ), _size( 0 ), _capacity( 0 )
    {
-      alloc( _data, MEMERY_BLOCK_SIZE ) ;
+      alloc( MEMERY_BLOCK_SIZE ) ;
    }
 
    ~_msgBuffer()
@@ -104,12 +105,17 @@ public:
          return ;
       }
 
-      realloc( _data, size ) ;
+      realloc( size ) ;
+   }
+
+   void doneLen()
+   {
+      *(SINT32 *)_data = _size ;
    }
 
 private:
-   INT32 alloc( CHAR *&ptr, const UINT32 size ) ;
-   INT32 realloc( CHAR *&ptr, const UINT32 size ) ;
+   INT32 alloc( const UINT32 size ) ;
+   INT32 realloc( const UINT32 size ) ;
 
 private:
    CHAR  *_data ;

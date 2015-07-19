@@ -117,10 +117,7 @@ namespace engine
    #define COORD_CMD_LIST_CL_IN_DOMAIN        CMD_ADMIN_PREFIX CMD_NAME_LIST_CL_IN_DOMAIN
    #define COORD_CMD_INVALIDATE_CACHE         CMD_ADMIN_PREFIX CMD_NAME_INVALIDATE_CACHE
    #define COORD_CMD_LIST_LOBS                CMD_ADMIN_PREFIX CMD_NAME_LIST_LOBS
-   #define COORD_CMD_ATTACH_IMAGE             CMD_ADMIN_PREFIX CMD_NAME_ATTACH_IMAGE
-   #define COORD_CMD_DETACH_IMAGE             CMD_ADMIN_PREFIX CMD_NAME_DETACH_IMAGE
-   #define COORD_CMD_ACTIVE_IMAGE             CMD_ADMIN_PREFIX CMD_NAME_ACTIVE_IMAGE
-   #define COORD_CMD_DEACTIVE_IMAGE           CMD_ADMIN_PREFIX CMD_NAME_DEACTIVE_IMAGE
+   #define COORD_CMD_ALTER_IMAGE              CMD_ADMIN_PREFIX CMD_NAME_ALTER_IMAGE
    #define COORD_CMD_REELECT                  CMD_ADMIN_PREFIX CMD_NAME_REELECT
 
    class rtnCoordCommand : virtual public rtnCoordOperator
@@ -128,14 +125,21 @@ namespace engine
    public:
       rtnCoordCommand(){};
       virtual ~rtnCoordCommand(){};
-      virtual INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                             CHAR **ppResultBuffer, pmdEDUCB *cb,
+
+   public:
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
                              MsgOpReply &replyHeader,
-                             BSONObj **ppErrorObj ) = 0;
-      virtual INT32 queryOnCatalog ( CHAR *pReceiveBuffer, SINT32 packSize,
-                                     CHAR **ppResultBuffer, pmdEDUCB *cb,
-                                     MsgOpReply &replyHeader,
-                                     INT32 requestType ) ;
+                             rtnContextBuf *buf ) = 0 ;
+        
+      virtual INT32 queryOnCatalog( CHAR *pReceiveBuffer,
+                                    SINT32 packSize,
+                                    INT32 requestType,
+                                    pmdEDUCB *cb,
+                                    MsgOpReply &replyHeader,
+                                    rtnContextBuf *buf ) ;
+
       virtual INT32 executeOnDataGroup ( MsgHeader *pMsg,
                                          CoordGroupList &groupLst,
                                          CoordGroupList &sendGroupLst,
@@ -172,19 +176,21 @@ namespace engine
    class rtnCoordDefaultCommand : public rtnCoordCommand
    {
    public:
-      virtual INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                           CHAR **ppResultBuffer, pmdEDUCB *cb,
-                           MsgOpReply &replyHeader,
-                           BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
 
    class rtnCoordBackupBase : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer, pmdEDUCB *cb,
-                     MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj ) ;
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
 
    protected:
       INT32          _getFilterFromMsg( CHAR *pReceiveBuffer, SINT32 packSize,
@@ -241,18 +247,20 @@ namespace engine
    class rtnCoordCMDListGroups : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
    class rtnCoordCMDSnapshotOnNode : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    private:
       virtual INT32 BuildRequestMsg  ( CHAR **ppBuffer, INT32 *bufferSize,
                               SINT32 flag, SINT64 numToSkip,
@@ -264,10 +272,11 @@ namespace engine
    class rtnCoordCMDSnapshotIntrBase : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    private:
       INT32 getNodes( pmdEDUCB *cb, bson::BSONObj &query, ROUTE_SET &nodes,
                      bson::BSONObj &newQuery );
@@ -374,10 +383,11 @@ namespace engine
    class rtnCoordCMDSnapShotBase : public rtnCoordCommand
    {
    public:
-      virtual INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                           CHAR **ppResultBuffer, pmdEDUCB *cb,
-                           MsgOpReply &replyHeader,
-                           BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
 
    protected:
       virtual INT32 appendObjs( const CHAR *pInputBuffer,
@@ -536,18 +546,20 @@ namespace engine
    class rtnCoordCMDSnapshotCollectionsTmp : public rtnCoordCommand
    {
    public :
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
    class rtnCoordCMDSnapshotCollectionSpacesTmp : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
    class rtnCoordCMDSnapshotResetTmp : public rtnCoordCMDSnapshotOnNode
    {
@@ -562,19 +574,21 @@ namespace engine
    class rtnCoordCMDCreateCollectionSpace : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
 
    class rtnCoordCMDCreateCollection : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
 
    private:
       INT32 _notifyDataGroupsToStartTask( const BSONElement &task,
@@ -585,19 +599,21 @@ namespace engine
    class rtnCoordCMDAlterCollection : public rtnCoordCommand
    {
    public :
-      INT32 execute ( CHAR *pReceiveBuffer, SINT32 packSize,
-                      CHAR **ppResultBuffer,
-                      pmdEDUCB *cb, MsgOpReply &replyHeader,
-                      BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCMD2PhaseCommit : public rtnCoordCommand
    {
    public:
-      virtual INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                           CHAR **ppResultBuffer,
-                           pmdEDUCB *cb, MsgOpReply &replyHeader,
-                           BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    protected:
       virtual void getIgnoreRCList( std::set<INT32> &ignoreRCList );
 
@@ -608,7 +624,7 @@ namespace engine
 
    private:
       virtual void fillReply( MsgHeader *pSrcMsg,
-                              INT32 rc, bson::BSONObj **ppErrorObj,
+                              INT32 rc, 
                               MsgOpReply &replyHeader );
 
       virtual INT32 doP1OnDataGroup( CHAR *pReceiveBuffer,
@@ -670,13 +686,14 @@ namespace engine
    {
    public:
       virtual INT32 queryToCataNodeGroup( CHAR *pBuffer,
-                                 netMultiRouteAgent *pRouteAgent,
-                                 pmdEDUCB *cb,
-                                 rtnContextCoord *pContext );
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+                                          netMultiRouteAgent *pRouteAgent,
+                                          pmdEDUCB *cb,
+                                          rtnContextCoord *pContext );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
       virtual INT32 buildQueryRequest( CHAR *pIntput,
                                        pmdEDUCB *cb,
                                        CHAR **pOutput ) = 0;
@@ -709,37 +726,41 @@ namespace engine
    class rtnCoordCMDTestCollectionSpace : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
 
    class rtnCoordCMDTestCollection : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
 
    class rtnCoordCMDCreateGroup : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
 
    class rtnCoordCMDRemoveGroup : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
 
    class rtnCoordCMDConfigNode
@@ -754,20 +775,22 @@ namespace engine
                                  public rtnCoordCMDConfigNode
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
 
    class rtnCoordCMDRemoveNode : public rtnCoordCommand,
                                  public rtnCoordCMDConfigNode
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
       virtual INT32 processCatReply( MsgOpReply *pReply,
                                      CoordGroupList &groupLst )
       {
@@ -786,20 +809,22 @@ namespace engine
                                  public rtnCoordCMDConfigNode
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
 
 
    class rtnCoordCMDActiveGroup : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    private:
       INT32 executeOnCataGroup ( CHAR *pBuffer,
                                  netMultiRouteAgent *pRouteAgent,
@@ -816,28 +841,31 @@ namespace engine
    class rtnCoordCMDCreateIndex : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
 
    class rtnCoordCMDDropIndex : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
 
    class rtnCoordCMDOperateOnNode : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
       virtual SINT32 getOpType()=0;
    };
 
@@ -856,10 +884,11 @@ namespace engine
    class rtnCoordCMDOperateOnGroup : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
       INT32 opOnGroup( bson::BSONObj &boGroupInfo );
       virtual SINT32 getOpType()=0;
    };
@@ -873,10 +902,11 @@ namespace engine
    class rtnCoordCMDSplit : public rtnCoordCommand
    {
    public :
-      virtual INT32 execute ( CHAR *pReceiveBuffer, SINT32 packSize,
-                              CHAR **ppResultBuffer, pmdEDUCB *cb,
-                              MsgOpReply &replHeader,
-                              BSONObj **ppErrorObj ) ;
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
 
       INT32         getCLCount( const CHAR *clFullName,
                                 CoordGroupList &groupList,
@@ -916,38 +946,42 @@ namespace engine
    class rtnCoordCmdWaitTask : public rtnCoordCommand
    {
    public:
-      virtual INT32 execute ( CHAR *pReceiveBuffer, SINT32 packSize,
-                              CHAR **ppResultBuffer, pmdEDUCB *cb,
-                              MsgOpReply &replHeader,
-                              BSONObj **ppErrorObj ) ;
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCmdListTask : public rtnCoordCommand
    {
    public:
-      virtual INT32 execute ( CHAR *pReceiveBuffer, SINT32 packSize,
-                              CHAR **ppResultBuffer, pmdEDUCB *cb,
-                              MsgOpReply &replyHeader,
-                              BSONObj **ppErrorObj ) ;
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCmdCancelTask : public rtnCoordCommand
    {
    public:
-      virtual INT32 execute ( CHAR *pReceiveBuffer, SINT32 packSize,
-                              CHAR **ppResultBuffer, pmdEDUCB *cb,
-                              MsgOpReply &replyHeader,
-                              BSONObj **ppErrorObj ) ;
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCMDStatisticsBase : virtual public rtnCoordCommand,
                                     virtual public rtnCoordQuery
    {
    public :
-      virtual INT32 execute ( CHAR *pReceiveBuffer, SINT32 packSize,
-                              CHAR **ppResultBuffer, pmdEDUCB *cb,
-                              MsgOpReply &replHeader,
-                              BSONObj **ppErrorObj ) ;
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    private:
       virtual INT32 generateResult( rtnContext *pContext,
                                     netMultiRouteAgent *pRouteAgent,
@@ -984,10 +1018,11 @@ namespace engine
    class rtnCoordCMDCreateCataGroup : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    private:
       INT32 getNodeConf( CHAR *pQuery, bson::BSONObj &boNodeConfig );
       INT32 getNodeInfo( CHAR *pQuery, bson::BSONObj &boNodeInfo );
@@ -996,46 +1031,51 @@ namespace engine
    class rtnCoordCMDTraceStart : public rtnCoordCommand
    {
    public :
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCMDTraceResume : public rtnCoordCommand
    {
    public :
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCMDTraceStop : public rtnCoordCommand
    {
    public :
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCMDTraceStatus : public rtnCoordCommand
    {
    public :
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCMDExpConfig : public rtnCoordCommand
    {
    public :
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
 
    private:
       INT32 _getNodesSet( pmdEDUCB *cb, ROUTE_SET &nSet ) ;
@@ -1044,10 +1084,11 @@ namespace engine
    class rtnCoordCMDCrtProcedure : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
 
       INT32 processCatReply( MsgOpReply *pReply,
                              CoordGroupList &groupLst ) ;
@@ -1056,10 +1097,11 @@ namespace engine
    class rtnCoordCMDEval : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    private:
       INT32 _buildContext( _spdSession *session,
                            pmdEDUCB *cb,
@@ -1069,10 +1111,11 @@ namespace engine
    class rtnCoordCMDRmProcedure : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
 
       INT32 processCatReply( MsgOpReply *pReply,
                              CoordGroupList &groupLst ) ;
@@ -1089,73 +1132,81 @@ namespace engine
    class rtnCoordCMDLinkCollection : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
 
    class rtnCoordCMDUnlinkCollection : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
 
    class rtnCoordCMDSetSessionAttr : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    };
 
    class rtnCoordCMDCreateDomain : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCMDDropDomain : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCMDAlterDomain : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCMDAddDomainGroup : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCMDRemoveDomainGroup : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCMDListDomains : public rtnCoordCMDQueryBase
@@ -1178,10 +1229,11 @@ namespace engine
    class rtnCoordCMDListCLInDomain : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj ) ;
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
 
    private:
       INT32 _rebuildListResult( const std::vector<BSONObj> &infoFromCata,
@@ -1206,28 +1258,31 @@ namespace engine
    class rtnCoordCMDInvalidateCache : public rtnCoordCMDOnMultiNodes
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj ) ;
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCMDListLobs : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj );
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
    class rtnCoordCMDReelection : public rtnCoordCommand
    {
    public:
-      INT32 execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                     CHAR **ppResultBuffer,
-                     pmdEDUCB *cb, MsgOpReply &replyHeader,
-                     BSONObj **ppErrorObj ) ;
+      virtual INT32 execute( CHAR *pReceiveBuffer,
+                             SINT32 packSize,
+                             pmdEDUCB *cb,
+                             MsgOpReply &replyHeader,
+                             rtnContextBuf *buf ) ;
    } ;
 
 }

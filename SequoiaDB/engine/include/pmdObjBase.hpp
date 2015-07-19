@@ -132,7 +132,7 @@ namespace engine
          }
          virtual OSS_INLINE INT32 _defaultEventFunc ( pmdEDUEvent *event )
          {
-            PD_LOG ( PDWARNING, "[%s]Recieve unknow event[type:%u]",
+            PD_LOG ( PDWARNING, "[%s]Recieve unknown event[type:%u]",
                name(), event->_eventType ) ;
             return SDB_SYS ;
          }

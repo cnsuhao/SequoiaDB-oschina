@@ -51,8 +51,11 @@ namespace engine
    enum SDB_START_TYPE
    {
       SDB_START_NORMAL  = 0,
-      SDB_START_CRASH
+      SDB_START_CRASH,
+      SDB_START_ERROR
    } ;
+
+   const CHAR* pmdGetStartTypeStr( SDB_START_TYPE type ) ;
 
    /*
       _pmdStartup define
@@ -67,7 +70,14 @@ namespace engine
          INT32 final () ;
          void  ok ( BOOLEAN bOK = TRUE ) ;
          BOOLEAN isOK () const ;
+         void  restart( BOOLEAN bRestart, INT32 rc ) ;
          SDB_START_TYPE getStartType() const { return _startType ; }
+
+         BOOLEAN  needRestart() const ;
+
+      protected:
+         INT32 _writeStartStr( SDB_START_TYPE startType,
+                               BOOLEAN ok ) ;
 
       private:
          OSSFILE           _file ;
@@ -76,6 +86,7 @@ namespace engine
          SDB_START_TYPE    _startType ;
          BOOLEAN           _fileOpened ;
          BOOLEAN           _fileLocked ;
+         BOOLEAN           _restart ;
    };
 
    typedef _pmdStartup pmdStartup ;

@@ -56,6 +56,10 @@ namespace engine
 
       INT32 destruct() ;
 
+      INT32 close( const _sptArguments &arg,
+                   _sptReturnVal &rval,
+                   bson::BSONObj &detail ) ;
+
       INT32 exec( const _sptArguments &arg,
                   _sptReturnVal &rval,
                   bson::BSONObj &detail ) ;
@@ -96,6 +100,8 @@ namespace engine
       _sptSshSession *_session ;
       string         _host ;
       string         _user ;
+      string         _localIP ;
+      string         _peerIP ;
       INT32          _lastRet ;
       string         _lastOutStr ;
 

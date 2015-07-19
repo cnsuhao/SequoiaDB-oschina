@@ -67,7 +67,7 @@ namespace engine
 
    INT32 _omaShutdownCmd::doit( BSONObj & retObj )
    {
-      PMD_SHUTDOWN_DB( SDB_OK )
+      PMD_SHUTDOWN_DB( SDB_OK ) ;
       return SDB_OK ;
    }
 

@@ -20,24 +20,19 @@
 @modify list:
    2014-7-26 Zhaobo Tan  Init
 @parameter
-   BUS_JSON: the format is: { "InstallHostName": "rhel64-test8", "InstallSvcName": "11820", "InstallPath": "/opt/sequoiadb/database/standalone", "InstallConfig": { "diaglevel": 3, "role": "standalone", "logfilesz": 64, "logfilenum": 20, "transactionon": "false", "preferedinstance": "A", "numpagecleaners": 1, "pagecleaninterval": 10000, "hjbuf": 128, "logbuffsize": 1024, "maxprefpool": 200, "maxreplsync": 10, "numpreload": 0, "sortbuf": 512, "syncstrategy": "none" } }
-   SYS_JSON: the format is: { "SdbUser": "sdbadmin", "SdbPasswd": "sdbadmin", "SdbUserGroup": "sdbadmin_group", "User": "root", "Passwd": "sequoiadb", "SshPort": "22" } 
+   BUS_JSON: the format is: { "SdbUser": "sdbadmin", "SdbPasswd": "sdbadmin", "SdbUserGroup": "sdbadmin_group", "User": "root", "Passwd": "sequoiadb", "SshPort": "22", "InstallHostName": "susetzb", "InstallSvcName": "50000", "InstallPath": "/opt/sequoiadb/database/standalone/50000", "InstallConfig": { "diaglevel": "5", "role": "standalone", "logfilesz": "64", "logfilenum": "10", "transactionon": "false", "preferedinstance": "2", "numpagecleaners": "10", "pagecleaninterval": "1000", "hjbuf": "128", "logbuffsize": "1024", "maxprefpool": "200", "maxreplsync": "10", "numpreload": "0", "sortbuf": "512", "syncstrategy": "none", "usertag": "", "clustername": "c1", "businessname": "b1" } } ;
+   SYS_JSON: the format is: { "TaskID": 1 } ;
    ENV_JSON:
 @return
    RET_JSON: the format is: { "errno":0, "detail":"" }
 */
 
-// println
-//var BUS_JSON = { "SdbUser": "sdbadmin", "SdbPasswd": "sdbadmin", "SdbUserGroup": "sdbadmin_group", "User": "root", "Passwd": "sequoiadb", "SshPort": "22", "InstallHostName": "susetzb", "InstallSvcName": "20000", "InstallPath": "/opt/sequoiadb/database/standalone/20000", "InstallConfig": { "diaglevel": "5", "role": "standalone", "logfilesz": "64", "logfilenum": "10", "transactionon": "false", "preferedinstance": "2", "numpagecleaners": "10", "pagecleaninterval": "1000", "hjbuf": "128", "logbuffsize": "1024", "maxprefpool": "200", "maxreplsync": "10", "numpreload": "0", "sortbuf": "512", "syncstrategy": "none" } };
-
-//var SYS_JSON = { "TaskID": 3 };
-
 var RET_JSON = new installNodeResult() ;
 var rc       = SDB_OK ;
 var errMsg   = "" ;
 
-var task_id  = "" ;
-var host_ip  = "" ;
+var task_id   = "" ;
+var host_ip   = "" ;
 var host_name = "" ;
 var host_svc  = "" ;
 var FILE_NAME_INSTALL_STANDALONE = "installStandalone.js" ;
@@ -68,7 +63,7 @@ function _init()
               sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
       exception_handle( SDB_INVALIDARG, errMsg ) ;
    }
-   setTaskLogFileName( task_id, host_name ) ;
+   setTaskLogFileName( task_id ) ;
    
    PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_STANDALONE,
             sprintf( "Begin to install standalone[?:?] in task[?]",
@@ -82,26 +77,113 @@ function _init()
 @return void
 ***************************************************************************** */
 function _final()
-{
+{  
    PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_STANDALONE,
             sprintf( "Finish installing standalone[?:?] in task[?]",
                      host_name, host_svc, task_id ) ) ;
 }
 
 /* *****************************************************************************
-@discretion: check whether node has been installed or not
-@discretion: create standalone
+@discretion: remove the target standalone anyway
+@parameter
+   clusterName[string]: which cluster the standalone belongs to
+   businessName[string]: what business the standalone belongs to
+   userTag[string]: tag specified by user
+   hostName[string]: install host name
+   svcName[string]: install svc name
+   agentPort[string]: the port of sdbcm in install host
+@return
+   retObj[object]:
+***************************************************************************** */
+function _removeStandalone( clusterName, businessName, userTag, hostName,
+                            svcName, agentPort )
+{
+   var oma    = null ;
+   var option = null ;
+   
+   // 1. build option for remove specified standalone
+   try
+   {
+      option                = new checkSAInfo() ;
+      option[ClusterName2]  = clusterName ;
+      option[BusinessName2] = businessName ;
+      option[UserTag2]      = userTag ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = sprintf( "Failed to build option for removing standalone[?:?]", hostName, svcName ) ;
+      rc = GETLASTERROR() ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_STANDALONE,
+               sprintf( errMsg + ", rc:?, detail:? ", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+   // 2. connect to target OM Agent
+   try
+   {
+      oma = new Oma( hostName, agentPort ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = sprintf( "Failed to connect to OM Agent[?:?]", hostName, agentPort ) ;
+      rc = GETLASTERROR() ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_STANDALONE,
+               sprintf( errMsg + ", rc:?, detail:? ", rc, GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+   // 3. remove target standalone anyway
+   try
+   {
+      try
+      {
+         oma.removeData( svcName, option ) ;
+         PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_STANDALONE,
+                  sprintf( "Success to clean up standalone[?:?:?] ",
+                           hostName, svcName, JSON.stringify(option) ) ) ;
+      }
+      catch( e )
+      {
+         PD_LOG2( task_id, arguments, PDWARNING, FILE_NAME_INSTALL_STANDALONE,
+                  sprintf( "Failed to clean up standalone[?:?:?] or this standalone does not exist",
+                           hostName, svcName, JSON.stringify(option) ) ) ;
+      }
+      oma.close() ;
+      oma = null ;
+   }
+   catch ( e )
+   {
+      if ( null != oma && "undefined" != typeof(oma) )
+      {
+         try
+         {
+            oma.close() ;
+         }
+         catch ( e2 )
+         {
+         }
+      }
+   }
+}
+
+/* *****************************************************************************
+@discretion: remove the installed standalone
 @parameter
    hostName[string]: install host name
    svcName[string]: install svc name
-   installPath[string]: install path
-   config[json]: config info 
    agentPort[string]: the port of sdbcm in install host
 @return void
 ***************************************************************************** */
-function _checkNodeExistOrNot( hostName, svcName, installPath, config, agentPort )
+function _removeStandalone2( hostName, svcName, agentPort )
 {
-   
+   try
+   {
+       var om = new Oma( hostName, agentPort ) ;
+       om.removeData( svcName ) ;
+   }
+   catch( e )
+   {
+   }
 }
 
 /* *****************************************************************************
@@ -120,6 +202,9 @@ function _createStandalone( hostName, svcName, installPath, config, agentPort )
    try
    {
       oma = new Oma( hostName, agentPort ) ;
+      PD_LOG2( task_id, arguments, PDDEBUG, FILE_NAME_INSTALL_STANDALONE,
+               sprintf( "Create standalone passes arguments: svcName[?], installPath[?], config[?]",
+                         svcName, installPath, JSON.stringify(config) ) ) ;
       oma.createData( svcName, installPath, config ) ;
       oma.startNode( svcName ) ;
       oma.close() ;
@@ -138,7 +223,7 @@ function _createStandalone( hostName, svcName, installPath, config, agentPort )
          }
       }
       SYSEXPHANDLE( e ) ;
-      errMsg = sprintf( "Failed to install standalone[?:?]", hostName, svcName ) ;
+      errMsg = sprintf( "Failed to create standalone[?:?]", hostName, svcName ) ;
       rc = GETLASTERROR() ;
       PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_STANDALONE,
                sprintf( errMsg + ", rc:?, detail:? ", rc, GETLASTERRMSG() ) ) ;
@@ -148,6 +233,9 @@ function _createStandalone( hostName, svcName, installPath, config, agentPort )
 
 function main()
 {
+   var clusterName     = null ;
+   var businessName    = null ;
+   var userTag         = null ;
    var sdbUser         = null ;
    var sdbUserGroup    = null ;
    var user            = null ;
@@ -159,6 +247,7 @@ function main()
    var installConfig   = null ;
    var ssh             = null ;
    var agentPort       = null ;
+   var preCheckResult  = null ;
    
    _init() ;
    
@@ -176,6 +265,9 @@ function main()
          installSvcName  = BUS_JSON[InstallSvcName] ;
          installPath     = BUS_JSON[InstallPath] ;
          installConfig   = BUS_JSON[InstallConfig] ;
+         clusterName     = installConfig[ClusterName2] ;
+         businessName    = installConfig[BusinessName2] ;
+         userTag         = installConfig[UserTag2] ;
       }
       catch( e )
       {
@@ -202,13 +294,17 @@ function main()
                   errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
          exception_handle( rc, errMsg ) ;
       }
-      // 3. get OM Agent's service in target host from local sdbcm config file
+      
+      // 3. get OM Agent's service of target host from local sdbcm config file
       agentPort = getOMASvcFromCfgFile( installHostName ) ;
-      // 4. check whether node has been installed
-// println
-// TODO:
+      
+      // 4. clean up environment
+       _removeStandalone( clusterName, businessName, userTag,
+                          installHostName, installSvcName, agentPort ) ;
+                          
       // 5. change install path owner
       changeDirOwner( ssh, installPath, sdbUser, sdbUserGroup ) ;
+      
       // 6. create standalone
       _createStandalone( installHostName, installSvcName,
                          installPath, installConfig, agentPort ) ;
@@ -216,8 +312,13 @@ function main()
    catch( e )
    {
       SYSEXPHANDLE( e ) ;
-      errMsg = GETLASTERRMSG() ; 
+      errMsg = GETLASTERRMSG() ;
       rc = GETLASTERROR() ;
+      // try to remove installed standalone
+      if ( SDBCM_NODE_EXISTED != rc )
+      {
+         _removeStandalone2( installHostName, installSvcName, agentPort ) ;
+      }
       PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_STANDALONE,
                sprintf( "Failed to install standalone[?:?], rc:?, detail:?",
                host_name, host_svc, rc, errMsg ) ) ;
@@ -226,7 +327,6 @@ function main()
    }
    
    _final() ;
-println("RET_JSON is: " + JSON.stringify(RET_JSON)) ;
    return RET_JSON ;
 }
 

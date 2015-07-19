@@ -62,7 +62,7 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__CLSREELECTION_WAIT ) ;
       UINT32 timePassed = 0 ;
-      UINT32 timeout = 60 ;
+      UINT32 timeout = 600 ;
 
       if ( CLS_REELECTION_LEVEL_NONE != _level )
       {
@@ -84,8 +84,8 @@ namespace engine
       if ( CLS_REELECTION_LEVEL_NONE != _level && _level < lvl )
       {
          _event.signalAll() ;
+         _level = CLS_REELECTION_LEVEL_NONE ;
       }
-      return ;
    } 
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREELECTION_RUN, "_clsReelection::run" )
@@ -156,12 +156,9 @@ namespace engine
          PD_LOG( PDERROR, "failed to step down:%d", rc ) ;
          goto error ;
       }
+
    done:
-      _level = CLS_REELECTION_LEVEL_NONE ;
-      if ( 0 < _event.waitNum() )
-      {
-         signal() ;
-      }
+      signal() ;
       PD_TRACE_EXITRC( SDB__CLSREELECTION_RUN, rc ) ;
       return rc ;
    error:

@@ -230,10 +230,11 @@ namespace engine
       goto done;
    }
 
-   INT32 rtnCoordQuery::execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                                 CHAR **ppResultBuffer, pmdEDUCB *cb,
+   INT32 rtnCoordQuery::execute( CHAR *pReceiveBuffer,
+                                 SINT32 packSize,
+                                 pmdEDUCB *cb,
                                  MsgOpReply &replyHeader,
-                                 BSONObj **ppErrorObj )
+                                 rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
       pmdKRCB *pKrcb                   = pmdGetKRCB();
@@ -283,8 +284,7 @@ namespace engine
          PD_CHECK( pCmdProcesser != NULL, SDB_INVALIDARG, error, PDERROR,
                   "unknown command:%s", pCollectionName );
          rc = pCmdProcesser->execute( pReceiveBuffer, packSize,
-                                      ppResultBuffer, cb, replyHeader,
-                                      &err );
+                                      cb, replyHeader, buf ) ;
          SDB_ASSERT( NULL == err, "impossible" );
          PD_RC_CHECK( rc, PDERROR, "failed to execute the command(command:%s, "
                     "rc=%d)", pCollectionName, rc );
@@ -572,7 +572,7 @@ namespace engine
                    "Failed to get match sub collection(rc=%d)",
                    rc ) ;
          rc = rtnCoordGetSubCLsByGroups( subCLList, sendGroupList,
-                                         cb, groupSubCLMap ) ;
+                                         cb, groupSubCLMap, &boQuery ) ;
          PD_CHECK( SDB_OK == rc, rc, retry_check, PDWARNING,
                    "Failed to get sub-collection info(rc=%d)",
                    rc );

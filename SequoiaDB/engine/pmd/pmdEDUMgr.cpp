@@ -410,8 +410,11 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_PSTEDUPST, "_pmdEDUMgr::postEDUPost" )
-   INT32 _pmdEDUMgr::postEDUPost ( EDUID eduID, pmdEDUEventTypes type,
-                                   pmdEDUMemTypes dataMemType , void *pData )
+   INT32 _pmdEDUMgr::postEDUPost ( EDUID eduID,
+                                   pmdEDUEventTypes type,
+                                   pmdEDUMemTypes dataMemType,
+                                   void *pData,
+                                   UINT64 usrData )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__PMDEDUMGR_PSTEDUPST );
@@ -429,7 +432,10 @@ namespace engine
          }
       }
       eduCB = ( *it ).second ;
-      eduCB->postEvent( pmdEDUEvent ( type, dataMemType, pData ) ) ;
+      eduCB->postEvent( pmdEDUEvent ( type,
+                                      dataMemType,
+                                      pData,
+                                      usrData ) ) ;
    done :
       PD_TRACE_EXITRC ( SDB__PMDEDUMGR_PSTEDUPST, rc );
       return rc ;

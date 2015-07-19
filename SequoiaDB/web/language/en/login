@@ -1,0 +1,11 @@
+{
+    "login": {
+        "table": {
+            "title": "Login",
+            "body": [
+                "User:",
+					 "Password:"
+            ]
+        }
+    }
+}

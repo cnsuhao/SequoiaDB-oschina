@@ -59,7 +59,7 @@ namespace engine
 
    #define MAX_BUFFER_ARRAY_SIZE    (20)
 
-   #define PMD_BASE_HANDLE_ID       (70000)
+   #define PMD_BASE_HANDLE_ID       ( DATA_NODE_ID_END + 10000 )
 
    #define PMD_BUFF_INVALID         (0)
    #define PMD_BUFF_ALLOC           (1)

@@ -1,0 +1,35 @@
+{
+    "uninstsdb": {
+        "leftPanel": {
+            "title": "Task information",
+				"taskInfo": [
+						"Task ID",
+						"Cluster",
+						"Task type",
+						"Subjects number",
+						"Status",
+						"Progress",
+						"Estimated remaining time",
+						"Log"
+				],
+				"logButton": "View",
+				"time": "minutes"
+        },
+        "rightPanel": {
+            "title": "Uninstalling Progress",
+				"nodeGrid": [
+						"HostName",
+						"Port",
+						"Role",
+						"Group",
+						"Status",
+						"Progress"
+				],
+				"taskStatus": [ "Initializing", "Uninstalling", "Rolling Back", "Cancelling", "Completed", "Unknown", "Failed" ],
+				"nodeStatus": [ "Initializing", "Uninstalling", "Rolling Back", "Cancelling", "Completed", "Unknown", "Failed" ]
+        },
+		  "logModal": {
+		  		"title": "Log"
+		  }
+    }
+}

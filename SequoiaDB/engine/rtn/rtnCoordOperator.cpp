@@ -54,10 +54,11 @@ using namespace bson;
 namespace engine
 {
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOOPDEFAULT_EXECUTE, "rtnCoordOperatorDefault::execute" )
-   INT32 rtnCoordOperatorDefault::execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                           CHAR **ppResultBuffer, pmdEDUCB *cb,
-                           MsgOpReply &replyHeader,
-                           BSONObj **ppErrorObj )
+   INT32 rtnCoordOperatorDefault::execute( CHAR *pReceiveBuffer,
+                                           SINT32 packSize,
+                                           pmdEDUCB *cb,
+                                           MsgOpReply &replyHeader,
+                                           rtnContextBuf *buf )
    {
       PD_TRACE_ENTRY ( SDB_RTNCOOPDEFAULT_EXECUTE ) ;
       MsgHeader *pHeader = (MsgHeader *)pReceiveBuffer;
@@ -75,10 +76,11 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOKILLCONTEXT_EXECUTE, "rtnCoordKillContext::execute" )
-   INT32 rtnCoordKillContext::execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                                       CHAR **ppResultBuffer, pmdEDUCB *cb,
+   INT32 rtnCoordKillContext::execute( CHAR *pReceiveBuffer,
+                                       SINT32 packSize,
+                                       pmdEDUCB *cb,
                                        MsgOpReply &replyHeader,
-                                       BSONObj **ppErrorObj )
+                                       rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOKILLCONTEXT_EXECUTE ) ;
@@ -423,9 +425,11 @@ namespace engine
    /*
       rtnCoordMsg implement
    */
-   INT32 rtnCoordMsg::execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                               CHAR **ppResultBuffer, pmdEDUCB *cb,
-                               MsgOpReply &replyHeader, BSONObj **ppErrorObj )
+   INT32 rtnCoordMsg::execute( CHAR *pReceiveBuffer,
+                               SINT32 packSize,
+                               pmdEDUCB *cb,
+                               MsgOpReply &replyHeader,
+                               rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK ;
       pmdKRCB *pKrcb = pmdGetKRCB() ;

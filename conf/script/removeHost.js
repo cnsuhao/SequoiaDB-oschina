@@ -21,23 +21,22 @@
 @modify list:
    2014-7-26 Zhaobo Tan  Init
 @parameter
-   BUS_JSON: the format is: { "HostName": "rhel64-test8", "IP": "192.168.20.165", "User": "root", "Passwd": "sequoiadb", "InstallPath": "/opt/sequoiadb", "SshPort": "22" }
-   SYS_JSON: {}
+   BUS_JSON: the format is: { "HostName": "rhel64-test8", "IP": "192.168.20.165", "ClusterName": "c1", "User": "root", "Passwd": "sequoiadb","InstallPath": "/opt/sequoiadb", "SshPort": "22" } ;
+   SYS_JSON: task id, the format is: { "TaskID":1 } ;
    ENV_JSON: {}
    OTHER_JSON: {}
 @return
-   RET_JSON: the format is: { "errno": 0, "detail": "" }
+   RET_JSON: the format is: { "errno": 0, "detail": "", "IP": "192.168.20.165" }
 */
-
-//println
-//var BUS_JSON = { "HostName": "rhel64-test8", "IP": "192.168.20.165", "User": "root", "Passwd": "sequoiadb","InstallPath": "/opt/sequoiadb", "SshPort": "22" } ;
 
 var FILE_NAME_REMOVE_HOST = "removeHost.js" ;
 var RET_JSON       = new removeHostResult() ;
 var rc             = SDB_OK ;
 var errMsg         = "" ;
 
+var host_ip        = "" ;
 var host_name      = "" ;
+var task_id        = 0 ;
 
 /* *****************************************************************************
 @discretion: init
@@ -47,21 +46,27 @@ var host_name      = "" ;
 ***************************************************************************** */
 function _init()
 {
+   // 1. get task id
+   task_id = getTaskID( SYS_JSON ) ;
+  
+   // 2. specify log file's name
    try
    {
+      host_ip   = BUS_JSON[IP] ;
       host_name = BUS_JSON[HostName] ;
    }
    catch ( e )
    {
       SYSEXPHANDLE( e ) ;
-      errMsg = "Js receive invalid argument" ;
+      errMsg = sprintf( "Failed to create js log file for removing host[?]", host_ip ) ;
       PD_LOG( arguments, PDERROR, FILE_NAME_REMOVE_HOST,
               sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
       exception_handle( SDB_INVALIDARG, errMsg ) ;
    }
+   setTaskLogFileName( task_id ) ;
    
-   PD_LOG( arguments, PDEVENT, FILE_NAME_REMOVE_HOST,
-           sprintf( "Begin to remove host[?]", host_name ) ) ;
+   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_REMOVE_HOST,
+            sprintf( "Begin to remove host[?]", host_name ) ) ;
 }
 
 /* *****************************************************************************
@@ -72,25 +77,81 @@ function _init()
 ***************************************************************************** */
 function _final()
 {
-   PD_LOG( arguments, PDEVENT, FILE_NAME_REMOVE_HOST,
-           sprintf( "Finish removing host[?]", host_name ) ) ;
+   PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_REMOVE_HOST,
+            sprintf( "Finish removing host[?]", host_name ) ) ;
 }
 
 /* *****************************************************************************
-@discretion: uninstall sequoiadb packet and stop sdbcm in remote host
+@discretion: check whether sequoiadb had been installed or not
+@author: Tanzhaobo
+@parameter
+   ssh[object]: ssh object
+   path[string]: the path where the sequoiadb install in
+@return
+   [bool]:
+***************************************************************************** */
+function _hasUninstalled( ssh, path )
+{
+   var str     = "" ;
+   var command = "" ;
+   var prog    = adaptPath( path ) + OMA_PROG_UNINSTALL ;
+
+   try
+   {
+      if ( SYS_LINUX == SYS_TYPE )
+      {
+         command = " ls " + prog ;
+         try
+         {
+            str = ssh.exec( command ) ;
+         }
+         catch( e )
+         {
+            // "2" is the errno, return by linux shell
+            if ( 2 == ssh.getLastRet() )
+               return true ;
+            else
+               exception_handle( SDB_SYS, ssh.getLastOut() ) ;
+         }
+      }
+      else
+      {
+         // TODO: windows
+      }
+      str = removeLineBreak( str ) ;
+      PD_LOG2( task_id, arguments, PDDEBUG, FILE_NAME_REMOVE_HOST,
+               sprintf( "prog is [?], str is [?]", prog, str ) ) ;
+      if ( prog == str )
+         return false ;
+      else
+         exception_handle( SDB_SYS, "The result is not what we excepted" ) ;
+   }
+   catch( e )
+   {
+      SYSEXPHANDLE( e ) ;
+      errMsg = "Failed to check whether sequoiadb had been uninstalled or not" ;
+      rc = GETLASTERROR() ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_REMOVE_HOST,
+               sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERRMSG() ) ) ;
+      exception_handle( rc, errMsg ) ;
+   }
+}
+
+/* *****************************************************************************
+@discretion: uninstall sequoiadb and stop sdbcm in remote host
 @author: Tanzhaobo
 @parameter
    ssh[object]: ssh object
    path[string]: the path where the sequoiadb install in
 @return void
 ***************************************************************************** */
-function _uninstallPacketInRemote( ssh, path )
+function _uninstallDBInRemote( ssh, path )
 {
    var installpath = adaptPath( path ) ;
-   var uninstallprog = null ;
+   var str         = null ;
    if ( SYS_LINUX == SYS_TYPE )
    {
-      uninstallprog = installpath + OMA_PROG_UNINSTALL_L + " --mode " + " unattended " ;
+      str = installpath + OMA_PROG_UNINSTALL + " --mode " + " unattended " ;
    }
    else
    {
@@ -98,15 +159,15 @@ function _uninstallPacketInRemote( ssh, path )
    }
    try
    {
-      ssh.exec( uninstallprog ) ;
+      ssh.exec( str ) ;
    }
    catch ( e )
    {
       SYSEXPHANDLE( e ) ;
       errMsg = "Failed to uninstall sequoiadb" ;
       rc = GETLASTERROR() ;
-      PD_LOG( arguments, PDERROR, FILE_NAME_REMOVE_HOST,
-              sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERRMSG() ) ) ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_REMOVE_HOST,
+               sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERRMSG() ) ) ;
       exception_handle( rc, errMsg ) ;
    }
 }
@@ -118,6 +179,7 @@ function main()
    var passwd      = null ;
    var sshport     = null ;
    var installPath = null ;
+   var clusterName = null ;
    var ssh         = null ;
    
    _init() ;
@@ -133,6 +195,7 @@ function main()
          passwd       = BUS_JSON[Passwd] ;
          sshport      = parseInt(BUS_JSON[SshPort]) ;
          installPath  = BUS_JSON[InstallPath] ;
+         clusterName  = BUS_JSON[ClusterName2] ;
       }
       catch( e )
       {
@@ -140,11 +203,12 @@ function main()
          errMsg = "Js receive invalid argument" ;
          rc = GETLASTERROR() ;
          // record error message in log
-         PD_LOG( arguments, PDERROR, FILE_NAME_REMOVE_HOST,
-                 errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
+         PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_REMOVE_HOST,
+                  errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
          // tell to user error happen
          exception_handle( SDB_INVALIDARG, errMsg ) ;
       }
+      
       // 2. ssh to target host
       try
       {
@@ -159,32 +223,42 @@ function main()
                   errMsg + ", rc: " + rc + ", detail: " + GETLASTERRMSG() ) ;
          exception_handle( rc, errMsg ) ;
       }
+      
       // 3. judge whether it's in local host, if so, no need to uninstall
       if ( true == isInLocalHost( ssh ) )
       {
-         PD_LOG( arguments, PDEVENT, FILE_NAME_REMOVE_HOST,
-                 sprintf( "It's local host[?], not going uninstall", ip ) ) ;
+         PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_REMOVE_HOST,
+                  sprintf( "It's in localhost[?], not going to uninstall local SequoiaDB", ip ) ) ;
          _final() ;
          return RET_JSON ;
       }
-      // 4. uninstall db packet and stop sdbcm in remote host
-      _uninstallPacketInRemote( ssh, installPath ) ;
-   
+      
+      // 4. check whether db has been uninstalled
+      if( true == _hasUninstalled( ssh, installPath ) )
+      {
+         PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_REMOVE_HOST,
+                  sprintf( "SequoiaDB had been uninstalled in host[?]", ip ) ) ;
+         _final() ;
+         return RET_JSON ;
+      }
+      
+      // 5. uninstall db packet and stop sdbcm in remote host
+      _uninstallDBInRemote( ssh, installPath ) ;
+      
    }
    catch( e )
    {
       SYSEXPHANDLE( e ) ;
       errMsg = GETLASTERRMSG() ; 
       rc = GETLASTERROR() ;
-      PD_LOG( arguments, PDERROR, FILE_NAME_REMOVE_HOST,
-              sprintf( "Failed to remove host[?], rc:?, detail:?",
-                       host_name, rc, errMsg ) ) ;
-      RET_JSON[Errno] = rc ;
+      PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_REMOVE_HOST,
+               sprintf( "Failed to remove host[?], rc:?, detail:?",
+                        host_name, rc, errMsg ) ) ;
+      RET_JSON[Errno]  = rc ;
       RET_JSON[Detail] = errMsg ;
    }
    
    _final() ;
-println("RET_JSON is: " + JSON.stringify(RET_JSON) ) ;
    // return the result
    return RET_JSON ;
 }

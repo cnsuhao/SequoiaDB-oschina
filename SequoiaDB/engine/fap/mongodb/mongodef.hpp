@@ -39,7 +39,7 @@
 
 #include "util.hpp"
 #include "../../bson/bson.hpp"
-#include "../../include/dms.hpp"
+#include "dms.hpp"
 
 enum mongoOption
 {
@@ -142,15 +142,19 @@ enum
 
    OP_COMMAND_BEGIN,       // command begin
    OP_CMD_CREATE,          // create collection, need special deal
+   OP_CMD_CREATE_CS,
    OP_CMD_DROP,            // drop collection
+   OP_CMD_DROP_DATABASE,   
    OP_CMD_GETLASTERROR,    // will not process msg
    OP_CMD_DROP_INDEX,
    OP_CMD_GET_INDEX,
    OP_CMD_COUNT,
+   OP_CMD_COUNT_MORE,      // need special handle
    OP_CMD_AGGREGATE,
 
    OP_CMD_GETNONCE,
    OP_CMD_ISMASTER,
+   OP_CMD_PING,
    OP_CMD_NOT_SUPPORTED,
    OP_COMMAND_END,
 };
@@ -160,9 +164,9 @@ class mongoParser : public mongoMsgHeader
 public:
    BOOLEAN withCmd ;
    BOOLEAN withIndex ;
-   BOOLEAN opCreateCL ;
    INT32 nsLen ;
    INT32 opType ;
+   const CHAR *cmdName ;
    CHAR csName[ CS_NAME_SIZE + 1 ] ;
    CHAR fullName[ CL_FULL_NAME_SIZE + 1 ] ;
 
@@ -184,7 +188,7 @@ public:
    BOOLEAN more()
    {
       _nextObj = _dataStart + _offset ;
-      return ( ( NULL != _nextObj ) || ( _nextObj < _dataEnd ) ) ;
+      return ( _nextObj < _dataEnd ) ;
    }
 
    void reparse()
@@ -202,7 +206,7 @@ private:
    const CHAR *_dataStart ;
    const CHAR *_dataEnd ;
    const CHAR *_nextObj ;
-   INT32 _offset ;
+   UINT32 _offset ;
    BOOLEAN _bigEndian ;
 } ;
 

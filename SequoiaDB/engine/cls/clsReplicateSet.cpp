@@ -57,6 +57,7 @@ namespace engine
       ON_MSG( MSG_CAT_PAIMARY_CHANGE_RES, handleMsg )
       ON_MSG( MSG_CLS_GINFO_UPDATED, handleMsg )
       ON_EVENT( PMD_EDU_EVENT_STEP_DOWN, handleEvent )
+      ON_EVENT( PMD_EDU_EVENT_STEP_UP, handleEvent )
    END_OBJ_MSG_MAP ()
 
    const UINT32 CLS_REPL_SEC_TIME = 1000 ;
@@ -195,7 +196,7 @@ namespace engine
       _clsCB = pmdGetKRCB()->getClsCB() ;
       SDB_ASSERT( NULL != _logger, "logger should not be NULL" ) ;
 
-      _logger->setEventHandler( this ) ;
+      _logger->regEventHandler( this ) ;
 
       rc = _replBucket.init() ;
       PD_RC_CHECK( rc, PDERROR, "Init repl bucket failed, rc: %d", rc ) ;
@@ -244,7 +245,7 @@ namespace engine
       _replBucket.fini() ;
       if ( _logger )
       {
-         _logger->unsetEventHandler() ;
+         _logger->unregEventHandler( this ) ;
       }
       return SDB_OK ;
    }
@@ -344,7 +345,7 @@ namespace engine
       if ( !hasLocal )
       {
          PD_LOG( PDERROR, "local node is not in the cluster!" ) ;
-         PMD_SHUTDOWN_DB( SDB_SYS ) ;
+         PMD_RESTART_DB( SDB_SYS ) ;
          goto done ;
       }
       }
@@ -484,6 +485,15 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "failed to step down:%d", rc ) ;
+            goto error ;
+         }
+      }
+      else if ( PMD_EDU_EVENT_STEP_UP == event->_eventType )
+      {
+         rc = _handleStepUp( event->_userData ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to step up:%d", rc ) ;
             goto error ;
          }
       }
@@ -803,14 +813,15 @@ namespace engine
             else if ( _info.primary.value != beat.identity.value )
             {
                PD_LOG( PDEVENT, "vote: the discovery of new primary[%d]",
-                                 beat.identity.columns.nodeID ) ;
+                       beat.identity.columns.nodeID ) ;
                _cata.remove( MSG_CAT_PAIMARY_CHANGE_RES ) ;
                _vote.force( CLS_ELECTION_STATUS_SILENCE ) ;
                _info.mtx.lock_w() ;
                _info.primary = beat.identity ;
                _info.mtx.release_w() ;
             }
-            else if ( CLS_ELECTION_WEIGHT_USR_MIN != _vote.getShadowWeight() )
+
+            if ( CLS_ELECTION_WEIGHT_USR_MIN != _vote.getShadowWeight() )
             {
                reelectionDone() ;
             }
@@ -1030,6 +1041,61 @@ namespace engine
       _vote.force( CLS_ELECTION_STATUS_SEC ) ;
       PD_TRACE_EXITRC( SDB__CLSREPSET__HANDLESTEPDOWN, rc ) ;
       return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__HANDLESTEPUP, "_clsReplicateSet::_handleStepUp" )
+   INT32 _clsReplicateSet::_handleStepUp( UINT32 seconds )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREPSET__HANDLESTEPUP ) ;
+      PD_LOG(PDEVENT, "force to step up, seconds:%d", seconds ) ;
+      _vote.force( CLS_ELECTION_STATUS_PRIMARY,
+                   seconds * 1000 ) ;
+      PD_TRACE_EXITRC( SDB__CLSREPSET__HANDLESTEPUP, rc ) ;
+      return rc ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET__STEPUP, "_clsReplicateSet::stepUp" )
+   INT32 _clsReplicateSet::stepUp( UINT32 seconds,
+                                   pmdEDUCB *cb )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__CLSREPSET__STEPUP ) ;
+      DPS_LSN lsn ;
+      pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
+      EDUID eduID = eduMgr->getSystemEDU( EDU_TYPE_CLUSTER ) ;
+
+      if ( MSG_INVALID_ROUTEID != getPrimary().value )
+      {
+         PD_LOG( PDERROR, "can not step up when primary node"
+                 " exists" ) ;
+         rc = SDB_CLS_CAN_NOT_STEP_UP ;
+         goto error ;
+      }
+
+      lsn = pmdGetKRCB()->getDPSCB()->expectLsn() ;
+      if ( _sync.atLeastOne( lsn.offset ) )
+      {
+         PD_LOG( PDERROR, "can not step up when other nodes' lsn"
+                 " bigger than local's" ) ;
+         rc = SDB_CLS_CAN_NOT_STEP_UP ;
+         goto error ;
+      }
+
+      rc = eduMgr->postEDUPost( eduID,
+                                PMD_EDU_EVENT_STEP_UP,
+                                PMD_EDU_MEM_NONE,
+                                NULL, seconds ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to post event to repl cb:%d", rc ) ;
+         goto error ;
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__CLSREPSET__STEPUP, rc ) ;
+      return rc ;
+   error:
+      goto done ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION (SDB__CLSREPSET_PRIMARYCHECK, "_clsReplicateSet::primaryCheck" )

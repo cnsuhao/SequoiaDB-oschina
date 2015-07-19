@@ -28,3 +28,89 @@
    Last Changed =
 
 *******************************************************************************/
+#ifdef SDB_SSL
+
+#include "ossSSLWrapper.h"
+#include "oss.h"
+
+SDB_EXTERN_C_START
+
+typedef struct SSLGlobalContext
+{
+   SSLContext*       ctx;
+   SSLCertificate*   cert;
+   SSLKey*           key;
+} SSLGlobalContext;
+
+static SSLGlobalContext sslGlobalContext = {NULL};
+
+static void _ossSSLInitGlobalContext()
+{
+   SSLKey* key = NULL;
+   SSLCertificate* cert = NULL;
+   SSLContext* ctx = NULL;
+   INT32 ret;
+
+   static BOOLEAN inited = FALSE;
+   SSL_ASSERT(!inited);
+
+   ret = ossSSLInit();
+   if (SSL_OK != ret)
+   {
+      goto error;
+   }
+
+   ret = ossSSLNewKey(&key);
+   if (SSL_OK != ret)
+   {
+      goto error;
+   }
+
+   ret = ossSSLNewCertificate(&cert, key);
+   if (SSL_OK != ret)
+   {
+      goto error;
+   }
+
+   ret = ossSSLNewContext(&ctx, cert, key);
+   if (SSL_OK != ret)
+   {
+      goto error;
+   }
+
+   sslGlobalContext.ctx = ctx;
+   sslGlobalContext.cert = cert;
+   sslGlobalContext.key = key;
+
+   inited = TRUE;
+
+done:
+   return;
+error:
+   if (NULL != ctx)
+   {
+      ossSSLFreeContext(&ctx);
+   }
+   if (NULL != cert)
+   {
+      ossSSLFreeCertificate(&cert);
+   }
+   if (NULL != key)
+   {
+      ossSSLFreeKey(&key);
+   }
+   goto done;
+}
+
+SSLContext* ossSSLGetContext()
+{
+   static ossOnce initOnce = OSS_ONCE_INIT;
+
+   ossOnceRun(&initOnce, _ossSSLInitGlobalContext);
+
+   return sslGlobalContext.ctx;
+}
+
+SDB_EXTERN_C_END
+
+#endif /* SDB_SSL */

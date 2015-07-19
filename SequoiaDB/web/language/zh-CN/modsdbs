@@ -1,0 +1,12 @@
+{
+    "modsdbs": {
+	 	  "title": "业务：",
+		  "tab": [ "普通", "高级" ],
+        "panel": {
+				"nodeConf": {
+						"title": [ "属性", "值", "说明" ],
+						"hostName": "主机名"
+				}
+        }
+	 }
+}

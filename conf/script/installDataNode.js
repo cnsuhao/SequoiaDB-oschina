@@ -20,15 +20,11 @@
 @modify list:
    2014-7-26 Zhaobo Tan  Init
 @parameter
-   BUS_JSON: the format is: { "SdbUser": "sdbadmin", "SdbPasswd": "sdbadmin", "SdbUserGroup": "sdbadmin_group", "User": "root", "Passwd": "sequoiadb", "SshPort": "22", "InstallGroupName": "group1", "InstallHostName": "rhel64-test8", "InstallSvcName": "51000", "InstallPath": "/opt/sequoiadb/database/data/51000", "InstallConfig": { "diaglevel": 3, "role": "data", "logfilesz": 64, "logfilenum": 20, "transactionon": "false", "preferedinstance": "A", "numpagecleaners": 1, "pagecleaninterval": 10000, "hjbuf": 128, "logbuffsize": 1024, "maxprefpool": 200, "maxreplsync": 10, "numpreload": 0, "sortbuf": 512, "syncstrategy": "none" } } ;
+   BUS_JSON: the format is: { "SdbUser": "sdbadmin", "SdbPasswd": "sdbadmin", "SdbUserGroup": "sdbadmin_group", "User": "root", "Passwd": "sequoiadb", "SshPort": "22", "InstallGroupName": "group1", "InstallHostName": "rhel64-test8", "InstallSvcName": "51000", "InstallPath": "/opt/sequoiadb/database/data/51000", "InstallConfig": { "diaglevel": 3, "role": "data", "logfilesz": 64, "logfilenum": 20, "transactionon": "false", "preferedinstance": "A", "numpagecleaners": 1, "pagecleaninterval": 10000, "hjbuf": 128, "logbuffsize": 1024, "maxprefpool": 200, "maxreplsync": 10, "numpreload": 0, "sortbuf": 512, "syncstrategy": "none", "userTag":"", "clusterName":"c1", "businessName":"b1" } } ;
    SYS_JSON: the format is: { "TaskID": 2, "TmpCoordSvcName": "10000" } ;
 @return
    RET_JSON: the format is: { "errno": 0, "detail": "" }
 */
-
-// println
-//var BUS_JSON = { "SdbUser": "sdbadmin", "SdbPasswd": "sdbadmin", "SdbUserGroup": "sdbadmin_group", "User": "root", "Passwd": "sequoiadb", "SshPort": "22", "InstallGroupName": "group1", "InstallHostName": "rhel64-test8", "InstallSvcName": "51000", "InstallPath": "/opt/sequoiadb/database/data/51000", "InstallConfig": { "diaglevel": 3, "role": "data", "logfilesz": 64, "logfilenum": 20, "transactionon": "false", "preferedinstance": "A", "numpagecleaners": 1, "pagecleaninterval": 10000, "hjbuf": 128, "logbuffsize": 1024, "maxprefpool": 200, "maxreplsync": 10, "numpreload": 0, "sortbuf": 512, "syncstrategy": "none" } } ;
-//var SYS_JSON = { "TaskID": 2, "TmpCoordSvcName": "10000" } ;
 
 var FILE_NAME_INSTALL_DATA_NODE = "installDataNode.js" ;
 var RET_JSON        = new installNodeResult() ;
@@ -64,7 +60,7 @@ function _init()
               sprintf( errMsg + ", rc: ?, detail: ?", GETLASTERROR(), GETLASTERRMSG() ) ) ;
       exception_handle( SDB_SYS, errMsg ) ;
    }
-   setTaskLogFileName( task_id, host_name ) ;
+   setTaskLogFileName( task_id ) ;
    
    PD_LOG2( task_id, arguments, PDEVENT, FILE_NAME_INSTALL_DATA_NODE,
             sprintf( "Begin to install data node[?:?] in task[?]",
@@ -119,7 +115,7 @@ function _createDataNode( db, hostName, svcName,
             errMsg = sprintf( "Failed to create data group[?]", installGroup ) ;
             rc = GETLASTERROR() ;
             PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_DATA_NODE,
-                     sprintf( errMsg + ", rc:?, detail:?", rc, errMsg ) ) ;  
+                     sprintf( errMsg + ", rc:?, detail:?", rc, GETLASTERRMSG() ) ) ;  
             exception_handle( rc, errMsg ) ;
          }
       }
@@ -129,13 +125,16 @@ function _createDataNode( db, hostName, svcName,
          errMsg = sprintf( "Failed to get data group[?]", installGroup );
          rc = GETLASTERROR() ;
          PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_DATA_NODE,
-                  sprintf( errMsg + ", rc:?, detail:?", rc, errMsg ) ) ;  
+                  sprintf( errMsg + ", rc:?, detail:?", rc, GETLASTERRMSG() ) ) ;  
          exception_handle( rc, errMsg ) ;
       }
    }
    // create data node
    try
    {
+      PD_LOG2( task_id, arguments, PDDEBUG, FILE_NAME_INSTALL_DATA_NODE,
+               sprintf( "Create data node passes arguments: hostName[?], svcName[?], installPath[?], config[?]",
+                        hostName, svcName, installPath, JSON.stringify(config) ) ) ;
       node = rg.createNode( hostName, svcName, installPath, config ) ;
    }
    catch ( e )
@@ -145,7 +144,7 @@ function _createDataNode( db, hostName, svcName,
                         hostName, svcName, installGroup ) ;
       rc = GETLASTERROR() ;
       PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_DATA_NODE,
-               sprintf( errMsg + ", rc:?, detail:?", rc, errMsg ) ) ;  
+               sprintf( errMsg + ", rc:?, detail:?", rc, GETLASTERRMSG() ) ) ;  
       exception_handle( rc, errMsg ) ;
    }
    // start data node
@@ -160,7 +159,7 @@ function _createDataNode( db, hostName, svcName,
                         hostName, svcName, installGroup ) ;
       rc = GETLASTERROR() ;
       PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_DATA_NODE,
-               sprintf( errMsg + ", rc:?, detail:?", rc, errMsg ) ) ;  
+               sprintf( errMsg + ", rc:?, detail:?", rc, GETLASTERRMSG() ) ) ;  
       exception_handle( rc, errMsg ) ;
    }
    // try to start data group
@@ -191,7 +190,7 @@ function _createDataNode( db, hostName, svcName,
       errMsg = sprintf( "Failed to start data group[?]", installGroup ) ;
       rc = GETLASTERROR() ;
       PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_DATA_NODE,
-               sprintf( errMsg + ", rc:?, detail:?", rc, errMsg ) ) ;  
+               sprintf( errMsg + ", rc:?, detail:?", rc, GETLASTERRMSG() ) ) ;  
       exception_handle( rc, errMsg ) ;
    }
 }
@@ -285,14 +284,13 @@ function main()
       errMsg = GETLASTERRMSG() ; 
       rc = GETLASTERROR() ;
       PD_LOG2( task_id, arguments, PDERROR, FILE_NAME_INSTALL_DATA_NODE,
-               sprintf( "Failed to install catalog[?:?], rc:?, detail:?",
+               sprintf( "Failed to install data node[?:?], rc:?, detail:?",
                host_name, host_svc, rc, errMsg ) ) ;             
       RET_JSON[Errno] = rc ;
       RET_JSON[Detail] = errMsg ;
    }
    
    _final() ;
-println("RET_JSON is: " + JSON.stringify(RET_JSON) ) ;
    return RET_JSON ;
 }
 

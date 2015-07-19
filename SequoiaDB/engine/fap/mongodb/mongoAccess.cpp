@@ -92,7 +92,7 @@ engine::pmdSession * _mongoAccess::getSession( SOCKET fd )
 void _mongoAccess::releaseSession( engine::pmdSession *pSession )
 {
    mongoSession *session = dynamic_cast< mongoSession *>( pSession ) ;
-   if ( NULL == session )
+   if ( NULL != session )
    {
       SDB_OSS_DEL session ;
       session = NULL ;

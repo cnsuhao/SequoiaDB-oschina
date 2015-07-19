@@ -1,0 +1,65 @@
+.TH COMMAND * 2014-04-08 "SequoiaDB" "Sequoiadb Method's Manual"
+.ad l.ll 72.ce 1000
+\fBdb.forceStepUp()\fR
+.ce 0
+.sp 2
+
+.SH "NAME"
+
+.sp 2
+forceStepUp - In a replica group that doesn't satisfy the
+requirement of re-election, upgrade a slave node to a master node
+by force.
+.SH "SYNOPSIS"
+
+.sp 2
+
+.sp 2
+
+.sp 2
+db.forceStepUp(\fB[options]\fR)
+.SH "CATEGORY"
+
+.sp 2
+
+.sp 2
+Sequoiadb
+.SH "DESCRIPTION"
+
+.sp 2
+In a replica group that doesn't satisfy the requirement of
+re-election, upgrade a slave node to a master node by force.
+.sp 2
+\fBoptions (json object)\fR
+.br
+       Parameter collection
+.sp 2
+       \fBSeconds\fR
+.br
+              Time limit of upgrading the slave node to master.
+.sp 2
+
+.sp 2
+\fBNote: \fR
+.sp 2
+   *  This function is only available in Catalog group.
+.sp 2
+   *  The target replica group must not having a master node, and
+   LSN of the node to upgrade must larger than all other nodes.
+.sp 2
+   *  If there is no operation until the time limit, all nodes
+   will follow the normal rule to re-elect a master node
+   automatically.
+.sp 2
+   *  If you created a user but can't connect the master Catalog
+   node directly, you can set off the authorization (parameter
+   "auth") of Catalog, then do the operation again.
+.SH "Examples"
+
+.sp 2
+Connect Catalog node (host1:30000), and upgrade it to master node
+by force, time limit is 300s.
+.sp 2
+var db = new Sdb("host1", 30000) ;
+.br
+db.forceStepUp({Seconds:300});

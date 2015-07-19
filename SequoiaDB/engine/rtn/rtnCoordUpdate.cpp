@@ -47,10 +47,11 @@ using namespace bson;
 namespace engine
 {
    //PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOUPDATE_EXECUTE, "rtnCoordUpdate::execute" )
-   INT32 rtnCoordUpdate::execute( CHAR *pReceiveBuffer, SINT32 packSize,
-                                  CHAR **ppResultBuffer, pmdEDUCB *cb,
+   INT32 rtnCoordUpdate::execute( CHAR *pReceiveBuffer,
+                                  SINT32 packSize,
+                                  pmdEDUCB *cb,
                                   MsgOpReply &replyHeader,
-                                  BSONObj **ppErrorObj )
+                                  rtnContextBuf *buf )
    {
       INT32 rc = SDB_OK;
       pmdKRCB *pKrcb                   = pmdGetKRCB();
@@ -257,8 +258,8 @@ namespace engine
                                  0, &target );
          PD_RC_CHECK( rc, PDERROR, "failed to build insert message(rc=%d)",
                       rc );
-         rc = pOpProcesser->execute( pBuffer, 0, ppResultBuffer, cb,
-                                     replyHeader, ppErrorObj );
+         rc = pOpProcesser->execute( pBuffer, 0, cb,
+                                     replyHeader, NULL );
          if ( pBuffer != NULL )
          {
             SDB_OSS_FREE( pBuffer );
@@ -281,9 +282,7 @@ namespace engine
          if ( pRollbackOperator )
          {
             pRollbackOperator->execute( pReceiveBuffer, packSize,
-                                        ppResultBuffer, cb, replyHeader,
-                                        ppErrorObj );
-            SDB_ASSERT( NULL == *ppErrorObj, "impossible" ) ;
+                                        cb, replyHeader, NULL ) ;
          }
       }
       replyHeader.flags = rc;

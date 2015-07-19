@@ -23,7 +23,7 @@
 var LOG_NEW_LINE      = "" ;
 
 var LOG_FILE_PATH     = "" ;
-var LOG_FILE_NAME     = "sdbcm_js.log" ;
+var LOG_FILE_NAME     = "sdbcm_script.log" ;
 var JS_LOG_FILE       = "" ;
 
 var LOG_NONE          = -1 ;
@@ -59,15 +59,27 @@ catch( e )
 
 if( "LINUX" == OS_TYPE_IN_JS_LOG )
 {
-   LOG_NEW_LINE  = "\n" ;
-   LOG_FILE_PATH = "../web/log/" ;
+   var currentPath = System.getEWD() ;
+   var pos = currentPath.lastIndexOf( "/" ) ;
+   if ( currentPath.length - 1 != pos )
+      LOG_FILE_PATH = currentPath + "/../conf/log/" ;
+   else
+      LOG_FILE_PATH = currentPath + "../conf/log/" ;
+   
    JS_LOG_FILE   = LOG_FILE_PATH + LOG_FILE_NAME ;
+   LOG_NEW_LINE  = "\n" ;
 }
 else
 {
+   var currentPath = System.getEWD() ;
+   var pos = currentPath.lastIndexOf( "\\" ) ;
+   if ( currentPath.length - 1 != pos )
+      LOG_FILE_PATH = currentPath + "\\..\\conf\\log\\" ;
+   else
+      LOG_FILE_PATH = currentPath + "..\\conf\\log\\" ;
+   
+   JS_LOG_FILE  = LOG_FILE_PATH + LOG_FILE_NAME ;
    LOG_NEW_LINE = "\r\n" ;
-   LOG_FILE_PATH = "..\\web\\log\\" ;
-   JS_LOG_FILE   = LOG_FILE_PATH + LOG_FILE_NAME ;
 }
 
 // get function name and line number
@@ -227,6 +239,65 @@ function _formatLogInfo( contentStr, keyArr, indent )
 }
 
 /* *****************************************************************************
+@discretion: help function for gen log message
+@author: Tanzhaobo
+@parameter
+@return
+***************************************************************************** */
+function _str_repeat(i, m) {
+    for (var o = []; m > 0; o[--m] = i);
+    return o.join('');
+}
+
+/* *****************************************************************************
+@discretion: help function for gen log message
+@author: Tanzhaobo
+@parameter
+@return
+***************************************************************************** */
+function _sprintf() {
+    var i = 0, a, f = arguments[i++], o = [], m, p, c, x, s = '';
+    while (f) {
+        if (m = /^[^\x25]+/.exec(f)) {
+            o.push(m[0]);
+        }
+        else if (m = /^\x25{2}/.exec(f)) {
+            o.push('%');
+        }
+        else if (m = /^\x25(?:(\d+)\$)?(\+)?(0|'[^$])?(-)?(\d+)?(?:\.(\d+))?([b-fosuxX])/.exec(f)) {
+            if (((a = arguments[m[1] || i++]) == null) || (a == undefined)) {
+                throw('Too few arguments.');
+            }
+            if (/[^s]/.test(m[7]) && (typeof(a) != 'number')) {
+                throw('Expecting number but found ' + typeof(a));
+            }
+            switch (m[7]) {
+                case 'b': a = a.toString(2); break;
+                case 'c': a = String.fromCharCode(a); break;
+                case 'd': a = parseInt(a); break;
+                case 'e': a = m[6] ? a.toExponential(m[6]) : a.toExponential(); break;
+                case 'f': a = m[6] ? parseFloat(a).toFixed(m[6]) : parseFloat(a); break;
+                case 'o': a = a.toString(8); break;
+                case 's': a = ((a = String(a)) && m[6] ? a.substring(0, m[6]) : a); break;
+                case 'u': a = Math.abs(a); break;
+                case 'x': a = a.toString(16); break;
+                case 'X': a = a.toString(16).toUpperCase(); break;
+            }
+            a = (/[def]/.test(m[7]) && m[2] && a >= 0 ? '+'+ a : a);
+            c = m[3] ? m[3] == '0' ? '0' : m[3].charAt(1) : ' ';
+            x = m[5] - String(a).length - s.length;
+            p = m[5] ? _str_repeat(c, x) : '';
+            o.push(s + (m[4] ? a + p : p + a));
+        }
+        else {
+            throw('Huh ?!');
+        }
+        f = f.substring(m[0].length);
+    }
+    return o.join('');
+}
+
+/* *****************************************************************************
 @discretion: get the log file
 @author: Tanzhaobo
 @parameter
@@ -260,47 +331,24 @@ function _getJsLogFile( type )
 @return void
 ***************************************************************************** */
 function _write2File( type, infoStr )
-{
+{  
+   var file            = null ;
+   var logFileFullName = "" ;
+   var errMsg          = "" ;
+      
    if ( LOG_NONE == type )
    {
       print( infoStr ) ;
       return ;
    }
-   
-   var file = null ;
-   var logFile = _getJsLogFile( type ) ;
+      
    try
-   {   
-      file = new File( logFile ) ;
+   {
+      logFileFullName = _getJsLogFile( type ) ;
+      file = new File( logFileFullName ) ;
    }
    catch( e )
    {
-      var cmd = null ;
-      var logFileFullName = "" ;
-      var currentPath = "" ;
-      var errMsg = "" ;
-      var pos = -1 ;
-      try
-      {
-         cmd = new Cmd() ;
-         if ( "LINUX" == OS_TYPE_IN_JS_LOG )
-         {
-            currentPath = cmd.run( "pwd" ) ;
-            // remove "\n" in the end of currentPath
-            pos = currentPath.indexOf( "\n" ) ;
-            if ( -1 != pos )
-               currentPath = currentPath.substring(0, pos) ;
-            logFileFullName = currentPath + "/" + logFile ;
-         }
-         else
-         {
-            // TODO: windows
-            logFileFullName = "" ;
-         }
-      }
-      catch( e )
-      {
-      }
       errMsg = "Failed to open log file[" + logFileFullName + "], rc: "
                + getLastError() + ", detail: " + getLastErrMsg() ;
       setLastErrMsg( errMsg ) ;
@@ -382,20 +430,34 @@ function getLogLevel()
 ***************************************************************************** */
 function PD_LOG3( type, argsObj, level, func, line, file, message )
 {
+   var funcName  = "" ;
+   var formatStr = "" ;
+   var logInfo   = "" ;
+   var levelStr  = "" ;
+   
    if ( "number" == typeof( level ) && level > JS_LOG_LEVEL )
       return ;
-   var strArr = [ "Level", "TID", "Line" ] ;
-   var formatStr = "?Level:?" + LOG_NEW_LINE +
-                   "PID:?TID:?" + LOG_NEW_LINE +
-                   "Function:?Line:?" + LOG_NEW_LINE +
-                   "File:?" + LOG_NEW_LINE +
-                   "Message:" + LOG_NEW_LINE + "?" + LOG_NEW_LINE ;
-   var funcName = (argsObj.callee.toString().replace(/function\s?/mi, "").split("("))[0] ;
-   var logInfo = sprintf( formatStr, genTimeStamp(), _getPDLevelDesp(level),
-                          System.getPID(), System.getTID(),
-                          funcName, "NULL", file, message ) ;
-   var infoStr = _formatLogInfo( logInfo, strArr, 42 ) ;
-   _write2File( type, infoStr ) ;
+   funcName = (argsObj.callee.toString().replace(/function\s?/mi, "").split("("))[0] ;
+
+   levelStr = _getPDLevelDesp(level) ;
+   if ( PDERROR >= level )
+      levelStr = "*" + levelStr ;
+   
+   try
+   {
+      formatStr = "%s [%5d][%5d][%7s]: %s(%s)%s" ;
+      logInfo = _sprintf( formatStr, genTimeStamp(),
+                          System.getPID(), System.getTID(), levelStr,
+                          message, file + ":" + funcName, LOG_NEW_LINE ) ;
+   }
+   catch( e )
+   {
+      formatStr = "? [?][?][?]: ?(?)?" ;
+      logInfo = sprintf( formatStr, genTimeStamp(),
+                         System.getPID(), System.getTID(), levelStr,
+                         message, file + ":" + funcName, LOG_NEW_LINE ) ;
+   }
+   _write2File( type, logInfo ) ;
 }
 
 /* *****************************************************************************

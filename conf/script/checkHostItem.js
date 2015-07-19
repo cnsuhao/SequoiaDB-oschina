@@ -25,6 +25,7 @@ function OSInfo()
 {
    this.Distributor        = "" ;
    this.Release            = "" ;
+   this.Description        = "" ;
    this.Bit                = 0 ;
 }
 
@@ -32,8 +33,9 @@ function OMAInfo()
 {
    //this.HasInstalled       = false ;
    this.Version            = "" ;
+   this.SdbUser            = "" ;
    this.Path               = "" ;
-   this.Port               = "" ;
+   this.Service            = "" ;
    this.Release            = "" ;
 }
 

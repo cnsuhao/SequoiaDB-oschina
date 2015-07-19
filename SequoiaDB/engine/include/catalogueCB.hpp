@@ -48,8 +48,11 @@
 #include "catMainController.hpp"
 #include "catCatalogManager.hpp"
 #include "catNodeManager.hpp"
+#include "catDCManager.hpp"
 #include "sdbInterface.hpp"
 #include "catLevelLock.hpp"
+
+using namespace bson ;
 
 namespace engine
 {
@@ -59,9 +62,10 @@ namespace engine
    */
    class sdbCatalogueCB : public _IControlBlock, public _IEventHander
    {
+   public:
       friend class catMainController ;
 
-      typedef std::map<UINT32, UINT32>    GRP_ID_MAP;
+      typedef std::map<UINT32, string>    GRP_ID_MAP;
       typedef std::map<UINT16, UINT16>    NODE_ID_MAP;
 
       public:
@@ -83,19 +87,34 @@ namespace engine
                                          SDB_EVENT_OCCUR_TYPE occurType ) ;
          virtual UINT32 getMask() const ;
 
-         void     insertGroupID( UINT32 grpID, BOOLEAN isActive = TRUE ) ;
+         void     insertGroupID( UINT32 grpID, const string &name,
+                                 BOOLEAN isActive = TRUE ) ;
          void     removeGroupID( UINT32 grpID ) ;
          void     insertNodeID( UINT16 nodeID ) ;
          void     activeGroup( UINT32 groupID ) ;
-         UINT32   AllocGroupID() ;
-         INT32    getAGroupRand( INT32 &groupID) ;
-         UINT16   AllocNodeID();
-         void     releaseNodeID( UINT16 nodeID );
-         UINT16   AllocCataNodeID();
-         void     insertCataNodeID( UINT16 nodeID );
-         void     releaseCataNodeID( UINT16 nodeID );
+         UINT32   allocGroupID() ;
+         INT32    getAGroupRand( UINT32 &groupID) ;
+         UINT16   allocNodeID() ;
+         void     releaseNodeID( UINT16 nodeID ) ;
+         UINT16   allocSystemNodeID() ;
+
+         void        clearInfo() ;
+         GRP_ID_MAP* getGroupMap( BOOLEAN isActive = TRUE ) ;
+         const CHAR* groupID2Name( UINT32 groupID ) ;
+         UINT32      groupName2ID( const string &groupName ) ;
+         INT32       getGroupsName( vector< string > &vecNames ) ;
+         INT32       getGroupsID( vector< UINT32 > &vecIDs ) ;
+
+         INT32       makeGroupsObj( BSONObjBuilder &builder,
+                                    vector< string > &groups,
+                                    BOOLEAN ignoreErr = FALSE ) ;
+         INT32       makeGroupsObj( BSONObjBuilder &builder,
+                                    vector< UINT32 > &groups,
+                                    BOOLEAN ignoreErr = FALSE ) ;
 
          INT16    majoritySize() ;
+         BOOLEAN  isDCActive() const { return _catDCMgr.isDCActive() ; }
+         BOOLEAN  isImageEnable() const { return _catDCMgr.isImageEnable() ; }
 
          UINT32   setTimer( UINT32 milliSec ) ;
          void     killTimer( UINT32 timerID ) ;
@@ -119,6 +138,10 @@ namespace engine
          {
             return &_catNodeMgr ;
          }
+         catDCManager* getCatDCMgr()
+         {
+            return &_catDCMgr ;
+         }
          catLevelLockMgr* getLevelLockMgr()
          {
             return &_levelLockMgr ;
@@ -130,19 +153,19 @@ namespace engine
          std::string          _strHostName ;
          std::string          _strCatServiceName ;
          NODE_ID_MAP          _nodeIdMap ;
-         NODE_ID_MAP          _cataNodeIdMap ;
+         NODE_ID_MAP          _sysNodeIdMap ;
          GRP_ID_MAP           _grpIdMap ;
          GRP_ID_MAP           _deactiveGrpIdMap ;
          UINT16               _iCurNodeId ;
-         UINT16               _curCataNodeId ;
-         ossSpinSLatch        _GrpIDMutex ;
+         UINT16               _curSysNodeId ;
          UINT32               _iCurGrpId ;
 
          catMainController    _catMainCtrl ;
          catCatalogueManager  _catlogueMgr ;
          catNodeManager       _catNodeMgr ;
+         catDCManager         _catDCMgr ;
          catLevelLockMgr      _levelLockMgr ;
-   };
+   } ;
 
    /*
       get global catalogue cb
