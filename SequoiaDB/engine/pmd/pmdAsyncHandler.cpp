@@ -39,6 +39,7 @@
 #include "ossUtil.hpp"
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
+#include "pmdEnv.hpp"
 
 namespace engine
 {
@@ -168,6 +169,7 @@ namespace engine
       PD_TRACE_EXITRC ( SDB__PMDMSGHND_HNDMSG, rc ) ;
       return rc ;
    error :
+      rc = SDB_NET_BROKEN_MSG ;
       goto done ;
    }
 
@@ -220,8 +222,8 @@ namespace engine
       INT32 rc        = SDB_OK ;
       BOOLEAN bCreate = TRUE ;
       PD_TRACE_ENTRY ( SDB__PMDMSGHND_HNDSNMSG );
-
-      UINT64 sessionID = _pSessionMgr->makeSessionID( handle, header ) ;
+      UINT64 sessionID = 0 ;
+      _pmdAsyncSession *pSession = NULL ;
 
       if ( MSG_BS_DISCONNECT == header->opCode ||
            MSG_BS_INTERRUPTE == header->opCode )
@@ -229,11 +231,13 @@ namespace engine
          bCreate = FALSE ;
       }
 
-      _pmdAsyncSession *pSession = _pSessionMgr->getSession( sessionID ,
-                                                             PMD_SESSION_PASSIVE,
-                                                             handle, bCreate,
-                                                             header->opCode,
-                                                             NULL ) ;
+      sessionID = _pSessionMgr->makeSessionID( handle, header ) ;
+
+      pSession = _pSessionMgr->getSession( sessionID ,
+                                           PMD_SESSION_PASSIVE,
+                                           handle, bCreate,
+                                           header->opCode,
+                                           NULL ) ;
       if ( NULL == pSession )
       {
          if ( !bCreate )
@@ -250,18 +254,19 @@ namespace engine
 
       if ( MSG_BS_DISCONNECT == header->opCode )
       {
-         PD_LOG ( PDEVENT, "Session[%s] recieved disconnect message", 
+         PD_LOG ( PDINFO, "Session[%s] recieved disconnect message", 
                   pSession->sessionName() ) ;
          rc = _pSessionMgr->releaseSession( pSession, TRUE ) ;
          if ( rc )
          {
             PD_LOG ( PDWARNING, "Failed to release session, rc = %d", rc ) ;
+            rc = SDB_OK ;
          }
          goto done ;
       }
       else if ( MSG_BS_INTERRUPTE == header->opCode )
       {
-         PD_LOG ( PDEVENT, "Session[%s] recieved interrupt message", 
+         PD_LOG ( PDINFO, "Session[%s] recieved interrupt message", 
                   pSession->sessionName() ) ;
          pSession->eduCB()->interrupt() ;
       }
@@ -328,5 +333,6 @@ namespace engine
                                            pNewMsg, (UINT64)handle ) ) ;
       PD_TRACE_EXIT ( SDB__PMDMSGHND_POSTMAINMSG ) ;
    }
+
 }
 

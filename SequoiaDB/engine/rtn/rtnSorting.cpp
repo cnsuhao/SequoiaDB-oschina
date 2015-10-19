@@ -186,8 +186,9 @@ namespace engine
       BSONObj obj ;
       BOOLEAN fetchFromContext = TRUE ;
       _internalBlk = SDB_OSS_NEW _rtnInternalSorting( _orderby,
-                                                _sortBuf,
-                                                _totalBufSize ) ;
+                                                      _sortBuf,
+                                                      _totalBufSize,
+                                                      _limit ) ;
       if ( NULL == _internalBlk )
       {
          PD_LOG( PDERROR, "failed to allocate mem." ) ;

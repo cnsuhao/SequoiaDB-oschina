@@ -32,6 +32,9 @@
 
 #include "pmdEDUMgr.hpp"
 #include "clsMgr.hpp"
+#include "pmd.hpp"
+#include "pmdEnv.hpp"
+#include "clsLocalValidation.hpp"
 #include "pd.hpp"
 #include "pdTrace.hpp"
 #include "pmdTrace.hpp"
@@ -69,6 +72,43 @@ namespace engine
    done :
       return rc ;
    error :
+      goto done ;
+   }
+
+   INT32 pmdDBMonitorEntryPoint( pmdEDUCB *cb, void *arg )
+   {
+      INT32 rc = SDB_OK ;
+      pmdEDUMgr *pEduMgr = cb->getEDUMgr() ;
+      pmdEDUEvent data ;
+      _clsLocalValidation v ;
+
+      rc = pEduMgr->activateEDU( cb->getID() ) ;
+      PD_RC_CHECK( rc, PDERROR, "Failed to activate edu[%s], rc: %d",
+                   cb->toString().c_str(), rc ) ;
+
+      while( !cb->isDisconnected() )
+      {
+         if ( cb->waitEvent( data, OSS_ONE_SEC ) )
+         {
+            pmdEduEventRelase( data, cb ) ;
+         }
+         rc = v.run() ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to run local validation: %d", rc ) ;
+         }
+
+         if ( pmdDBIsAbnormal() )
+         {
+            PD_LOG( PDSEVERE, "DB is under abnormal status, we must "
+                    "restart!" ) ;
+            PMD_RESTART_DB( SDB_SYS ) ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
       goto done ;
    }
 

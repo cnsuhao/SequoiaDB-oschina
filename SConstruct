@@ -699,6 +699,7 @@ clientCEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
 shellEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
 if hasSSL:
     env.Append( CPPDEFINES=[ "SDB_SSL" ] )
+    fapEnv.Append( CPPDEFINES=[ "SDB_SSL" ] )
 
 env['INSTALL_DIR'] = installDir
 if testEnv is not None:

@@ -29,15 +29,17 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          01/27/2015  LZ  Initial Draft
+          06/01/2015  LZ  Initial Draft
 
    Last Changed =
 
 *******************************************************************************/
 #include "commands.hpp"
-#include "mongoConverter.hpp"
+#include "msgBuffer.hpp"
+#include "parser.hpp"
 #include "msg.hpp"
-#include "../../bson/bson.hpp"
+#include "../../bson/lib/md5.hpp"
+#include "msgDef.h"
 
 DECLARE_COMMAND_VAR( insert )
 DECLARE_COMMAND_VAR( delete )
@@ -46,200 +48,174 @@ DECLARE_COMMAND_VAR( query )
 DECLARE_COMMAND_VAR( getMore )
 DECLARE_COMMAND_VAR( killCursors )
 
-DECLARE_COMMAND_VAR( createCS )
+DECLARE_COMMAND_VAR( getnonce )
+DECLARE_COMMAND_VAR( authenticate )
+DECLARE_COMMAND_VAR( createUser )
+DECLARE_COMMAND_VAR( dropUser )
+DECLARE_COMMAND_VAR( listUsers )
 DECLARE_COMMAND_VAR( create )
+DECLARE_COMMAND_VAR( createCS )
+DECLARE_COMMAND_VAR( listCollection )
 DECLARE_COMMAND_VAR( drop )
 DECLARE_COMMAND_VAR( count )
 DECLARE_COMMAND_VAR( aggregate )
 DECLARE_COMMAND_VAR( dropDatabase )
-
 DECLARE_COMMAND_VAR( createIndexes )
 DECLARE_COMMAND_VAR( deleteIndexes )
 DECLARE_COMMAND_VAR( listIndexes )
-
 DECLARE_COMMAND_VAR( getlasterror )
 DECLARE_COMMAND_VAR( ismaster )
-
 DECLARE_COMMAND_VAR( ping )
+DECLARE_COMMAND_VAR( logout )
 
-command::command( const CHAR *cmdName, const CHAR* secondName )
+
+void generateNonce( std::stringstream &ss )
 {
-   commandMgr* mgr = commandMgr::instance() ;
-   if ( NULL != mgr )
-   {
-      mgr->addCommand( cmdName, this ) ;
-      _cmdName = cmdName ;
-      if ( NULL != secondName )
-      {
-         mgr->addCommand( secondName, this ) ;
-      }
-   }
+   UINT64 ull = 0 ;
+   ss.clear() ;
+   ss << std::hex << ull ;
 }
 
-commandMgr* commandMgr::instance()
+INT32 insertCommand::convert( msgParser &parser )
 {
-   static commandMgr mgr ;
-   return &mgr ;
-}
+   INT32 rc                = SDB_OK ;
+   baseCommand *&cmd       = parser.command() ;
+   mongoDataPacket &packet = parser.dataPacket() ;
 
-namespace fap {
-   static bson::BSONObj emptyObj ;
-
-   void setQueryFlags( const INT32 reservedFlags, SINT32 &flags )
+   if ( 0 != packet.optionMask && !packet.with( OPTION_CMD ) )
    {
-      flags |= FLG_QUERY_WITH_RETURNDATA ;
-
-      if ( reservedFlags & QUERY_CURSOR_TAILABLE )
+      if ( packet.with( OPTION_IDX ) )
       {
+         cmd = commandMgr::instance()->findCommand( "createIndexes" ) ;
+      }
+      else if ( packet.with( OPTION_USR ) )
+      {
+         cmd = commandMgr::instance()->findCommand( "createUser" ) ;
       }
 
-      if ( reservedFlags & QUERY_SLAVE_OK )
-      {
-         flags |= FLG_QUERY_SLAVEOK ;
-      }
-
-      if ( reservedFlags & QUERY_OPLOG_REPLAY )
-      {
-         flags |= FLG_QUERY_OPLOGREPLAY ;
-      }
-
-      if ( reservedFlags & QUERY_NO_CURSOR_TIMEOUT )
-      {
-         flags |= FLG_QUERY_NOCONTEXTTIMEOUT ;
-      }
-
-      if ( reservedFlags & QUERY_AWAIT_DATA )
-      {
-         flags |= FLG_QUERY_AWAITDATA ;
-      }
-
-      if ( reservedFlags & QUERY_EXHAUST )
-      {
-      }
-
-      if ( reservedFlags & QUERY_PARTIAL_RESULTS )
-      {
-         flags |= FLG_QUERY_PARTIALREAD ;
-      }
-   }
-
-   bson::BSONObj getCondObj( const bson::BSONObj& all )
-   {
-      bson::BSONObj cond ;
-      const char* cmdStr = all.firstElementFieldName() ;
-      if ( all.hasField( "$query" ) )
-      {
-         cond = all.getObjectField( "$query" ) ;
-      }
-      else if ( all.hasField( "query" ) )
-      {
-         cond = all.getObjectField( "query" ) ;
-      }
-      else
-      {
-         cond = all ;
-      }
-
-      return cond ;
-   }
-
-}
-
-INT32 insertCommand::convertRequest( mongoParser &parser, msgBuffer &sdbMsg )
-{
-   INT32 rc            = SDB_OK ;
-   INT32 nToSkip       = 0 ;
-   INT32 nToReturned   = 0 ;
-   MsgHeader *header   = NULL ;
-   MsgOpInsert *insert = NULL ;
-   command *cmd        = NULL ;
-   bson::BSONObj obj ;
-   bson::BSONObj subObj ;
-   bson::BSONElement e ;
-   std::vector< bson::BSONElement > objList ;
-   std::vector< bson::BSONElement >::const_iterator cit ;
-   std::string fullname ;
-
-   if ( parser.withIndex )
-   {
-      cmd = commandMgr::instance()->findCommand( "createIndexes" ) ;
       if ( NULL == cmd )
       {
          rc = SDB_OPTION_NOT_SUPPORT ;
-         parser.opType = OP_CMD_NOT_SUPPORTED ;
+         parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
          goto error ;
       }
 
-      rc = cmd->convertRequest( parser, sdbMsg ) ;
+      rc = cmd->convert( parser ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
 
       goto done ;
    }
 
-   parser.opType = OP_INSERT ;
-   sdbMsg.reverse( sizeof ( MsgOpInsert ) ) ;
-   sdbMsg.advance( sizeof ( MsgOpInsert ) - 4 ) ;
+   if ( packet.with( OPTION_CMD ) )
+   {
+   }
+   else
+   {
+   }
 
-   header = ( MsgHeader * )sdbMsg.data() ;
-   header->opCode = MSG_BS_INSERT_REQ ;
-   header->TID = 0 ;
-   header->routeID.value = 0 ;
-   header->requestID = parser.id ;
 
-   insert = ( MsgOpInsert * )sdbMsg.data() ;
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 insertCommand::buildMsg( msgParser& parser, msgBuffer &sdbMsg )
+{
+   INT32 rc                = SDB_OK ;
+   baseCommand *&cmd       = parser.command() ;
+   MsgOpInsert *insert     = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+   parser.setCurrentOp( OP_INSERT ) ;
+   sdbMsg.reverse( sizeof( MsgOpInsert ) ) ;
+   sdbMsg.advance( sizeof( MsgOpInsert ) - 4 ) ;
+
+   insert = ( MsgOpInsert *)sdbMsg.data() ;
+   insert->header.opCode = MSG_BS_INSERT_REQ ;
+   insert->header.TID = 0 ;
+   insert->header.routeID.value = 0 ;
+   insert->header.requestID = packet.requestId ;
    insert->version = 0 ;
    insert->w = 0 ;
    insert->padding = 0 ;
    insert->flags = 0 ;
 
-   if ( parser.reservedFlags & INSERT_CONTINUE_ON_ERROR )
+   if ( packet.reservedInt & INSERT_CONTINUE_ON_ERROR )
    {
       insert->flags |= FLG_INSERT_CONTONDUP ;
    }
 
-   parser.skip( parser.nsLen + 1 ) ;
-   if ( parser.withCmd )
+   if ( packet.with( OPTION_CMD ) )
    {
-      parser.skip( sizeof( nToSkip ) + sizeof( nToReturned ) ) ;
-      if ( !parser.more() )
+      const CHAR *clName = NULL ;
+      packet.fullName = packet.csName ;
+      packet.fullName += "." ;
+      clName = packet.all.getStringField( "insert" ) ;
+      if ( 0 == ossStrcmp( clName, "system.users" ) )
       {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
+         packet.optionMask |= OPTION_USR ;
+         cmd = commandMgr::instance()->findCommand( "createUser" ) ;
+         if ( NULL == cmd )
+         {
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+         }
 
-      parser.nextObj( obj ) ;
-      if ( !obj.getBoolField( "ordered" ) )
+         sdbMsg.zero() ;
+         rc = cmd->buildMsg( parser, sdbMsg ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+
+         goto done ;
+      }
+      packet.fullName += packet.all.getStringField( "insert" ) ;
+      insert->nameLength = packet.fullName.length() ;
+      sdbMsg.write( packet.fullName.c_str(), insert->nameLength + 1, TRUE ) ;
+
+      if ( !packet.all.getBoolField( "ordered" ) )
       {
          insert->flags |= FLG_INSERT_CONTONDUP ;
       }
-      fullname += parser.csName ;
-      fullname += "." ;
-      fullname += obj.getStringField( "insert" ) ;
-      sdbMsg.write( fullname.c_str() , fullname.length() + 1, TRUE ) ;
-      insert->nameLength = fullname.length() ;
-      e = obj.getField( "documents" ) ;
+
+      bson::BSONElement e = packet.all.getField( "documents" ) ;
       if ( bson::Array != e.type() )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
       {
-         bson::BSONObjIterator i(e.Obj());
-         while( i.more() )
+         bson::BSONObjIterator it( e.Obj() ) ;
+         while( it.more() )
          {
-            bson::BSONElement eb = i.next();
-            sdbMsg.write( eb.Obj(), TRUE ) ;
+            bson::BSONElement be = it.next() ;
+            sdbMsg.write( be.Obj(), TRUE ) ;
          }
       }
    }
    else
    {
-      insert->nameLength = parser.nsLen ;
-      sdbMsg.write( parser.fullName, insert->nameLength + 1, TRUE ) ;
+      if ( !parser.more() )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
 
+      parser.readNextObj( packet.all ) ;
+
+      insert->nameLength = packet.fullName.length() ;
+      sdbMsg.write( packet.fullName.c_str(), insert->nameLength + 1, TRUE ) ;
+      sdbMsg.write( packet.all, TRUE ) ;
+
+      bson::BSONObj doc ;
       while ( parser.more() )
       {
-         parser.nextObj( obj ) ;
-         sdbMsg.write( obj, TRUE ) ;
+         parser.readNextObj( doc ) ;
+         sdbMsg.write( doc, TRUE ) ;
       }
    }
 
@@ -251,74 +227,123 @@ error:
    goto done ;
 }
 
-INT32 deleteCommand::convertRequest( mongoParser &parser, msgBuffer &sdbMsg )
+INT32 insertCommand::doCommand( void *pData )
 {
-   INT32 rc            = SDB_OK ;
-   INT32 nToSkip       = 0 ;
-   INT32 nToReturned   = 0 ;
-   MsgHeader *header   = NULL ;
-   MsgOpDelete *remove = NULL ;
-   bson::BSONObj del ;
-   bson::BSONObj cond ;
-   bson::BSONObj hint ;
-   std::string fullname ;
-   bson::BSONObj obj ;
-   bson::BSONObj subObj ;
-   bson::BSONElement e ;
-   std::vector< bson::BSONElement > objList ;
-   std::vector< bson::BSONElement >::const_iterator cit ;
+   return SDB_OK ;
+}
 
-   parser.opType = OP_REMOVE ;
-   sdbMsg.reverse( sizeof ( MsgOpDelete ) ) ;
-   sdbMsg.advance( sizeof ( MsgOpDelete ) - 4 ) ;
+INT32 deleteCommand::convert( msgParser &parser )
+{
+   INT32 rc                = SDB_OK ;
+   baseCommand *&cmd       = parser.command() ;
+   mongoDataPacket &packet = parser.dataPacket() ;
 
-   header = ( MsgHeader * )sdbMsg.data() ;
-   header->opCode = MSG_BS_DELETE_REQ ;
-   header->TID = 0 ;
-   header->routeID.value = 0 ;
-   header->requestID = parser.id ;
-
-   remove = ( MsgOpDelete* )sdbMsg.data() ;
-   remove->version = 0 ;
-   remove->w = 0 ;
-   remove->padding = 0 ;
-   remove->flags = 0 ;
-
-   if ( parser.reservedFlags & REMOVE_JUSTONE )
+   if ( packet.with( OPTION_USR ) )
    {
-      remove->flags |= FLG_DELETE_SINGLEREMOVE ;
-   }
-
-   parser.skip( parser.nsLen + 1 ) ;
-   if ( parser.withCmd )
-   {
-      parser.skip( sizeof( nToSkip ) + sizeof( nToReturned ) ) ;
-      if ( !parser.more() )
+      cmd = commandMgr::instance()->findCommand( "dropUser" ) ;
+      if ( NULL == cmd )
       {
-         rc = SDB_INVALIDARG ;
+         rc = SDB_OPTION_NOT_SUPPORT ;
+         parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+      }
+
+      rc = cmd->convert( parser ) ;
+      if ( SDB_OK != rc )
+      {
          goto error ;
       }
 
-      parser.nextObj( obj ) ;
-      fullname += parser.csName ;
-      fullname += "." ;
-      fullname += obj.getStringField( "delete" ) ;
-      sdbMsg.write( fullname.c_str() , fullname.length() + 1, TRUE ) ;
-      remove->nameLength = fullname.length() ;
-      e = obj.getField( "deletes" ) ;
+      goto done ;
+   }
+
+   if ( packet.with( OPTION_CMD ) )
+   {
+   }
+   else
+   {
+      parser.readInt( sizeof( INT32 ), (CHAR *)&packet.nToSkip ) ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 deleteCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc                = SDB_OK ;
+   baseCommand *&cmd       = parser.command() ;
+   MsgOpDelete *del        = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+
+   parser.setCurrentOp( OP_REMOVE );
+   sdbMsg.reverse( sizeof( MsgOpDelete ) ) ;
+   sdbMsg.advance( sizeof( MsgOpDelete ) - 4 ) ;
+
+   del = ( MsgOpDelete *)sdbMsg.data() ;
+   del->header.opCode = MSG_BS_DELETE_REQ ;
+   del->header.TID = 0 ;
+   del->header.routeID.value = 0 ;
+   del->header.requestID = packet.requestId ;
+   del->version = 0 ;
+   del->w = 0 ;
+   del->padding = 0 ;
+   del->flags = 0 ;
+
+   if ( packet.reservedInt & REMOVE_JUSTONE )
+   {
+      del->flags |= FLG_DELETE_SINGLEREMOVE ;
+   }
+
+   if ( packet.with( OPTION_CMD ) )
+   {
+      const CHAR *clName = NULL ;
+      packet.fullName = packet.csName ;
+      packet.fullName += "." ;
+      clName = packet.all.getStringField( "delete" ) ;
+      if ( 0 == ossStrcmp( clName, "system.users" ) )
+      {
+         packet.optionMask |= OPTION_USR ;
+         cmd = commandMgr::instance()->findCommand( "dropUser" ) ;
+         if ( NULL == cmd )
+         {
+            rc = SDB_OPTION_NOT_SUPPORT ;
+            parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+         }
+
+         sdbMsg.zero() ;
+         rc = cmd->buildMsg( parser, sdbMsg ) ;
+         if ( SDB_OK != rc )
+         {
+            goto error ;
+         }
+
+         goto done ;
+      }
+      packet.fullName += packet.all.getStringField( "delete" ) ;
+      del->nameLength = packet.fullName.length() ;
+      sdbMsg.write( packet.fullName.c_str(), del->nameLength + 1, TRUE ) ;
+
+      bson::BSONElement e = packet.all.getField( "deletes" ) ;
       if ( bson::Array != e.type() )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+
+      std::vector< bson::BSONElement > objList ;
+      std::vector< bson::BSONElement >::const_iterator cit ;
+      bson::BSONObj obj, cond, hint ;
+      bson::BSONObj subObj ;
       objList = e.Array() ;
       cit = objList.begin() ;
       while ( objList.end() != cit )
       {
          subObj = (*cit).Obj() ;
-         del = subObj.getObjectField( "q" ) ;
-         cond = fap::getCondObj( del ) ;
-         hint = del.getObjectField( "$hint" ) ;
+         obj = subObj.getObjectField( "q" ) ;
+         cond = getQueryObj( obj ) ;
+         hint = getHintObj( obj ) ;
          sdbMsg.write( cond, TRUE ) ;
          sdbMsg.write( hint, TRUE ) ;
          ++cit ;
@@ -326,25 +351,21 @@ INT32 deleteCommand::convertRequest( mongoParser &parser, msgBuffer &sdbMsg )
    }
    else
    {
-      remove->nameLength = parser.nsLen ;
       if ( !parser.more() )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      parser.nextObj( cond ) ;
 
-      if ( parser.more() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
+      parser.readNextObj( packet.all ) ;
 
-      cond = del.getObjectField( "$query" ) ;
-      hint = del.getObjectField( "$hint" ) ;
+      del->nameLength = packet.fullName.length() ;
+      sdbMsg.write( packet.fullName.c_str(), del->nameLength + 1, TRUE ) ;
 
-      sdbMsg.write( parser.fullName, remove->nameLength + 1, TRUE ) ;
-      sdbMsg.write( del, TRUE ) ;
+      bson::BSONObj cond, hint ;
+      cond = getQueryObj( packet.all ) ;
+      hint = getHintObj( packet.all ) ;
+      sdbMsg.write( cond, TRUE ) ;
       sdbMsg.write( hint, TRUE ) ;
    }
 
@@ -356,88 +377,107 @@ error:
    goto done ;
 }
 
-INT32 updateCommand::convertRequest( mongoParser &parser, msgBuffer &sdbMsg )
+INT32 deleteCommand::doCommand( void *pData )
 {
-   INT32 rc            = SDB_OK ;
-   INT32 nToSkip       = 0 ;
-   INT32 nToReturned   = 0 ;
-   INT32 updateFlags   = 0 ;
-   MsgHeader *header   = NULL ;
-   MsgOpUpdate *update = NULL ;
-   bson::BSONObj all ;
-   bson::BSONObj cond ;
-   bson::BSONObj updator ;
-   bson::BSONObj hint ;
+   return SDB_OK ;
+}
 
-   std::string fullname ;
-   bson::BSONObj obj ;
-   bson::BSONObj subObj ;
-   bson::BSONElement e ;
-   std::vector< bson::BSONElement > objList ;
-   std::vector< bson::BSONElement >::const_iterator cit ;
+INT32 updateCommand::convert( msgParser &parser )
+{
+   INT32 rc                = SDB_OK ;
+   baseCommand *&cmd       = parser.command() ;
+   mongoDataPacket &packet = parser.dataPacket() ;
 
-   parser.opType = OP_UPDATE ;
-   sdbMsg.reverse( sizeof ( MsgOpUpdate ) ) ;
-   sdbMsg.advance( sizeof ( MsgOpUpdate ) - 4 ) ;
+   if ( packet.with( OPTION_USR ) )
+   {
+      cmd = commandMgr::instance()->findCommand( "updataUser" ) ;
+      if ( NULL == cmd )
+      {
+         rc = SDB_OPTION_NOT_SUPPORT ;
+         parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+         goto done ;
+      }
 
-   header = ( MsgHeader * )sdbMsg.data() ;
-   header->opCode = MSG_BS_UPDATE_REQ ;
-   header->TID = 0 ;
-   header->routeID.value = 0 ;
-   header->requestID = parser.id ;
+      rc = cmd->convert( parser ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
 
-   update = ( MsgOpUpdate * )sdbMsg.data() ;
+      goto done ;
+   }
+
+   if ( packet.with( OPTION_CMD ) )
+   {
+   }
+   else
+   {
+      parser.readInt( sizeof( INT32 ), (CHAR *)&packet.nToSkip ) ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 updateCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc                = SDB_OK ;
+   MsgOpUpdate *update     = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+   parser.setCurrentOp( OP_UPDATE ) ;
+   sdbMsg.reverse( sizeof( MsgOpUpdate ) ) ;
+   sdbMsg.advance( sizeof( MsgOpUpdate ) - 4 ) ;
+
+   update = ( MsgOpUpdate *)sdbMsg.data() ;
+   update->header.opCode = MSG_BS_UPDATE_REQ ;
+   update->header.TID = 0 ;
+   update->header.routeID.value = 0 ;
+   update->header.requestID = packet.requestId ;
    update->version = 0 ;
    update->w = 0 ;
    update->padding = 0 ;
    update->flags = 0 ;
 
-   parser.skip( parser.nsLen + 1 ) ;
-   if ( parser.withCmd )
+   if ( packet.with( OPTION_CMD ) )
    {
-      parser.skip( sizeof( nToSkip ) + sizeof( nToReturned ) ) ;
-      if ( !parser.more() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
+      packet.fullName = packet.csName ;
+      packet.fullName += "." ;
+      packet.fullName += packet.all.getStringField( "update" ) ;
+      update->nameLength = packet.fullName.length() ;
+      sdbMsg.write( packet.fullName.c_str(),
+                    packet.fullName.length() + 1, TRUE ) ;
 
-      parser.nextObj( obj ) ;
-      fullname += parser.csName ;
-      fullname += "." ;
-      fullname += obj.getStringField( "update" ) ;
-      sdbMsg.write( fullname.c_str() , fullname.length() + 1, TRUE ) ;
-      update->nameLength = fullname.length() ;
-      e = obj.getField( "updates" ) ;
+      bson::BSONElement e = packet.all.getField( "updates" ) ;
       if ( bson::Array != e.type() )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+
+      bson::BSONObj obj, subObj, cond, updator, hint ;
+      std::vector< bson::BSONElement > objList ;
+      std::vector< bson::BSONElement >::const_iterator cit ;
       objList = e.Array() ;
       cit = objList.begin() ;
       while ( objList.end() != cit )
       {
          subObj = (*cit).Obj() ;
-         all= subObj.getObjectField( "q" ) ;// u , multi upsert
-
-         cond = fap::getCondObj( all ) ;
-
+         obj = subObj.getObjectField( "q" ) ;
          updator = subObj.getObjectField( "u" ) ;
+         hint = getHintObj( obj ) ;
 
-         hint = all.getObjectField( "$hint" ) ;
-         BOOLEAN tmp = 0 ;
-         tmp = subObj.getBoolField( "multi" ) ;
-         if ( tmp )
+         if ( subObj.getBoolField( "multi" ) )
          {
             update->flags |= FLG_UPDATE_MULTIUPDATE ;
          }
-         tmp = subObj.getBoolField( "upsert" ) ;
-         if ( tmp )
+         if ( subObj.getBoolField( "upsert" ) )
          {
             update->flags |= FLG_UPDATE_UPSERT ;
          }
-         sdbMsg.write( cond, TRUE ) ;
+
+         sdbMsg.write( obj, TRUE ) ;
          sdbMsg.write( updator, TRUE ) ;
          sdbMsg.write( hint, TRUE ) ;
          ++cit ;
@@ -445,36 +485,35 @@ INT32 updateCommand::convertRequest( mongoParser &parser, msgBuffer &sdbMsg )
    }
    else
    {
-      update->nameLength = parser.nsLen ;
-      parser.readNumber( sizeof( INT32 ), (CHAR *)&updateFlags ) ;
-      if ( updateFlags & UPDATE_UPSERT )
+      if ( !parser.more() )
+      {
+         rc = SDB_INVALIDARG ;
+        goto error ;
+      }
+
+      parser.readNextObj( packet.all ) ;
+
+      update->nameLength = packet.fullName.length() ;
+      sdbMsg.write( packet.fullName.c_str(), update->nameLength + 1, TRUE ) ;
+      if ( packet.nToSkip & UPDATE_UPSERT )
       {
          update->flags |= FLG_UPDATE_UPSERT ;
       }
-
-      if ( updateFlags & UPDATE_MULTI )
+      if ( packet.nToSkip & UPDATE_MULTI )
       {
          update->flags |= FLG_UPDATE_MULTIUPDATE ;
       }
 
+      bson::BSONObj cond, updator, hint ;
       if ( !parser.more() )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
-      parser.nextObj( all ) ;
+      parser.readNextObj( updator ) ;
+      cond = getQueryObj( packet.all ) ;
+      hint = getHintObj( packet.all ) ;
 
-      if ( !parser.more() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-      parser.nextObj( updator ) ;
-
-      cond = fap::getCondObj( all ) ;
-      hint = all.getObjectField( "$hint" ) ;
-
-      sdbMsg.write( parser.fullName, update->nameLength + 1, TRUE ) ;
       sdbMsg.write( cond, TRUE ) ;
       sdbMsg.write( updator, TRUE ) ;
       sdbMsg.write( hint, TRUE ) ;
@@ -488,199 +527,225 @@ error:
    goto done ;
 }
 
-INT32 queryCommand::convertRequest( mongoParser &parser, msgBuffer &sdbMsg )
+INT32 updateCommand::doCommand( void *pData )
 {
-   INT32 rc           = SDB_OK ;
-   INT32 nToSkip      = 0 ;
-   INT32 nToReturn    = -1 ;
-   MsgHeader *header  = NULL ;
-   MsgOpQuery *query  = NULL ;
-   const CHAR *cmdStr = NULL ;
-   command* cmd       = NULL ;
-   bson::BSONObj all ;
-   bson::BSONObj cond ;
-   bson::BSONObj selector ;
-   bson::BSONObj orderby ;
-   bson::BSONObj hint ;
-   bson::BSONObj fieldToReturn ;
+   return SDB_OK ;
+}
 
-   parser.opType = OP_QUERY ;
-   sdbMsg.reverse( sizeof ( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof ( MsgOpQuery ) - 4 ) ;
+INT32 queryCommand::convert( msgParser &parser )
+{
+   INT32 rc                = SDB_OK ;
+   INT32 nToReturn         = 0 ;
+   baseCommand *&cmd       = parser.command() ;
+   mongoDataPacket &packet = parser.dataPacket() ;
 
-   header = ( MsgHeader * )sdbMsg.data() ;
-   header->opCode = MSG_BS_QUERY_REQ ;
-   header->TID = 0 ;
-   header->routeID.value = 0 ;
-   header->requestID = parser.id ;
+   parser.readInt( sizeof( packet.nToSkip ), ( CHAR * )&packet.nToSkip ) ;
+   parser.readInt( sizeof( nToReturn ), ( CHAR * )&nToReturn ) ;
+   packet.nToReturn = nToReturn < 0 ? -nToReturn : nToReturn ;
+   if ( 0 == packet.nToReturn )
+   {
+      packet.nToReturn  = -1 ;
+   }
+
+   if ( !parser.more() )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+   parser.readNextObj( packet.all ) ;
+
+   if ( 0 !=  packet.optionMask )
+   {
+      if ( packet.with( OPTION_IDX ) )
+      {
+         cmd = commandMgr::instance()->findCommand( "listIndexes" ) ;
+      }
+      else if ( packet.with( OPTION_CLS ) )
+      {
+         cmd = commandMgr::instance()->findCommand( "listCollection" ) ;
+      }
+      else if ( packet.with( OPTION_USR ) )
+      {
+         cmd = commandMgr::instance()->findCommand( "listUsers" ) ;
+      }
+      else if ( packet.with( OPTION_CMD ) )
+      {
+         const CHAR *cmdName = packet.all.firstElementFieldName() ;
+         packet.fullName = packet.csName ;
+         packet.fullName += "." ;
+         packet.fullName += packet.all.getStringField( cmdName ) ;
+
+         cmd = commandMgr::instance()->findCommand( cmdName ) ;
+      }
+
+      if ( NULL == cmd )
+      {
+         rc = SDB_OPTION_NOT_SUPPORT ;
+         parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+         goto error ;
+      }
+
+      rc = cmd->convert( parser ) ;
+      if ( SDB_OK != rc )
+      {
+         goto error ;
+      }
+
+      goto done ;
+   }
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 queryCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc                = SDB_OK ;
+   MsgOpQuery *query       = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+
+   parser.setCurrentOp( OP_QUERY ) ;
+   sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
+   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
    query = ( MsgOpQuery * )sdbMsg.data() ;
+   query->header.opCode = MSG_BS_QUERY_REQ ;
+   query->header.TID = 0 ;
+   query->header.routeID.value = 0 ;
+   query->header.requestID = packet.requestId ;
    query->version = 0 ;
    query->w = 0 ;
    query->padding = 0 ;
    query->flags = 0 ;
-   fap::setQueryFlags( parser.reservedFlags, query->flags ) ;
+   setQueryFlags( packet.reservedInt, query->flags ) ;
+   query->numToSkip = packet.nToSkip ;
+   query->numToReturn = packet.nToReturn ;
+   query->nameLength = packet.fullName.length() ;
 
-   query->nameLength = parser.nsLen ;
-   parser.skip( query->nameLength + 1 ) ;
-
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToSkip ) ;
-   query->numToSkip = nToSkip ;
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToReturn ) ;
-   query->numToReturn = (0 == nToReturn ? -1 : nToReturn) ;
-   if ( 0 > nToReturn )
+   if ( packet.all.hasField( "limit" ) )
    {
-      query->numToReturn = -nToReturn ;
+      query->numToReturn = packet.all.getIntField( "limit" ) ;
    }
 
-   if ( parser.more() )
+   if ( packet.all.hasField( "skip" ) )
    {
-      parser.nextObj( all ) ;
+      query->numToSkip = packet.all.getIntField( "skip" ) ;
    }
 
-   if ( parser.withIndex )
-   {
-      cmd = commandMgr::instance()->findCommand( "listIndexes" ) ;
-      if ( NULL == cmd )
-      {
-         rc = SDB_OPTION_NOT_SUPPORT ;
-         parser.opType = OP_CMD_NOT_SUPPORTED ;
-         goto error ;
-      }
-      parser.reparse() ;
-      sdbMsg.zero() ;
-
-      rc = cmd->convertRequest( parser, sdbMsg ) ;
-      goto done ;
-   }
-
-   if ( parser.withCmd )
-   {
-      cmdStr = all.firstElementFieldName() ;
-      cmd = commandMgr::instance()->findCommand( cmdStr ) ;
-      if ( NULL == cmd )
-      {
-         rc = SDB_OPTION_NOT_SUPPORT ;
-         parser.opType = OP_CMD_NOT_SUPPORTED ;
-         parser.cmdName = cmdStr ;
-         goto error ;
-      }
-      parser.reparse() ;
-      sdbMsg.zero() ;
-
-      rc = cmd->convertRequest( parser, sdbMsg ) ;
-      goto done ;
-   }
-
-   cond = fap::getCondObj( all ) ;
-   orderby = all.getObjectField( "orderby" ) ;
-   hint    = cond.getObjectField( "$hint" ) ;
-
-   if ( all.hasField( "limit" ) )
-   {
-      query->numToReturn = cond.getIntField( "limit" ) ;
-   }
-
-   if ( all.hasField( "skip" ) )
-   {
-      query->numToSkip   = cond.getIntField( "skip" ) ;
-   }
-
-   if ( cond.getBoolField("$explain") )
+   if ( packet.all.getBoolField( "$explain" ) )
    {
       query->flags |= FLG_QUERY_EXPLAIN ;
    }
 
-   if ( parser.more() )
    {
-      parser.nextObj( fieldToReturn ) ;
-   }
+      if ( parser.more() )
+      {
+         parser.readNextObj( packet.fieldToReturn ) ;
+      }
 
-   sdbMsg.write( parser.fullName, query->nameLength + 1, TRUE ) ;
-   sdbMsg.write( cond, TRUE ) ;
-   sdbMsg.write( fieldToReturn, TRUE ) ;
-   sdbMsg.write( orderby, TRUE ) ;
-   sdbMsg.write( hint, TRUE ) ;
+      bson::BSONObj cond, orderby, hint ;
+      cond = getQueryObj( packet.all ) ;
+      orderby = getSortObj( packet.all ) ;
+      hint = getHintObj( packet.all ) ;
+
+      sdbMsg.write( packet.fullName.c_str(), query->nameLength + 1, TRUE ) ;
+      sdbMsg.write( cond, TRUE ) ;
+      sdbMsg.write( packet.fieldToReturn, TRUE ) ;
+      sdbMsg.write( orderby, TRUE ) ;
+      sdbMsg.write( hint, TRUE ) ;
+   }
 
    sdbMsg.doneLen() ;
 
-done:
    return rc ;
-error:
-   goto done ;
 }
 
-INT32 getMoreCommand::convertRequest( mongoParser &parser, msgBuffer &sdbMsg )
+INT32 queryCommand::doCommand( void *pData )
 {
-   INT32 rc           = SDB_OK ;
-   INT32 nToReturn    = -1 ;
-   INT64 cursorid     = 0 ;
-   MsgHeader *header  = NULL ;
-   MsgOpGetMore *more = NULL ;
+   return SDB_OK ;
+}
 
-   parser.opType = OP_GETMORE ;
-   sdbMsg.reverse( sizeof ( MsgOpGetMore ) ) ;
-   sdbMsg.advance( sizeof ( MsgOpGetMore ) ) ;
+INT32 getMoreCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
 
-   header = ( MsgHeader * )sdbMsg.data() ;
-   header->opCode = MSG_BS_GETMORE_REQ ;
-   header->TID = 0 ;
-   header->routeID.value = 0 ;
-   header->requestID = parser.id ;
+INT32 getMoreCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc                = SDB_OK ;
+   INT32 nToReturn         = 0 ;
+   MsgOpGetMore *more      = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+
+   parser.setCurrentOp( OP_GETMORE ) ;
+   sdbMsg.reverse( sizeof( MsgOpGetMore ) ) ;
+   sdbMsg.advance( sizeof( MsgOpGetMore ) ) ;
 
    more = ( MsgOpGetMore * )sdbMsg.data() ;
+   more->header.opCode = MSG_BS_GETMORE_REQ ;
+   more->header.TID = 0 ;
+   more->header.routeID.value = 0 ;
+   more->header.requestID = packet.requestId ;
 
-   parser.skip( parser.nsLen + 1 ) ;
-
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToReturn ) ;
-   more->numToReturn = (0 == nToReturn ? -1 : nToReturn) ;
-   if ( 0 > nToReturn )
+   parser.readInt( sizeof( nToReturn ), ( CHAR * )&nToReturn ) ;
+   packet.nToReturn = nToReturn < 0 ? -nToReturn : nToReturn ;
+   if ( 0 == packet.nToReturn )
    {
-      more->numToReturn = -nToReturn ;
+      packet.nToReturn = -1 ;
    }
-   parser.readNumber( sizeof( SINT64 ), ( CHAR * )&cursorid ) ;
-   more->contextID = cursorid - 1;
+   more->numToReturn = packet.nToReturn ;
+   parser.readInt( sizeof( packet.cursorId ), ( CHAR * )&packet.cursorId ) ;
+   more->contextID = packet.cursorId - 1;
 
    sdbMsg.doneLen() ;
 
    return rc ;
 }
 
-INT32 killCursorsCommand::convertRequest( mongoParser &parser,
-                                          msgBuffer &sdbMsg )
+INT32 getMoreCommand::doCommand( void *pData )
 {
-   INT32 rc          = SDB_OK ;
-   INT32 nContext    = 0 ;
-   INT32 nToReturn   = 0 ;
-   SINT64 cursorid   = 0 ;
-   MsgHeader *header = NULL ;
+   return SDB_OK ;
+}
+
+INT32 killCursorsCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
+
+INT32 killCursorsCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc                = SDB_OK ;
+   INT32 nContext          = 0 ;
+   INT64 cursorId          = 0 ;
    MsgOpKillContexts *kill = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
 
-   parser.opType = OP_KILLCURSORS ;
-   sdbMsg.reverse( sizeof ( MsgOpKillContexts ) ) ;
-   sdbMsg.advance( sizeof ( MsgOpKillContexts ) - sizeof( SINT64 ) ) ;
-
-   header = ( MsgHeader * )sdbMsg.data() ;
-   header->opCode = MSG_BS_KILL_CONTEXT_REQ ;
-   header->TID = 0 ;
-   header->routeID.value = 0 ;
-   header->requestID = parser.id ;
+   parser.setCurrentOp( OP_KILLCURSORS ) ;
+   sdbMsg.reverse( sizeof( MsgOpKillContexts ) ) ;
+   sdbMsg.advance( sizeof( MsgOpKillContexts ) - sizeof( SINT64 ) ) ;
 
    kill = ( MsgOpKillContexts * )sdbMsg.data() ;
+   kill->header.opCode = MSG_BS_KILL_CONTEXT_REQ ;
+   kill->header.TID = 0 ;
+   kill->header.routeID.value = 0 ;
+   kill->header.requestID = packet.requestId ;
    kill->ZERO = 0 ;
 
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nContext ) ;
-   kill->numContexts = nToReturn ;
+   parser.readInt( sizeof( INT32 ), ( CHAR * )&nContext ) ;
+   kill->numContexts = nContext ;
 
-   while ( nToReturn > 0 )
+   while ( 0 < nContext )
    {
-      parser.readNumber( sizeof( SINT64 ), ( CHAR * )&cursorid ) ;
-      if ( cursorid != 0 )
+      cursorId = 0 ;
+      parser.readInt( sizeof( SINT64 ), ( CHAR *)&cursorId ) ;
+      if ( 0 != cursorId )
       {
-         cursorid -= 1 ;
-         sdbMsg.write( ( CHAR * )&cursorid, sizeof( SINT64 ) ) ;
+         cursorId -= 1 ;
+         sdbMsg.write( ( CHAR * )&cursorId, sizeof( SINT64 ) ) ;
       }
-      --nToReturn ;
+      --nContext ;
    }
 
    sdbMsg.doneLen() ;
@@ -688,520 +753,818 @@ INT32 killCursorsCommand::convertRequest( mongoParser &parser,
    return rc ;
 }
 
+INT32 killCursorsCommand::doCommand( void *pData )
+{
+   return SDB_OK ;
+}
 
-/*
-INT32 getnonceCommand::convertRequest( mongoParser &parser, msgBuffer &sdbMsg )
+INT32 getnonceCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
+
+INT32 getnonceCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
 {
    INT32 rc = SDB_OK ;
 
-   parser.opType = OP_CMD_GETNONCE ;
-   static Nonce::Security security ;
-   UINT64 nonce = security.getNonce() ;
+   parser.setCurrentOp( OP_CMD_GETNONCE ) ;
 
-   bson::BSONObjBuilder obj ;
+   bson::BSONObjBuilder bob ;
    std::stringstream ss ;
-   ss << std::hex << nonce ;
-   obj.append( "nonce", ss.str() ) ;
-   sdbMsg.write( obj.obj(), TRUE ) ;
+   generateNonce( ss ) ;
+   bob.append( "nonce", ss.str() ) ;
 
+   sdbMsg.write( bob.obj(), TRUE ) ;
+
+   return rc ;
+}
+
+INT32 getnonceCommand::doCommand( void *pData )
+{
+   return SDB_OK ;
+}
+
+INT32 authenticateCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
+
+INT32 authenticateCommand::buildMsg( msgParser &parser,  msgBuffer &sdbMsg )
+{
+   INT32 rc                = SDB_OK ;
+   MsgAuthentication *auth = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+
+   parser.setCurrentOp( OP_CMD_AUTH ) ;
+   sdbMsg.reverse( sizeof( MsgAuthentication ) ) ;
+   sdbMsg.advance( sizeof( MsgAuthentication ) ) ;
+
+   bson::BSONObj user = packet.all ;
+   const CHAR *pUsername = user.getStringField( "user" ) ;
+   const CHAR *pKey = user.getStringField( "key" ) ;
+
+   auth = ( MsgAuthentication * ) sdbMsg.data() ;
+   auth->header.opCode = MSG_AUTH_VERIFY_REQ ;
+   auth->header.TID = 0 ;
+   auth->header.routeID.value = 0 ;
+   auth->header.requestID = packet.requestId ;
+
+   {
+      bson::BSONObj obj ;
+      obj = BSON( SDB_AUTH_USER << pUsername
+                  << SDB_AUTH_PASSWD << pKey
+                  << SDB_AUTH_SOURCE << SDB_AUTH_SOURCE_FAP ) ;
+      sdbMsg.write( obj, TRUE ) ;
+   }
+
+   sdbMsg.doneLen() ;
+
+   return rc ;
+}
+
+INT32 authenticateCommand::doCommand( void *pData )
+{
+   return SDB_OK ;
+}
+
+INT32 createUserCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
+
+INT32 createUserCommand::buildMsg( msgParser& parser, msgBuffer &sdbMsg )
+{
+   INT32 rc = SDB_OK ;
+   MsgAuthCrtUsr *user = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+
+   parser.setCurrentOp( OP_CMD_CRTUSER ) ;
+   sdbMsg.reverse( sizeof( MsgAuthCrtUsr ) ) ;
+   sdbMsg.advance( sizeof( MsgAuthCrtUsr ) ) ;
+
+   user = ( MsgAuthCrtUsr * )sdbMsg.data() ;
+   user->header.opCode = MSG_AUTH_CRTUSR_REQ ;
+   user->header.TID = 0 ;
+   user->header.routeID.value = 0 ;
+   user->header.requestID = packet.requestId ;
+
+   bson::BSONObj obj, cond ;
+   const CHAR *pName = NULL ;
+   const CHAR *pPasswd = NULL ;
+
+   if ( packet.with( OPTION_CMD ) && packet.with( OPTION_USR ) )
+   {
+      bson::BSONElement e = packet.all.getField( "documents" ) ;
+      if ( bson::Array != e.type() )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      {
+         bson::BSONObjIterator it( e.Obj() ) ;
+         while( it.more() )
+         {
+            bson::BSONElement be = it.next() ;
+            cond = be.Obj() ;
+            break ;
+         }
+         pName = cond.getStringField( "user" ) ;
+         pPasswd = cond.getStringField( "pwd" ) ;
+      }
+   }
+   else if ( packet.with( OPTION_CMD ) )
+   {
+      bson::BSONObj cond = packet.all.getObjectField( "createUser" ) ;
+      pName = cond.getStringField( "user" ) ;
+      pPasswd = cond.getStringField( "pwd" ) ;
+   }
+   else
+   {
+      if ( !parser.more() )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      parser.readNextObj( packet.all ) ;
+
+      pName = packet.all.getStringField( "user" ) ;
+      pPasswd = packet.all.getStringField( "pwd" ) ;
+   }
+   {
+      std::stringstream ss ;
+      generateNonce( ss ) ;
+      md5::md5digest d ;
+      md5_state_t st ;
+      md5_init( &st ) ;
+      md5_append( &st, ( const md5_byte_t * )ss.str().c_str(),
+                  ossStrlen( ss.str().c_str() ) ) ;
+      md5_append( &st, ( const md5_byte_t * )pName, ossStrlen( pName ) ) ;
+      md5_append( &st, ( const md5_byte_t * )pPasswd, ossStrlen( pPasswd ) ) ;
+      md5_finish( &st, d ) ;
+
+      obj = BSON( SDB_AUTH_USER << pName <<
+                  SDB_AUTH_PASSWD << md5::digestToString( d ).c_str() <<
+                  SDB_AUTH_SOURCE << SDB_AUTH_SOURCE_FAP ) ;
+   }
+
+   sdbMsg.write( obj, TRUE ) ;
+   sdbMsg.doneLen() ;
 
 done:
    return rc ;
 error:
    goto done ;
 }
-*/
 
-INT32 createCSCommand::convertRequest( mongoParser &parser, msgBuffer &sdbMsg )
+INT32 createUserCommand::doCommand( void *pData )
 {
-   INT32 rc          = SDB_OK ;
-   MsgHeader *header = NULL ;
-   MsgOpQuery *query = NULL ;
-   bson::BSONObj obj ;
-   const std::string cmdStr = "$create collectionspace" ;
-
-   parser.opType = OP_CMD_CREATE_CS ;
-   sdbMsg.reverse( sizeof ( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof ( MsgOpQuery ) - 4 ) ;
-
-   header = ( MsgHeader * )sdbMsg.data() ;
-   header->opCode = MSG_BS_QUERY_REQ ;
-   header->TID = 0 ;
-   header->routeID.value = 0 ;
-   header->requestID = parser.id ;
-
-   query = ( MsgOpQuery * )sdbMsg.data() ;
-   query->version = 0 ;
-   query->w = 0 ;
-   query->padding = 0 ;
-   query->flags = 0 ;
-   fap::setQueryFlags( parser.reservedFlags, query->flags ) ;
-
-   query->nameLength = cmdStr.length() ;
-   query->numToSkip = 0 ;
-   query->numToReturn = -1 ;
-
-   obj = BSON( "Name" << parser.csName << "PageSize" << 65536 ) ;
-
-   sdbMsg.write( cmdStr.c_str(), query->nameLength + 1, TRUE ) ;
-   sdbMsg.write( obj, TRUE ) ;
-
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-
-   sdbMsg.doneLen() ;
-
-   return rc ;
+   return SDB_OK ;
 }
 
-INT32 createCommand::convertRequest( mongoParser &parser, msgBuffer &sdbMsg )
+INT32 dropUserCommand::convert( msgParser &parser )
 {
-   INT32 rc          = SDB_OK ;
-   INT32 nToSkip     = 0 ;
-   INT32 nToReturn   = 0 ;
-   MsgHeader *header = NULL ;
-   MsgOpQuery *query = NULL ;
-   bson::BSONObj cond ;
-   bson::BSONObj obj ;
-   bson::BSONElement e ;
-   const std::string cmdStr = "$create collection" ;
-   std::string fullname ;
+   return SDB_OK ;
+}
 
+INT32 dropUserCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc                = SDB_OK ;
+   MsgAuthDelUsr *auth     = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
 
-   parser.opType = OP_CMD_CREATE ;
-   sdbMsg.reverse( sizeof ( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof ( MsgOpQuery ) - 4 ) ;
+   parser.setCurrentOp( OP_CMD_DELUSER ) ;
+   sdbMsg.reverse( sizeof( MsgAuthDelUsr ) ) ;
+   sdbMsg.advance( sizeof( MsgAuthDelUsr ) ) ;
 
-   header = ( MsgHeader * )sdbMsg.data() ;
-   header->opCode = MSG_BS_QUERY_REQ ;
-   header->TID = 0 ;
-   header->routeID.value = 0 ;
-   header->requestID = parser.id ;
+   auth = ( MsgAuthDelUsr * )sdbMsg.data() ;
+   auth->header.opCode = MSG_AUTH_DELUSR_REQ ;
+   auth->header.TID = 0 ;
+   auth->header.routeID.value = 0 ;
+   auth->header.requestID = packet.requestId ;
 
-   query = ( MsgOpQuery * )sdbMsg.data() ;
-   query->version = 0 ;
-   query->w = 0 ;
-   query->padding = 0 ;
-   query->flags = 0 ;
-   fap::setQueryFlags( parser.reservedFlags, query->flags ) ;
-
-   query->nameLength = cmdStr.length() ;
-   parser.skip( parser.nsLen + 1 ) ;
-
-   if ( parser.withCmd )
    {
-      fullname = parser.csName ;
-      parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToSkip ) ;
-      query->numToSkip = 0 ;
-      parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToReturn ) ;
-      query->numToReturn = (0 == nToReturn ? -1 : nToReturn) ;
-      if ( 0 > nToReturn )
+      INT32 removeFlags = 0 ;
+      parser.readInt( sizeof( INT32 ), (CHAR *)&removeFlags ) ;
+   }
+
+   bson::BSONObj obj ;
+   if ( packet.with( OPTION_CMD ) && packet.with( OPTION_USR ) )
+   {
+      bson::BSONElement e = packet.all.getField( "deletes" ) ;
+      if ( bson::Array != e.type() )
       {
-         query->numToReturn = -nToReturn ;
+         rc = SDB_INVALIDARG ;
+         goto error ;
       }
 
-      if ( parser.more() )
+      std::vector< bson::BSONElement > objList ;
+      std::vector< bson::BSONElement >::const_iterator cit ;
+      bson::BSONObj cond, subObj ;
+      objList = e.Array() ;
+      cit = objList.begin() ;
+      while ( objList.end() != cit )
       {
-         parser.nextObj( cond ) ;
+         subObj = (*cit).Obj() ;
+         cond = subObj.getObjectField( "q" ) ;
+         break ;
       }
-
-      e = cond.getField( "create" ) ;
-      if ( !e.eoo() && parser.withCmd )
-      {
-         fullname += "." ;
-         fullname += e.valuestr() ;
-      }
+      obj = BSON( SDB_AUTH_USER << cond.getStringField( "user" ) <<
+                  SDB_AUTH_SOURCE << SDB_AUTH_SOURCE_FAP ) ;
+   }
+   else if ( packet.with( OPTION_CMD ) )
+   {
+      obj = BSON( SDB_AUTH_USER << packet.all.getStringField( "dropUser" ) <<
+                  SDB_AUTH_SOURCE << SDB_AUTH_SOURCE_FAP ) ;
    }
    else
    {
-      query->numToSkip = 0 ;
-      query->numToReturn = -1 ;
-      fullname = parser.fullName ;
+      if ( !parser.more() )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      parser.readNextObj( packet.all ) ;
+
+      obj = BSON( SDB_AUTH_USER << packet.all.getStringField( "user" ) <<
+                  SDB_AUTH_SOURCE << SDB_AUTH_SOURCE_FAP ) ;
    }
-
-   sdbMsg.write( cmdStr.c_str(), query->nameLength + 1, TRUE ) ;
-   obj = BSON( "Name" << fullname.c_str() ) ;
-
    sdbMsg.write( obj, TRUE ) ;
-
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-
    sdbMsg.doneLen() ;
 
+done:
    return rc ;
+error:
+   goto done ;
 }
 
-INT32 dropCommand::convertRequest( mongoParser &parser, msgBuffer &sdbMsg )
+INT32 dropUserCommand::doCommand( void *pData )
 {
-   INT32 rc          = SDB_OK ;
-   INT32 nToSkip     = 0 ;
-   INT32 nToReturn   = 0 ;
-   MsgHeader *header = NULL ;
-   MsgOpQuery *query = NULL ;
-   bson::BSONObj cond ;
-   bson::BSONObj obj ;
-   bson::BSONElement e ;
-   const std::string cmdStr = "$drop collection" ;
-   std::string fullname ;
+   return SDB_OK ;
+}
 
-   parser.opType = OP_CMD_DROP ;
-   sdbMsg.reverse( sizeof ( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof ( MsgOpQuery ) - 4 ) ;
+INT32 listUsersCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
 
-   header = ( MsgHeader * )sdbMsg.data() ;
-   header->opCode = MSG_BS_QUERY_REQ ;
-   header->TID = 0 ;
-   header->routeID.value = 0 ;
-   header->requestID = parser.id ;
+INT32 listUsersCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc                = SDB_OK ;
+   MsgOpQuery *query       = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_LIST_USERS ;
+
+   parser.setCurrentOp( OP_CMD_LISTUSER ) ;
+   sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
+   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
    query = ( MsgOpQuery * )sdbMsg.data() ;
+   query->header.opCode = MSG_BS_QUERY_REQ ;
+   query->header.TID = 0 ;
+   query->header.routeID.value = 0 ;
+   query->header.requestID = packet.requestId ;
    query->version = 0 ;
    query->w = 0 ;
    query->padding = 0 ;
    query->flags = 0 ;
-   fap::setQueryFlags( parser.reservedFlags, query->flags ) ;
+   setQueryFlags( packet.reservedInt, query->flags ) ;
 
-   fullname = parser.csName ;
-   query->nameLength = cmdStr.length() ;
-   parser.skip( parser.nsLen + 1 ) ;
+   query->nameLength = ossStrlen( cmdName ) ;
+   query->numToSkip = packet.nToSkip ;
+   query->numToReturn = packet.nToReturn ;
 
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToSkip ) ;
-   query->numToSkip = 0 ;
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToReturn ) ;
-   query->numToReturn = (0 == nToReturn ? -1 : nToReturn) ;
-   if ( 0 > nToReturn )
+   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
    {
-      query->numToReturn = -nToReturn ;
+      bson::BSONObj cond, selector, orderby, hint ;
+      sdbMsg.write( cond, TRUE ) ;
+      sdbMsg.write( selector, TRUE ) ;
+      sdbMsg.write( orderby, TRUE ) ;
+      sdbMsg.write( hint, TRUE ) ;
    }
-
-   if ( parser.more() )
-   {
-      parser.nextObj( cond ) ;
-   }
-   fullname += "." ;
-   fullname += cond.getStringField( "drop" ) ;
-
-   sdbMsg.write( cmdStr.c_str(), query->nameLength + 1, TRUE ) ;
-   obj = BSON( "Name" << fullname.c_str() ) ;
-
-   sdbMsg.write( obj, TRUE ) ;
-
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
 
    sdbMsg.doneLen() ;
 
    return rc ;
 }
 
-INT32 countCommand::convertRequest( mongoParser &parser, msgBuffer &sdbMsg )
+INT32 listUsersCommand::doCommand( void *pData )
 {
-   INT32 rc          = SDB_OK ;
-   INT32 nToSkip     = 0 ;
-   INT32 nToReturn   = 0 ;
-   MsgHeader *header = NULL ;
+   return SDB_OK ;
+}
+
+INT32 createCSCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
+
+INT32 createCSCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc = SDB_OK ;
    MsgOpQuery *query = NULL ;
-   bson::BSONObj all ;
-   bson::BSONObj queryObj ;
-   bson::BSONObj orderby ;
-   bson::BSONObj fields ;
-   bson::BSONObj obj ;
-   bson::BSONElement e ;
-   const std::string cmdStr = "$get count" ;
-   std::string fullname ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTIONSPACE ;
 
-   parser.opType = OP_CMD_COUNT ;
-   sdbMsg.reverse( sizeof ( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof ( MsgOpQuery ) - 4 ) ;
-
-   header = ( MsgHeader * )sdbMsg.data() ;
-   header->opCode = MSG_BS_QUERY_REQ ;
-   header->TID = 0 ;
-   header->routeID.value = 0 ;
-   header->requestID = parser.id ;
+   parser.setCurrentOp( OP_CMD_CREATE_CS ) ;
+   sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
+   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
    query = ( MsgOpQuery * )sdbMsg.data() ;
+   query->header.opCode = MSG_BS_QUERY_REQ ;
+   query->header.TID = 0 ;
+   query->header.routeID.value = 0 ;
+   query->header.requestID = packet.requestId ;
    query->version = 0 ;
    query->w = 0 ;
    query->padding = 0 ;
    query->flags = 0 ;
-   fap::setQueryFlags( parser.reservedFlags, query->flags ) ;
+   setQueryFlags( packet.reservedInt, query->flags ) ;
 
-   fullname = parser.csName ;
+   query->numToSkip = packet.nToSkip ;
+   query->numToReturn = packet.nToReturn ;
+   query->nameLength = ossStrlen( cmdName ) ;
 
-   query->nameLength = cmdStr.length() ;
-   parser.skip( parser.nsLen + 1 ) ;
+   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+   bson::BSONObj obj, empty ;
+   obj = BSON( FIELD_NAME_NAME << packet.csName
+                               << FIELD_NAME_PAGE_SIZE << 65536 ) ;
 
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToSkip ) ;
-   query->numToSkip = nToSkip ;
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToReturn ) ;
-   query->numToReturn = nToReturn ;
-
-   if ( parser.more() )
-   {
-      parser.nextObj( all ) ;
-   }
-
-   fullname += "." ;
-   fullname += all.getStringField( "count" ) ;
-
-   query->nameLength = cmdStr.length() ;
-   sdbMsg.write( cmdStr.c_str(), query->nameLength + 1, TRUE ) ;
-   obj = BSON( "Collection" << fullname.c_str() ) ;
-
-   queryObj = fap::getCondObj( all ) ;
-   orderby = all.getObjectField( "sort" ) ;
-   if ( all.hasField( "limit" ) )
-   {
-      query->numToReturn = all.getIntField( "limit" ) ;
-   }
-
-   if ( all.hasField( "skip" ) )
-   {
-      query->numToSkip = all.getIntField( "skip" ) ;
-   }
-
-   sdbMsg.write( queryObj, TRUE ) ;
-   sdbMsg.write( fields, TRUE ) ;
-   sdbMsg.write( orderby, TRUE ) ;
-   sdbMsg.write( obj, TRUE ) ;
+   sdbMsg.write( obj, TRUE ) ;    // condition
+   sdbMsg.write( empty, TRUE ) ;  // selector
+   sdbMsg.write( empty, TRUE ) ;  // orderby
+   sdbMsg.write( empty, TRUE ) ;  // hint
 
    sdbMsg.doneLen() ;
 
    return rc ;
 }
 
-INT32 aggregateCommand::convertRequest( mongoParser &parser,
-                                        msgBuffer &sdbMsg )
+INT32 createCSCommand::doCommand( void *pData )
 {
-   INT32 rc             = SDB_OK ;
-   INT32 nToSkip        = 0 ;
-   INT32 nToReturn      = 0 ;
-   MsgHeader *header    = NULL ;
-   MsgOpAggregate *aggr = NULL ;
-   bson::BSONObj cond ;
-   bson::BSONElement e ;
-   std::string fullname ;
-
-   parser.opType = OP_CMD_AGGREGATE ;
-   sdbMsg.reverse( sizeof ( MsgOpAggregate ) ) ;
-   sdbMsg.advance( sizeof ( MsgOpAggregate ) - 4 ) ;
-
-   header = ( MsgHeader * )sdbMsg.data() ;
-   header->opCode = MSG_BS_AGGREGATE_REQ ;
-   header->TID = 0 ;
-   header->routeID.value = 0 ;
-   header->requestID = parser.id ;
-
-   aggr = ( MsgOpAggregate * )sdbMsg.data() ;
-   aggr->version = 0 ;
-   aggr->w = 0 ;
-   aggr->padding = 0 ;
-   aggr->flags = 0 ;
-
-   fullname = parser.csName ;
-   parser.skip( parser.nsLen + 1 ) ;
-
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToSkip ) ;
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToReturn ) ;
-
-   if ( parser.more() )
-   {
-      parser.nextObj( cond ) ;
-   }
-
-   fullname += "." ;
-   fullname += cond.getStringField( "aggregate" ) ;
-
-   aggr->nameLength = fullname.length() ;
-   sdbMsg.write( fullname.c_str(), aggr->nameLength + 1, TRUE ) ;
-
-
-   sdbMsg.write( cond, TRUE ) ;
-   sdbMsg.doneLen() ;
-
-   return rc ;
+   return SDB_OK ;
 }
 
-INT32 dropDatabaseCommand::convertRequest( mongoParser &parser, msgBuffer &sdbMsg )
+INT32 createCommand::convert( msgParser &parser )
 {
-   INT32 rc          = SDB_OK ;
-   INT32 nToSkip     = 0 ;
-   INT32 nToReturn   = 0 ;
-   MsgHeader *header = NULL ;
-   MsgOpQuery *query = NULL ;
-   bson::BSONObj cond ;
-   bson::BSONObj obj ;
-   bson::BSONElement e ;
-   const std::string cmdStr = "$drop collectionspace" ;
+   return SDB_OK ;
+}
 
-   parser.opType = OP_CMD_DROP_DATABASE ;
-   sdbMsg.reverse( sizeof ( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof ( MsgOpQuery ) - 4 ) ;
+INT32 createCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc                = SDB_OK ;
+   MsgOpQuery *query       = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_CREATE_COLLECTION ;
 
-   header = ( MsgHeader * )sdbMsg.data() ;
-   header->opCode = MSG_BS_QUERY_REQ ;
-   header->TID = 0 ;
-   header->routeID.value = 0 ;
-   header->requestID = parser.id ;
+   parser.setCurrentOp( OP_CMD_CREATE ) ;
+   sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
+   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
    query = ( MsgOpQuery * )sdbMsg.data() ;
+   query->header.opCode = MSG_BS_QUERY_REQ ;
+   query->header.TID = 0 ;
+   query->header.routeID.value = 0 ;
+   query->header.requestID = packet.requestId ;
    query->version = 0 ;
    query->w = 0 ;
    query->padding = 0 ;
    query->flags = 0 ;
-   fap::setQueryFlags( parser.reservedFlags, query->flags ) ;
+   setQueryFlags( packet.reservedInt, query->flags ) ;
 
-   query->nameLength = cmdStr.length() ;
-   parser.skip( parser.nsLen + 1 ) ;
+   query->nameLength = ossStrlen( cmdName ) ;
+   query->numToSkip = packet.nToSkip ;
+   query->numToReturn = packet.nToReturn ;
 
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToSkip ) ;
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToReturn ) ;
-
-   if ( parser.more() )
+   if ( packet.with( OPTION_CMD ) )
    {
-      parser.nextObj( cond ) ;
+      packet.fullName = packet.csName ;
+      packet.fullName += "." ;
+      packet.fullName += packet.all.getStringField( "create" ) ;
    }
 
-   query->nameLength = cmdStr.length() ;
-   sdbMsg.write( cmdStr.c_str(), query->nameLength + 1, TRUE ) ;
-   obj = BSON( "Name" << parser.csName ) ;
+   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
 
-   query->numToSkip = nToSkip ;
-   query->numToReturn = nToReturn ;
+   bson::BSONObj obj, empty ;
+   obj = BSON( FIELD_NAME_NAME << packet.fullName.c_str() ) ;
 
    sdbMsg.write( obj, TRUE ) ;
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
+   sdbMsg.write( empty, TRUE ) ;
+   sdbMsg.write( empty, TRUE ) ;
+   sdbMsg.write( empty, TRUE ) ;
 
    sdbMsg.doneLen() ;
 
    return rc ;
 }
 
-INT32 createIndexesCommand::convertRequest( mongoParser &parser,
-                                          msgBuffer &sdbMsg )
+INT32 createCommand::doCommand( void *pData )
 {
-   INT32 rc           = SDB_OK ;
-   INT32 nToSkip      = 0 ;
-   INT32 nToReturn    = 0 ;
-   MsgHeader *header  = NULL ;
-   MsgOpQuery *index  = NULL ;
-   bson::BSONObj cond ;
-   bson::BSONObj subObj ;
+   return SDB_OK ;
+}
+
+INT32 listCollectionCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
+
+INT32 listCollectionCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc                = SDB_OK ;
+   MsgOpQuery *query       = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_LIST_COLLECTIONS ;
+
+   parser.setCurrentOp( OP_CMD_GET_CLS ) ;
+   sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
+   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+
+   query = ( MsgOpQuery * )sdbMsg.data() ;
+   query->header.opCode = MSG_BS_QUERY_REQ ;
+   query->header.TID = 0 ;
+   query->header.routeID.value = 0 ;
+   query->header.requestID = packet.requestId ;
+
+   query->version = 0 ;
+   query->w = 0 ;
+   query->padding = 0 ;
+   query->flags = 0 ;
+   setQueryFlags( packet.reservedInt, query->flags ) ;
+
+   query->nameLength = ossStrlen( cmdName ) ;
+   query->numToSkip = packet.nToSkip ;
+   query->numToReturn = packet.nToReturn ;
+
+   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+   {
+      bson::BSONObj cond, selector, orderby, hint ;
+      if ( parser.more() )
+      {
+         parser.readNextObj( packet.fieldToReturn ) ;
+      }
+      selector = packet.fieldToReturn ;
+      cond = getQueryObj( packet.all ) ;
+      orderby = getSortObj( packet.all ) ;
+      hint = getHintObj( packet.all ) ;
+
+      query->numToSkip = getFieldInt( packet.all, "skip" ) ;
+      query->numToReturn = getFieldInt( packet.all, "limit" ) ;
+      if ( 0 == query->numToReturn )
+      {
+         query->numToReturn = -1 ;
+      }
+
+      sdbMsg.write( cond, TRUE ) ;
+      sdbMsg.write( selector, TRUE ) ;
+      sdbMsg.write( orderby, TRUE ) ;
+      sdbMsg.write( hint, TRUE ) ;
+   }
+
+   sdbMsg.doneLen() ;
+
+   return rc ;
+}
+
+INT32 listCollectionCommand::doCommand( void *pData )
+{
+   return SDB_OK ;
+}
+
+INT32 dropCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
+
+INT32 dropCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc = SDB_OK ;
+   MsgOpQuery *query = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTION ;
+
+   parser.setCurrentOp( OP_CMD_DROP ) ;
+   sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
+   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+
+   query = ( MsgOpQuery * )sdbMsg.data() ;
+   query->header.opCode = MSG_BS_QUERY_REQ ;
+   query->header.TID = 0 ;
+   query->header.routeID.value = 0 ;
+   query->header.requestID = packet.requestId ;
+
+   query->version = 0 ;
+   query->w = 0 ;
+   query->padding = 0 ;
+   query->flags = 0 ;
+   setQueryFlags( packet.reservedInt, query->flags ) ;
+
+   query->nameLength = ossStrlen( cmdName ) ;
+   query->numToSkip = packet.nToSkip ;
+   query->numToReturn = packet.nToReturn ;
+
+   packet.fullName = packet.csName ;
+   packet.fullName += "." ;
+   packet.fullName += packet.all.getStringField( "drop" ) ;
+
+   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+
+   {
+      bson::BSONObj obj, empty ;
+      obj = BSON( FIELD_NAME_NAME << packet.fullName.c_str() ) ;
+      sdbMsg.write( obj, TRUE ) ;    // condition
+      sdbMsg.write( empty, TRUE ) ;  // selector
+      sdbMsg.write( empty, TRUE ) ;  // orderby
+      sdbMsg.write( empty, TRUE ) ;  // hint
+   }
+
+   sdbMsg.doneLen() ;
+
+   return rc ;
+}
+
+INT32 dropCommand::doCommand( void *pData )
+{
+   return SDB_OK ;
+}
+
+INT32 countCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
+
+INT32 countCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc = SDB_OK ;
+   MsgOpQuery *query = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_GET_COUNT ;
+
+   parser.setCurrentOp( OP_CMD_COUNT ) ;
+   sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
+   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+
+   query = ( MsgOpQuery * )sdbMsg.data() ;
+   query->header.opCode = MSG_BS_QUERY_REQ ;
+   query->header.TID = 0 ;
+   query->header.routeID.value = 0 ;
+   query->header.requestID = packet.requestId ;
+
+   query->version = 0 ;
+   query->w = 0 ;
+   query->padding = 0 ;
+   query->flags = 0 ;
+   setQueryFlags( packet.reservedInt, query->flags ) ;
+
+   query->nameLength = ossStrlen( cmdName ) ;
+   query->numToSkip = packet.nToSkip ;
+   query->numToReturn = packet.nToReturn ;
+
+   packet.fullName = packet.csName ;
+   packet.fullName += "." ;
+   packet.fullName += packet.all.getStringField( "count" ) ;
+
+   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+   {
+      bson::BSONObj cond, obj, orderby, empty ;
+      cond = packet.all.getObjectField( "query" ) ;
+      obj = BSON( FIELD_NAME_COLLECTION << packet.fullName.c_str() ) ;
+
+      orderby = packet.all.getObjectField( "sort" ) ;
+      if ( packet.all.hasField( "limit" ) )
+      {
+         query->numToReturn = packet.all.getIntField( "limit" ) ;
+      }
+
+      if ( packet.all.hasField( "skip" ) )
+      {
+         query->numToSkip = packet.all.getIntField( "skip" ) ;
+      }
+
+      sdbMsg.write( cond, TRUE ) ;
+      sdbMsg.write( empty, TRUE ) ;
+      sdbMsg.write( empty, TRUE ) ;
+      sdbMsg.write( obj, TRUE ) ;
+   }
+
+   sdbMsg.doneLen() ;
+
+   return rc ;
+}
+
+INT32 countCommand::doCommand( void *pData )
+{
+   return SDB_OK ;
+}
+
+INT32 aggregateCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
+
+INT32 aggregateCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc                = SDB_OK ;
+   MsgOpAggregate *aggre   = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+
+   parser.setCurrentOp( OP_CMD_AGGREGATE ) ;
+   sdbMsg.reverse( sizeof( MsgOpAggregate ) ) ;
+   sdbMsg.advance( sizeof( MsgOpAggregate ) - 4 ) ;
+
+   aggre = ( MsgOpAggregate * )sdbMsg.data() ;
+   aggre->header.opCode = MSG_BS_AGGREGATE_REQ ;
+   aggre->header.TID = 0 ;
+   aggre->header.routeID.value = 0 ;
+   aggre->header.requestID = packet.requestId ;
+
+   aggre->version = 0 ;
+   aggre->w = 0 ;
+   aggre->padding = 0 ;
+   aggre->flags = 0 ;
+
+   packet.fullName = packet.csName ;
+   packet.fullName += "." ;
+   packet.fullName += packet.all.getStringField( "aggregate" ) ;
+
+   aggre->nameLength = packet.fullName.length() ;
+   sdbMsg.write( packet.fullName.c_str(), aggre->nameLength + 1, TRUE ) ;
+
+   sdbMsg.write( packet.all, TRUE ) ;
+   sdbMsg.doneLen() ;
+
+   return rc ;
+}
+
+INT32 aggregateCommand::doCommand( void *pData )
+{
+   return SDB_OK ;
+}
+
+INT32 dropDatabaseCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
+
+INT32 dropDatabaseCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc                = SDB_OK ;
+   MsgOpQuery *query       = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_COLLECTIONSPACE ;
+
+   parser.setCurrentOp( OP_CMD_DROP_DATABASE ) ;
+   sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
+   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+
+   query = ( MsgOpQuery * )sdbMsg.data() ;
+   query->header.opCode = MSG_BS_QUERY_REQ ;
+   query->header.TID = 0 ;
+   query->header.routeID.value = 0 ;
+   query->header.requestID = packet.requestId ;
+
+   query->version = 0 ;
+   query->w = 0 ;
+   query->padding = 0 ;
+   query->flags = 0 ;
+   setQueryFlags( packet.reservedInt, query->flags ) ;
+
+   query->nameLength = ossStrlen( cmdName ) ;
+   query->numToSkip = packet.nToSkip ;
+   query->numToReturn = packet.nToReturn ;
+
+   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+   {
+      bson::BSONObj obj, empty ;
+      obj = BSON( FIELD_NAME_NAME << packet.csName ) ;
+
+      sdbMsg.write( obj, TRUE ) ;
+      sdbMsg.write( empty, TRUE ) ;
+      sdbMsg.write( empty, TRUE ) ;
+      sdbMsg.write( empty, TRUE ) ;
+   }
+
+   sdbMsg.doneLen() ;
+
+   return rc ;
+}
+
+INT32 dropDatabaseCommand::doCommand( void *pData )
+{
+   return SDB_OK ;
+}
+
+INT32 createIndexesCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
+
+INT32 createIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc                = SDB_OK ;
+   MsgOpQuery *query       = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_CREATE_INDEX ;
+
+   parser.setCurrentOp( OP_ENSURE_INDEX ) ;
+   sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
+   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+
+   query = ( MsgOpQuery * )sdbMsg.data() ;
+   query->header.opCode = MSG_BS_QUERY_REQ ;
+   query->header.TID = 0 ;
+   query->header.routeID.value = 0 ;
+   query->header.requestID = packet.requestId ;
+
+   query->version = 0 ;
+   query->w = 0 ;
+   query->padding = 0 ;
+   query->flags = 0 ;
+   setQueryFlags( packet.reservedInt, query->flags ) ;
+
+   query->nameLength = ossStrlen( cmdName ) ;
+   query->numToSkip = packet.nToSkip ;
+   query->numToReturn = packet.nToReturn ;
+
+   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+
+   bson::BSONObj obj, subObj, indexObj, empty ;
+   bson::BSONObjBuilder bob ;
    bson::BSONElement e ;
    std::vector< bson::BSONElement > objList ;
    std::vector< bson::BSONElement >::const_iterator cit ;
-   bson::BSONObjBuilder obj ;
-   bson::BSONObjBuilder indexobj ;
-   const std::string cmdStr = "$create index" ;
-   std::string fullname ;
 
-   parser.opType = OP_ENSURE_INDEX ;
-   sdbMsg.reverse( sizeof ( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof ( MsgOpQuery ) - 4 ) ;
-
-   header = ( MsgHeader * )sdbMsg.data() ;
-   header->opCode = MSG_BS_QUERY_REQ ;
-   header->TID = 0 ;
-   header->routeID.value = 0 ;
-   header->requestID = parser.id ;
-
-   index = ( MsgOpQuery * )sdbMsg.data() ;
-   index->version = 0 ;
-   index->w = 0 ;
-   index->padding = 0 ;
-   index->flags = 0 ;
-   fap::setQueryFlags( parser.reservedFlags, index->flags ) ;
-
-   fullname = parser.csName ;
-   parser.skip( parser.nsLen + 1 ) ;
-
-   if ( parser.withCmd )
+   if ( packet.with( OPTION_CMD ) )
    {
-      parser.skip( sizeof( nToSkip ) + sizeof( nToReturn ) ) ;
-      index->numToSkip = 0 ;
-      index->numToReturn = nToReturn <= 0 ? -1 : nToReturn ;
-      if ( !parser.more() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }//createIndexes
+      packet.fullName = packet.csName ;
+      packet.fullName += "." ;
+      packet.fullName += packet.all.getStringField( "createIndexes" ) ;
+      bob.append( FIELD_NAME_COLLECTION, packet.fullName.c_str() ) ;
 
-      parser.nextObj( cond ) ;
-
-      index->nameLength = cmdStr.length() ;
-      sdbMsg.write( cmdStr.c_str(), index->nameLength + 1, TRUE ) ;
-      fullname += "." ;
-      fullname += cond.getStringField( "createIndexes" ) ;
-      obj.append( "Collection", fullname.c_str() ) ;
-      e = cond.getField( "indexes" ) ;
-      if ( bson::Array != e.type() )
+      e = packet.all.getField( "indexes" ) ;
+      if( bson::Array != e.type() )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+
       objList = e.Array() ;
       cit = objList.begin() ;
       while ( objList.end() != cit )
       {
          subObj = (*cit).Obj() ;
-         indexobj.append( "key", subObj.getObjectField( "key" ) ) ;
-         indexobj.append( "name", subObj.getStringField( "name" ) ) ;
-         indexobj.append("unique", subObj.getBoolField( "unique" ) ) ;
-         obj.append( "Index", indexobj.obj() ) ;
-         sdbMsg.write( obj.obj(), TRUE ) ;
+         indexObj = BSON( "key" << subObj.getObjectField( "key" ) <<
+                          "name" << subObj.getStringField( "name") <<
+                          "unique" << subObj.getBoolField( "unique" ) );
+         bob.append( "Index", indexObj ) ;
+         sdbMsg.write( bob.obj(), TRUE ) ;
          ++cit ;
       }
+   }
+   else if ( packet.with( OPTION_IDX ) )
+   {
+      if ( !parser.more() )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      parser.readNextObj( packet.all ) ;
+
+      packet.fullName = packet.all.getStringField( "ns" ) ;
+      bob.append( FIELD_NAME_COLLECTION, packet.fullName.c_str() ) ;
+
+      indexObj = BSON( "key" << packet.all.getObjectField( "key" ) <<
+                       "name" << packet.all.getStringField( "name") <<
+                       "unique" << packet.all.getBoolField( "unique" ) );
+      bob.append( "Index", indexObj ) ;
+      sdbMsg.write( bob.obj(), TRUE ) ;
    }
    else
    {
-      parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToSkip ) ;
-      index->numToSkip = 0 ;
-      parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToReturn ) ;
-      index->numToReturn = (0 == nToReturn ? -1 : nToReturn) ;
-      if ( 0 > nToReturn )
-      {
-         index->numToReturn = -nToReturn ;
-      }
-      index->nameLength = cmdStr.length() ;
-      sdbMsg.write( cmdStr.c_str(), index->nameLength + 1, TRUE ) ;
-
-      if ( !parser.more() )
-      {
-         rc = SDB_INVALIDARG ;
-         goto error ;
-      }
-
-      parser.nextObj( cond ) ;
-      e = cond.getField( "documents" ) ;
+      e = packet.all.getField( "documents" ) ;
       if ( bson::Array != e.type() )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+
       objList = e.Array() ;
       cit = objList.begin() ;
       while ( objList.end() != cit )
       {
          subObj = (*cit).Obj() ;
-         obj.append( "Collection", subObj.getStringField( "ns" ) ) ;
-         indexobj.append( "key", subObj.getObjectField( "key" ) ) ;
-         indexobj.append( "name", subObj.getStringField( "name" ) ) ;
-         indexobj.append("unique", subObj.getBoolField( "unique" ) ) ;
-         obj.append( "Index", indexobj.obj() ) ;
-         sdbMsg.write( obj.obj(), TRUE ) ;
-         ++cit ;
+         bob.append( FIELD_NAME_COLLECTION, subObj.getStringField("ns") ) ;
+         indexObj = BSON( "key" << subObj.getObjectField( "key" ) <<
+                          "name" << subObj.getStringField( "name") <<
+                          "unique" << subObj.getBoolField( "unique" ) );
+         bob.append( "Index", indexObj ) ;
+         sdbMsg.write( bob.obj(), TRUE ) ;
       }
    }
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
+
+   sdbMsg.write( empty, TRUE ) ;
+   sdbMsg.write( empty, TRUE ) ;
+   sdbMsg.write( empty, TRUE ) ;
+
    sdbMsg.doneLen() ;
 
 done:
@@ -1210,81 +1573,139 @@ error:
    goto done ;
 }
 
-INT32 deleteIndexesCommand::convertRequest( mongoParser &parser,
-                                          msgBuffer &sdbMsg )
+INT32 createIndexesCommand::doCommand( void *pData )
 {
-   INT32 rc              = SDB_OK ;
-   INT32 nToSkip         = 0 ;
-   INT32 nToReturn       = 0 ;
-   MsgHeader *header     = NULL ;
-   MsgOpQuery *dropIndex = NULL ;
-   bson::BSONObj cond ;
-   bson::BSONObj obj ;
-   bson::BSONObjBuilder indexObj ;
-   bson::BSONElement e ;
-   const std::string cmdStr = "$drop index" ;
-   std::string fullname ;
+   return SDB_OK ;
+}
 
-   parser.opType = OP_CMD_DROP_INDEX ;
-   sdbMsg.reverse( sizeof ( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof ( MsgOpQuery ) - 4 ) ;
+INT32 deleteIndexesCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
 
-   header = ( MsgHeader * )sdbMsg.data() ;
-   header->opCode = MSG_BS_QUERY_REQ ;
-   header->TID = 0 ;
-   header->routeID.value = 0 ;
-   header->requestID = parser.id ;
+INT32 deleteIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc = SDB_OK ;
+   MsgOpQuery *query = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_DROP_INDEX ;
 
-   dropIndex = ( MsgOpQuery * )sdbMsg.data() ;
-   dropIndex->version = 0 ;
-   dropIndex->w = 0 ;
-   dropIndex->padding = 0 ;
-   dropIndex->flags = 0 ;
-   fap::setQueryFlags( parser.reservedFlags, dropIndex->flags ) ;
+   parser.setCurrentOp( OP_CMD_DROP_INDEX ) ;
+   sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
+   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
 
-   fullname = parser.csName ;
-   dropIndex->nameLength = cmdStr.length() ;
-   parser.skip( parser.nsLen + 1 ) ;
+   query = ( MsgOpQuery * )sdbMsg.data() ;
+   query->header.opCode = MSG_BS_QUERY_REQ ;
+   query->header.TID = 0 ;
+   query->header.routeID.value = 0 ;
+   query->header.requestID = packet.requestId ;
 
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToSkip ) ;
-   dropIndex->numToSkip = 0 ;
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToReturn ) ;
-   dropIndex->numToReturn = (0 == nToReturn ? -1 : nToReturn) ;
-   if ( 0 > nToReturn )
+   query->version = 0 ;
+   query->w = 0 ;
+   query->padding = 0 ;
+   query->flags = 0 ;
+   setQueryFlags( packet.reservedInt, query->flags ) ;
+
+   query->nameLength = ossStrlen( cmdName ) ;
+   query->numToSkip = packet.nToSkip ;
+   query->numToReturn = packet.nToReturn ;
+
+   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
    {
-      dropIndex->numToReturn = -nToReturn ;
+      packet.fullName = packet.csName ;
+      packet.fullName += "." ;
+      packet.fullName += packet.all.getStringField( "dropIndexes" ) ;
+
+      bson::BSONObj obj, indexObj, empty ;
+      indexObj = BSON( "" << packet.all.getStringField( "index" ) ) ;
+      obj = BSON( FIELD_NAME_COLLECTION << packet.fullName.c_str() <<
+                  FIELD_NAME_INDEX << indexObj ) ;
+      sdbMsg.write( obj, TRUE ) ;
+      sdbMsg.write( empty, TRUE ) ;
+      sdbMsg.write( empty, TRUE ) ;
+      sdbMsg.write( empty, TRUE ) ;
    }
 
-   if ( parser.more() )
-   {
-      parser.nextObj( cond ) ;
-   }
+   sdbMsg.doneLen() ;
 
+   return rc ;
+}
+
+INT32 deleteIndexesCommand::doCommand( void *pData )
+{
+   return SDB_OK ;
+}
+
+INT32 listIndexesCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
+
+INT32 listIndexesCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   INT32 rc = SDB_OK ;
+   MsgOpQuery *query = NULL ;
+   mongoDataPacket &packet = parser.dataPacket() ;
+   const CHAR *cmdName = CMD_ADMIN_PREFIX CMD_NAME_GET_INDEXES ;
+
+   parser.setCurrentOp( OP_CMD_GET_INDEX ) ;
+   sdbMsg.reverse( sizeof( MsgOpQuery ) ) ;
+   sdbMsg.advance( sizeof( MsgOpQuery ) - 4 ) ;
+
+   query = ( MsgOpQuery * )sdbMsg.data() ;
+   query->header.opCode = MSG_BS_QUERY_REQ ;
+   query->header.TID = 0 ;
+   query->header.routeID.value = 0 ;
+   query->header.requestID = packet.requestId ;
+
+   query->version = 0 ;
+   query->w = 0 ;
+   query->padding = 0 ;
+   query->flags = 0 ;
+   setQueryFlags( packet.reservedInt, query->flags ) ;
+
+   query->nameLength = ossStrlen( cmdName ) ;
+   query->numToSkip = packet.nToSkip ;
+   query->numToReturn = packet.nToReturn ;
+
+   sdbMsg.write( cmdName, query->nameLength + 1, TRUE ) ;
+
+   bson::BSONObj obj, cond, indexObj, empty ;
+   if ( packet.with( OPTION_IDX ) )
    {
-      std::string clname = cond.getStringField( "deleteIndexes" ) ;
-      if ( clname.empty() )
+      cond = getQueryObj( packet.all ) ;
+      if( !cond.isEmpty() )
       {
-         clname = cond.getStringField( "dropIndexes" ) ;
-         if ( clname.empty() )
+         if ( cond.hasField( "index" ) )
          {
-            rc = SDB_INVALIDARG ;
-            goto error ;
+            indexObj = BSON( "indexDef.name" << cond.getStringField( "index" ) ) ;
          }
+         obj = BSON( FIELD_NAME_COLLECTION << cond.getStringField( "ns" ) ) ;
       }
-      fullname += "." ;
-      fullname += clname ;
+      else
+      {
+         if ( packet.all.hasField( "index" ) )
+         {
+            indexObj = BSON( "indexDef.name" <<
+                             packet.all.getStringField( "index" ) ) ;
+         }
+         obj = BSON( FIELD_NAME_COLLECTION << packet.all.getStringField( "ns" ) ) ;
+      }
+   }
+   else if ( packet.with( OPTION_CMD ) )
+   {
+      rc = SDB_OPTION_NOT_SUPPORT ;
+      parser.setCurrentOp( OP_CMD_NOT_SUPPORTED ) ;
+      goto error ;
+
+
    }
 
-   indexObj.append( "", cond.getStringField( "index" ) ) ;
-   obj = BSON( "Collection" << fullname.c_str() << "Index" << indexObj.obj() );
-
-   sdbMsg.write( cmdStr.c_str(), dropIndex->nameLength + 1, TRUE ) ;
+   sdbMsg.write( indexObj, TRUE ) ;
+   sdbMsg.write( empty, TRUE ) ;
+   sdbMsg.write( empty, TRUE ) ;
    sdbMsg.write( obj, TRUE ) ;
 
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-
    sdbMsg.doneLen() ;
 
 done:
@@ -1293,101 +1714,71 @@ error:
    goto done ;
 }
 
-INT32 listIndexesCommand::convertRequest( mongoParser &parser,
-                                         msgBuffer &sdbMsg )
+INT32 listIndexesCommand::doCommand( void *pData )
 {
-   INT32 rc              = SDB_OK ;
-   INT32 nToSkip         = 0 ;
-   INT32 nToReturn       = 0 ;
-   MsgHeader *header     = NULL ;
-   MsgOpQuery *getIndex  = NULL ;
-   bson::BSONObj cond ;
-   bson::BSONObj indexObj ;
-   bson::BSONObjBuilder obj ;
-   const std::string cmdStr = "$get indexes" ;
-   std::string fullname ;
-
-   parser.opType = OP_CMD_GET_INDEX ;
-   sdbMsg.reverse( sizeof ( MsgOpQuery ) ) ;
-   sdbMsg.advance( sizeof ( MsgOpQuery ) - 4 ) ;
-
-   header = ( MsgHeader * )sdbMsg.data() ;
-   header->opCode = MSG_BS_QUERY_REQ ;
-   header->TID = 0 ;
-   header->routeID.value = 0 ;
-   header->requestID = parser.id ;
-
-   getIndex = ( MsgOpQuery * )sdbMsg.data() ;
-   getIndex->version = 0 ;
-   getIndex->w = 0 ;
-   getIndex->padding = 0 ;
-   getIndex->flags = 0 ;
-   fap::setQueryFlags( parser.reservedFlags, getIndex->flags ) ;
-
-   getIndex->nameLength = cmdStr.length() ;
-   parser.skip( parser.nsLen + 1 ) ;
-
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToSkip ) ;
-   getIndex->numToSkip = 0 ;
-   parser.readNumber( sizeof( INT32 ), ( CHAR * )&nToReturn ) ;
-   getIndex->numToReturn = (0 == nToReturn ? -1 : nToReturn) ;
-   if ( 0 > nToReturn )
-   {
-      getIndex->numToReturn = -nToReturn ;
-   }
-
-   if ( parser.more() )
-   {
-      parser.nextObj( cond ) ;
-   }
-
-   if ( parser.withIndex )
-   {
-      if ( cond.hasField( "index" ) )
-      {
-         indexObj = BSON( "indexDef.name" << cond.getStringField( "index" )  ) ;
-      }
-      obj.append( "Collection", cond.getStringField( "ns" ) ) ;
-   }
-   else if ( parser.withCmd )
-   {
-      parser.opType = OP_CMD_NOT_SUPPORTED ;
-      parser.cmdName = cond.firstElementFieldName() ;
-
-      fullname = parser.csName ;
-      fullname += "." ;
-      fullname += cond.getStringField( "listIndexes" ) ;
-      obj.append( "Collection", fullname.c_str() ) ;
-   }
-
-   sdbMsg.write( cmdStr.c_str(), getIndex->nameLength + 1, TRUE ) ;
-   sdbMsg.write( indexObj, TRUE ) ;
-
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-   sdbMsg.write( fap::emptyObj, TRUE ) ;
-   sdbMsg.write( obj.obj(), TRUE ) ;
-
-   sdbMsg.doneLen() ;
-
-   return rc ;
-}
-
-INT32 getlasterrorCommand::convertRequest( mongoParser &parser,
-                                           msgBuffer &sdbMsg )
-{
-   parser.opType = OP_CMD_GETLASTERROR ;
    return SDB_OK ;
 }
 
-INT32 ismasterCommand::convertRequest( mongoParser &parser,
-                                       msgBuffer &sdbMsg )
+INT32 getlasterrorCommand::convert( msgParser &parser )
 {
-   parser.opType = OP_CMD_ISMASTER ;
    return SDB_OK ;
 }
 
-INT32 pingCommand::convertRequest( mongoParser &parser, msgBuffer &sdbMsg )
+INT32 getlasterrorCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
 {
-   parser.opType = OP_CMD_PING ;
+   parser.setCurrentOp( OP_CMD_GETLASTERROR ) ;
+   return SDB_OK ;
+}
+
+INT32 getlasterrorCommand::doCommand( void *pData )
+{
+   return SDB_OK ;
+}
+
+INT32 pingCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
+
+INT32 pingCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   parser.setCurrentOp( OP_CMD_PING ) ;
+   return SDB_OK ;
+}
+
+INT32 pingCommand::doCommand( void *pData )
+{
+   return SDB_OK ;
+}
+
+INT32 ismasterCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
+
+INT32 ismasterCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   parser.setCurrentOp( OP_CMD_ISMASTER ) ;
+   return SDB_OK ;
+}
+
+INT32 ismasterCommand::doCommand( void *pData )
+{
+   return SDB_OK ;
+}
+
+INT32 logoutCommand::convert( msgParser &parser )
+{
+   return SDB_OK ;
+}
+
+INT32 logoutCommand::buildMsg( msgParser &parser, msgBuffer &sdbMsg )
+{
+   parser.setCurrentOp( OP_CMD_PING ) ;
+   return SDB_OK ;
+}
+
+INT32 logoutCommand::doCommand( void *pData )
+{
    return SDB_OK ;
 }

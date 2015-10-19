@@ -237,7 +237,7 @@ namespace engine
                   PD_PACK_UINT ( groupID ),
                   PD_PACK_USHORT ( nodeID ) ) ;
       MsgCatPrimaryChangeRes msgReply;
-      msgReply.header.header.messageLength = sizeof(MsgCatPrimaryChange);
+      msgReply.header.header.messageLength = sizeof(MsgCatPrimaryChangeRes);
       msgReply.header.header.opCode = MSG_CAT_PAIMARY_CHANGE_RES;
       msgReply.header.header.requestID = pRequest->header.requestID;
       msgReply.header.header.routeID.value= 0;
@@ -265,6 +265,20 @@ namespace engine
          }
          else
          {
+            BSONObj objPrimary ;
+            rc = catGetOneObj( CAT_NODE_INFO_COLLECTION,
+                               BSON( CAT_PRIMARY_NAME << 0 ),
+                               BSON( CAT_GROUPID_NAME << groupID ),
+                               BSONObj(), _pEduCB, objPrimary ) ;
+            if ( SDB_OK == rc )
+            {
+               BSONElement ele = objPrimary.getField( CAT_PRIMARY_NAME ) ;
+               if ( ele.isNumber() && (UINT16)ele.numberInt() == nodeID )
+               {
+                  goto done ;
+               }
+            }
+
             if ( pRequest->header.routeID.columns.nodeID == nodeID )
             {
                boMatcher = BSON( CAT_GROUPID_NAME << groupID ) ;
@@ -275,15 +289,11 @@ namespace engine
                                  CAT_PRIMARY_NAME <<
                                  pRequest->header.routeID.columns.nodeID ) ;
             }
-            BSONObj boComment = BSON( CAT_PRIMARY_NAME << nodeID ) ;
-            BSONObjBuilder bobUpdater ;
-            bobUpdater.append( "$set", boComment ) ;
-            boUpdater = bobUpdater.obj() ;
+            boUpdater = BSON( "$set" << BSON( CAT_PRIMARY_NAME << nodeID ) ) ;
          }
 
-         BSONObj hint ;
          rc = rtnUpdate ( CAT_NODE_INFO_COLLECTION, boMatcher, boUpdater,
-                          hint, 0, _pEduCB, _pDmsCB, _pDpsCB, w ) ;
+                          BSONObj(), 0, _pEduCB, _pDmsCB, _pDpsCB, w ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to set primary-node(rc=%d)",
                       rc ) ;
       }
@@ -1993,11 +2003,11 @@ namespace engine
          }
 
          BOOLEAN isValid = FALSE;
-         rc = _checkLocalHost( isValid ) ;
+         rc = _checkLocalHost( isLocalHost, isValid ) ;
          PD_RC_CHECK( rc, PDERROR,
                       "Failed to get localhost existing info, rc: %d", rc ) ;
 
-         PD_CHECK( !(isLocalHost ^ isValid),
+         PD_CHECK( isValid,
                    SDB_CAT_LOCALHOST_CONFLICT, error, PDERROR,
                    "'localhost' and '127.0.0.1' cannot be used mixed with "
                    "other hostname and IP address" );
@@ -2527,7 +2537,7 @@ namespace engine
       return _pCatCB->majoritySize() ;
    }
 
-   INT32 catNodeManager::_checkLocalHost( BOOLEAN &isValid )
+   INT32 catNodeManager::_checkLocalHost( BOOLEAN isLocalHost, BOOLEAN &isValid )
    {
       BSONObj matcher;
       UINT64 count = 0;
@@ -2555,7 +2565,7 @@ namespace engine
          goto error ;
       }
 
-      isValid = ( 0 == count) ? FALSE : TRUE;
+      isValid = isLocalHost ^ ( 0 == count) ;
 
       done:
          return rc ;

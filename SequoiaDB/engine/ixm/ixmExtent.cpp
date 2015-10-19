@@ -48,7 +48,7 @@
 
 namespace engine
 {
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT1, "_ixmExtent::_ixmExtent" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT1, "_ixmExtent::_ixmExtent" )
    _ixmExtent::_ixmExtent ( CHAR *extentStart, UINT16 mbID,
                             dmsExtentID parent, dmsExtentID me,
                             dmsStorageIndex *pIndexSu )
@@ -77,7 +77,7 @@ namespace engine
       PD_TRACE_EXIT ( SDB__IXMEXT1 );
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT2, "_ixmExtent::_ixmExtent" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT2, "_ixmExtent::_ixmExtent" )
    _ixmExtent::_ixmExtent ( dmsExtentID extentID, UINT16 mbID,
                             dmsStorageIndex *pIndexSu )
    {
@@ -104,7 +104,7 @@ namespace engine
       PD_TRACE_EXIT ( SDB__IXMEXT2 );
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT3, "_ixmExtent::_ixmExtent" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT3, "_ixmExtent::_ixmExtent" )
    _ixmExtent::_ixmExtent ( CHAR *extentStart, dmsExtentID me,
                             dmsStorageIndex *pIndexSu )
    {
@@ -118,7 +118,7 @@ namespace engine
       PD_TRACE_EXIT ( SDB__IXMEXT3 );
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT4, "_ixmExtent::_ixmExtent" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT4, "_ixmExtent::_ixmExtent" )
    _ixmExtent::_ixmExtent ( dmsExtentID extentID,
                             dmsStorageIndex *pIndexSu )
    {
@@ -153,7 +153,7 @@ namespace engine
       return TRUE ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_FIND, "_ixmExtent::find" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_FIND, "_ixmExtent::find" )
    INT32 _ixmExtent::find ( const ixmIndexCB *indexCB, const ixmKey &key,
                             const dmsRecordID &rid, const Ordering &order,
                             UINT16 &pos, BOOLEAN dupAllowed, BOOLEAN &found )
@@ -254,7 +254,7 @@ namespace engine
                        DMS_INVALID_EXTENT, indexCB ) ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_ISONE, "_ixmExtent::insertStepOne" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_ISONE, "_ixmExtent::insertStepOne" )
    INT32 _ixmExtent::insertStepOne ( ixmIndexInsertRequestImpl &insertRequest,
                                     BOOLEAN dupAllowed )
    {
@@ -338,7 +338,7 @@ namespace engine
    error :
       goto done ;
    }
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_INSERTHERE, "_ixmExtent::insertHere" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_INSERTHERE, "_ixmExtent::insertHere" )
    INT32 _ixmExtent::insertHere ( UINT16 pos, const dmsRecordID &rid,
                                   const ixmKey &key, const Ordering &order,
                                   dmsExtentID lchild, dmsExtentID rchild,
@@ -406,7 +406,7 @@ namespace engine
    error :
       goto done ;
    }
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__BASICINS, "_ixmExtent::_basicInsert" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__BASICINS, "_ixmExtent::_basicInsert" )
    INT32 _ixmExtent::_basicInsert ( UINT16 &pos, const dmsRecordID &rid,
                                    const ixmKey &key, const Ordering &order )
    {
@@ -478,7 +478,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__SPLIT, "_ixmExtent::_split" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__SPLIT, "_ixmExtent::_split" )
    INT32 _ixmExtent::_split ( UINT16 pos, const dmsRecordID &rid,
                              const ixmKey &key, const Ordering &order,
                              const dmsExtentID lchild, const dmsExtentID rchild,
@@ -639,7 +639,7 @@ namespace engine
       return SDB_OK ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__SPLITPOS, "_ixmExtent::_splitPos" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__SPLITPOS, "_ixmExtent::_splitPos" )
    INT32 _ixmExtent::_splitPos ( UINT16 pos, UINT16 &splitPos )
    {
       INT32 rc = SDB_OK ;
@@ -724,7 +724,7 @@ namespace engine
       }
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__PSHBACK, "_ixmExtent::_pushBack" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__PSHBACK, "_ixmExtent::_pushBack" )
    INT32 _ixmExtent::_pushBack ( const dmsRecordID &rid, const ixmKey &key,
                                  const Ordering &order, const dmsExtentID left )
    {
@@ -778,7 +778,7 @@ namespace engine
    error :
       goto done ;
    }
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__VALIDATE, "_ixmExtent::_validate" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__VALIDATE, "_ixmExtent::_validate" )
    INT32 _ixmExtent::_validate ( _ixmExtentValidateLevel level,
                                  const Ordering &order )
    {
@@ -864,7 +864,7 @@ namespace engine
       UINT16 dummy = 0xFFFF ;
       return _reorg ( order, dummy ) ;
    }
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__REORG, "_ixmExtent::_reorg" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__REORG, "_ixmExtent::_reorg" )
    INT32 _ixmExtent::_reorg (const Ordering &order, UINT16 &newPos)
    {
       INT32 rc = SDB_OK ;
@@ -955,7 +955,7 @@ namespace engine
       return SDB_OK ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__INSERT, "_ixmExtent::_insert" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__INSERT, "_ixmExtent::_insert" )
    INT32 _ixmExtent::_insert ( const dmsRecordID &rid, const ixmKey &key,
                                const Ordering &order, BOOLEAN dupAllowed,
                                dmsExtentID lchild, dmsExtentID rchild,
@@ -1050,7 +1050,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_UNINDEX, "_ixmExtent::unindex" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_UNINDEX, "_ixmExtent::unindex" )
    INT32 _ixmExtent::unindex ( const ixmKey &key, const dmsRecordID &rid,
                                const Ordering &order, ixmIndexCB *indexCB,
                                BOOLEAN &result )
@@ -1084,7 +1084,7 @@ namespace engine
    error :
       goto done ;
    }
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELKEYATPOS1, "_ixmExtent::_delKeyAtPos" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELKEYATPOS1, "_ixmExtent::_delKeyAtPos" )
    INT32 _ixmExtent::_delKeyAtPos ( UINT16 pos )
    {
       INT32 rc = SDB_OK ;
@@ -1116,7 +1116,7 @@ namespace engine
    error :
       goto done ;
    }
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELKEYATPOS2, "_ixmExtent::_delKeyAtPos" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELKEYATPOS2, "_ixmExtent::_delKeyAtPos" )
    INT32 _ixmExtent::_delKeyAtPos ( UINT16 pos, const Ordering &order,
                                     ixmIndexCB *indexCB )
    {
@@ -1203,7 +1203,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__MAYBLCWITHNGB, "_ixmExtent::_mayBalanceWithNeighbors" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__MAYBLCWITHNGB, "_ixmExtent::_mayBalanceWithNeighbors" )
    INT32 _ixmExtent::_mayBalanceWithNeighbors ( const Ordering &order,
                                                 ixmIndexCB *indexCB,
                                                 BOOLEAN &result )
@@ -1276,7 +1276,7 @@ namespace engine
       goto done ;
    }
    
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELEXT, "_ixmExtent::_delExtent" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELEXT, "_ixmExtent::_delExtent" )
    INT32 _ixmExtent::_delExtent ( ixmIndexCB *indexCB )
    {
       INT32 rc = SDB_OK ;
@@ -1308,7 +1308,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__FNDCHLDEXT, "_ixmExtent::_findChildExtent " )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__FNDCHLDEXT, "_ixmExtent::_findChildExtent " )
    INT32 _ixmExtent::_findChildExtent ( dmsExtentID childExtent, UINT16 &pos )
    {
       INT32 rc = SDB_OK ;
@@ -1333,7 +1333,7 @@ namespace engine
       return rc ;
    }
    
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELITNKEY, "_ixmExtent::_deleteInternalKey" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__DELITNKEY, "_ixmExtent::_deleteInternalKey" )
    INT32 _ixmExtent::_deleteInternalKey ( UINT16 pos, const Ordering &order,
                                           ixmIndexCB *indexCB )
    {
@@ -1411,7 +1411,7 @@ namespace engine
    error :
       goto done ;
    }
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_ADVANCE, "_ixmExtent::advance" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_ADVANCE, "_ixmExtent::advance" )
    INT32 _ixmExtent::advance ( ixmRecordID &keyRID, INT32 direction )
    {
       INT32 rc = SDB_OK ;
@@ -1485,7 +1485,7 @@ namespace engine
    error :
       goto done ;
    }
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__SETITNKEY, "_ixmExtent::_setInternalKey" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__SETITNKEY, "_ixmExtent::_setInternalKey" )
    INT32 _ixmExtent::_setInternalKey (UINT16 pos, const dmsRecordID &rid,
                                       const ixmKey &key,
                                       const Ordering &order, dmsExtentID lchild,
@@ -1536,7 +1536,7 @@ namespace engine
       return _locate ( ixkey, rid, order, indexrid, found, direction, indexCB );
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__LOCATE, "_ixmExtent::_locate" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__LOCATE, "_ixmExtent::_locate" )
    INT32 _ixmExtent::_locate ( const ixmKey &key, const dmsRecordID &rid,
                                const Ordering &order, ixmRecordID &indexrid,
                                BOOLEAN &found, INT32 direction,
@@ -1588,7 +1588,7 @@ namespace engine
    error :
       goto done ;
    }
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_EXIST, "_ixmExtent::exists" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_EXIST, "_ixmExtent::exists" )
    INT32 _ixmExtent::exists ( const ixmKey &key, const Ordering &order,
                              const ixmIndexCB *indexCB, BOOLEAN &result )
    {
@@ -1629,7 +1629,7 @@ namespace engine
       goto done ;
    }
 #define IXM_GET_ROOT_MAX_LOOP 100
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_GETROOT, "_ixmExtent::getRoot" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_GETROOT, "_ixmExtent::getRoot" )
    dmsExtentID _ixmExtent::getRoot ()
    {
       PD_TRACE_ENTRY ( SDB__IXMEXT_GETROOT );
@@ -1653,7 +1653,7 @@ namespace engine
       return DMS_INVALID_EXTENT ;
    }
    
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_FNDSNG, "_ixmExtent::findSingle" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_FNDSNG, "_ixmExtent::findSingle" )
    INT32 _ixmExtent::findSingle ( const ixmKey &key, const Ordering &order,
                                   dmsRecordID &rid, ixmIndexCB *indexCB )
    {
@@ -1702,7 +1702,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_TRUNC, "_ixmExtent::truncate" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_TRUNC, "_ixmExtent::truncate" )
    void _ixmExtent::truncate( ixmIndexCB *indexCB )
    {
       PD_TRACE_ENTRY ( SDB__IXMEXT_TRUNC );
@@ -1730,7 +1730,7 @@ namespace engine
       PD_TRACE_EXIT ( SDB__IXMEXT_TRUNC );
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_IXMEXT_COUNT, "_ixmExtent::count" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_IXMEXT_COUNT, "_ixmExtent::count" )
    UINT64 _ixmExtent::count ()
    {
       PD_TRACE_ENTRY ( SDB_IXMEXT_COUNT );
@@ -1771,7 +1771,7 @@ namespace engine
       return TRUE ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_IXMEXT__KEYCMP, "_ixmExtent::_keyCmp" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_IXMEXT__KEYCMP, "_ixmExtent::_keyCmp" )
    INT32 _ixmExtent::_keyCmp ( const BSONObj &currentKey, const BSONObj &prevKey,
                                INT32 keepFieldsNum, BOOLEAN skipToNext,
                                const vector < const BSONElement *> &matchEle,
@@ -1830,7 +1830,7 @@ namespace engine
       return retCode ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__KEYFIND, "_ixmExtent::_keyFind" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT__KEYFIND, "_ixmExtent::_keyFind" )
    INT32 _ixmExtent::_keyFind ( UINT16 l, UINT16 h, const BSONObj &prevKey,
                                 INT32 keepFieldsNum, BOOLEAN skipToNext,
                                 const vector < const BSONElement *> &matchEle,
@@ -1883,7 +1883,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_KEYLOCATE, "_ixmExtent::keyLocate" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_KEYLOCATE, "_ixmExtent::keyLocate" )
    INT32 _ixmExtent::keyLocate ( ixmRecordID &rid, const BSONObj &prevKey,
                                  INT32 keepFieldsNum, BOOLEAN skipToNext,
                                  const vector < const BSONElement *> &matchEle,
@@ -2010,7 +2010,7 @@ namespace engine
       goto done ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_KEYADVANCE, "_ixmExtent::keyAdvance" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_KEYADVANCE, "_ixmExtent::keyAdvance" )
    INT32 _ixmExtent::keyAdvance ( ixmRecordID &rid, const BSONObj &prevKey,
                                  INT32 keepFieldsNum, BOOLEAN skipToNext,
                                  const vector < const BSONElement *> &matchEle,
@@ -2020,10 +2020,12 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__IXMEXT_KEYADVANCE );
-      UINT16 l, h ;
-      BOOLEAN currentLevel ;
-      dmsExtentID childExtentID, parentExtentID ;
-      CHAR *data ;
+      UINT16 l = 0, h = 0 ;
+      BOOLEAN currentLevel = FALSE ;
+      dmsExtentID childExtentID = DMS_INVALID_EXTENT ;
+      dmsExtentID parentExtentID = DMS_INVALID_EXTENT ;
+      CHAR *data = NULL ;
+
       if ( direction > 0 )
       {
          l = rid.isNull()?(0):rid._slot ;
@@ -2065,8 +2067,12 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to keyFind in extent %d", _me ) ;
             goto error ;
          }
+
          if ( DMS_INVALID_EXTENT == childExtentID )
+         {
             goto done ;
+         }
+         else
          {
             ixmExtent childExtent ( childExtentID, _pIndexSu ) ;
             rc = childExtent.keyLocate ( rid, prevKey, keepFieldsNum,
@@ -2116,7 +2122,7 @@ namespace engine
       return _pIndexSu->extentAddr(getChildExtentID(i)) ;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_DMPINXEXT2LOG, "_ixmExtent::dumpIndexExtentIntoLog" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__IXMEXT_DMPINXEXT2LOG, "_ixmExtent::dumpIndexExtentIntoLog" )
    INT32 _ixmExtent::dumpIndexExtentIntoLog ()
    {
       INT32 rc = SDB_OK ;
@@ -2136,9 +2142,11 @@ namespace engine
                                        DMS_SU_DMP_OPT_FORMATTED,
                                        childExtents,
                                        TRUE ) ;
-      PD_RC_CHECK ( rc, PDERROR,
-                    "Failed to dump index extent, rc = %d", rc ) ;
-      PD_LOG ( PDERROR, "Index Page Dump:\n%s", pBuffer ) ;
+      if ( rc > 0 )
+      {
+         PD_LOG ( PDERROR, "Index Page Dump:\n%s", pBuffer ) ;
+      }
+      rc = SDB_OK ;
 
    done :
       if ( pBuffer )

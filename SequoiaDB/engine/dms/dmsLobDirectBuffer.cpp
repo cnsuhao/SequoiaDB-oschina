@@ -48,7 +48,6 @@ namespace engine
 
    _dmsLobDirectBuffer::~_dmsLobDirectBuffer()
    {
-
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DMS_LOBDIRECTBUF__EXTENDBUF, "_dmsLobDirectBuffer::_extendBuf" )
@@ -60,10 +59,13 @@ namespace engine
       _buf = _cb->getAlignedMemory( OSS_FILE_DIRECT_IO_ALIGNMENT, size ) ;
       if ( NULL == _buf )
       {
+         _bufSize = 0 ;
          PD_LOG( PDERROR, "failed to allocate mem" ) ;
          rc = SDB_OOM ;
          goto error ;
       }
+      _bufSize = size ;
+
    done:
       PD_TRACE_EXITRC( SDB__DMS_LOBDIRECTBUF__EXTENDBUF, rc ) ;
       return rc ;

@@ -1313,6 +1313,43 @@ namespace engine
                               _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                               INT16 w = 1, INT64 *pContextID = NULL ) ;
    } ;
+
+   class _rtnTruncate : public _rtnCommand
+   {
+   DECLARE_CMD_AUTO_REGISTER()
+   public:
+      _rtnTruncate()
+      :_fullName( NULL )
+      {
+
+      }
+
+      virtual ~_rtnTruncate() {}
+
+   public:
+      virtual const CHAR * name () { return NAME_TRUNCATE ; }
+      virtual RTN_COMMAND_TYPE type () { return CMD_TRUNCATE ; }
+      virtual BOOLEAN writable()
+      {
+         return TRUE ;
+      }
+
+      virtual const CHAR * collectionFullName()
+      {
+         return _fullName ;
+      }
+
+      virtual INT32 init ( INT32 flags, INT64 numToSkip, INT64 numToReturn,
+                           const CHAR *pMatcherBuff,
+                           const CHAR *pSelectBuff,
+                           const CHAR *pOrderByBuff,
+                           const CHAR *pHintBuff ) ;
+      virtual INT32 doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                           _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                           INT16 w = 1, INT64 *pContextID = NULL ) ;
+   private:
+      const CHAR * _fullName ;
+   } ;
 }
 
 const UINT32 pdGetTraceFunctionListNum();

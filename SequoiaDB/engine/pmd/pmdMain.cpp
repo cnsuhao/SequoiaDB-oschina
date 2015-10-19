@@ -167,6 +167,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_PMDMSTTHRDMAIN );
       pmdKRCB   *krcb     = pmdGetKRCB () ;
       UINT32     startTimerCount = 0 ;
+      CHAR      verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
       rc = pmdResolveArguments ( argc, argv ) ;
       if ( rc )
@@ -184,16 +185,39 @@ namespace engine
                    pmdGetOptionCB()->diagFileNum() ) ;
       setPDLevel( (PDLEVEL)( pmdGetOptionCB()->getDiagLevel() ) ) ;
 
+      ossSprintVersion( "Version", verText, OSS_MAX_PATHSIZE, FALSE ) ;
+
       PD_LOG ( ( getPDLevel() > PDEVENT ? PDEVENT : getPDLevel() ) ,
-               "Start sequoiadb(%s) [Ver: %d.%d, Release: %d, Build: %s]...",
-               pmdGetOptionCB()->krcbRole(), SDB_ENGINE_VERISON_CURRENT,
-               SDB_ENGINE_SUBVERSION_CURRENT, SDB_ENGINE_RELEASE_CURRENT,
-               SDB_ENGINE_BUILD_TIME ) ;
+               "Start sequoiadb(%s) [%s]...",
+               pmdGetOptionCB()->krcbRole(), verText ) ;
 
       {
          BSONObj confObj ;
          krcb->getOptionCB()->toBSON( confObj ) ;
          PD_LOG( PDEVENT, "All configs: %s", confObj.toString().c_str() ) ;
+      }
+
+      {
+         ossProcLimits limitInfo ;
+         rc = limitInfo.init() ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "can not init limit info:%d", rc ) ;
+         }
+         else
+         {
+            PD_LOG( PDEVENT, "dump limit info:\n%s", limitInfo.str().c_str() ) ;
+            INT64 sort = -1 ;
+            INT64 hard = -1 ;
+            if ( !limitInfo.getLimit( OSS_LIMIT_VIRTUAL_MEM, sort, hard ) )
+            {
+               PD_LOG( PDWARNING, "can not get limit of memory space!" ) ;
+            }
+            else if ( -1 != sort || -1 != hard )
+            {
+               PD_LOG( PDWARNING, "virtual memory is not unlimited!" ) ;
+            }
+         }
       }
 
       rc = pmdEnableSignalEvent( pmdGetOptionCB()->getDiagLogPath(),
@@ -239,6 +263,19 @@ namespace engine
          PD_LOG( PDWARNING, "Start warning (timeout)" ) ;
       }
 
+      {
+         EDUID agentEDU = PMD_INVALID_EDUID ;
+         pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
+         eduMgr->startEDU ( EDU_TYPE_PIPESLISTENER,
+                            (void*)pmdGetOptionCB()->getServiceAddr(),
+                            &agentEDU ) ;
+         eduMgr->regSystemEDU ( EDU_TYPE_PIPESLISTENER, agentEDU ) ;
+
+         rc = eduMgr->waitUntil( agentEDU, PMD_EDU_RUNNING ) ;
+         PD_RC_CHECK( rc, PDERROR, "Wait pipe listener to running "
+                      "failed, rc: %d", rc ) ;
+      }
+
 #if defined (_LINUX)
       {
          CHAR pmdProcessName [ OSS_RENAME_PROCESS_BUFFER_LEN + 1 ] = {0} ;
@@ -250,14 +287,6 @@ namespace engine
          ossRenameProcess ( pmdProcessName ) ;
       }
 #endif // _LINUX
-      {
-         EDUID agentEDU = PMD_INVALID_EDUID ;
-         pmdEDUMgr *eduMgr = pmdGetKRCB()->getEDUMgr() ;
-         eduMgr->startEDU ( EDU_TYPE_PIPESLISTENER,
-                            (void*)pmdGetOptionCB()->getServiceAddr(),
-                            &agentEDU ) ;
-         eduMgr->regSystemEDU ( EDU_TYPE_PIPESLISTENER, agentEDU ) ;
-      }
 
       while ( PMD_IS_DB_UP )
       {

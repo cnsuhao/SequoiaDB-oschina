@@ -235,8 +235,8 @@ namespace engine
       }
       va_start( argList, format ) ;
       vsnprintf( _lastOpDetail + curLen,
-               sizeof( _lastOpDetail ) - curLen,
-               format, argList ) ;
+                 sizeof( _lastOpDetail ) - curLen - 1,
+                 format, argList ) ;
       va_end( argList ) ;
    done:
       return ;

@@ -239,6 +239,31 @@ namespace engine
          _isInitialized = TRUE ;
       }
 
+      static BOOLEAN _isValidKey( const bson::BSONObj &obj )
+      {
+         if ( obj.isEmpty() )
+         {
+            return FALSE ;
+         }
+         else
+         {
+            BSONObjIterator i( obj ) ;
+            while ( i.more() )
+            {
+               BSONElement e = i.next() ;
+               const CHAR *fieldName = e.fieldName() ;
+               if ( NULL == fieldName ||
+                    '\0' == fieldName[0] ||
+                    NULL != ossStrchr( fieldName, '$' ) )
+               {
+                  return FALSE ;
+               }
+            }
+         }
+
+         return TRUE ;
+      }
+
       friend class _ixmIndexKeyGen ;
 
    public:
@@ -495,6 +520,15 @@ namespace engine
             return FALSE ;
          }
          fieldCount ++ ;
+
+         if ( !_isValidKey( obj.getObjectField( IXM_KEY_FIELD ) ) )
+         {
+            PD_LOG( PDERROR, "index key is invalid:%s",
+                    obj.toString( FALSE, TRUE ).c_str() ) ;
+
+            return FALSE ;
+         }
+
          if ( !idIndex &&
               isSysIndexPattern ( obj.getObjectField( IXM_KEY_FIELD ) ))
          {

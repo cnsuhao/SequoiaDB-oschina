@@ -397,23 +397,46 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_DMSSTORAGELOBDATA_READRAW, "_dmsStorageLobData::readRaw" )
-   INT32 _dmsStorageLobData::readRaw( UINT64 offset, UINT32 len,
+   INT32 _dmsStorageLobData::readRaw( pmdEDUCB *cb, UINT64 offset, UINT32 len,
                                       CHAR * buf, UINT32 &readLen )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_DMSSTORAGELOBDATA_READRAW ) ;
       SDB_ASSERT( NULL != buf && ( SINT64 )offset <= _fileSz, "invalid operation" ) ;
+      SDB_ASSERT( ( 0 == ( offset & ( OSS_FILE_DIRECT_IO_ALIGNMENT - 1 ) ) ) &&
+                  ( 0 == ( len & ( OSS_FILE_DIRECT_IO_ALIGNMENT - 1 ) ) ), "must be aligned" ) ;
       SINT64 readFromFile = 0 ;
+      dmsLobDirectInBuffer buffer( buf, len, offset, cb ) ;
+      dmsLobDirectBuffer::tuple t ;
 
-      if ( ( SINT64 )(offset + len) > _fileSz )
+      if ( !OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
+      {
+         t.buf = buf ;
+         t.size = len ;
+         t.offset = offset ;
+      }
+      else
+      {
+         rc = buffer.getAlignedTuple( t ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to align the buffer:%d", rc ) ;
+            goto error ;
+         }
+      }
+
+      SDB_ASSERT( offset == t.offset &&
+                  len == t.size, "must be same" ) ;
+
+      if ( ( SINT64 )(t.offset + t.size) > _fileSz )
       {
          PD_LOG( PDERROR, "Offset[%lld] grater than file size[%lld] in "
-                 "file[%s]", offset, _fileSz, _fileName.c_str() ) ;
+                 "file[%s]", t.offset, _fileSz, _fileName.c_str() ) ;
          rc = SDB_SYS ;
          goto error ;
       }
 
-      if ( ( SINT64 )(offset + len) > _lastSz )
+      if ( ( SINT64 )(t.offset + t.size) > _lastSz )
       {
          rc = _reopen() ;
          if ( rc )
@@ -424,16 +447,22 @@ namespace engine
          }
       }
 
-      rc = ossSeekAndReadN( &_file, offset,
-                            len, buf, readFromFile ) ;
+      rc = ossSeekAndReadN( &_file, t.offset,
+                            t.size, ( CHAR * )( t.buf ),
+                            readFromFile ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to read data[offset: %lld, len: %d], rc: %d",
-                 offset, len, rc ) ;
+                 t.offset, t.size, rc ) ;
          goto error ;
       }
 
       readLen = readFromFile ;
+
+      if ( OSS_BIT_TEST( _flags, DMS_LOBD_FLAG_DIRECT ) )
+      {
+         buffer.copy2UsrBuf( t ) ;
+      }
    done:
       PD_TRACE_EXITRC( SDB_DMSSTORAGELOBDATA_READRAW, rc ) ;
       return rc ;

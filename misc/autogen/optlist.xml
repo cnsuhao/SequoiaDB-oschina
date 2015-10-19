@@ -869,4 +869,48 @@
       </description>
      <hidden>true</hidden>
    </opt>
+
+   <opt>
+      <name>PMD_OPTION_IS_ARBITER</name>
+      <long>arbiter</long>
+      <default>false</default>
+      <description>
+        <en>Set node as an arbiter only. Default is false.</en>
+        <cn>将节点设置成为一个仲裁节点。默认为false。</cn>
+      </description>
+      <detail>
+         <en>Set node as an arbiter only. Default is false.</en>
+         <cn>将节点设置成为一个仲裁节点。默认为false。</cn>
+      </detail>
+      <typeofweb>boolean</typeofweb>
+   </opt>
+
+   <opt>
+      <name>PMD_OPTION_PLAN_BUCKETS</name>
+      <long>planbuckets</long>
+      <default>500</default>
+      <type>int</type>
+      <description>
+         <en>The buckets of access plan cache. Sdb will not cache any access plan if it is zero</en>
+         <cn>访问计划缓存内桶的个数。当其为零时Sdb将不会缓存任何访问计划</cn>
+      </description>
+      <detail>
+         <en>The buckets of access plan cache. Sdb will not cache any access plan if it is zero</en>
+         <cn>访问计划缓存内桶的个数。当其为零时Sdb将不会缓存任何访问计划</cn>
+      </detail>
+      <typeofweb>num</typeofweb>
+  </opt>
+
+   <opt>
+      <name>PMD_OPTION_OPERATOR_TIMEOUT</name>
+      <long>optimeout</long>
+      <description>
+         <en>The timeout period for heartbeat in each operation ( in ms ), default:30000, 0 for no-timeout </en>
+         <cn>判定操作中断的时间(ms),默认值:30000, 0表示不超时</cn>
+      </description>
+      <type>int</type>
+      <hidden>true</hidden>
+   </opt>
+
 </optlist>
+

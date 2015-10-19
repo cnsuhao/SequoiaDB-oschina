@@ -41,7 +41,7 @@
 					 		"You can add multiple IP/HostName or IP/HostName Range, but the IP/HostName must be unique.",
 							"Result includes all scanning IP/HostName, only hosts using SSH service will be included. If User,Password or SSH port is incorrect, you can click the row in the Host List to edit.",
 							"Notice",
-							"If you don't know the exact IP/HostNxame of hosts you want to use, you can extend the range to scan. However the scanning time may increase."
+							"If you don't know the exact IP/HostName of hosts you want to use, you can extend the range to scan. However the scanning time may increase."
 					 ]
 				}
 		  }

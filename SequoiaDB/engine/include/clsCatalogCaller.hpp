@@ -54,13 +54,14 @@ namespace engine
       MsgHeader *header ;
       UINT32 bufLen ;
       INT32  timeout ;
+      UINT32 sendTimes ;
 
       _clsCataCallerMeta()
       :header(NULL),
        bufLen(0),
-       timeout(-1)
+       timeout(-1),
+       sendTimes(1)
       {
-
       }
 
       ~_clsCataCallerMeta()
@@ -72,6 +73,7 @@ namespace engine
          }
          bufLen = 0 ;
          timeout = -1 ;
+         sendTimes = 0 ;
       }
    } ;
    typedef std::map<UINT32, _clsCataCallerMeta> callerMeta ;
@@ -83,7 +85,7 @@ namespace engine
       ~_clsCatalogCaller() ;
 
    public:
-      INT32 call( MsgHeader *header ) ;
+      INT32 call( MsgHeader *header, UINT32 times = 1 ) ;
 
       void remove( _MsgInternalReplyHeader *header ) ;
       void remove( INT32 opCode ) ;

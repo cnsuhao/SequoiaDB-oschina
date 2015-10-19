@@ -146,7 +146,9 @@ namespace engine
 
    UINT32 _clsShardSessionMgr::_maxCacheSize() const
    {
-      return MAX_SHD_SESSION_CATCH_DEQ_SIZE ;
+      UINT32 maxPool = pmdGetOptionCB()->getMaxPooledEDU() ;
+      return maxPool < MAX_SHD_SESSION_CATCH_DEQ_SIZE ?
+             maxPool : MAX_SHD_SESSION_CATCH_DEQ_SIZE ;
    }
 
    void _clsShardSessionMgr::_onPushMsgFailed( INT32 rc, const MsgHeader *pReq,
@@ -203,7 +205,7 @@ namespace engine
       }
       else if ( _sessionTimerID == timerID )
       {
-         if ( _mapSession.size() <= _maxCacheSize() / 10 )
+         if ( _mapSession.size() <= MAX_SHD_SESSION_CATCH_DEQ_SIZE / 10 )
          {
             goto done ;
          }

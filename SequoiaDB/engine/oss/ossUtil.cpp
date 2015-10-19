@@ -1339,3 +1339,97 @@ error:
 #error "unsupported os"
 #endif
 
+#if defined (_LINUX)
+#include <sys/resource.h>
+
+std::string ossProcLimits::str()const
+{
+   std::stringstream ss ;
+   std::map<const CHAR *, std::pair<INT64, INT64>, cmp >::const_iterator itr =
+                                    _desc.begin() ;
+   for ( ; itr != _desc.end(); ++itr )
+   {
+      ss << itr->first << "\t" << itr->second.first << "\t" << itr->second.second << "\n" ;
+   }
+   return ss.str() ;
+}
+
+INT32 ossProcLimits::init()
+{
+   INT32 rc = SDB_OK ;
+   _initRLimit( RLIMIT_AS, OSS_LIMIT_VIRTUAL_MEM ) ; 
+   _initRLimit( RLIMIT_CORE, OSS_LIMIT_CORE_SZ ) ; 
+   _initRLimit( RLIMIT_CPU, OSS_LIMIT_CPU_TIME ) ; 
+   _initRLimit( RLIMIT_DATA, OSS_LIMIT_DATA_SEG_SZ ) ; 
+   _initRLimit( RLIMIT_FSIZE, OSS_LIMIT_FILE_SZ ) ; 
+   _initRLimit( RLIMIT_LOCKS, OSS_LIMIT_FILE_LOCK ) ; 
+   _initRLimit( RLIMIT_MEMLOCK, OSS_LIMIT_MEM_LOCK ) ; 
+   _initRLimit( RLIMIT_MSGQUEUE, OSS_LIMIT_MSG_QUEUE ) ; 
+   _initRLimit( RLIMIT_RTPRIO, OSS_LIMIT_SCHE_PRIO) ; 
+   _initRLimit( RLIMIT_STACK, OSS_LIMIT_STACK_SIZE ) ;
+   _initRLimit( RLIMIT_NOFILE, OSS_LIMIT_OPEN_FILE ) ;
+   return rc ;
+}
+
+void ossProcLimits::_initRLimit( INT32 resource, const CHAR *str )
+{
+   struct rlimit r ;
+   INT32 rc = ::getrlimit( resource, &r ) ;
+   if ( SDB_OK != rc )
+   {
+      PD_LOG( PDERROR, "failed to get limit of:%d, errno:%d",
+              resource, ossGetLastError() ) ;
+   }
+   else
+   {
+      std::pair<INT64, INT64> &p = _desc[str] ;
+      p.first = ( RLIM_INFINITY == r.rlim_cur ) ?
+                -1 : r.rlim_cur ;
+      p.second = ( RLIM_INFINITY == r.rlim_max ) ?
+                 -1 : r.rlim_max ;
+   }
+   return ;
+}
+
+BOOLEAN ossProcLimits::getLimit( const CHAR *str,
+                                 INT64 &soft,
+                                 INT64 &hard ) const
+{
+    std::map<const CHAR *, std::pair<INT64, INT64>, cmp >::const_iterator
+                                                       itr = _desc.find( str ) ;
+    if ( _desc.end() == itr )
+    {
+       return FALSE ;
+    }
+    else
+    {
+       soft = itr->second.first ;
+       hard = itr->second.second ;
+       return TRUE ;
+    }
+}
+
+#else
+INT32 ossProcLimits::init()
+{
+   return SDB_SYS ;
+}
+
+void ossProcLimits::_initRLimit( INT32 resource, const CHAR *str )
+{
+   return ;
+}
+
+BOOLEAN ossProcLimits::getLimit( const CHAR *str,
+                                 INT64 &soft,
+                                 INT64 &hard ) const
+{
+   return SDB_OK ;
+}
+
+std::string ossProcLimits::str()const
+{
+   return string("") ;
+}
+#endif
+

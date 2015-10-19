@@ -163,6 +163,8 @@ namespace engine
 
       void  delCataInfo ( const std::string &collectionName ) ;
 
+      BOOLEAN isSubCollection( const CHAR *pCLName ) ;
+
       void  invalidateCataInfo() ;
       void  invalidateGroupInfo() ;
 

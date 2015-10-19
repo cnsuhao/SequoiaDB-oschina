@@ -291,9 +291,10 @@ namespace engine
 
          if ( _matcher.totallyConverted() )
          {
-            detail.matchAll = ( 0 != matchedFields ) &&
-                              ( matchedFields == nQueryFields ) &&
-                               matchedFields <= idxPattern.nFields() ;
+            detail.matchAll = ( ( 0 != matchedFields ) &&
+                                ( matchedFields == nQueryFields ) &&
+                                  matchedFields <= idxPattern.nFields() ) ||
+                              ( 0 == nQueryFields );
          }
       }
       PD_LOG ( PDDEBUG, "Index Scan Estimation: %s : %d",
@@ -572,5 +573,25 @@ namespace engine
          SDB_OSS_DEL this ;
       }
    }
+
+   std::string _optAccessPlan::toString() const
+   {
+      stringstream ss ;
+      ss << "CollectionName:" << _collectionName
+         << ",IndexName:" << _idxName
+         << ",OrderBy:" << _orderBy.toString().c_str()
+         << ",Query:" << _query.toString().c_str()
+         << ",Hint:" << _hint.toString().c_str()
+         << ",HintFailed:" << _hintFailed
+         << ",Direction:" << _direction
+         << ",ScanType:" << ( TBSCAN == _scanType ? "TBSCAN" : "IXSCAN" )
+         << ",Valid:" << _isValid
+         << ",AutoPlan:" << _isAutoPlan
+         << ",HashValue:" << _hashValue
+         << ",Count:" << _useCount.peek()
+         << ",SortRequired:" << _sortRequired ;
+      return ss.str() ;
+   }
+
 }
 

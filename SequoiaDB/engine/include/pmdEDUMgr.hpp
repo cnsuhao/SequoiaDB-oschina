@@ -399,6 +399,8 @@ namespace engine
                         UINT32 waitPeriod = PMD_EDU_WAIT_PERIOD,
                         UINT32 waitRound = PMD_EDU_WAIT_ROUND ) ;
 
+      EDU_TYPES getEDUTypeByID( EDUID eduID ) ;
+
    };
    typedef class _pmdEDUMgr pmdEDUMgr ;
 }

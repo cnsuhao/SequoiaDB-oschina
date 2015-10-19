@@ -58,6 +58,7 @@
 #include "sptConvertorHelper.hpp"
 #include <boost/lexical_cast.hpp>
 #include "utilStr.hpp"
+#include "ossProc.hpp"
 
 #define SAFE_BSON_DISPOSE( p ) \
    do { if ( p ) { bson_dispose( p ) ; ( p ) = NULL ; } } while ( 0 )
@@ -413,7 +414,7 @@ static JSBool global_help ( JSContext *cx , uintN argc , jsval *vp )
 #if defined (SDB_SHELL)
    INT32 rc                                     = SDB_OK ;
    CHAR tfPath[ OSS_MAX_PATHSIZE + 1 ]          = { 0 } ;
-   INT32 len                                    = 0 ;
+   CHAR pwdPath[ OSS_MAX_PATHSIZE + 1 ]         = { 0 } ;
 #endif
    JSBool ret                                   = JS_TRUE ;
    JSString *strCate                            = NULL ;
@@ -434,15 +435,11 @@ static JSBool global_help ( JSContext *cx , uintN argc , jsval *vp )
    }
 
 #if defined (SDB_SHELL)
-   rc = getProgramPath( tfPath ) ;
+   rc = ossGetEWD( pwdPath, OSS_MAX_PATHSIZE ) ;
    REPORT_RC ( SDB_OK == rc, "help()", rc ) ;
-   len = ossStrlen(TF_REL_PATH) ;
-   if ( ossStrlen( tfPath ) + len  > OSS_MAX_PATHSIZE )
-   {
-      rc = SDB_INVALIDARG ;
-      REPORT_RC ( SDB_OK == rc, "help()", rc ) ;
-   }
-   ossStrncat ( tfPath, TF_REL_PATH, ossStrlen(TF_REL_PATH) ) ;
+   rc = engine::utilBuildFullPath( pwdPath, TF_REL_PATH,
+                                   OSS_MAX_PATHSIZE, tfPath ) ;
+   REPORT_RC ( SDB_OK == rc, "help()", rc ) ;
    rc = manHelp::getInstance( tfPath ).getFileHelp( cate, cmd ) ;
    REPORT_RC ( SDB_OK == rc, "help()", rc ) ;
 #endif
@@ -2069,10 +2066,12 @@ static JSBool collection_create_index ( JSContext *cx , uintN argc , jsval *vp )
 
    if ( argc >= 3 )
    {
+      REPORT( JSVAL_IS_BOOLEAN( argv[2]), "3rd argument should be bool" ) ;
       VERIFY ( JS_ValueToBoolean ( cx , argv[2] , &unique ) ) ;
    }
    if ( argc >= 4 )
    {
+      REPORT( JSVAL_IS_BOOLEAN( argv[3]), "4th argument should be bool" ) ;
       VERIFY ( JS_ValueToBoolean ( cx, argv[3], &enforced ) ) ;
    }
 
@@ -2456,6 +2455,36 @@ error :
    goto done ;
 }
 
+// PD_TRACE_DECLARE_FUNCTION ( SDB_COLL_TRUNCATE, "collection_truncate" )
+static JSBool collection_truncate ( JSContext *cx , uintN argc , jsval *vp )
+{
+   PD_TRACE_ENTRY ( SDB_COLL_TRUNCATE );
+   INT32 rc = SDB_OK ;
+   JSBool ret = JS_TRUE ;
+   sdbCollectionHandle *clHandle = NULL ;
+   sdbCollectionStruct *collection = NULL ;
+
+   REPORT ( 0 == argc ,
+            "SdbCollection.truncate(): need none arguments" ) ;
+   clHandle = (sdbCollectionHandle *)
+      JS_GetPrivate ( cx , JS_THIS_OBJECT ( cx , vp ) ) ;
+   REPORT ( clHandle , "SdbCollection.truncate(): no collection handle" ) ;
+
+   collection = ( sdbCollectionStruct * )( *clHandle ) ;
+
+   rc = sdbTruncateCollection( collection->_connection,
+                               collection->_collectionFullName ) ;
+   REPORT_RC ( SDB_OK == rc,
+               "SdbCollection.truncate()" , rc ) ;
+  
+   JS_SET_RVAL( cx, vp, JSVAL_VOID ) ; 
+done:
+   PD_TRACE_EXIT( SDB_COLL_TRUNCATE ) ;
+   return ret ;
+error:
+   goto done ;
+}
+
 static JSFunctionSpec collection_functions[] = {
     JS_FS ( "rawFind" , collection_raw_find , 0 , 0 ) ,
     JS_FS ( "_insert" , collection_insert , 1 , 0 ) ,
@@ -2479,6 +2508,7 @@ static JSFunctionSpec collection_functions[] = {
     JS_FS ( "deleteLob", collection_delete_lob, 1, 0 ) ,
     JS_FS ( "listLobs", collection_list_lobs, 1, 0 ) ,
     JS_FS ( "listLobPieces", collection_list_lob_pieces, 1, 0 ) ,
+    JS_FS ( "truncate", collection_truncate, 0, 0 ),
     JS_FS_END
 } ;
 
@@ -5831,11 +5861,11 @@ static JSBool sdb_drop_user ( JSContext *cx , uintN argc , jsval *vp )
 
    connection = ( sdbConnectionHandle * )
          JS_GetPrivate ( cx, JS_THIS_OBJECT ( cx, vp ) ) ;
-   REPORT ( connection, "Sdb.createUsr(): no connection handle" ) ;
+   REPORT ( connection, "Sdb.dropUsr(): no connection handle" ) ;
 
    ret = JS_ConvertArguments ( cx , argc , JS_ARGV ( cx , vp ) ,
                                "SS" , &strUsrName , &strUsrPwd ) ;
-   REPORT ( ret , "Sdb.createUsr(): wrong arguments" ) ;
+   REPORT ( ret , "Sdb.dropUsr(): wrong arguments" ) ;
 
    if ( strUsrName )
    {
@@ -5846,7 +5876,7 @@ static JSBool sdb_drop_user ( JSContext *cx , uintN argc , jsval *vp )
          usrPwd = (CHAR *) JS_EncodeString ( cx , strUsrPwd ) ;
          VERIFY ( usrPwd ) ;
          rc = sdbRemoveUsr( *connection , usrName , usrPwd ) ;
-         REPORT_RC ( SDB_OK == rc , "Sdb.createUsr()" , rc ) ;
+         REPORT_RC ( SDB_OK == rc , "Sdb.dropUsr()" , rc ) ;
       }
       else
       {
@@ -7057,7 +7087,7 @@ static JSBool timestamp_constructor( JSContext *cx, uintN argc, jsval *vp )
 
       if ( !JSVAL_IS_STRING( argv[0]) )
       {
-         REPORT_RC ( SDB_OK == rc , "Timestamp(): wrong arguments", SDB_INVALIDARG ) ;
+         REPORT_RC ( FALSE, "Timestamp(): wrong arguments", SDB_INVALIDARG ) ;
       }
 
       timeStr = JS_EncodeString( cx, JSVAL_TO_STRING( argv[0]) ) ;
@@ -7410,7 +7440,7 @@ static JSBool sdbdate_constructor( JSContext *cx, uintN argc, jsval *vp )
 
       if ( !JSVAL_IS_STRING( argv[0]) )
       {
-         REPORT_RC ( SDB_OK == rc , "SdbDate(): wrong arguments", SDB_INVALIDARG ) ;
+         REPORT_RC ( FALSE , "SdbDate(): wrong arguments", SDB_INVALIDARG ) ;
       }
 
       timeStr = JS_EncodeString( cx, JSVAL_TO_STRING( argv[0]) ) ;

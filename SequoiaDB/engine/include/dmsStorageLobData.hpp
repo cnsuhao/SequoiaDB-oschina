@@ -100,7 +100,8 @@ namespace engine
 
       INT32 extend( INT64 len ) ;
 
-      INT32 readRaw( UINT64 offset,
+      INT32 readRaw( _pmdEDUCB *cb,
+                     UINT64 offset,
                      UINT32 len,
                      CHAR *buf,
                      UINT32 &readLen ) ;

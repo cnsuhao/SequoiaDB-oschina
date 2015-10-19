@@ -148,6 +148,11 @@ namespace engine
                      hostname, port, rc ) ;
             goto error ;
          }
+         rc = sock.setKeepAlive( 1, 15, 5, 3 ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDWARNING, "Failed to set keep alive, rc=%d", rc ) ;
+         }
 
          rc = msgBuildCMRequest ( &pCMRequest, &reqSize, remoCode,
                                    arg1, arg2, arg3, arg4 ) ;

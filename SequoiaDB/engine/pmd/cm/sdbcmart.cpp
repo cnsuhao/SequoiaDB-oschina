@@ -60,6 +60,7 @@ namespace engine
 {
 
    #define SDBCMART_LOG_FILE_NAME      "sdbcmart.log"
+   #define PMD_SDBCM_WAIT_TIMEOUT      ( 6 )   /// seconds
 
 #if defined( _WINDOWS )
    #define COMMANDS_OPTIONS \
@@ -259,7 +260,7 @@ namespace engine
 
       rc = utilWaitNodeOK( cmInfo, NULL,
                            asStandalone ? pid : OSS_INVALID_PID,
-                           SDB_TYPE_OMA, UTIL_WAIT_NODE_TIMEOUT,
+                           SDB_TYPE_OMA, PMD_SDBCM_WAIT_TIMEOUT,
                            asStandalone ? TRUE : FALSE ) ;
       if ( SDB_OK == rc )
       {

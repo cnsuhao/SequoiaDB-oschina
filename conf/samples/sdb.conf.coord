@@ -99,12 +99,3 @@ pagecleaninterval=10000
 # extend the file as a sparse file
 # sparsefile=
 
-# The weight of election, default is 10, range [1, 100]
-weight=10
-
-# allow client to connect with SSL (enterprise edition only), default false
-usessl=false
-
-# enable authentication. default is true
-auth=true
-

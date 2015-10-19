@@ -43,6 +43,8 @@
 #include <time.h>
 #include <sys/types.h>
 #include "ossUtil.h"
+#include <string>
+#include <map>
 
 #if defined( SDB_ENGINE )
 #include <boost/date_time/posix_time/posix_time.hpp>
@@ -900,6 +902,43 @@ public:
 private:
    INT32 _init();
 };
+
+#define OSS_LIMIT_VIRTUAL_MEM "virtual memory"
+#define OSS_LIMIT_CORE_SZ "core file size"
+#define OSS_LIMIT_DATA_SEG_SZ "data seg size"
+#define OSS_LIMIT_FILE_SZ "file size"
+#define OSS_LIMIT_CPU_TIME "cpu time"
+#define OSS_LIMIT_FILE_LOCK "file locks"
+#define OSS_LIMIT_MEM_LOCK "max locked memory"
+#define OSS_LIMIT_MSG_QUEUE "POSIX message queues"
+#define OSS_LIMIT_OPEN_FILE "open files"
+#define OSS_LIMIT_SCHE_PRIO "scheduling priority"
+#define OSS_LIMIT_STACK_SIZE "stack size"
+
+class ossProcLimits
+{
+public:
+   std::string str() const ;
+
+   INT32 init() ;
+
+   INT32 getLimit( const CHAR *str,
+                   INT64 &soft,
+                   INT64 &hard ) const ;
+
+private:
+   void _initRLimit( INT32 resource, const CHAR *str ) ;
+
+private:
+   struct cmp
+   {
+      BOOLEAN operator()( const CHAR *l, const CHAR *r ) const
+      {
+         return ossStrcmp( l, r ) < 0 ;
+      }
+   } ;
+   std::map<const CHAR *, std::pair<INT64, INT64>, cmp > _desc ;
+} ;
 
 #endif  //OSSUTIL_HPP_
 

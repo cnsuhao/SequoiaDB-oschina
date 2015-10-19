@@ -1341,7 +1341,7 @@
       <code>
          <name>SDB_RTN_CMD_NO_SERVICE_AUTH</name>
          <description>
-            <en>The command can't be run in the serice plane</en>
+            <en>The command can't be run in the service plane</en>
             <cn>该服务平面不能运行该命令</cn>
          </description>
       </code>
@@ -2312,6 +2312,86 @@
             <en>This cluster is not active</en>
             <cn>集群未激活</cn>
          </description>
+      </code>
+
+      <code>
+         <name>SDB_RTN_QUERYMODIFY_SORT_NO_IDX</name>
+         <description>
+            <en>Sorting of 'query and modify' must use index</en>
+            <cn>在’查询并修改‘操作使用排序时必须使用索引</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_RTN_QUERYMODIFY_MULTI_NODES</name>
+         <description>
+            <en>'query and modify' can't use skip and limit in multiple nodes or sub-collections</en>
+            <cn>’查询并修改‘操作不能在多个节点或子表上执行skip和limit操作</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_DIR_NOT_EMPTY</name>
+         <description>
+            <en>Given path is not empty</en>
+            <cn>指定目录不为空</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_IXM_EXIST_COVERD_ONE</name>
+         <description>
+            <en>Exist one index which can cover this scene</en>
+            <cn>已经存在一个可以处理本场景的索引</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_CAT_IMAGE_IS_CONFIGURED</name>
+         <description>
+            <en>The cluster's image has already configured</en>
+            <cn>集群已配置镜像</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_RTN_CMD_IN_LOCAL_MODE</name>
+         <description>
+            <en>The command is in local mode</en>
+            <cn>命令为本地运行模式</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_SPT_NOT_SPECIAL_JSON</name>
+         <description>
+            <en>The object is not a special object in sdb shell</en>
+            <cn>不是一个特殊类型的Sdb Shell对象</cn>
+         </description>
+      </code>
+
+      <code>
+         <name>SDB_AUTH_USER_ALREADY_EXIST</name>
+         <description>
+            <en>The specified user already exist</en>
+            <cn>指定用户已存在</cn>
+         </description>
+      </code>
+      
+      <code>
+         <name>SDB_DMS_EMPTY_COLLECTION</name>
+         <description>
+            <en>The collection is empty</en>
+            <cn>表记录为空</cn>
+         </description>
+      </code>
+
+      <code>
+        <name>SDB_LOB_SEQUENCE_EXISTS</name>
+        <description>
+           <en>LOB sequence exists</en>
+           <cn>大对象的序列已经存在</cn>
+        </description>
       </code>
 
    </codelist>

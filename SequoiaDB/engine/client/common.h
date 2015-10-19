@@ -34,7 +34,8 @@ SDB_EXTERN_C_START
 
 #define SDB_MD5_DIGEST_LENGTH 16
 
-INT32 clientCheckRetMsgHeader( const CHAR *pSendBuf, const CHAR *pRecvBuf ) ;
+INT32 clientCheckRetMsgHeader( const CHAR *pSendBuf, const CHAR *pRecvBuf,
+                               BOOLEAN endianConvert ) ;
 
 #ifdef __cplusplus
 INT32 clientBuildUpdateMsgCpp ( CHAR **ppBuffer, INT32 *bufferSize,

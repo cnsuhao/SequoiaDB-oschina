@@ -56,18 +56,20 @@ do                                                      \
    }                                                    \
 }while( FALSE )
 
-#define CHECK_RET_MSGHEADER( pSendBuf, pRecvBuf, connHandle ) \
-do                                                            \
-{                                                             \
-   rc = clientCheckRetMsgHeader( pSendBuf, pRecvBuf ) ;       \
-   if ( SDB_OK != rc )                                        \
-   {                                                          \
-      if ( SDB_UNEXPECTED_RESULT == rc )                      \
-      {                                                       \
-         _sdbDisconnect_inner( connHandle ) ;                 \
-      }                                                       \
-      goto error ;                                            \
-   }                                                          \
+#define CHECK_RET_MSGHEADER( pSendBuf, pRecvBuf, connHandle )               \
+do                                                                          \
+{                                                                           \
+   sdbConnectionStruct *db = (sdbConnectionStruct*)connHandle ;             \
+   HANDLE_CHECK( connHandle, db, SDB_HANDLE_TYPE_CONNECTION ) ;             \
+   rc = clientCheckRetMsgHeader( pSendBuf, pRecvBuf, db->_endianConvert ) ; \
+   if ( SDB_OK != rc )                                                      \
+   {                                                                        \
+      if ( SDB_UNEXPECTED_RESULT == rc )                                    \
+      {                                                                     \
+         sdbDisconnect( connHandle ) ;                                      \
+      }                                                                     \
+      goto error ;                                                          \
+   }                                                                        \
 }while( FALSE )
 
 #define ALLOC_HANDLE( handle, type )                      \
@@ -332,7 +334,7 @@ static INT32 _send1 ( sdbConnectionHandle cHandle, Socket* sock,
 
    if ( NULL == sock )
    {
-      rc = SDB_INVALIDARG ;
+      rc = SDB_NOT_CONNECTED ;
       goto error ;
    }
 
@@ -380,7 +382,7 @@ static INT32 _recv ( sdbConnectionHandle cHandle, Socket* sock,
 
    if ( NULL == sock )
    {
-      rc = SDB_INVALIDARG ;
+      rc = SDB_NOT_CONNECTED ;
       goto error ;
    }
 
@@ -1595,7 +1597,8 @@ SDB_EXPORT INT32 sdbGetQueryMeta ( sdbCollectionHandle cHandle,
       goto error ;
    }
 
-   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer, cHandle ) ;
+   CHECK_RET_MSGHEADER( cs->_pSendBuffer, cs->_pReceiveBuffer,
+                        cs->_connection ) ;
    ALLOC_HANDLE( cursor, sdbCursorStruct ) ;
    INIT_CURSOR( cursor, cs->_connection, cs, contextID ) ;
 
@@ -7852,3 +7855,43 @@ error:
    goto done ;
 }
 
+SDB_EXPORT INT32 sdbTruncateCollection( sdbConnectionHandle cHandle,
+                                        const CHAR *fullName )
+{
+   INT32 rc = SDB_OK ;
+   bson option ;
+   BOOLEAN bsoninit = FALSE ;
+   BOOLEAN result = FALSE ;
+   sdbConnectionStruct *connection = (sdbConnectionStruct*)cHandle ;
+   HANDLE_CHECK( cHandle, connection, SDB_HANDLE_TYPE_CONNECTION ) ;
+
+   if ( NULL == fullName ||
+        0 == ossStrlen( fullName ) )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   BSON_INIT( option ) ;
+   BSON_APPEND( option, FIELD_NAME_COLLECTION, fullName, string ) ;
+   BSON_FINISH( option ) ;
+
+   rc = _runCommand ( cHandle, connection->_sock,
+                      &connection->_pSendBuffer,
+                      &connection->_sendBufferSize,
+                      &connection->_pReceiveBuffer,
+                      &connection->_receiveBufferSize,
+                      connection->_endianConvert,
+                      CMD_ADMIN_PREFIX CMD_NAME_TRUNCATE,
+                      &result, &option,
+                      NULL, NULL, NULL ) ;
+   if ( SDB_OK != rc )
+   {
+      goto error ;
+   }
+done:
+   BSON_DESTROY( option ) ;
+   return rc ;
+error:
+   goto done ;
+}

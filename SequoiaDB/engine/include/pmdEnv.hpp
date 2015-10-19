@@ -61,6 +61,10 @@ namespace engine
       BOOLEAN                       _quitFlag ;
       PMD_ON_QUIT_FUNC              _pQuitFunc ;
 
+      volatile UINT64               _tick ;
+
+      volatile UINT64               _validationTick ;
+
       _pmdSysInfo()
       :_isPrimary( 0 )
       {
@@ -69,6 +73,8 @@ namespace engine
          _quitFlag      = FALSE ;
          _dbType        = SDB_TYPE_DB ;
          _pQuitFunc     = NULL ;
+         _tick          = 0 ;
+         _validationTick = 0 ;
       }
    } pmdSysInfo ;
 
@@ -83,6 +89,23 @@ namespace engine
 
    void           pmdSetQuit() ;
    BOOLEAN        pmdIsQuitApp() ;
+
+   void           pmdUpdateDBTick() ;
+
+   UINT64         pmdGetDBTick() ;
+
+   UINT64         pmdGetTickSpanTime( UINT64 lastTick ) ;
+
+   UINT64         pmdDBTickSpan2Time( UINT64 tickSpan ) ;
+
+   void           pmdUpdateValidationTick() ;
+
+   UINT64         pmdGetValidationTick() ;
+
+   void           pmdGetTicks( UINT64 &tick,
+                               UINT64 &validationTick ) ;
+
+   BOOLEAN        pmdDBIsAbnormal() ;
 
    pmdSysInfo*    pmdGetSysInfo () ;
 

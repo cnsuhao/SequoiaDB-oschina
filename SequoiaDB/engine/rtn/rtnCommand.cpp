@@ -784,7 +784,7 @@ namespace engine
                                  *pContextID, cb );
          PD_RC_CHECK( rc, PDERROR, "Failed to create context, drop "
                       "collection failed(rc=%d)", rc );
-         rc = delContext->open( _collectionName, cb );
+         rc = delContext->open( _collectionName, cb, w ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to open context, drop "
                       "collection failed(rc=%d)",
                       rc );
@@ -2811,6 +2811,67 @@ namespace engine
       return SDB_OK ;
    }
 
+   IMPLEMENT_CMD_AUTO_REGISTER(_rtnTruncate)
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNTRUNCATE_INIT, "_rtnTruncate::init" )
+   INT32 _rtnTruncate::init( INT32 flags, INT64 numToSkip,
+                             INT64 numToReturn,
+                             const CHAR *pMatcherBuff,
+                             const CHAR *pSelectBuff,
+                             const CHAR *pOrderByBuff,
+                             const CHAR *pHintBuff )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNTRUNCATE_INIT ) ;
+      try
+      {
+         BSONObj query( pMatcherBuff ) ;
+         BSONElement ele = query.getField( FIELD_NAME_COLLECTION ) ;
+         if ( String != ele.type() )
+         {
+            PD_LOG( PDERROR, "invalid collection name:%s",
+                    query.toString( FALSE, TRUE ).c_str() ) ;
+            rc = SDB_INVALIDARG ;
+            goto error ;
+         }
+         _fullName = ele.valuestr() ;
+      }
+      catch ( std::exception &e )
+      {
+         PD_LOG( PDERROR, "unexpected err happened:%s",
+                 e.what() ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__RTNTRUNCATE_INIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( SDB__RTNTRUNCATE_DOIT, ""_rtnTruncate::doit" )
+   INT32 _rtnTruncate::doit( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
+                             _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
+                             INT16 w, INT64 *pContextID )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__RTNTRUNCATE_DOIT ) ;
+      rc = rtnTruncCollectionCommand( _fullName,
+                                      cb,
+                                      dmsCB,
+                                      dpsCB ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to truncate collection[%s], rc:%d",
+                 _fullName, rc ) ;
+         goto error ;
+      }
+   done:
+      PD_TRACE_EXITRC( SDB__RTNTRUNCATE_DOIT, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
 }
 
 

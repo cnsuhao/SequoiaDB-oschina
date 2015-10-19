@@ -486,7 +486,10 @@ namespace engine
       CHAR *pMsg = NULL ;
       httpConnection *pHttpCon = pSession->getRestConn() ;
 
-      pFileName = _getResourceFileName( pHttpCon->_pPath ) ;
+      if( pHttpCon->_pPath )
+      {
+         pFileName = _getResourceFileName( pHttpCon->_pPath ) ;
+      }
       if ( pFileName )
       {
          common = COM_GETFILE ;
@@ -519,16 +522,32 @@ namespace engine
             pHttpCon->_fileType = HTTP_FILE_DEFAULT ;
          }
       }
-      pathSize = ossStrlen( pHttpCon->_pPath ) ;
-      rc = pSession->allocBuff( pathSize, &pMsg, tempSize ) ;
-      if ( rc )
+      if( pHttpCon->_pPath )
       {
-         PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
-                  pathSize, rc ) ;
-         goto error ;
+         pathSize = ossStrlen( pHttpCon->_pPath ) ;
+         rc = pSession->allocBuff( pathSize + 1, &pMsg, tempSize ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
+                     pathSize, rc ) ;
+            goto error ;
+         }
+         ossMemcpy( pMsg, pHttpCon->_pPath, pathSize ) ;
+         pMsg[pathSize] = 0 ;
       }
-      ossMemcpy( pMsg, pHttpCon->_pPath, pathSize ) ;
-      pMsg[pathSize] = 0 ;
+      else
+      {
+         pathSize = 1 ;
+         rc = pSession->allocBuff( pathSize + 1, &pMsg, tempSize ) ;
+         if ( rc )
+         {
+            PD_LOG ( PDERROR, "Unable to allocate %d bytes memory, rc=%d",
+                     pathSize, rc ) ;
+            goto error ;
+         }
+         pMsg[0] = '/' ;
+         pMsg[1] = 0 ;
+      }
       *ppMsg = pMsg ;
       msgSize = pathSize ;
    done:
@@ -874,8 +893,8 @@ namespace engine
          }
          else
          {
-	    CHAR *pBuffer = NULL ;
-	    INT32 tempSize = 0 ;
+            CHAR *pBuffer = NULL ;
+            INT32 tempSize = 0 ;
             httpResponse httpRe ;
             rc = pSession->allocBuff( bufferSize + 1, &pBuffer, tempSize ) ;
             if ( rc )

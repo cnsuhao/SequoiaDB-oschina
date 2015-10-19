@@ -63,6 +63,7 @@
 #include "spdSession.hpp"
 #include "spdCoordDownloader.hpp"
 #include "rtnDataSet.hpp"
+#include "../include/authDef.hpp"
 
 using namespace bson;
 namespace engine
@@ -3380,6 +3381,72 @@ namespace engine
       return rc;
    }
 
+   INT32 rtnCoordCMDListUser::buildQueryRequest( CHAR *pIntput,
+                                                 pmdEDUCB *cb,
+                                                 CHAR **ppOutput )
+   {
+      INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY ( SDB_RTNCOCMDLISTCL_BQREQ ) ;
+      do
+      {
+         INT32 flag = 0;
+         CHAR *pCollectionName = NULL;
+         SINT64 numToSkip = 0;
+         SINT64 numToReturn = 0;
+         CHAR *pQuery = NULL;
+         CHAR *pFieldSelector = NULL;
+         CHAR *pOrderBy = NULL;
+         CHAR *pHint = NULL;
+         rc = msgExtractQuery( pIntput, &flag, &pCollectionName,
+                               &numToSkip, &numToReturn, &pQuery, 
+                               &pFieldSelector, &pOrderBy, &pHint ) ;
+         if ( rc != SDB_OK )
+         {
+            PD_LOG ( PDERROR, "Failed to parse query request(rc=%d)",
+               rc );
+            break;
+         }
+         INT32 bufferSize = 0;
+         BSONObj query;
+         BSONObj fieldSelector;
+         BSONObj orderBy;
+         BSONObj hint;
+         try
+         {
+            query = BSONObj ( pQuery );
+            orderBy = BSONObj ( pOrderBy );
+            hint = BSONObj ( pHint );
+            BSONObjBuilder bobFieldSelector;
+            bobFieldSelector.appendNull( FIELD_NAME_USER );
+            fieldSelector = bobFieldSelector.obj();
+         }
+         catch ( std::exception &e )
+         {
+            rc = SDB_INVALIDARG ;
+            PD_LOG ( PDERROR,
+                     "occured unexpected error:%s",
+                     e.what() ) ;
+            break;
+         }
+         rc = msgBuildQueryMsg( ppOutput, &bufferSize,
+                                AUTH_USR_COLLECTION,
+                                flag, 0, numToSkip, numToReturn,
+                                &query, &fieldSelector,
+                                &orderBy, &hint ) ;
+         if ( rc != SDB_OK )
+         {
+            PD_LOG ( PDERROR, "Failed to build the query message(rc=%d)",
+                     rc ) ;
+            break;
+         }
+         MsgOpQuery *pQueryMsg = (MsgOpQuery *)(*ppOutput);
+         pQueryMsg->header.routeID.value = 0;
+         pQueryMsg->header.TID = cb->getTID();
+      }while( FALSE );
+
+      return rc;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCMDTESTCS_EXE, "rtnCoordCMDTestCollectionSpace::execute" )
    INT32 rtnCoordCMDTestCollectionSpace::execute( CHAR *pReceiveBuffer,
                                                   SINT32 packSize,
@@ -6020,7 +6087,7 @@ namespace engine
                          rc ) ;
             if ( 0 == totalCount )
             {
-               rc = SDB_DMS_EOC ;
+               rc = SDB_DMS_EMPTY_COLLECTION ;
                PD_LOG( PDDEBUG, "collection[%s] is empty", cl ) ;
                break ;
             }
@@ -9106,6 +9173,7 @@ namespace engine
       CoordCB *coordcb = pmdGetKRCB()->getCoordCB();
       netMultiRouteAgent *routeAgent = coordcb->getRouteAgent();
       REPLY_QUE replyQueue ;
+      CHAR *queueItr = NULL ;
 
       rc = rtnCoordSendRequestToNodes( msg,
                                        nodes,
@@ -9119,7 +9187,21 @@ namespace engine
          goto error ;
       }
 
+      rc = rtnCoordGetReply( cb, completed, replyQueue,
+                             MAKE_REPLY_TYPE( ( ( MsgHeader * )msg )->opCode ),
+                             TRUE, TRUE ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to get reply of multi nodes:%d", rc ) ;
+         goto error ;
+      }
    done:
+      while ( !replyQueue.empty() )
+      {
+         queueItr = replyQueue.front() ;
+         SAFE_OSS_FREE( queueItr ) ;
+         replyQueue.pop() ;
+      }
       return rc ;
    error:
       goto done ;
@@ -9472,6 +9554,121 @@ retry:
    done:
       replyHeader.flags = rc;
       PD_TRACE_EXITRC( CMD_RTNCOCMDREELECTION_EXEC, rc ) ;
+      return rc ;
+   error:
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION( CMD_RTNCOCMDTRUNCATE_EXEC, "rtnCoordCMDTruncate::execute" ) 
+   INT32 rtnCoordCMDTruncate::execute( CHAR *pReceiveBuffer,
+                                       SINT32 packSize,
+                                       pmdEDUCB *cb,
+                                       MsgOpReply &replyHeader,
+                                       rtnContextBuf *buf )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( CMD_RTNCOCMDTRUNCATE_EXEC ) ;
+      CHAR *option = NULL;
+      BSONObj boQuery ;
+      const CHAR *fullName = NULL ;
+      CoordCataInfoPtr cataInfo ;
+      CoordGroupList dataNodeGroupLst ;
+      CoordGroupList sendGroupLst ;
+      BOOLEAN isNeedRefresh = TRUE ;
+      MsgOpQuery *truncateMsg = NULL ;
+      
+      CoordCB *pCoordcb = pmdGetKRCB()->getCoordCB();
+      netMultiRouteAgent *pRouteAgent  = pCoordcb->getRouteAgent();
+      INT32 retryTimes = 0 ;
+
+      MsgHeader *pHeader               = (MsgHeader *)pReceiveBuffer;
+      replyHeader.header.messageLength = sizeof( MsgOpReply );
+      replyHeader.header.opCode        = MSG_BS_QUERY_RES;
+      replyHeader.header.requestID     = pHeader->requestID;
+      replyHeader.header.routeID.value = 0;
+      replyHeader.header.TID           = pHeader->TID;
+      replyHeader.contextID            = -1;
+      replyHeader.flags                = SDB_OK;
+      replyHeader.numReturned          = 0;
+      replyHeader.startFrom            = 0;
+
+      rc = msgExtractQuery( pReceiveBuffer, NULL, NULL,
+                            NULL, NULL, &option, NULL,
+                            NULL, NULL );
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to extract msg:%d", rc ) ;
+         goto error ;
+      }
+
+      try
+      {
+         boQuery = BSONObj( option );
+         BSONElement e = boQuery.getField( FIELD_NAME_COLLECTION );
+         if ( String != e.type() )
+         {
+            PD_LOG( PDERROR, "invalid truncate msg:%s",
+                    boQuery.toString( FALSE, TRUE ).c_str() ) ;
+            rc = SDB_INVALIDARG ;
+         }
+         fullName = e.valuestr() ;
+      }
+      catch( std::exception &e )
+      {
+         PD_LOG( PDERROR, "unexpected err happened:%s", e.what() ) ;
+         rc = SDB_SYS ;
+         goto error;
+      }
+
+   retry:
+      rc = rtnCoordGetCataInfo( cb, fullName,
+                                isNeedRefresh, cataInfo ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to get catalog info of cl:%s, rc:%d",
+                 fullName, rc ) ;
+         goto error ;
+      }
+
+      rc = rtnCoordGetGroupsByCataInfo( cataInfo, sendGroupLst,
+                                        dataNodeGroupLst );
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to get group info of cl:%s, rc:%d",
+                 fullName, rc ) ;
+         goto error ;
+      }
+
+      truncateMsg = ( MsgOpQuery *)pReceiveBuffer ;
+      truncateMsg->version = cataInfo->getVersion() ;
+      truncateMsg->header.routeID.value = 0 ;
+      truncateMsg->header.TID = cb->getTID() ;
+      truncateMsg->header.opCode = MSG_BS_QUERY_REQ ;
+
+      rc = executeOnDataGroup( (MsgHeader *)truncateMsg,
+                               dataNodeGroupLst, sendGroupLst,
+                               pRouteAgent, cb, TRUE );
+      if ( SDB_OK != rc )
+      {
+         if ( 0 == retryTimes && rtnCoordWriteRetryRC( rc ) )
+         {
+            PD_LOG( PDERROR, "failed to execute on data group, rc:%d, try again", rc ) ;
+            ++retryTimes ;
+            isNeedRefresh = TRUE ;
+            rc = SDB_OK ;
+            goto retry ;
+         }
+         else
+         {
+            PD_LOG( PDERROR, "failed to truncate data of cl[%s] on data group, rc:%d",
+                    fullName, rc ) ;
+            goto error ;
+         }
+      }
+
+   done:
+      replyHeader.flags = rc;
+      PD_TRACE_EXITRC( CMD_RTNCOCMDTRUNCATE_EXEC, rc ) ;
       return rc ;
    error:
       goto done ;

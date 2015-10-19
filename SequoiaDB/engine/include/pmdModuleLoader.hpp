@@ -48,7 +48,7 @@
 #define RELEASE_FAP_NAME "releaseAccessProtocol"
 
 #define FAP_MODULE_NAME_PREFIX "fap"
-#define FAP_MODULE_PATH "./bin/fap/"
+#define FAP_MODULE_PATH FAP_MODULE_NAME_PREFIX OSS_FILE_SEP
 #define FAP_MODULE_NAME_SIZE 255
 #define MONGO_MODULE_NAME "mongo"
 

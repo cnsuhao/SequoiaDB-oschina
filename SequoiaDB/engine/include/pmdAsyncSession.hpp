@@ -327,6 +327,7 @@ namespace engine
          MAPSESSION                 _mapSession ;
          MAPMETA                    _mapMeta ;
          DEQSESSION                 _deqCacheSessions ;
+         UINT32                     _cacheSessionNum ;
 
          DEQSESSION                 _deqDeletingSessions ;
          ossSpinXLatch              _deqDeletingMutex ;

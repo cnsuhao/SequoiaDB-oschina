@@ -58,7 +58,7 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSCATCLR_CALL, "_clsCatalogCaller::call" )
-   INT32 _clsCatalogCaller::call( MsgHeader *header )
+   INT32 _clsCatalogCaller::call( MsgHeader *header, UINT32 times )
    {
       SDB_ASSERT( NULL != header, "header should not be NULL" ) ;
       INT32 rc = SDB_OK ;
@@ -84,8 +84,11 @@ namespace engine
       ossMemcpy( meta.header, header, header->messageLength ) ;
       PD_LOG( PDEVENT, "send msg[%d] to catalog node.",
               meta.header->opCode ) ;
-      pmdGetKRCB()->getClsCB()->sendToCatlog( meta.header ) ;
+
       meta.timeout = 0 ;
+      meta.sendTimes = times ;
+
+      pmdGetKRCB()->getClsCB()->sendToCatlog( meta.header ) ;
 
    done:
       PD_TRACE_EXITRC ( SDB__CLSCATCLR_CALL, rc );
@@ -105,7 +108,16 @@ namespace engine
          PD_LOG( PDEVENT, "response is ok, remove msg[(%d)%d]",
                  IS_REPLY_TYPE( header->header.opCode ),
                  GET_REQUEST_TYPE( header->header.opCode ) ) ;
-         itr->second.timeout = CLS_CALLER_NO_SEND ;
+
+         if ( itr->second.sendTimes > 1 )
+         {
+            --( itr->second.sendTimes ) ;
+         }
+         else
+         {
+            itr->second.timeout = CLS_CALLER_NO_SEND ;
+            itr->second.sendTimes = 0 ;
+         }
       }
 
       PD_TRACE_EXIT ( SDB__CLSCATCLR_REMOVE );
@@ -117,7 +129,15 @@ namespace engine
       callerMeta::iterator itr = _meta.find( (UINT32)opCode ) ;
       if ( _meta.end() != itr )
       {
-         itr->second.timeout = CLS_CALLER_NO_SEND ;
+         if ( itr->second.sendTimes > 1 )
+         {
+            --( itr->second.sendTimes ) ;
+         }
+         else
+         {
+            itr->second.timeout = CLS_CALLER_NO_SEND ;
+            itr->second.sendTimes = 0 ;
+         }
       }
    }
 
@@ -133,7 +153,6 @@ namespace engine
             itr->second.timeout += millisec ;
             if ( CLS_CALLER_INTERVAL <= itr->second.timeout )
             {
-               pmdGetKRCB()->getClsCB()->updateCatGroup ( TRUE ) ;
                pmdGetKRCB()->getClsCB()->sendToCatlog( itr->second.header) ;
                itr->second.timeout = 0 ;
             }

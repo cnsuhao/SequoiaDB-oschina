@@ -35,44 +35,48 @@
 #include "../bson/lib/md5.h"
 #include "pd.hpp"
 #include <boost/functional/hash.hpp>
+#include "pdTrace.hpp"
+#include "utilTrace.hpp"
 
 using namespace bson ;
 
 #define HASH_COMBINE( hash, v )\
         do\
         {\
-           size_t h = ( hash ) ;\
-           boost::hash_combine( h, (v) ) ;\
-           (hash) = h ;\
+           size_t __h = ( hash ) ;\
+           boost::hash_combine( __h, (v) ) ;\
+           (hash) = __h ;\
         } while ( FALSE )
 
 namespace engine
 {
-   UINT32 _utilBSONHasher::hash( const bson::BSONObj &obj,
-                                 UINT32 partition )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILBSONHASHER_HASHOBJ, "_utilBSONHasher::hashObj" )
+   UINT32 _utilBSONHasher::hashObj( const bson::BSONObj &obj,
+                                    UINT32 partitionBit )
    {
-      SDB_ASSERT( 0 == partition ||
-                  partition < 32, "must in a valid range" ) ;
+      PD_TRACE_ENTRY( SDB__UTILBSONHASHER_HASHOBJ ) ;
       UINT32 hashCode = 0 ;
       BSONObjIterator i( obj ) ;
       while ( i.more() )
       {
          BSONElement e = i.next() ;
-         HASH_COMBINE( hashCode, hash( e ) ) ;
+         HASH_COMBINE( hashCode, hashElement( e ) ) ;
       }
 
-      if ( 0 < partition )
+      if ( 0 < partitionBit && partitionBit < 32 )
       {
-         UINT32 i = 1 ;
-         i = i << partition ;
-         i -= 1 ;
-         hashCode &= i ;
+         hashCode >>= 32 - partitionBit ;
       }
+
+      PD_PACK_UINT( hashCode ) ;
+      PD_TRACE_EXIT( SDB__UTILBSONHASHER_HASHOBJ ) ;
       return hashCode ;      
    }
 
-   UINT32 _utilBSONHasher::hash( const bson::BSONElement &e )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILBSONHASHER_HASHELE, "_utilBSONHasher::hashElement" )
+   UINT32 _utilBSONHasher::hashElement( const bson::BSONElement &e )
    {
+      PD_TRACE_ENTRY( SDB__UTILBSONHASHER_HASHELE ) ;
       UINT32 hashCode = 0 ;
       HASH_COMBINE( hashCode, e.canonicalType() ) ;
 
@@ -124,7 +128,7 @@ namespace engine
       }
 
       case jstOID:
-         HASH_COMBINE( hashCode, hash( e.OID() ) ) ;
+         HASH_COMBINE( hashCode, hashOid( e.OID() ) ) ;
          break ;
 
       case Code:
@@ -136,7 +140,7 @@ namespace engine
 
       case Object:
       case Array:
-         HASH_COMBINE( hashCode, hash( e.embeddedObject() ) ) ;
+         HASH_COMBINE( hashCode, hashObj( e.embeddedObject() ) ) ;
          break ;
 
       case DBRef:
@@ -146,38 +150,43 @@ namespace engine
          break ;
 
       case RegEx:
-         HASH_COMBINE( hashCode, hash( e.regex() ) ) ;
-         HASH_COMBINE( hashCode, hash( e.regexFlags() ) ) ;
+         HASH_COMBINE( hashCode, hashStr( e.regex() ) ) ;
+         HASH_COMBINE( hashCode, hashStr( e.regexFlags() ) ) ;
          break ;
 
       case CodeWScope:
-         HASH_COMBINE( hashCode, hash( e.codeWScopeCode() ) ) ;
-         HASH_COMBINE( hashCode, hash( e.codeWScopeObject() ) ) ;
+         HASH_COMBINE( hashCode, hashStr( e.codeWScopeCode() ) ) ;
+         HASH_COMBINE( hashCode, hashObj( e.codeWScopeObject() ) ) ;
          break ;
       }
+
+      PD_PACK_UINT( hashCode ) ;
+      PD_TRACE_EXIT( SDB__UTILBSONHASHER_HASHELE ) ;
       return hashCode ;
    }
 
-   UINT32 _utilBSONHasher::hash( const bson::OID &oid )
+   UINT32 _utilBSONHasher::hashOid( const bson::OID &oid )
    {
       return hash( ( const CHAR * )( oid.getData() ), sizeof( oid ) ) ;
    }
 
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__UTILBSONHASHER_HASH, "_utilBSONHasher::hash" )
    UINT32 _utilBSONHasher::hash( const void *v, UINT32 size )
    {
+      PD_TRACE_ENTRY( SDB__UTILBSONHASHER_HASH ) ;
       UINT32 hashCode = 0 ;
-      UINT32 i = 0 ;
       md5::md5digest digest ;
       md5::md5( v, size, digest ) ;
-      while ( i < 4 )
-      {
-         hashCode |= ( (UINT32)digest[i] << ( 32 - 8 * i ) ) ;
-         ++i ;
-      }
+      hashCode = digest[3] ;
+      hashCode |= ((UINT32)digest[2]) << 8 ;
+      hashCode |= ((UINT32)digest[1]) << 16 ;
+      hashCode |= ((UINT32)digest[0]) << 24 ;
+      PD_PACK_UINT( hashCode ) ;
+      PD_TRACE_EXIT( SDB__UTILBSONHASHER_HASH ) ;
       return hashCode ;
    }
 
-   UINT32 _utilBSONHasher::hash( const CHAR *str )
+   UINT32 _utilBSONHasher::hashStr( const CHAR *str )
    {
       return hash( str, ossStrlen( str ) ) ;
    }

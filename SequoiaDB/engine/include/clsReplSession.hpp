@@ -52,7 +52,7 @@ namespace engine
    {
       CLS_SESSION_STATUS_SYNC = 1,
       CLS_SESSION_STATUS_CONSULT = 2,
-      CLS_SESSION_STATUS_FULL_SYNC = 3,
+      CLS_SESSION_STATUS_FULL_SYNC = 3
    } ;
 
    /*
@@ -68,6 +68,7 @@ namespace engine
          virtual SDB_SESSION_TYPE sessionType() const ;
 
          virtual EDU_TYPES eduType () const ;
+         virtual BOOLEAN canAttachMeta() const { return FALSE ; }
 
          virtual BOOLEAN timeout ( UINT32 interval ) ;
          virtual void    onTimer ( UINT64 timerID, UINT32 interval ) ;
@@ -104,8 +105,10 @@ namespace engine
          _clsBucket                    *_pReplBucket ;
          _clsReplayer                  _replayer ;
          MsgRouteID                    _syncSrc ;
+         MsgRouteID                    _lastSyncNode ;
          CLS_SESSION_STATUS            _status ;
          BOOLEAN                       _quit ;
+         ossAtomic32                   _addFSSession ;
          BOOLEAN                       _isFirstToSync ;
          UINT32                        _timeout ;
          UINT64                        _requestID ;

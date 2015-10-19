@@ -486,20 +486,50 @@ namespace bson {
             return *l.value() - *r.value();
         case Timestamp:
         {
-            OpTime l_optime( l.date() ) ;
-            OpTime r_optime( r.date() ) ;
-            if ( l_optime < r_optime )
+            if ( Timestamp == r.type() )
             {
-               return -1 ;
-            }
+               OpTime l_optime( l.date() ) ;
+               OpTime r_optime( r.date() ) ;
+               if ( l_optime < r_optime )
+               {
+                  return -1 ;
+               }
 
-            return l_optime == r_optime ? 0 : 1 ;
+               return l_optime == r_optime ? 0 : 1 ;
+            }
+            else
+            {
+               long long L_Macro = ( long long ) l.timestampTime() 
+                                   + l.timestampInc() / 1000 ;
+               long long R_Macro = r.date() ;
+               if ( L_Macro - R_Macro != 0 )
+               {
+                  return L_Macro > R_Macro ? 1 : -1 ;
+               }
+               return ( l.timestampInc() % 1000 ) > 0 ? 1 : 0 ; 
+            }
         }
         case Date:
         {
-            if ( l.date() < r.date() )
-                return -1;
-            return l.date() == r.date() ? 0 : 1;
+            if ( Date == r.type() )
+            {
+               long long iL = l.date() ;
+               long long iR = r.date() ;
+               if ( iL < iR )
+                   return -1;
+               return iL == iR ? 0 : 1;
+            }
+            else
+            {
+               long long L_Macro = l.date() ;
+               long long R_Macro = ( long long ) r.timestampTime() 
+                                   + r.timestampInc() / 1000 ;
+               if ( L_Macro - R_Macro != 0 )
+               {
+                  return L_Macro > R_Macro ? 1 : -1 ;
+               }
+               return ( r.timestampInc() % 1000 ) > 0 ? -1 : 0 ;
+            }
         }
         case NumberLong:
             if( r.type() == NumberLong ) {

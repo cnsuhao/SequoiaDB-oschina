@@ -94,6 +94,8 @@ namespace engine
                )->getRouteAgent()->reqIDNew();
             pMsg->flags = SDB_COORD_REMOTE_DISC;
             pMsg->numReturned = 0;
+            pMsg->contextID = -1 ;
+            pMsg->startFrom = 0 ;
             _pEduCB->postEvent ( pmdEDUEvent( PMD_EDU_EVENT_MSG,
                                               PMD_EDU_MEM_ALLOC,
                                               pMsg ) ) ;
@@ -127,8 +129,8 @@ namespace engine
       REPLY_QUE replyQue;
 
       rc = rtnCoordSendRequestToNodeWithoutCheck( (void *)(&msgReq), routeID,
-                                                pRouteAgent, _pEduCB,
-                                                requestIdMap );
+                                                  pRouteAgent, _pEduCB,
+                                                  requestIdMap );
       PD_RC_CHECK( rc, PDERROR,
                   "failed to send the message to the node"
                   "(groupID=%u, nodeID=%u, serviceID=%u)",
@@ -174,8 +176,8 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       COORD_SUBSESSION_MAP::iterator iterMap = _subSessionMap.find( routeID.value );
-      if ( iterMap != _subSessionMap.end()
-         && TRUE == iterMap->second.isConnected )
+      if ( iterMap != _subSessionMap.end() &&
+           TRUE == iterMap->second.isConnected )
       {
          goto done;
       }
@@ -268,7 +270,7 @@ namespace engine
 
    void CoordSession::removeLastNode( UINT32 groupID )
    {
-      _lastNodeMap.erase(groupID);
+      _lastNodeMap.erase( groupID ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_COORDSN_GETLASTND, "CoordSession::getLastNode" )
@@ -333,8 +335,8 @@ namespace engine
       REQUESTID_MAP::iterator iterMap = _requestMap.begin();
       while( iterMap != _requestMap.end() )
       {
-         if ( iterMap->second.value == routeID.value
-            && iterMap->first <= reqID )
+         if ( iterMap->second.value == routeID.value &&
+              iterMap->first <= reqID )
          {
             return TRUE;
          }

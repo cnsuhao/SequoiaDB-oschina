@@ -45,8 +45,6 @@
 
 namespace engine
 {
-   #define RTN_COORD_RSP_WAIT_TIME        1000 //1s
-   #define RTN_COORD_RSP_WAIT_TIME_QUICK  10 //10ms
 
    class rtnCoordCommand;
    class rtnCoordOperator;

@@ -45,6 +45,8 @@
 #include "pmdTrace.hpp"
 #include "pmdEDU.hpp"
 #include "ixmExtent.hpp"
+#include "ossVer.h"
+#include "pmdOptionsMgr.hpp"
 
 #include <boost/program_options.hpp>
 #include <boost/program_options/parsers.hpp>
@@ -59,6 +61,7 @@ namespace fs = boost::filesystem ;
 
 #define BUFFERSIZE          256
 #define OPTION_HELP         "help"
+#define OPTION_VERSION      "version"
 #define OPTION_DBPATH       "dbpath"
 #define OPTION_INDEXPATH    "indexpath"
 #define OPTION_OUTPUT       "output"
@@ -71,6 +74,16 @@ namespace fs = boost::filesystem ;
 #define OPTION_PAGESTART    "pagestart"
 #define OPTION_NUMPAGE      "numpage"
 #define OPTION_SHOW_CONTENT "record"
+#define OPTION_ONLY_META    "meta"
+#define OPTION_REPAIRE      "repaire"
+
+#define OPTION_REPAIRE_DESP \
+   "repaire the db info, like --repaire mb:Flag=0,Attr=1\n"\
+   "-mb support key:\n"\
+   "  IndexPages(u)      LID(u)            Attr(u)\n"\
+   "  IndexFreeSpace(u)  DataPages(u)      Flag(u)\n"\
+   "  DataFreeSpace(u)   LobPages(u)       Records(u)"
+
 #define ADD_PARAM_OPTIONS_BEGIN( desc )\
         desc.add_options()
 
@@ -79,6 +92,7 @@ namespace fs = boost::filesystem ;
 #define COMMANDS_STRING( a, b ) (string(a) +string( b)).c_str()
 #define COMMANDS_OPTIONS \
        ( COMMANDS_STRING(OPTION_HELP, ",h"), "help" )\
+       ( OPTION_VERSION, "version" )\
        ( COMMANDS_STRING(OPTION_DBPATH, ",d"), boost::program_options::value<string>(), "database path" ) \
        ( COMMANDS_STRING(OPTION_INDEXPATH, ",x"), boost::program_options::value<string>(), "index path" ) \
        ( COMMANDS_STRING(OPTION_OUTPUT, ",o"), boost::program_options::value<string>(), "output file" ) \
@@ -90,11 +104,17 @@ namespace fs = boost::filesystem ;
        ( COMMANDS_STRING(OPTION_DUMPINDEX, ",i"), boost::program_options::value<string>(), "dump index (true/false)" ) \
        ( COMMANDS_STRING(OPTION_PAGESTART, ",s"), boost::program_options::value<SINT32>(), "starting page number" ) \
        ( COMMANDS_STRING(OPTION_NUMPAGE, ",n"), boost::program_options::value<SINT32>(), "number of pages" ) \
-       ( COMMANDS_STRING(OPTION_SHOW_CONTENT, ",p"), boost::program_options::value<string>(), "display data/index content(true/false)" )
+       ( COMMANDS_STRING(OPTION_SHOW_CONTENT, ",p"), boost::program_options::value<string>(), "display data/index content(true/false)" ) \
+       ( OPTION_ONLY_META, boost::program_options::value<string>(), "inspect only meta(Header, SME, MME), true/false" ) \
+       ( COMMANDS_STRING(OPTION_REPAIRE, ",r"), boost::program_options::value<string>(), OPTION_REPAIRE_DESP )
 
 #define ACTION_INSPECT           0x01
 #define ACTION_DUMP              0x02
+#define ACTION_STAT              0x04
+#define ACTION_REPAIRE           0x08
+
 #define ACTION_INSPECT_STRING    "inspect"
+#define ACTION_STAT_STRING       "stat"
 #define ACTION_DUMP_STRING       "dump"
 #define ACTION_ALL_STRING        "all"
 
@@ -105,15 +125,18 @@ BOOLEAN gVerbose                                     = TRUE ;
 UINT32  gDumpType                                    = DMS_SU_DMP_OPT_FORMATTED;
 CHAR    gCSName [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
 CHAR    gCLName [ DMS_COLLECTION_NAME_SZ + 1 ]       = {0} ;
-CHAR    gAction                                      = ACTION_DUMP ;
+CHAR    gAction                                      = 0 ;
 BOOLEAN gDumpData                                    = FALSE ;
 BOOLEAN gDumpIndex                                   = FALSE ;
 SINT32  gStartingPage                                = -1 ;
 SINT32  gNumPages                                    = 1 ;
 SINT32  gCurFileIndex                                = 0 ;
+std::string gRepairStr ;
 OSSFILE gFile ;
 
 #define DMS_DUMPFILE "dmsdump"
+
+#define W_OK 2
 
 #define MAX_FILE_SIZE 500 * 1024 * 1024
 #define BUFFER_INC_SIZE 67108864
@@ -139,9 +162,24 @@ INT32   gPageNum                                     = 0 ;
 CHAR   *gMMEBuff                                     = NULL ;
 BOOLEAN gInitMME                                     = FALSE ;
 BOOLEAN gShowRecordContent                           = FALSE ;
+BOOLEAN gOnlyMeta                                    = FALSE ;
 BOOLEAN gReachEnd                                    = FALSE ;
 BOOLEAN gHitCS                                       = FALSE ;
 SDB_INSPT_TYPE gCurInsptType                         = SDB_INSPT_DATA ;
+dmsMBStatInfo gMBStat ;
+dmsMB         gRepaireMB ;
+UINT32        gRepaireMask                           = 0 ;
+
+#define PMD_REPAIRE_MB_MASK_FLAG             0x00000001
+#define PMD_REPAIRE_MB_MASK_LID              0x00000002
+#define PMD_REPAIRE_MB_MASK_ATTR             0x00000004
+#define PMD_REPAIRE_MB_MASK_RECORD           0x00000008
+#define PMD_REPAIRE_MB_MASK_DATAPAGE         0x00000010
+#define PMD_REPAIRE_MB_MASK_IDXPAGE          0x00000020
+#define PMD_REPAIRE_MB_MASK_LOBPAGE          0x00000040
+#define PMD_REPAIRE_MB_MASK_DATAFREE         0x00000080
+#define PMD_REPAIRE_MB_MASK_IDXFREE          0x00000100
+
 
 #define RETRY_COUNT 5
 INT32 switchFile( OSSFILE& file, const INT32 size )
@@ -210,6 +248,114 @@ void displayArg ( po::options_description &desc )
    std::cout << desc << std::endl ;
 }
 
+BOOLEAN pmdUtilIsNum( const CHAR *str )
+{
+   UINT32 i = 0 ;
+   while( str[i] )
+   {
+      if ( str[i] < '0' || str[i] > '9' )
+      {
+         return FALSE ;
+      }
+      ++i ;
+   }
+   return TRUE ;
+}
+
+INT32 parseRepaireString( const std::string &str )
+{
+   const CHAR *pin = str.c_str() ;
+   CHAR *pos = (CHAR*)ossStrchr( pin, ':' ) ;
+   if ( NULL == pos )
+   {
+      ossPrintf( "repaire format must be: mb:xx=y,dd=k"OSS_NEWLINE ) ;
+      return SDB_INVALIDARG ;
+   }
+   *pos = 0 ;
+   if ( 0 != ossStrcasecmp( pin, "mb" ) )
+   {
+      *pos = ':' ;
+      ossPrintf( "repaire only support for type mb"OSS_NEWLINE ) ;
+      return SDB_INVALIDARG ;
+   }
+   *pos = ':' ;
+
+   vector< pmdAddrPair > items ;
+   pmdOptionsCB opt ;
+   INT32 rc = opt.parseAddressLine( pos + 1, items, ",", "=" ) ;
+   if ( SDB_OK != rc )
+   {
+      ossPrintf( "Parse repaire value failed: %d"OSS_NEWLINE, rc ) ;
+      return rc ;
+   }
+   UINT64 value = 0 ;
+   for ( UINT32 i = 0 ; i < items.size() ; ++i )
+   {
+      pmdAddrPair &aItem = items[ i ] ;
+
+      if ( !pmdUtilIsNum( aItem._service ) )
+      {
+         ossPrintf( "Field[%s]'s value is not number[%s]"OSS_NEWLINE,
+                    aItem._host, aItem._service ) ;
+         return SDB_INVALIDARG ;
+      }
+      value = ossAtoll( aItem._service ) ;
+
+      if ( 0 == ossStrcasecmp( aItem._host, "Flag" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_FLAG ;
+         gRepaireMB._flag = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "LID" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_LID ;
+         gRepaireMB._logicalID = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "Attr" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_ATTR ;
+         gRepaireMB._attributes = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "Records" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_RECORD ;
+         gRepaireMB._totalRecords = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "DataPages" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_DATAPAGE ;
+         gRepaireMB._totalDataPages = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "IndexPages" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_IDXPAGE ;
+         gRepaireMB._totalIndexPages = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "LobPages" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_LOBPAGE ;
+         gRepaireMB._totalLobPages = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "DataFreeSpace" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_DATAFREE ;
+         gRepaireMB._totalDataFreeSpace = value ;
+      }
+      else if ( 0 == ossStrcasecmp( aItem._host, "IndexFreeSpace" ) )
+      {
+         gRepaireMask |= PMD_REPAIRE_MB_MASK_IDXFREE ;
+         gRepaireMB._totalIndexFreeSpace = value ;
+      }
+      else
+      {
+         ossPrintf( "Unknow mb key: %s"OSS_NEWLINE, aItem._host ) ;
+         return SDB_INVALIDARG ;
+      }
+   }
+
+   return SDB_OK ;
+}
+
 // PD_TRACE_DECLARE_FUNCTION ( SDB_SDBINSPT_RESVARG, "resolveArgument" )
 INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
 {
@@ -251,6 +397,12 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
    {
       displayArg ( desc ) ;
       rc = SDB_PMD_HELP_ONLY ;
+      goto done ;
+   }
+   else if ( vm.count( OPTION_VERSION ) )
+   {
+      ossPrintVersion( "SDB DmsDump" ) ;
+      rc = SDB_PMD_VERSION_ONLY ;
       goto done ;
    }
    if ( vm.count ( OPTION_DBPATH ) )
@@ -297,17 +449,38 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
       }
       ossStrncpy ( gOutputFile, output, sizeof(gOutputFile) ) ;
       SDB_OSS_FILETYPE fileType = SDB_OSS_UNK ;
-      INT32 retValue = ossGetPathType( gOutputFile, &fileType ) ;
-      if( SDB_OSS_DIR == fileType && !retValue )
+      rc = ossAccess( output, W_OK ) ;
+      if ( SDB_OK == rc )
       {
-         ossSnprintf( outputFile, OSS_MAX_PATHSIZE, "%s"DMS_DUMPFILE".%d",
-                      gOutputFile, gCurFileIndex ) ;
+         INT32 retValue = ossGetPathType( gOutputFile, &fileType ) ;
+         if( SDB_OSS_DIR == fileType && !retValue )
+         {
+            INT32 len = ossStrlen( gOutputFile ) ;
+            if ( OSS_FILE_SEP_CHAR != gOutputFile[ len - 1 ] )
+            {
+               gOutputFile[ len - 1 ] = OSS_FILE_SEP_CHAR ;
+               gOutputFile[ len ] = '\0' ;
+            }
+
+            ossSnprintf( outputFile, OSS_MAX_PATHSIZE, "%s"DMS_DUMPFILE".%d",
+                         gOutputFile, gCurFileIndex ) ;
+         }
+         else
+         {
+            ossSnprintf( outputFile, OSS_MAX_PATHSIZE, "%s.%d",
+                         gOutputFile, gCurFileIndex ) ;
+         }
       }
-      else
+      else if ( SDB_FNE == rc )
       {
          ossSnprintf( outputFile, OSS_MAX_PATHSIZE, "%s.%d",
                       gOutputFile, gCurFileIndex ) ;
       }
+      else
+      {
+         goto error ;
+      }
+      
       rc = ossOpen ( outputFile, OSS_REPLACE | OSS_WRITEONLY,
                      OSS_RU|OSS_WU|OSS_RG, gFile ) ;
       if ( rc )
@@ -373,7 +546,6 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
       gNumPages = vm[OPTION_NUMPAGE].as<SINT32>() ;
    }
 
-   gAction = ACTION_DUMP ;
    ossStrncpy ( actionString, ACTION_DUMP_STRING,
                 sizeof(actionString) ) ;
    if ( vm.count ( OPTION_ACTION ) )
@@ -393,12 +565,19 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
                       sizeof(actionString) ) ;
          gAction = ACTION_DUMP ;
       }
+      else if ( ossStrncasecmp( action, ACTION_STAT_STRING,
+                ossStrlen(action) ) == 0 )
+      {
+         ossStrncpy( actionString, ACTION_STAT_STRING,
+                     sizeof(actionString) ) ;
+         gAction = ACTION_STAT ;
+      }
       else if ( ossStrncasecmp ( action, ACTION_ALL_STRING,
                 ossStrlen(action) ) == 0 )
       {
          ossStrncpy ( actionString, ACTION_ALL_STRING,
                       sizeof(actionString) ) ;
-         gAction = ACTION_INSPECT | ACTION_DUMP ;
+         gAction = ACTION_INSPECT | ACTION_DUMP | ACTION_STAT ;
       }
       else
       {
@@ -409,18 +588,49 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
          goto done ;
       }
    }
-   else
+   else if ( !vm.count( OPTION_REPAIRE ) )
    {
-      dumpAndShowPrintf ( "Action must be specified"OSS_NEWLINE ) ;
+      dumpAndShowPrintf ( "Action or repaire must be specified"OSS_NEWLINE ) ;
       displayArg ( desc ) ;
       rc = SDB_PMD_HELP_ONLY ;
       goto done ;
    }
+
    if( vm.count( OPTION_SHOW_CONTENT ) )
    {
       ossStrToBoolean( vm[OPTION_SHOW_CONTENT].as<string>().c_str(),
                        &gShowRecordContent ) ;
    }
+   if ( vm.count( OPTION_ONLY_META ) )
+   {
+      ossStrToBoolean( vm[OPTION_ONLY_META].as<string>().c_str(),
+                       &gOnlyMeta ) ;
+   }
+
+   if ( vm.count( OPTION_REPAIRE ) )
+   {
+      gRepairStr = vm[OPTION_REPAIRE].as<string>().c_str() ;
+      rc = parseRepaireString( gRepairStr ) ;
+      if ( rc )
+      {
+         goto done ;
+      }
+      if ( gAction != 0 )
+      {
+         ossPrintf( "Repaire can't use with other action"OSS_NEWLINE ) ;
+         rc = SDB_INVALIDARG ;
+         goto done ;
+      }
+      if ( 0 == ossStrlen( gCLName ) || 0 == ossStrlen( gCSName ) )
+      {
+         ossPrintf( "Repaire must specify the collection space and "
+                    "collection"OSS_NEWLINE ) ;
+         rc = SDB_INVALIDARG ;
+         goto done ;
+      }
+      gAction = ACTION_REPAIRE ;
+   }
+
    dumpAndShowPrintf ( "Run Options   :"OSS_NEWLINE ) ;
    dumpAndShowPrintf ( "Database Path : %s"OSS_NEWLINE,
                        gDatabasePath ) ;
@@ -436,6 +646,8 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
                        ossStrlen(gCLName)?gCLName:"{all}" ) ;
    dumpAndShowPrintf ( "Action        : %s"OSS_NEWLINE,
                        actionString ) ;
+   dumpAndShowPrintf ( "Repaire       : %s"OSS_NEWLINE,
+                       gRepairStr.c_str() ) ;
    dumpAndShowPrintf ( "Dump Options  :"OSS_NEWLINE ) ;
    dumpAndShowPrintf ( "   Dump Data  : %s"OSS_NEWLINE,
                        gDumpData?"True":"False" ) ;
@@ -447,6 +659,8 @@ INT32 resolveArgument ( po::options_description &desc, INT32 argc, CHAR **argv )
                        gNumPages ) ;
    dumpAndShowPrintf ( "   Show record: %s"OSS_NEWLINE,
                        gShowRecordContent ? "True":"False") ;
+   dumpAndShowPrintf ( "   Only Meta:   %s"OSS_NEWLINE,
+                       gOnlyMeta ? "True":"False" ) ;
    dumpAndShowPrintf ( OSS_NEWLINE ) ;
 done :
    PD_TRACE_EXITRC ( SDB_SDBINSPT_RESVARG, rc );
@@ -463,36 +677,39 @@ void flushOutput ( const CHAR *pBuffer, INT32 size )
    SINT64 writeSize ;
    SINT64 writtenSize = 0 ;
 
+   if ( 0 == size )
+   {
+      goto done ;
+   }
+   else if ( ossStrlen ( gOutputFile ) == 0 )
+   {
+      goto error ;
+   }
+
    rc = switchFile( gFile, size ) ;
    if( rc )
    {
       goto error ;
    }
 
-   if ( ossStrlen ( gOutputFile ) != 0 )
+   do
    {
-      do
+      rc = ossWrite ( &gFile, &pBuffer[writtenSize], size-writtenSize,
+                      &writeSize ) ;
+      if ( rc && SDB_INTERRUPT != rc )
       {
-         rc = ossWrite ( &gFile, &pBuffer[writtenSize], size-writtenSize,
-                         &writeSize ) ;
-         if ( rc && SDB_INTERRUPT != rc )
-         {
-            break ;
-         }
-         rc = SDB_OK ;
-         writtenSize += writeSize ;
-      } while ( writtenSize < size ) ;
-      if ( rc )
-      {
-         ossPrintf ( "Error: Failed to write into file, rc = %d"OSS_NEWLINE,
-                     rc ) ;
-         goto error ;
+         break ;
       }
-   }
-   else
+      rc = SDB_OK ;
+      writtenSize += writeSize ;
+   } while ( writtenSize < size ) ;
+   if ( rc )
    {
+      ossPrintf ( "Error: Failed to write into file, rc = %d"OSS_NEWLINE,
+                  rc ) ;
       goto error ;
    }
+
 done :
    PD_TRACE1 ( SDB_FLUSHOUTPUT, PD_PACK_INT(rc) );
    PD_TRACE_EXIT ( SDB_FLUSHOUTPUT );
@@ -1296,6 +1513,23 @@ void inspectIndexDef ( OSSFILE &file, SINT32 pageSize, UINT16 collectionID,
          continue ;
       }
 
+      try
+      {
+         BSONObj indexDef( gExtentBuffer+sizeof(ixmIndexCBExtent) ) ;
+         if ( indexDef.hasField ( IXM_UNIQUE_FIELD ) )
+         {
+            BSONElement e = indexDef.getField( IXM_UNIQUE_FIELD ) ;
+            if ( e.booleanSafe() )
+            {
+               gMBStat._uniqueIdxNum += 1 ;
+            }
+         }
+      }
+      catch( std::exception &e )
+      {
+      }
+      gMBStat._totalIndexPages += 1 ;
+
 retry :
       localErr = 0 ;
       len = dmsInspect::inspectIndexCBExtent ( gExtentBuffer, pageSize,
@@ -1412,6 +1646,7 @@ void inspectIndexExtents ( OSSFILE &file, SINT32 pageSize,
    SINT32 localErr = 0 ;
    std::deque<dmsExtentID> childExtents ;
    INSPECT_EXTENT_TYPE extentType = INSPECT_EXTENT_TYPE_INDEX ;
+   ixmExtentHead *pExtentHead = NULL ;
    childExtents.push_back ( rootID ) ;
 
    while ( !childExtents.empty() )
@@ -1446,6 +1681,10 @@ void inspectIndexExtents ( OSSFILE &file, SINT32 pageSize,
          ++err ;
          continue ;
       }
+
+      pExtentHead = (ixmExtentHead*)gExtentBuffer ;
+      gMBStat._totalIndexPages += 1 ;
+      gMBStat._totalIndexFreeSpace += pExtentHead->_totalFreeSize ;
 
 retry :
       localErr = 0 ;
@@ -1554,6 +1793,8 @@ void inspectCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id,
    dmsMB *mb = NULL ;
    dmsExtentID tempExtent = DMS_INVALID_EXTENT ;
    dmsExtentID firstExtent = DMS_INVALID_EXTENT ;
+   dmsExtent *pExtent = NULL ;
+   CHAR collectionName[ DMS_COLLECTION_NAME_SZ + 1 ] = { 0 } ;
 
    rc = loadMB ( id, mb ) ;
    if ( rc )
@@ -1564,7 +1805,16 @@ void inspectCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id,
       goto error ;
    }
    firstExtent = mb->_firstExtentID ;
-   dumpPrintf ( " Inspect Data for collection [%d]"OSS_NEWLINE, id ) ;
+   ossStrncpy( collectionName, mb->_collectionName, DMS_COLLECTION_NAME_SZ ) ;
+   dumpPrintf ( " Inspect Data for collection [%d : %s]"OSS_NEWLINE,
+                id, collectionName ) ;
+
+   if ( !OSS_BIT_TEST( gAction, ACTION_STAT ) &&
+        gOnlyMeta )
+   {
+      goto done ;
+   }
+
    while ( DMS_INVALID_EXTENT != firstExtent )
    {
       if ( firstExtent >= gPageNum )
@@ -1583,12 +1833,16 @@ void inspectCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id,
          goto error ;
       }
 
+      pExtent = (dmsExtent*)gExtentBuffer ;
+      gMBStat._totalDataPages += pExtent->_blockSize ;
+      gMBStat._totalDataFreeSpace += pExtent->_freeSpace ;
+      gMBStat._totalRecords += pExtent->_recCount ;
+
       if ( pExpBuffer )
       {
          dmsSpaceManagementExtent *pSME=(dmsSpaceManagementExtent*)pExpBuffer ;
 
-         for ( INT32 i = 0 ; i < ((dmsExtent*)gExtentBuffer)->_blockSize ;
-               ++i )
+         for ( INT32 i = 0 ; i < pExtent->_blockSize ; ++i )
          {
             if ( pSME->getBitMask( firstExtent + i ) != DMS_SME_FREE )
             {
@@ -1598,6 +1852,12 @@ void inspectCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id,
             }
             pSME->setBitMask( firstExtent + i ) ;
          }
+      }
+
+      if ( !OSS_BIT_TEST ( gAction, ACTION_INSPECT ) )
+      {
+         firstExtent = pExtent->_nextExtent ;
+         continue ;
       }
 
 retry_data :
@@ -1643,6 +1903,7 @@ void inspectCollectionIndex( OSSFILE &file, SINT32 pageSize, UINT16 id,
    dmsMB *mb       = NULL ;
    std::map<UINT16, dmsExtentID> indexRoots ;
    std::map<UINT16, dmsExtentID>::iterator it ;
+   CHAR collectionName[ DMS_COLLECTION_NAME_SZ + 1 ] = { 0 } ;
 
    rc = loadMB ( id, mb ) ;
    if ( rc )
@@ -1652,8 +1913,19 @@ void inspectCollectionIndex( OSSFILE &file, SINT32 pageSize, UINT16 id,
       ++err ;
       goto error ;
    }
+   ossStrncpy( collectionName, mb->_collectionName,
+               DMS_COLLECTION_NAME_SZ ) ;
+
+   dumpPrintf ( " Inspect Index for collection [%d : %s]"OSS_NEWLINE,
+                id, collectionName ) ;
 
    inspectIndexDef ( file, pageSize, id, mb, pExpBuffer, indexRoots, err ) ;
+
+   if ( !OSS_BIT_TEST( gAction, ACTION_STAT ) &&
+        gOnlyMeta )
+   {
+      goto done ;
+   }
 
    for ( it = indexRoots.begin() ; it != indexRoots.end() ; ++it )
    {
@@ -1678,13 +1950,32 @@ error :
 void inspectCollection ( OSSFILE &file, SINT32 pageSize, UINT16 id,
                          SINT32 hwm, CHAR *pExpBuffer, SINT32 &err )
 {
+   gMBStat.reset() ;
    if ( SDB_INSPT_DATA == gCurInsptType )
    {
       inspectCollectionData( file, pageSize, id, hwm, pExpBuffer, err ) ;
+      ossSnprintf( gBuffer, gBufferSize,
+                   " ****The collection data info****"OSS_NEWLINE
+                   "   Total Record           : %llu"OSS_NEWLINE
+                   "   Total Data Pages       : %u"OSS_NEWLINE
+                   "   Total Data Free Space  : %llu"OSS_NEWLINE,
+                   gMBStat._totalRecords,
+                   gMBStat._totalDataPages,
+                   gMBStat._totalDataFreeSpace ) ;
+      flushOutput( gBuffer, gBufferSize ) ;
    }
    else if ( SDB_INSPT_INDEX == gCurInsptType )
    {
       inspectCollectionIndex( file, pageSize, id, hwm, pExpBuffer, err ) ;
+      ossSnprintf( gBuffer, gBufferSize,
+                   " ****The collection index info****"OSS_NEWLINE
+                   "   Total Index Pages      : %u"OSS_NEWLINE
+                   "   Total Index Free Space : %llu"OSS_NEWLINE
+                   "   Unique Index Number    : %u"OSS_NEWLINE,
+                   gMBStat._totalIndexPages,
+                   gMBStat._totalIndexFreeSpace,
+                   gMBStat._uniqueIdxNum ) ;
+      flushOutput( gBuffer, gBufferSize ) ;
    }
 }
 
@@ -1739,6 +2030,11 @@ void dumpCollectionData( OSSFILE &file, SINT32 pageSize, UINT16 id )
          goto retry_mbEx ;
       }
       flushOutput ( gBuffer, len ) ;
+   }
+
+   if ( gOnlyMeta )
+   {
+      goto done ;
    }
 
    extentType = INSPECT_EXTENT_TYPE_DATA ;
@@ -1808,6 +2104,12 @@ void dumpCollectionIndex( OSSFILE &file, SINT32 pageSize, UINT16 id )
    }
 
    dumpIndexDef ( file, pageSize, id, mb, indexRoots ) ;
+
+   if ( gOnlyMeta )
+   {
+      goto done ;
+   }
+
    for ( it = indexRoots.begin() ; it != indexRoots.end() ; ++it )
    {
       UINT16 indexID = it->first ;
@@ -1972,6 +2274,121 @@ error :
    goto done ;
 }
 
+void repaireCollection( OSSFILE &file, dmsMB *pMB,
+                        UINT32 id )
+{
+   dumpPrintf( "Begin to repaire collection: %s.%s, ID: %u"OSS_NEWLINE,
+               gCSName, gCLName, id ) ;
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_FLAG )
+   {
+      dumpPrintf( "   Flag[%u] ==> [%u]"OSS_NEWLINE,
+                  pMB->_flag, gRepaireMB._flag ) ;
+      pMB->_flag = gRepaireMB._flag ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_ATTR )
+   {
+      dumpPrintf( "   Attr[%u] ==> [%u]"OSS_NEWLINE,
+                  pMB->_attributes, gRepaireMB._attributes ) ;
+      pMB->_attributes = gRepaireMB._attributes ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_LID )
+   {
+      dumpPrintf( "   LID[%u] ==> [%u]"OSS_NEWLINE,
+                  pMB->_logicalID, gRepaireMB._logicalID ) ;
+      pMB->_logicalID = gRepaireMB._logicalID ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_RECORD )
+   {
+      dumpPrintf( "   Record[%llu] ==> [%llu]"OSS_NEWLINE,
+                  pMB->_totalRecords, gRepaireMB._totalRecords ) ;
+      pMB->_totalRecords = gRepaireMB._totalRecords ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_DATAPAGE )
+   {
+      dumpPrintf( "   DataPages[%u] ==> [%u]"OSS_NEWLINE,
+                  pMB->_totalDataPages, gRepaireMB._totalDataPages ) ;
+      pMB->_totalDataPages = gRepaireMB._totalDataPages ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_IDXPAGE )
+   {
+      dumpPrintf( "   IndexPages[%u] ==> [%u]"OSS_NEWLINE,
+                  pMB->_totalIndexPages, gRepaireMB._totalIndexPages ) ;
+      pMB->_totalIndexPages = gRepaireMB._totalIndexPages ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_LOBPAGE )
+   {
+      dumpPrintf( "   LobPages[%u] ==> [%u]"OSS_NEWLINE,
+                  pMB->_totalLobPages, gRepaireMB._totalLobPages ) ;
+      pMB->_totalLobPages = gRepaireMB._totalLobPages ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_DATAFREE )
+   {
+      dumpPrintf( "   DataFreeSpace[%llu] ==> [%llu]"OSS_NEWLINE,
+                  pMB->_totalDataFreeSpace, gRepaireMB._totalDataFreeSpace ) ;
+      pMB->_totalDataFreeSpace = gRepaireMB._totalDataFreeSpace ;
+   }
+   if ( gRepaireMask & PMD_REPAIRE_MB_MASK_IDXFREE )
+   {
+      dumpPrintf( "   IndexFreeSpace[%llu] ==> [%llu]"OSS_NEWLINE,
+                  pMB->_totalIndexFreeSpace, gRepaireMB._totalIndexFreeSpace ) ;
+      pMB->_totalIndexFreeSpace = gRepaireMB._totalIndexFreeSpace ;
+   }
+
+   INT64 written = 0 ;
+   INT32 rc = ossSeekAndWriteN( &file, DMS_MME_OFFSET + id * sizeof( dmsMB ),
+                                (const CHAR*)pMB, sizeof( dmsMB ), written ) ;
+   if ( rc )
+   {
+      dumpPrintf( " *****Save collection to file failed: %d"OSS_NEWLINE,
+                  rc ) ;
+   }
+   else
+   {
+      dumpPrintf( " Save collection info to file succeed"OSS_NEWLINE ) ;
+   }
+}
+
+void repaireCollections( OSSFILE &file )
+{
+   INT32 rc = SDB_OK ;
+   dmsMB *pMB = NULL ;
+   CHAR collectionName[ DMS_COLLECTION_NAME_SZ + 1 ] = { 0 } ;
+
+   if ( FALSE == gInitMME )
+   {
+      SINT64 lenRead = 0 ;
+      rc = ossSeekAndRead ( &file, DMS_MME_OFFSET, gMMEBuff,
+                            DMS_MME_SZ, &lenRead ) ;
+      if ( rc || lenRead != DMS_MME_SZ )
+      {
+         dumpPrintf ( "Error: Failed to read sme, read %lld bytes, "
+                      "rc = %d"OSS_NEWLINE, lenRead, rc ) ;
+         goto error ;
+      }
+      gInitMME = TRUE ;
+   }
+
+   for ( UINT32 i = 0 ; i < DMS_MME_SLOTS ; ++i )
+   {
+      pMB = ( dmsMB* )( gMMEBuff + i * sizeof( dmsMB ) ) ;
+      ossStrncpy( collectionName, pMB->_collectionName,
+                  DMS_COLLECTION_NAME_SZ ) ;
+      if ( 0 == ossStrcmp( gCLName, collectionName ) )
+      {
+         repaireCollection( file, pMB, i ) ;
+         goto done ;
+      }
+   }
+
+   dumpPrintf( "Not found collection[%s] in space[%s]"OSS_NEWLINE,
+               gCLName, gCSName ) ;
+
+done:
+   return ;
+error:
+   goto done ;
+}
+
 // PD_TRACE_DECLARE_FUNCTION ( SDB_DUMPCOLLECTIONS, "dumpCollections" )
 void dumpCollections ( OSSFILE &file, SINT32 pageSize )
 {
@@ -2036,7 +2453,8 @@ error :
 enum SDB_INSPT_ACTION
 {
    SDB_INSPT_ACTION_DUMP = 0,
-   SDB_INSPT_ACTION_INSPECT
+   SDB_INSPT_ACTION_INSPECT,
+   SDB_INSPT_ACTION_REPARE
 } ;
 
 // PD_TRACE_DECLARE_FUNCTION ( SDB_ACTIONCSATTEMPT, "actionCSAttempt" )
@@ -2054,9 +2472,18 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
 
    SINT64   restLen = 0 ;
    SINT64   readPos = 0 ;
+   UINT32   iMode = OSS_DEFAULT | OSS_EXCLUSIVE ;
 
-   rc = ossOpen ( pFile, OSS_DEFAULT | OSS_READONLY | OSS_EXCLUSIVE,
-                  OSS_RU | OSS_WU | OSS_RG, file ) ;
+   if ( SDB_INSPT_ACTION_REPARE == action )
+   {
+      iMode |= OSS_READWRITE ;
+   }
+   else
+   {
+      iMode |= OSS_READONLY ;
+   }
+
+   rc = ossOpen ( pFile, iMode, OSS_RU | OSS_WU | OSS_RG, file ) ;
    if ( rc )
    {
       dumpPrintf ( "Error: Failed to open %s, rc = %d"OSS_NEWLINE,
@@ -2101,6 +2528,9 @@ void actionCSAttempt ( const CHAR *pFile, const CHAR *expectEye,
 
    switch ( action )
    {
+   case SDB_INSPT_ACTION_REPARE :
+      repaireCollections( file ) ;
+      break ;
    case SDB_INSPT_ACTION_DUMP :
       if ( gStartingPage < 0 )
       {
@@ -2290,7 +2720,8 @@ void actionCSAttemptEntry( const CHAR *csName, UINT32 sequence,
       return ;
    }
 
-   if ( gDumpData )
+   if ( gDumpData ||
+        SDB_INSPT_ACTION_REPARE == action )
    {
       csFileName = rtnMakeSUFileName( csName, sequence,
                                       DMS_DATA_SU_EXT_NAME ) ;
@@ -2367,48 +2798,8 @@ error :
    goto done ;
 }
 
-// PD_TRACE_DECLARE_FUNCTION ( SDB_DUMPDB, "dumpDB" )
-void dumpDB ()
-{
-   PD_TRACE_ENTRY ( SDB_DUMPDB ) ;
-   CHAR csName [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
-   UINT32 sequence = 0 ;
-   fs::path dbDir ( gDatabasePath ) ;
-   fs::directory_iterator end_iter ;
-   if ( fs::exists ( dbDir ) && fs::is_directory ( dbDir ) )
-   {
-      for ( fs::directory_iterator dir_iter ( dbDir );
-            dir_iter != end_iter; ++dir_iter )
-      {
-         if ( fs::is_regular_file ( dir_iter->status() ) )
-         {
-            const std::string fileName = dir_iter->path().filename().string() ;
-            const CHAR *pFileName = fileName.c_str() ;
-            if ( rtnVerifyCollectionSpaceFileName ( pFileName, csName,
-                               DMS_COLLECTION_SPACE_NAME_SZ, sequence ) )
-            {
-               if ( ossStrlen ( gCSName ) == 0 ||
-                    ossStrncmp ( gCSName, csName,
-                                 DMS_COLLECTION_SPACE_NAME_SZ ) == 0 )
-               {
-                  actionCSAttemptEntry ( csName, sequence,
-                                         ossStrlen ( gCSName ) != 0,
-                                         SDB_INSPT_ACTION_DUMP ) ;
-               }
-            }
-         }
-      }
-   }
-   else
-   {
-      dumpPrintf ( "Error: dump path %s is not a valid directory"OSS_NEWLINE,
-                   gDatabasePath ) ;
-   }
-   PD_TRACE_EXIT ( SDB_DUMPDB );
-}
-
 // PD_TRACE_DECLARE_FUNCTION ( SDB_INSPECTDB, "inspectDB" )
-void inspectDB ()
+void inspectDB( SDB_INSPT_ACTION action )
 {
    PD_TRACE_ENTRY ( SDB_INSPECTDB );
    CHAR csName [ DMS_COLLECTION_SPACE_NAME_SZ + 1 ] = {0} ;
@@ -2433,7 +2824,7 @@ void inspectDB ()
                {
                   actionCSAttemptEntry ( csName, sequence,
                                          ossStrlen ( gCSName ) != 0,
-                                         SDB_INSPT_ACTION_INSPECT ) ;
+                                         action ) ;
                }
             }
          }
@@ -2497,9 +2888,15 @@ INT32 main ( INT32 argc, CHAR **argv )
       dumpPrintf ( "Failed to allocate memory for educb"OSS_NEWLINE ) ;
       goto done ;
    }
-   if ( OSS_BIT_TEST ( gAction, ACTION_INSPECT ) )
+   if ( OSS_BIT_TEST ( gAction, ACTION_INSPECT ) ||
+        OSS_BIT_TEST ( gAction, ACTION_STAT ) )
    {
-      inspectDB () ;
+      inspectDB( SDB_INSPT_ACTION_INSPECT ) ;
+   }
+
+   if ( OSS_BIT_TEST ( gAction, ACTION_REPAIRE ) )
+   {
+      inspectDB( SDB_INSPT_ACTION_REPARE ) ;
    }
 
    if ( OSS_BIT_TEST ( gAction, ACTION_DUMP ) )
@@ -2510,7 +2907,7 @@ INT32 main ( INT32 argc, CHAR **argv )
       }
       else
       {
-         dumpDB () ;
+         inspectDB( SDB_INSPT_ACTION_DUMP ) ;
       }
    }
 

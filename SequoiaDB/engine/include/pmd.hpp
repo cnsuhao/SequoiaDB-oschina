@@ -58,6 +58,11 @@ namespace engine
 {
 
    /*
+      Sync clock interval define
+   */
+   #define PMD_SYNC_CLOCK_INTERVAL              ( 10 ) /// ms
+
+   /*
       PMD DB status define
    */
    enum PMD_DB_STATUS

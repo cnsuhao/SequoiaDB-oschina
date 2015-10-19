@@ -1760,6 +1760,11 @@ CHAR  *ossGetRealPath( const CHAR  *pPath,
 
    while ( TRUE )
    {
+      if ( '\0' == pathBuffer[0] )
+      {
+         ret = pathBuffer ;
+         break ;
+      }
       ret =
 #if defined (_LINUX)
          realpath ( pathBuffer, tempBuffer ) ;
@@ -1778,6 +1783,8 @@ CHAR  *ossGetRealPath( const CHAR  *pPath,
       }
       else
       {
+         ossStrncpy( resolvedPath, tempBuffer, length ) ;
+         ret = pathBuffer ;
          break ;
       }
       if ( pPos )
@@ -1789,7 +1796,7 @@ CHAR  *ossGetRealPath( const CHAR  *pPath,
    if ( ret && pPos )
    {
       *pPos = OSS_PATH_SEP_CHAR ;
-      ossStrncat ( resolvedPath, pPos, length ) ;
+      ossStrncat ( resolvedPath, pPos, length - ossStrlen(resolvedPath) ) ;
    }
    PD_TRACE_EXIT ( SDB_OSSGETREALPATH );
    return ret ? resolvedPath: NULL ;

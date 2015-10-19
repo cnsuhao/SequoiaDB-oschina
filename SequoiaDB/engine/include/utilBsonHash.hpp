@@ -38,15 +38,15 @@
 
 namespace engine
 {
-   class _utilBSONHasher : public SDBObject
+   class _utilBSONHasherObsolete : public SDBObject
    {
    private:
-      _utilBSONHasher() {}
-      ~_utilBSONHasher() {}
+      _utilBSONHasherObsolete() {}
+      ~_utilBSONHasherObsolete() {}
 
    public:
       static UINT32 hash( const bson::BSONObj &obj,
-                          UINT32 partition = 0 ) ;
+                          UINT32 partitionBit = 0 ) ;
 
       static UINT32 hash( const bson::BSONElement &e ) ;
 
@@ -55,6 +55,27 @@ namespace engine
       static UINT32 hash( const void *v, UINT32 size ) ;
 
       static UINT32 hash( const CHAR *str ) ;
+   } ;
+
+   typedef class _utilBSONHasherObsolete BSON_HASHER_OBSOLETE ;
+
+   class _utilBSONHasher : public SDBObject
+   {
+   private:
+      _utilBSONHasher() {}
+      ~_utilBSONHasher() {}
+
+   public:
+      static UINT32 hashObj( const bson::BSONObj &obj,
+                             UINT32 partitionBit = 0 ) ;
+
+      static UINT32 hashElement( const bson::BSONElement &e ) ;
+
+      static UINT32 hashOid( const bson::OID &oid ) ;
+
+      static UINT32 hash( const void *v, UINT32 size ) ;
+
+      static UINT32 hashStr( const CHAR *str ) ;
    } ;
 
    typedef class _utilBSONHasher BSON_HASHER ;

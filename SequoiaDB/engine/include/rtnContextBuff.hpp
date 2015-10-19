@@ -89,6 +89,7 @@ namespace engine
 
          const CHAR* data () const { return _pBuff ; }
          const CHAR* front() const { return _pBuff + _curOffset; }
+         INT32       offset() const { return _curOffset ; }
          INT32       size () const { return _buffSize ; }
          INT32       recordNum () const { return _recordNum ; }
          BOOLEAN     eof () const { return _curOffset >= _buffSize ; }

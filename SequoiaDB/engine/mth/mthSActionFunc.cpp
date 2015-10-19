@@ -115,7 +115,7 @@ namespace engine
          bson::BSONObjBuilder builder ;
          builder.appendAs( action->getValue(), fieldName ) ;
          bson::BSONObj obj = builder.obj() ;
-         action->setObj( builder.obj() ) ;
+         action->setObj( obj ) ;
          action->setValue( obj.getField( fieldName ) ) ;
       }
 

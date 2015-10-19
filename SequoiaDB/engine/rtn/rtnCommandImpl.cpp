@@ -1425,8 +1425,7 @@ namespace engine
             {
                continue ;
             }
-            if ( ossStrncmp ( ctx->getSU()->CSName(),
-                              pCollectionSpace, DMS_SU_NAME_SZ ) == 0 )
+            if ( ossStrcmp ( ctx->getSU()->CSName(), pCollectionSpace ) == 0 )
             {
                rtnCB->contextDelete( contextID, cb ) ;
             }

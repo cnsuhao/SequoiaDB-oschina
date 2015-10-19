@@ -256,4 +256,29 @@ public class BasicBSONList extends ArrayList<Object> implements BSONObject {
 
 		return (T) colletion;
 	}
+
+    public Object asList() {
+        Collection<Object> colletion = new LinkedList<Object>();
+        for (String key : this.keySet()) {
+            Object v = this.get(key);
+            if (v == null) {
+                continue;
+            }
+            else if (BSON.IsBasicType(v)){
+                colletion.add(v);
+            }
+            else if ( v instanceof BasicBSONList ){
+                colletion.add(((BasicBSONList)v).asList());
+            }
+            else if ( v instanceof BasicBSONObject ){
+                colletion.add(((BasicBSONObject)v).asMap());
+            }
+            else{
+                throw new IllegalArgumentException(
+                        "can't support in list. value_type=" + v.getClass());
+            }
+        }
+        
+        return colletion;
+    }
 }

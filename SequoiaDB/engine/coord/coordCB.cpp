@@ -40,6 +40,7 @@
 #include "pdTrace.hpp"
 #include "coordTrace.hpp"
 #include "coordDef.hpp"
+#include "pmdController.hpp"
 #include "pmdStartup.hpp"
 
 using namespace bson;
@@ -139,6 +140,7 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
+      _pNetWork->getFrame()->setBeatInfo( pmdGetOptionCB()->getOprTimeout() ) ;
       _multiRouteAgent.setNetWork( _pNetWork ) ;
 
       pGroupInfo = SDB_OSS_NEW CoordGroupInfo( CAT_CATALOG_GROUPID ) ;
@@ -184,6 +186,7 @@ namespace engine
       EDUID eduID = PMD_INVALID_EDUID ;
 
       pmdSetPrimary( TRUE ) ;
+      sdbGetPMDController()->registerNet( _pNetWork->getFrame() ) ;
 
       rc = pEDUMgr->startEDU ( EDU_TYPE_COORDNETWORK, (void*)netWork(),
                                &eduID ) ;
@@ -203,6 +206,7 @@ namespace engine
    {
       if ( _pNetWork )
       {
+         sdbGetPMDController()->unregNet( _pNetWork->getFrame() ) ;
          _pNetWork->stop() ;
       }
       return SDB_OK ;
@@ -220,6 +224,11 @@ namespace engine
 
    void _CoordCB::onConfigChange ()
    {
+      if ( _pNetWork )
+      {
+         UINT32 oprtimeout = pmdGetOptionCB()->getOprTimeout() ;
+         _pNetWork->getFrame()->setBeatInfo( oprtimeout ) ;
+      }
    }
 
    void _CoordCB::updateCatGroupInfo( CoordGroupInfoPtr &groupInfo )
@@ -417,7 +426,30 @@ namespace engine
       return rc;
    }
 
-   void _CoordCB::delCataInfo ( const std::string &collectionName )
+   BOOLEAN _CoordCB::isSubCollection( const CHAR *pCLName )
+   {
+      string strSubCLName = pCLName ;
+      CoordCataMap::iterator it ;
+      clsCatalogSet *pCatSet = NULL ;
+      ossScopedLock _lock( &_cataInfoMutex, SHARED ) ;
+
+      it = _cataInfoMap.begin() ;
+      while( it != _cataInfoMap.end() )
+      {
+         pCatSet = it->second->getCatalogSet() ;
+         if ( !pCatSet || !pCatSet->isMainCL() )
+         {
+         }
+         else if ( pCatSet->isContainSubCL( strSubCLName ) )
+         {
+            return TRUE ;
+         }
+         ++it ;
+      }
+      return FALSE ;
+   }
+
+   void _CoordCB::delCataInfo ( const string &collectionName )
    {
       ossScopedLock _lock( &_cataInfoMutex, EXCLUSIVE );
       _cataInfoMap.erase( collectionName );

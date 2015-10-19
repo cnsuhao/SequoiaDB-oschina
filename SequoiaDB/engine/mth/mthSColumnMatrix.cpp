@@ -329,6 +329,7 @@ namespace engine
       SDB_ASSERT( NULL != fieldName, "can not be null" ) ;
       _mthSColumn *father = this ;
       _mthSColumn *node = NULL ;
+      INT32 eleNumber = 0 ;
 
       utilSplitIterator i( ( CHAR * )fieldName ) ;
       while ( i.more() )
@@ -336,16 +337,12 @@ namespace engine
          node = NULL ;
          const CHAR *columnName = i.next() ;
 
-         if ( '$' == *columnName )
+         if ( '$' == *columnName &&
+              NULL != father &&
+              SDB_OK == mthConvertSubElemToNumeric( columnName,
+                                                    eleNumber ) )
          {
-            if ( NULL == father )
-            {
-               PD_LOG( PDERROR, "$ can not exist in top level" ) ;
-               rc = SDB_INVALIDARG ;
-               goto error ;
-            }
-
-            rc = _addMiddleAction( father, columnName ) ;
+            rc = _addMiddleAction( father, eleNumber ) ;
             if ( SDB_OK != rc )
             {
                PD_LOG( PDERROR, "failed to add action to column:%d", rc ) ;
@@ -367,7 +364,27 @@ namespace engine
          }
       }
 
-      column = node ; 
+      if ( NULL != node )
+      {
+         column = node ;
+         goto done ;
+      }
+      if ( '\0' == *fieldName )
+      {
+         rc = _getColumn( fieldName, this, node ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to get column of an empty fieldName:%d", rc ) ;
+            goto error ;
+         }
+         column = node ;
+      }
+      else
+      {
+         PD_LOG( PDERROR, "unexpected error happended" ) ;
+         rc = SDB_SYS ;
+         goto error ;
+      }
    done:
       PD_TRACE_EXITRC( SDB__MTHSCOLUMNMATRIX__GETCOLUMN, rc ) ;
       return rc ;
@@ -427,11 +444,10 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__MTHSCOLUMNMATRIX__ADDMIDDLEACTION, "_mthSColumnMatrix::_addMiddleAction" )
    INT32 _mthSColumnMatrix::_addMiddleAction( _mthSColumn *column,
-                                              const CHAR *desc )
+                                              INT32 numberic )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB__MTHSCOLUMNMATRIX__ADDMIDDLEACTION ) ;
-      INT32 elemNumber = 0 ;
       mthSAction *action = NULL ;
       const _mthSActionParser *parser = _mthSActionParser::instance() ;
 
@@ -442,13 +458,6 @@ namespace engine
          goto error ;
       }
 
-      rc = mthConvertSubElemToNumeric( desc, elemNumber ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to parse action:%d", rc ) ;
-         goto error ;
-      }
-
       rc = _actionPool.allocate( action ) ;
       if ( SDB_OK != rc )
       {
@@ -456,7 +465,7 @@ namespace engine
          goto error ;
       }
 
-      rc = parser->buildSliceAction( elemNumber, 1, *action ) ;
+      rc = parser->buildSliceAction( numberic, 1, *action ) ;
       if ( SDB_OK != rc )
       {
          PD_LOG( PDERROR, "failed to build default value action:%d", rc ) ;

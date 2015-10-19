@@ -103,7 +103,8 @@ namespace engine
       UINT64 _secretValue ;                              // with the index
       UINT32 _lobdPageSize ;                             // lobd page size
       UINT32 _createLobs ;                               // create lob files
-      CHAR   _pad [ 65356 ] ;                          
+      UINT32 _validFlag ;                                // valid flag
+      CHAR   _pad [ 65352 ] ;                          
 
       _dmsStorageUnitHeader()
       {
@@ -229,6 +230,7 @@ namespace engine
          BOOLEAN isOpened() const { return ossMmapFile::_opened ; }
          virtual void  syncMemToMmap () {}
          void  flushDirtySegments ( UINT32 *pNum = NULL ) ;
+         void  restoreForCrash() { _isCrash = FALSE ; }
 
       private:
          virtual UINT64 _dataOffset()  = 0 ;
@@ -260,6 +262,7 @@ namespace engine
                               INT64 dataLen ) ;
 
          void     _markDirty ( INT32 extentID ) ;
+         void     _invalidate() ;
 
          virtual INT32 _extendSegments ( UINT32 numSeg ) ;
 
@@ -292,6 +295,9 @@ namespace engine
          UINT32                        _pageSizeSquare ;
          CHAR                          _fullPathName[ OSS_MAX_PATHSIZE + 1 ] ;
          BOOLEAN                       _isTempSU ;
+
+         UINT32                        _validFlag ;
+         BOOLEAN                       _isCrash ;
 
    } ;
    typedef _dmsStorageBase dmsStorageBase ;
@@ -419,6 +425,7 @@ namespace engine
       if ( DMS_INVALID_EXTENT == extentID ||
            extentID > DMS_MAX_PG )
          return ;
+      _invalidate() ;
       UINT32 segID = extent2Segment( extentID, NULL ) - _dataSegID ;
       SDB_ASSERT ( segID < maxSegmentNum(),
                    "calculated segment id cannot be greater than max "

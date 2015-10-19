@@ -41,6 +41,8 @@
 
 namespace engine
 {
+   #define CLS_PRIMARY_UP_NOTIFY_TIMES          ( 60 )
+
    _clsVSPrimary::_clsVSPrimary( _clsGroupInfo *info,
                                   _netRouteAgent *agent ):
                                  _clsVoteStatus( info, agent,
@@ -132,7 +134,8 @@ namespace engine
 
       sdbGetClsCB()->ntyPrimaryChange( TRUE, SDB_EVT_OCCUR_AFTER ) ;
 
-      sdbGetReplCB()->callCatalog( (MsgHeader *)&msg ) ;
+      sdbGetReplCB()->callCatalog( (MsgHeader *)&msg,
+                                   CLS_PRIMARY_UP_NOTIFY_TIMES ) ;
 
       PD_TRACE_EXIT ( SDB__CLSVSPMY_ACTIVE ) ;
       return ;

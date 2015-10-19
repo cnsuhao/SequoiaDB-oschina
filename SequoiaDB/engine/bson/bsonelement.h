@@ -372,7 +372,7 @@ namespace bson {
         }
 
         Date_t timestampTime() const {
-            unsigned long long t = ((unsigned int*)(value() + 4 ))[0];
+            long long t = ((int*)(value() + 4 ))[0];
             return t * 1000;
         }
         unsigned int timestampInc() const {

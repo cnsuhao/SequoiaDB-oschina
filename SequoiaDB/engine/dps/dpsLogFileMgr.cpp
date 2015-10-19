@@ -42,6 +42,7 @@
 #include "dpsMessageBlock.hpp"
 #include "dpsLogDef.hpp"
 #include "dpsReplicaLogMgr.hpp"
+#include "utilStr.hpp"
 #include "pdTrace.hpp"
 #include "dpsTrace.hpp"
 
@@ -92,9 +93,9 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSLGFILEMGR_INIT );
       SDB_ASSERT( path, "path can not be NULL!") ;
-      CHAR LOG_BUILDER[OSS_MAX_PATHSIZE+1] = {0} ;
-      CHAR tmp[11] = {0} ;
-      ossMemset ( tmp, 0, sizeof(tmp) ) ;
+      CHAR fileFullPath[ OSS_MAX_PATHSIZE+1 ] = {0} ;
+      CHAR tmp[11] = { 0 } ;
+
       if ( ossStrlen ( path ) + ossStrlen ( DPS_LOG_FILE_PREFIX ) +
            sizeof(tmp) + 2 > OSS_MAX_PATHSIZE )
       {
@@ -102,6 +103,7 @@ namespace engine
          rc = SDB_INVALIDARG ;
          goto error ;
       }
+
       LOG_LOOP_BEGIN( _logFileNum )
          _dpsLogFile *file = SDB_OSS_NEW _dpsLogFile();
          if ( NULL == file )
@@ -110,15 +112,13 @@ namespace engine
             PD_LOG ( PDERROR, "Memory can't be allocated for dpsLogFile");
             goto error;
          }
-         _files.push_back( file );
-         ossMemset( LOG_BUILDER, 0, sizeof(LOG_BUILDER) );
-         ossMemcpy( LOG_BUILDER, path, ossStrlen( path ) );
-         ossStrncat ( LOG_BUILDER, OSS_FILE_SEP, OSS_MAX_PATHSIZE ) ;
-         ossStrncat( LOG_BUILDER, DPS_LOG_FILE_PREFIX,
-                     ossStrlen( DPS_LOG_FILE_PREFIX ) );
-         ossSnprintf ( tmp, sizeof(tmp), "%d", i );
-         ossStrncat( LOG_BUILDER, tmp, ossStrlen( tmp ));
-         rc = file->init( LOG_BUILDER, _logFileSz, _logFileNum );
+         _files.push_back( file ) ;
+
+         utilBuildFullPath( path, DPS_LOG_FILE_PREFIX,
+                            OSS_MAX_PATHSIZE, fileFullPath ) ;
+         ossSnprintf ( tmp, sizeof(tmp), "%d", i ) ;
+         ossStrncat( fileFullPath, tmp, ossStrlen( tmp ) ) ;
+         rc = file->init( fileFullPath, _logFileSz, _logFileNum );
          if ( rc )
          {
             PD_LOG ( PDERROR,"Failed to init log file for %d, rc = %d", i, rc ) ;
@@ -238,8 +238,7 @@ namespace engine
       }
 
       if ( WORK_FILE->getIdleSize() == 0 ||
-           ( WORK_FILE->getIdleSize() == WORK_FILE->size() &&
-             WORK_FILE->header()._logID == DPS_INVALID_LOG_FILE_ID ) )
+           WORK_FILE->getIdleSize() == WORK_FILE->size() )
       {
          WORK_FILE->reset( _logicalWork, beginLsn.offset, beginLsn.version ) ;
       }
@@ -348,9 +347,9 @@ namespace engine
       UINT32 fileOffset = offset  % _logFileSz ;
       INT32 signFlag = -1 ;
 
-      if ( _files[_work]->header()._logID != DPS_INVALID_LOG_FILE_ID
-         && offset > _files[_work]->getFirstLSN().offset +
-         _files[_work]->getLength() )
+      if ( _files[_work]->header()._logID != DPS_INVALID_LOG_FILE_ID &&
+           offset > _files[_work]->getFirstLSN().offset +
+           _files[_work]->getValidLength() )
       {
          signFlag = 1 ;
       }
@@ -360,7 +359,7 @@ namespace engine
          if ( _files[_work]->header()._logID != DPS_INVALID_LOG_FILE_ID &&
              ( _files[_work]->getFirstLSN().offset <= offset &&
                offset <= _files[_work]->getFirstLSN().offset +
-               _files[_work]->getLength() ) )
+               _files[_work]->getValidLength() ) )
          {
             if ( file != _work )
             {
@@ -383,7 +382,6 @@ namespace engine
             rc = _files[_work]->reset ( DPS_INVALID_LOG_FILE_ID,
                                         DPS_INVALID_LSN_OFFSET,
                                         DPS_INVALID_LSN_VERSION ) ;
-            _work = signFlag == -1 ? _decFileID ( _work ) : _incFileID ( _work ) ;
          }
 
          if ( SDB_OK != rc )
@@ -391,6 +389,7 @@ namespace engine
             break ;
          }
 
+         _work = signFlag == -1 ? _decFileID ( _work ) : _incFileID ( _work ) ;
          ++i ;
       }
 

@@ -220,13 +220,17 @@ void ossDumpSystemTime( ossPrimitiveFileOp * trapFile )
 void ossDumpDatabaseInfo ( ossPrimitiveFileOp * trapFile )
 {
    PD_TRACE_ENTRY ( SDB_OSSDUMPDBINFO );
-   INT32 version, subVersion, release ;
+   INT32 version = 0 ;
+   INT32 subVersion = 0 ;
+   INT32 fix = 0 ;
+   INT32 release = 0 ;
    const CHAR *pBuild = NULL ;
-   ossGetVersion ( &version, &subVersion, &release, &pBuild ) ;
+   ossGetVersion ( &version, &subVersion, &fix, &release, &pBuild ) ;
    if ( ( NULL != trapFile ) && trapFile->isValid() )
    {
-      trapFile->fWrite( "Version: %d.%d, Release: %d, Build: %s"OSS_NEWLINE,
-                        version, subVersion, release, pBuild ) ;
+      trapFile->fWrite( "Version: %d.%d.%d, Release: %d, "
+                        "Build: %s"OSS_NEWLINE,
+                        version, subVersion, fix, release, pBuild ) ;
    }
    PD_TRACE_EXIT ( SDB_OSSDUMPDBINFO );
 }

@@ -136,6 +136,12 @@ namespace engine
       goto done ;
    }
 
+   void _rtnContextListLob::_toString( stringstream &ss )
+   {
+      ss << ",Name:" << _fullName.c_str()
+         << ",BuffLen:" << _bufLen ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__RTNCONTEXTLISTLOB__GETMETAINFO, "_rtnContextListLob::_getMetaInfo" )
    INT32 _rtnContextListLob::_getMetaInfo( _pmdEDUCB *cb, BSONObj &obj )
    {

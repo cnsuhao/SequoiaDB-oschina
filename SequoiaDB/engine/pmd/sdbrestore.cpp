@@ -529,14 +529,16 @@ namespace engine
       PMD_SHUTDOWN_DB( rc ) ;
       pmdSetQuit() ;
       krcb->destroy () ;
-      PD_LOG ( PDEVENT, "Stop sdbrestore, exist code: %d",
+      PD_LOG ( PDEVENT, "Stop sdbrestore, exit code: %d",
                krcb->getExitCode() ) ;
 
       std::cout << "*****************************************************"
                 << std::endl ;
       if ( SDB_OK != krcb->getExitCode() )
       {
-         std::cout << "Restore failed: " << krcb->getExitCode() << std::endl ;
+         std::cout << "Restore failed: " << krcb->getExitCode()
+                   << "(" << getErrDesp( krcb->getExitCode() ) << ")"
+                   << std::endl ;
       }
       else
       {

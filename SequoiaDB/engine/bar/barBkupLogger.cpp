@@ -1391,7 +1391,7 @@ namespace engine
                metaObj = _makeExtentMeta( pLobSU ) ;
                pHeader->setMetaData( metaObj.objdata(), metaObj.objsize() ) ;
 
-               rc = pLobData->readRaw( _curOffset, pHeader->_dataSize,
+               rc = pLobData->readRaw( cb, _curOffset, pHeader->_dataSize,
                                        _pExtentBuff, readLen ) ;
                if ( rc )
                {
@@ -1438,7 +1438,7 @@ namespace engine
                metaObj = _makeExtentMeta( pLobSU ) ;
                pHeader->setMetaData( metaObj.objdata(), metaObj.objsize() ) ;
 
-               rc = pLobData->readRaw( _curOffset, pHeader->_dataSize,
+               rc = pLobData->readRaw( cb, _curOffset, pHeader->_dataSize,
                                        _pExtentBuff, readLen ) ;
                if ( rc )
                {

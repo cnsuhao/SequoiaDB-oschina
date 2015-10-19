@@ -135,7 +135,7 @@ namespace engine
                               "SME corrupted, bit must be free" ) ;
                   _pSMEMgr->_pSME->setBitMask( bitStart ) ;
                }
-               _pSMEMgr->_totalFree -= numPages ;
+               _pSMEMgr->_totalFree.sub( numPages ) ;
             }
             goto done ;
          } // if ( oldsize >= numPages )
@@ -291,7 +291,7 @@ namespace engine
                            "SME corrupted, bit must be allocated" ) ;
                _pSMEMgr->_pSME->freeBitMask( bitStart ) ;
             }
-            _pSMEMgr->_totalFree += numPages ;
+            _pSMEMgr->_totalFree.add( numPages ) ;
          }
       }
       PD_TRACE_EXITRC ( SDB__DMSSMS_RLSPAGES, rc );
@@ -310,10 +310,10 @@ namespace engine
       _dmsSMEMgr : implement
    */
    _dmsSMEMgr::_dmsSMEMgr ()
+   :_totalFree( 0 )
    {
       _pStorageBase  = NULL ;
       _pSME          = NULL ;
-      _totalFree     = 0 ;
    }
 
    _dmsSMEMgr::~_dmsSMEMgr ()
@@ -371,7 +371,7 @@ namespace engine
                PD_LOG ( PDERROR, "Failed to release pages, rc = %d", rc ) ;
                goto error ;
             }
-            _totalFree += ( i - releaseBegin ) ;
+            _totalFree.add( i - releaseBegin ) ;
             inUse = TRUE ;
          }
          else if ( DMS_SME_FREE == pSME->getBitMask( i ) && inUse )
@@ -389,7 +389,7 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to release pages, rc = %d", rc ) ;
             goto error ;
          }
-         _totalFree += ( i - releaseBegin ) ;
+         _totalFree.add( i - releaseBegin ) ;
       }
 
    done :
@@ -511,7 +511,7 @@ namespace engine
                   "start %d, rc = %d", segmentID, start, rc ) ;
          goto error ;
       }
-      _totalFree += segmentPages ;
+      _totalFree.add( segmentPages ) ;
 
    done :
       PD_TRACE_EXITRC ( SDB__DMSSMEMGR_DEPOSIT, rc );
@@ -543,7 +543,7 @@ namespace engine
 
       SDB_ASSERT( _totalFree == totalFree, "Total free space error" ) ; */
 #endif // _DEBUG
-      return _totalFree ;
+      return _totalFree.peek() ;
    }
 
 }

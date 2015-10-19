@@ -361,6 +361,7 @@ namespace engine
    INT32 _pmdEDUMgr::_interruptWritingEDUs()
    {
       std::map<EDUID, pmdEDUCB*>::iterator it ;
+      UINT32 count = 0 ;
 
       /*******************CRITICAL SECTION ********************/
       {
@@ -369,12 +370,17 @@ namespace engine
          {
             if ( (*it).second->isWritingDB() )
             {
+               ++count ;
                ( *it ).second->interrupt() ;
                PD_LOG ( PDDEBUG, "Interrupt edu[ID:%lld]", it->first ) ;
             }
          }
       }
       /******************END CRITICAL SECTION******************/
+      if ( count > 0 )
+      {
+         PD_LOG( PDEVENT, "Interrupt %d writing edus", count ) ;
+      }
       return SDB_OK ;
    }
 
@@ -420,17 +426,17 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__PMDEDUMGR_PSTEDUPST );
       pmdEDUCB* eduCB = NULL ;
       std::map<EDUID, pmdEDUCB*>::iterator it ;
+
+      EDUMGR_SLOCK
+      if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
       {
-         EDUMGR_SLOCK
-         if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
+         if ( _idleQueue.end () == ( it = _idleQueue.find ( eduID )) )
          {
-            if ( _idleQueue.end () == ( it = _idleQueue.find ( eduID )) )
-            {
-               rc = SDB_SYS ;
-               goto error ;
-            }
+            rc = SDB_SYS ;
+            goto error ;
          }
       }
+
       eduCB = ( *it ).second ;
       eduCB->postEvent( pmdEDUEvent ( type,
                                       dataMemType,
@@ -906,17 +912,19 @@ namespace engine
          goto error ;
       }
       {
-      UINT32  eduStatus = cb->getStatus() ;
+         UINT32  eduStatus = cb->getStatus() ;
 
-      if ( PMD_IS_EDU_RUNNING ( eduStatus ) )
-         goto done ;
-      if ( !PMD_IS_EDU_WAITING ( eduStatus ) &&
-           !PMD_IS_EDU_CREATING ( eduStatus ) )
-      {
-         rc = SDB_EDU_INVAL_STATUS ;
-         goto error ;
-      }
-      cb->setStatus ( PMD_EDU_RUNNING ) ;
+         if ( PMD_IS_EDU_RUNNING ( eduStatus ) )
+         {
+            goto done ;
+         }
+         else if ( !PMD_IS_EDU_WAITING ( eduStatus ) &&
+                   !PMD_IS_EDU_CREATING ( eduStatus ) )
+         {
+            rc = SDB_EDU_INVAL_STATUS ;
+            goto error ;
+         }
+         cb->setStatus ( PMD_EDU_RUNNING ) ;
       }
    done:
       PD_TRACE_EXITRC ( SDB__PMDEDUMGR_ATVEDU2, rc );
@@ -933,14 +941,20 @@ namespace engine
       EDUMGR_SLOCK
       it = _tid_eduid_map.find ( tid ) ;
       if ( _tid_eduid_map.end() == it )
+      {
          return NULL ;
+      }
       eduid = (*it).second ;
       it1 = _runQueue.find ( eduid ) ;
       if ( _runQueue.end() != it1 )
+      {
          return (*it1).second ;
+      }
       it1 = _idleQueue.find ( eduid ) ;
       if ( _idleQueue.end() != it1 )
+      {
          return (*it1).second ;
+      }
       return NULL ;
    }
 
@@ -966,6 +980,20 @@ namespace engine
          }
       }
       return it->second ;
+   }
+
+   EDU_TYPES _pmdEDUMgr::getEDUTypeByID( EDUID eduID )
+   {
+      std::map<EDUID, pmdEDUCB*>::iterator it ;
+      EDUMGR_SLOCK
+      if ( _runQueue.end () == ( it = _runQueue.find ( eduID )) )
+      {
+         if ( _idleQueue.end () == ( it = _idleQueue.find ( eduID )) )
+         {
+            return EDU_TYPE_UNKNOWN ;
+         }
+      }
+      return it->second->getType() ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__PMDEDUMGR_WAITUTIL, "_pmdEDUMgr::waitUntil" )

@@ -33,6 +33,7 @@
 #include "pmdCB.hpp"
 #include "rtn.hpp"
 #include "pmdStartup.hpp"
+#include "msgMessage.hpp"
 #include "pdTrace.hpp"
 #include "clsTrace.hpp"
 
@@ -40,6 +41,7 @@ namespace engine
 {
    const UINT32 CLS_SYNC_DEF_LEN = 1024 ;
    const UINT16 CLS_SYNC_INTERVAL = 2000 ;
+   const UINT16 CLS_CONSULT_INTERVAL = 20000 ;
 
    #define CLS_REPL_MAX_TIME           (2)
 
@@ -58,6 +60,7 @@ namespace engine
        _mb( CLS_SYNC_DEF_LEN ),
        _status( CLS_SESSION_STATUS_SYNC ),
        _quit( FALSE ),
+       _addFSSession(0),
        _timeout( 0 ),
        _consultLsn()
    {
@@ -72,6 +75,7 @@ namespace engine
       _isFirstToSync = TRUE ;
 
       _syncSrc.value = MSG_INVALID_ROUTEID ;
+      _lastSyncNode.value = MSG_INVALID_ROUTEID ;
 
       PD_TRACE_EXIT ( SDB__CLSDSTREPSN__CLSDSTREPSN );
    }
@@ -103,7 +107,12 @@ namespace engine
 
       _selector.timeout( interval ) ;
 
-      if ( _timeout < CLS_SYNC_INTERVAL )
+      if ( CLS_SESSION_STATUS_CONSULT == _status &&
+           _timeout < CLS_CONSULT_INTERVAL )
+      {
+         goto done ;
+      }
+      else if ( _timeout < CLS_SYNC_INTERVAL || _quit )
       {
          goto done ;
       }
@@ -180,6 +189,8 @@ namespace engine
    {
       if ( !pmdGetStartup().isOK() )
       {
+         PD_LOG( PDEVENT, "Sync Session[%s]: The db data is abnormal, "
+                 "need to synchronize full data", sessionName() ) ;
          _status = CLS_SESSION_STATUS_FULL_SYNC ;
          _repl->setFullSync( TRUE ) ;
       }
@@ -268,6 +279,8 @@ namespace engine
 
       if ( SDB_OK == msg->header.res )
       {
+         _lastSyncNode.value = msg->identity.value ;
+
          UINT32 num = 0 ;
          rc = _replayLog( (const CHAR *)
                ( ( ossValuePtr )(&(msg->header)) + sizeof( MsgReplSyncRes ) ),
@@ -327,6 +340,7 @@ namespace engine
          {
             _selector.addToBlakList( _syncSrc ) ;
             _selector.clearSrc() ;
+            _lastSyncNode.value = MSG_INVALID_ROUTEID ;
 
             _sendSyncReq() ;
          }
@@ -381,7 +395,14 @@ namespace engine
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSDSTREPSN_HNDSSTRES );
 
-      if ( CLS_SESSION_STATUS_CONSULT != _status )
+      if ( (UINT32)header->messageLength < sizeof( _MsgReplConsultationRes ) )
+      {
+         PD_LOG( PDWARNING, "Sync Session[%s]: Consultation responses message "
+                 "length[%d] is less than %d", header->messageLength,
+                 sizeof( _MsgReplConsultationRes ) ) ;
+         goto done ;
+      }
+      else if ( CLS_SESSION_STATUS_CONSULT != _status )
       {
          PD_LOG ( PDDEBUG, "Sync Session[%s]: Status[%d] not expected[%d], "
                   "ignore", sessionName(), _status,
@@ -406,6 +427,8 @@ namespace engine
       _MsgReplConsultationRes *msg = ( _MsgReplConsultationRes * )header ;
       if ( SDB_OK != msg->header.res )
       {
+         PD_LOG( PDEVENT, "Sync Session[%s]: Consult failed[%d], need to "
+                 "synchronize full data", sessionName(), msg->header.res ) ;
          _fullSync() ;
          goto done ;
       }
@@ -415,6 +438,7 @@ namespace engine
                   "LSN[ver:%d, offset:%lld]", sessionName(),
                   msg->returnTo.version, msg->returnTo.offset ) ;
 
+         BOOLEAN bValid = TRUE ;
          _selector.clearTime() ;
          _mb.clear() ;
          DPS_LSN curLsn = _logger->getCurrentLsn() ;
@@ -422,11 +446,23 @@ namespace engine
          if ( msg->returnTo.invalid() )
          {
             PD_LOG ( PDWARNING, "Sync Session[%s]: Consult returnTo lsn is "
-                     "invalid", sessionName() ) ;
+                     "invalid, need to synchronize full data",
+                     sessionName() ) ;
             _fullSync() ;
             goto done ;
          }
-         if ( SDB_OK != _logger->searchHeader( msg->returnTo, &_mb ) )
+
+         if ( SDB_OK != _logger->search( msg->returnTo, &_mb ) )
+         {
+            bValid = FALSE ;
+         }
+         else if ( msg->hashValue != ossHash( _mb.offset(0), _mb.length() ) )
+         {
+            bValid = FALSE ;
+            _consultLsn = msg->returnTo ;
+         }
+
+         if ( !bValid )
          {
             PD_LOG ( PDINFO, "Sync Session[%s]: Consult Lsn[%d,%lld], "
                      "curLsn[%d,%lld]", sessionName(), _consultLsn.version,
@@ -439,7 +475,8 @@ namespace engine
                if ( SDB_OK != _logger->searchHeader( search, &_mb ) )
                {
                   PD_LOG ( PDWARNING, "Sync Session[%s]: No find the lsn less "
-                           "than(offset:%lld, version:%d)", sessionName(),
+                           "than(offset:%lld, version:%d), need to "
+                           "synchronize full data", sessionName(),
                            msg->returnTo.offset, msg->returnTo.version ) ;
                   _fullSync () ;
                   goto done ;
@@ -457,6 +494,8 @@ namespace engine
          }
          else
          {
+            UINT32 rollbackNum = 0 ;
+            dpsLogRecordHeader *pLogHeader = NULL ;
             DPS_LSN rollback = _logger->getCurrentLsn() ;
             DPS_LSN point ;
             point.offset = ((dpsLogRecordHeader *)( _mb.offset(0) ))->_lsn ;
@@ -464,6 +503,11 @@ namespace engine
 
             if ( 0 != point.compareVersion( msg->returnTo.version ) )
             {
+               PD_LOG( PDERROR, "Sync Session[%s]: The local searched "
+                       "lsn[%u,%lld] is not the same with consult "
+                       "lsn[%u,%lld], need to synchronize full data",
+                       sessionName(), point.version, point.offset,
+                       msg->returnTo.version, msg->returnTo.offset ) ;
                _fullSync() ;
                goto done ;
             }
@@ -477,11 +521,13 @@ namespace engine
                if ( SDB_OK != rc )
                {
                   PD_LOG( PDERROR, "Sync Session[%s]: Search lsn[%lld, %d] "
-                          "failed, rc: %d", sessionName(), rollback.offset,
-                          rollback.version, rc ) ;
+                          "failed, rc: %d, need to synchronize full data",
+                          sessionName(), rollback.offset, rollback.version,
+                          rc ) ;
                   _fullSync() ;
                   goto done ;
                }
+               pLogHeader = ( dpsLogRecordHeader* )_mb.offset( 0 ) ;
 
                if ( 0 == point.compareOffset( rollback.offset ) )
                {
@@ -490,28 +536,32 @@ namespace engine
                else if ( SDB_OK != _rollback( _mb.offset( 0 ) ) )
                {
                   PD_LOG( PDERROR, "Sync Session[%s]: Rollback lsn[%lld, %d] "
-                          "failed", sessionName(), rollback.offset,
-                          rollback.version  ) ;
+                          "failed, need to synchronize full data",
+                          sessionName(), rollback.offset, rollback.version  ) ;
                   _fullSync() ;
                   goto done ;
                }
                else
                {
-                  rollback.offset = ((dpsLogRecordHeader *)
-                                    ( _mb.offset(0) ))->_preLsn ;
+                  ++rollbackNum ;
+                  rollback.offset = pLogHeader->_preLsn ;
                }
             }
 
-            if ( SDB_OK != _logger->move( point.offset +
-                                          ((dpsLogRecordHeader *)
-                                           ( _mb.offset(0) ))->_length,
+            if ( SDB_OK != _logger->move( point.offset + pLogHeader->_length,
                                           point.version ) )
             {
-               PD_LOG( PDERROR, "Sync Session[%s]: Rollback log failed.",
-                       sessionName() ) ;
+               PD_LOG( PDERROR, "Sync Session[%s]: Rollback log failed, "
+                       "need to synchronize full data", sessionName() ) ;
                _fullSync() ;
                goto done ;
             }
+            PD_LOG( PDEVENT, "Sync Session[%s]: Complete consult and "
+                    "rollbacked %u records, current lsn[%u, %lld], "
+                    "expect lsn[%u, %lld]", sessionName(), rollbackNum,
+                    point.version, point.offset, point.version,
+                    point.offset + pLogHeader->_length ) ;
+
             _status = CLS_SESSION_STATUS_SYNC ;
             _syncFailedNum = 0 ;
             _consultLsn.offset = DPS_INVALID_LSN_OFFSET ;
@@ -590,11 +640,13 @@ namespace engine
       else
       {
          _quit = TRUE ;
-
-         pClsCB->startInnerSession( CLS_REPL, CLS_TID_REPL_FS_SYC ) ;
          pClsCB->getReplCB()->setFullSync( TRUE ) ;
-         PD_LOG( PDEVENT, "Sync Session[%s]: Start the synchronization of full",
-                 sessionName() ) ;
+         if ( _addFSSession.compareAndSwap( 0, 1 ) )
+         {
+            pClsCB->startInnerSession( CLS_REPL, CLS_TID_REPL_FS_SYC ) ;
+            PD_LOG( PDEVENT, "Sync Session[%s]: Start the synchronization of full",
+                    sessionName() ) ;
+         }
       }
 
    done:
@@ -657,6 +709,13 @@ namespace engine
          msg.next = _logger->expectLsn() ;
          msg.needData = ( CLS_BS_NORMAL == _repl->getStatus() ) ? 1 : 0 ;
 
+         if ( msg.needData &&
+              _lastSyncNode.value != _syncSrc.value &&
+              !_logger->getCurrentLsn().invalid() )
+         {
+            msg.next = _logger->getCurrentLsn() ;
+         }
+
          if ( pCompleteLSN )
          {
             _completeLSN = *pCompleteLSN ;
@@ -718,6 +777,16 @@ namespace engine
          msg.header.requestID = ++_requestID ;
          msg.current =  _consultLsn ;
          msg.identity = routeAgent()->localID() ;
+
+         if ( !_consultLsn.invalid() )
+         {
+            _mb.clear() ;
+            if ( SDB_OK == _logger->search( _consultLsn, &_mb ) )
+            {
+               msg.hashValue = ossHash( _mb.offset(0), _mb.length() ) ;
+            }
+         }
+
          routeAgent()->syncSend( _syncSrc, &msg ) ;
          PD_LOG( PDEVENT, "Sync Session[%s]: Send consult req to [node: %d, "
                  "group:%d], [LSN: %d:%lld]", sessionName(),
@@ -741,6 +810,7 @@ namespace engine
       const CHAR *log = logs ;
       num = 0 ;
       BOOLEAN needRollback = FALSE ;
+      DPS_LSN expectLSN ;
 
       while ( log < logs + len )
       {
@@ -759,19 +829,67 @@ namespace engine
                  recordHeader->_lsn, recordHeader->_version,
                  recordHeader->_length, recordHeader->_preLsn ) ;
 
+         expectLSN = _logger->expectLsn() ;
+
+         if ( expectLSN.compareOffset( recordHeader->_lsn ) > 0 )
+         {
+            dpsLogRecordHeader *searchHeader = NULL ;
+            DPS_LSN searchLSN ;
+            searchLSN.offset = recordHeader->_lsn ;
+            searchLSN.version = recordHeader->_version ;
+            _mb.clear() ;
+            rc = _logger->search( searchLSN, &_mb ) ;
+            if ( SDB_OK != rc )
+            {
+               PD_LOG( PDERROR, "Sync Session[%s]: Find lsn[%u,%lld] in local "
+                       "Failed, rc: %d", sessionName(), searchLSN.version,
+                       searchLSN.offset, rc ) ;
+               goto error ;
+            }
+            searchHeader = (dpsLogRecordHeader*)_mb.offset(0) ;
+            if ( recordHeader->_version != searchHeader->_version ||
+                 recordHeader->_length != searchHeader->_length )
+            {
+               PD_LOG( PDERROR, "Sync Session[%s]: Local lsn[%u,%lld, len: %u] "
+                       "is not the same with remote[%s] lsn[%u,%lld, len: %u]",
+                       sessionName(), searchHeader->_version,
+                       searchHeader->_lsn, searchHeader->_length,
+                       routeID2String( _lastSyncNode ).c_str(),
+                       recordHeader->_version, recordHeader->_lsn,
+                       recordHeader->_length ) ;
+               rc = SDB_CLS_REPLAY_LOG_FAILED ;
+               goto error ;
+            }
+            if ( ossHash( log, recordHeader->_length ) !=
+                 ossHash( _mb.offset(0), searchHeader->_length ) )
+            {
+               PD_LOG( PDERROR, "Sync Session[%s]: Local lsn[%u, %lld] 's "
+                       "hash value is not the same with remote[%s] "
+                       "lsn[%u, %lld]", sessionName(), searchHeader->_version,
+                       searchHeader->_lsn,
+                       routeID2String( _lastSyncNode ).c_str(),
+                       recordHeader->_version, recordHeader->_lsn ) ;
+               rc = SDB_CLS_REPLAY_LOG_FAILED ;
+               goto error ;
+            }
+
+            log += recordHeader->_length ;
+            continue ;
+         }
+
 #ifdef _DEBUG
-         DPS_LSN lsn = _logger->expectLsn() ;
-         if ( 0 != lsn.compareOffset( recordHeader->_lsn ) ||
-              0 < lsn.compareVersion( recordHeader->_version ) )
+         if ( 0 != expectLSN.compareOffset( recordHeader->_lsn ) ||
+              0 < expectLSN.compareVersion( recordHeader->_version ) )
          {
             PD_LOG ( PDWARNING, "Sync Session[%s]: ReplayLog, cur lsn[%d,%lld] "
                      "can't fit expect lsn[%d,%lld]", sessionName(),
-                     recordHeader->_version, recordHeader->_lsn, lsn.version,
-                     lsn.offset ) ;
+                     recordHeader->_version, recordHeader->_lsn,
+                     expectLSN.version, expectLSN.offset ) ;
             rc = SDB_CLS_REPLAY_LOG_FAILED ;
             goto error ;
          }
 #endif
+
          rc = _replay( recordHeader ) ;
          SDB_ASSERT( SDB_OK == rc, "must be ok" ) ;
          if ( SDB_OK != rc )
@@ -805,8 +923,8 @@ namespace engine
          if ( rc )
          {
             PD_LOG( PDERROR, "Sync Session[%s]: Failed to move lsn to "
-                    "[%u, %llu], rc: %d", sessionName(),
-                    expectLSN.version, expectLSN.offset ) ;
+                    "[%u, %llu], rc: %d, need to synchronize full data",
+                    sessionName(), expectLSN.version, expectLSN.offset ) ;
             _fullSync() ;
          }
          else
@@ -821,8 +939,9 @@ namespace engine
          if ( SDB_OK != rc )
          {
             PD_LOG( PDERROR, "Sync Session[%s]: Failed to rollback[%lld, "
-                    "type: %d], rc: %d", sessionName(),
-                    recordHeader->_lsn, recordHeader->_type, rc ) ;
+                    "type: %d], rc: %d, need to synchronize full data",
+                    sessionName(), recordHeader->_lsn, recordHeader->_type,
+                    rc ) ;
             _fullSync() ;
          }
       }
@@ -897,7 +1016,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSSRCREPSN_ONTIMER ) ;
       _timeout += interval ;
 
-      if ( CLS_DST_SESSION_NO_MSG_TIME < _timeout )
+      if ( !_quit && CLS_DST_SESSION_NO_MSG_TIME < _timeout )
       {
          PD_LOG ( PDEVENT, "Sync Session[%s] peer node a long time no msg, "
                   "quit", sessionName() ) ;
@@ -957,21 +1076,30 @@ namespace engine
       SDB_ASSERT( NULL != header, "header should not be NULL" ) ;
       _MsgReplConsultation *msg = ( _MsgReplConsultation * )header ;
       _MsgReplConsultationRes res ;
+      BOOLEAN needReply = TRUE ;
+      DPS_LSN fLsn ;
+      DPS_LSN mLsn ;
+      DPS_LSN eLsn ;
+
       res.header.header.TID = msg->header.TID ;
       res.header.header.routeID = msg->header.routeID ;
       res.header.header.requestID = msg->header.requestID ;
       time_t bTime = time(NULL) ;
 
-      if ( msg->current.invalid() )
+      if ( (UINT32)header->messageLength < sizeof( _MsgReplConsultation ) )
+      {
+         PD_LOG( PDWARNING, "Sync Session[%s]: Recv consult request message "
+                 "length[%d] is less than %d", header->messageLength,
+                 sizeof( _MsgReplConsultation ) ) ;
+         needReply = FALSE ; /// not reply
+         goto done ;
+      }
+      else if ( msg->current.invalid() )
       {
          res.header.res = SDB_CLS_CONSULT_FAILED ;
          goto done ;
       }
 
-      {
-      DPS_LSN fLsn ;
-      DPS_LSN mLsn ;
-      DPS_LSN eLsn ;
       _logger->getLsnWindow( fLsn, mLsn, eLsn ) ;
       PD_LOG( PDEVENT, "Sync Session[%s]: Recv a consult req. "
               "[remote offset:%lld, remote ver:%d, local foffset:%lld, "
@@ -984,8 +1112,7 @@ namespace engine
          res.header.res = SDB_CLS_CONSULT_FAILED ;
          goto done ;
       }
-      else if ( 0 < fLsn.compare( msg->current )/* ||
-                0 > eLsn.compareVersion(  msg->current.version - 1 )*/ )
+      else if ( 0 < fLsn.compare( msg->current ) )
       {
          res.header.res = SDB_CLS_CONSULT_FAILED ;
          goto done ;
@@ -1001,21 +1128,30 @@ namespace engine
       {
          _mb.clear() ;
          DPS_LSN search = msg->current ;
-         if ( SDB_OK == _logger->searchHeader( search, &_mb ) )
-         {
-            if ( ((dpsLogRecordHeader *)(_mb.offset(0)))->_version ==
-                  msg->current.version )
-            {
-               res.header.res = SDB_OK ;
-               res.returnTo = search ;
-               goto done ;
-            }
+         dpsLogRecordHeader *logHeader = NULL ;
+         UINT32 baseVersion = DPS_INVALID_LSN_VERSION ;
 
-            search.offset = ((dpsLogRecordHeader *)(_mb.offset(0)))->_preLsn ;
+         if ( SDB_OK != _logger->search( search, &_mb ) )
+         {
+            search.offset = eLsn.offset ;
+            baseVersion = eLsn.version ;
          }
          else
          {
-            search.offset = eLsn.offset ;
+            logHeader = (dpsLogRecordHeader*)_mb.offset(0) ;
+            if ( logHeader->_version != msg->current.version ||
+                 msg->hashValue != ossHash( _mb.offset(0), _mb.length() ) )
+            {
+               search.offset = logHeader->_preLsn ;
+               baseVersion = logHeader->_version ;
+            }
+            else
+            {
+               res.header.res = SDB_OK ;
+               res.returnTo = search ;
+               res.hashValue = msg->hashValue ;
+               goto done ;
+            }
          }
 
          DPS_LSN returnTo ;
@@ -1028,12 +1164,13 @@ namespace engine
             }
             else
             {
-               returnTo.offset = ((dpsLogRecordHeader *)(_mb.offset(0)))->_lsn ;
-               returnTo.version = ((dpsLogRecordHeader *)(_mb.offset(0)))->_version ;
-               search.offset = ((dpsLogRecordHeader *)(_mb.offset(0)))->_preLsn;
+               logHeader = (dpsLogRecordHeader*)_mb.offset(0) ;
+               returnTo.offset = logHeader->_lsn ;
+               returnTo.version = logHeader->_version ;
+               search.offset = logHeader->_preLsn;
             }
          }while ( returnTo.compareOffset( msg->current.offset ) > 0 ||
-                  ( 0 < returnTo.compareVersion( search.version - 1 ) &&
+                  ( returnTo.version == baseVersion &&
                     time( NULL ) - bTime <= CLS_REPL_MAX_TIME ) ) ;
 
          if ( returnTo.invalid() )
@@ -1046,12 +1183,21 @@ namespace engine
          }
          res.header.res = SDB_OK ;
       }
-      }
+
    done:
-      PD_LOG( PDEVENT, "Sync Session[%s]: Consult[res:%d, return offset:%lld, "
-              "return version:%d]", sessionName(), res.header.res,
-              res.returnTo.offset, res.returnTo.version ) ;
-      routeAgent()->syncSend( handle, &res ) ;
+      if ( needReply )
+      {
+         PD_LOG( PDEVENT, "Sync Session[%s]: Consult result[%d], "
+                 "return lsn[%u,%lld]", sessionName(), res.header.res,
+                 res.returnTo.version, res.returnTo.offset ) ;
+         _mb.clear() ;
+         if ( 0 == res.hashValue && !res.returnTo.invalid() &&
+              SDB_OK == _logger->search( res.returnTo, &_mb ) )
+         {
+            res.hashValue = ossHash( _mb.offset(0), _mb.length() ) ;
+         }
+         routeAgent()->syncSend( handle, &res ) ;
+      }
       PD_TRACE_EXIT ( SDB__CLSSRCREPSN_HNDCSTREQ );
       return SDB_OK ;
    }
@@ -1062,8 +1208,15 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__CLSSRCREPSN__SYNCLOG );
+
       time_t bTime = time( NULL ) ;
+      DPS_LSN fLsn ;
+      DPS_LSN mLsn ;
+      DPS_LSN eLsn ;
+      DPS_LSN expect ;
+      DPS_LSN search = req->next ;
       MsgReplSyncRes msg ;
+
       if ( DPS_INVALID_LSN_OFFSET == req->next.offset )
       {
          rc = SDB_CLS_SYNC_FAILED ;
@@ -1083,15 +1236,7 @@ namespace engine
       msg.header.header.requestID = req->header.requestID ;
       msg.identity = routeAgent()->localID() ;
 
-      {
-      DPS_LSN fLsn ;
-      DPS_LSN mLsn ;
-      DPS_LSN eLsn ;
-      DPS_LSN expect ;
-      DPS_LSN search = req->next ;
-
       _logger->getLsnWindow( fLsn, mLsn, eLsn, &expect ) ;
-
       if ( 0 < fLsn.compareOffset( req->next.offset ) )
       {
          PD_LOG( PDWARNING, "Sync Session[%s]: Remote lsn is too old. "
@@ -1181,7 +1326,6 @@ namespace engine
 
       msg.header.header.messageLength = sizeof( _MsgReplSyncRes) +
                                            _mb.length() ;
-
       if ( 0 != _mb.length() )
       {
          rc = SDB_OK ;
@@ -1197,7 +1341,6 @@ namespace engine
                  "offset:%lld]", sessionName(), search.version,
                  search.offset ) ;
          routeAgent()->syncSend( handle, &msg ) ;
-      }
       }
 
    done:

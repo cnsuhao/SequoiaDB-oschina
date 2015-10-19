@@ -658,6 +658,11 @@ INT32 csvParser::_parseNumber( CHAR *pBuffer, INT32 size,
          ++pBuffer ;
       }
    }
+   else if( size == 1 && *pBuffer == '.' )
+   {
+      ++pBuffer ;
+      --size ;
+   }
 
    if ( size > 0 && ( *pBuffer == 'e' || *pBuffer == 'E' ) )
    {
@@ -1366,6 +1371,7 @@ INT32 csvParser::_string2date( INT64 &value, CHAR *pBuffer, INT32 size )
    }
    --month ;
    /* sanity check for years */
+   /*
    if( year    >     INT32_LAST_YEAR   ||
        year    <     RELATIVE_YEAR     ||
        month   >=    RELATIVE_MOD      || //[0,11]
@@ -1376,6 +1382,8 @@ INT32 csvParser::_string2date( INT64 &value, CHAR *pBuffer, INT32 size )
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+   */
+   /*
    if ( ( year   == INT32_LAST_YEAR &&
           month  >  0 ) ||
         ( year   == INT32_LAST_YEAR &&
@@ -1385,7 +1393,15 @@ INT32 csvParser::_string2date( INT64 &value, CHAR *pBuffer, INT32 size )
       rc = SDB_INVALIDARG ;
       goto error ;
    }
-
+   */
+   if( month   >=    RELATIVE_MOD      || //[0,11]
+       month   <     0                 ||
+       day     >     RELATIVE_DAY      || //[1,31]
+       day     <=    0 )
+   {
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
    year -= RELATIVE_YEAR ;
 
    /* construct tm */
@@ -1434,6 +1450,7 @@ INT32 csvParser::_string2date2( INT64 &value, CHAR *pBuffer, INT32 size )
       goto error ;
    }
 
+   /*
    if ( value > TIME_MAX_NUM )
    {
       PD_LOG ( PDERROR, "The time stamp %lld is greater than %d",
@@ -1441,6 +1458,7 @@ INT32 csvParser::_string2date2( INT64 &value, CHAR *pBuffer, INT32 size )
       rc = SDB_INVALIDARG ;
       goto error ;
    }
+   */
 
    value *= 1000 ;
 
@@ -1465,6 +1483,7 @@ INT32 csvParser::_string2regex( _csvRegex &value, CHAR *pBuffer, INT32 size )
                if( i + 1 >= size )
                {
                   value.pPattern = pBuffer + 1 ;
+                  value.pOptions = CSV_STR_EMPTYOPTIONS ;
                }
                else
                {
@@ -1885,8 +1904,17 @@ INT32 csvParser::_appendBsonNull( void *bsonObj, const CHAR *pKey )
 {
    INT32 rc = SDB_OK ;
    bson *pObj = (bson *)bsonObj ;
-   bson_append_null( pObj, pKey ) ;
+   rc = bson_append_null( pObj, pKey ) ;
+   if( rc )
+   {
+      rc = SDB_DRIVER_BSON_ERROR ;
+      PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+      goto error ;
+   }
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 INT32 csvParser::_appendBson( void *bsonObj, _fieldData *pFieldData )
@@ -1896,52 +1924,123 @@ INT32 csvParser::_appendBson( void *bsonObj, _fieldData *pFieldData )
    switch( pFieldData->type )
    {
    case CSV_TYPE_INT:
-      bson_append_int( pObj, pFieldData->pField, pFieldData->varInt ) ;
+      rc = bson_append_int( pObj, pFieldData->pField, pFieldData->varInt ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_LONG:
-      bson_append_long( pObj, pFieldData->pField, pFieldData->varLong ) ;
+      rc = bson_append_long( pObj, pFieldData->pField, pFieldData->varLong ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_BOOL:
-      bson_append_bool( pObj, pFieldData->pField, pFieldData->varBool ) ;
+      rc = bson_append_bool( pObj, pFieldData->pField, pFieldData->varBool ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_DOUBLE:
-      bson_append_double( pObj, pFieldData->pField, pFieldData->varDouble ) ;
+      rc = bson_append_double( pObj, pFieldData->pField,
+                               pFieldData->varDouble ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_STRING:
-      bson_append_string_n( pObj, pFieldData->pField,
-                            pFieldData->pVarString, pFieldData->stringSize ) ;
+      rc = bson_append_string_n( pObj, pFieldData->pField,
+                                 pFieldData->pVarString,
+                                 pFieldData->stringSize ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_TIMESTAMP:
-      bson_append_timestamp2( pObj, pFieldData->pField,
-                              (pFieldData->varTimestamp).t,
-                              (pFieldData->varTimestamp).i ) ;
+      rc = bson_append_timestamp2( pObj, pFieldData->pField,
+                                   (pFieldData->varTimestamp).t,
+                                   (pFieldData->varTimestamp).i ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_DATE:
-      bson_append_date( pObj, pFieldData->pField, pFieldData->varLong ) ;
+      rc = bson_append_date( pObj, pFieldData->pField, pFieldData->varLong ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_NULL:
-      bson_append_null( pObj, pFieldData->pField ) ;
+      rc = bson_append_null( pObj, pFieldData->pField ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_OID:
       bson_oid_t bot ;
       bson_oid_from_string ( &bot, pFieldData->pVarString ) ;
-      bson_append_oid( pObj, pFieldData->pField, &bot ) ;
+      rc = bson_append_oid( pObj, pFieldData->pField, &bot ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_REGEX:
-      bson_append_regex( pObj, pFieldData->pField,
-                         pFieldData->varRegex.pPattern,
-                         pFieldData->varRegex.pOptions ) ;
+      rc = bson_append_regex( pObj, pFieldData->pField,
+                              pFieldData->varRegex.pPattern,
+                              pFieldData->varRegex.pOptions ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_BINARY:
-      bson_append_binary( pObj, pFieldData->pField,
-                          pFieldData->varBinary.type,
-                          pFieldData->varBinary.pStr,
-                          pFieldData->varBinary.strSize ) ;
+      rc = bson_append_binary( pObj, pFieldData->pField,
+                               pFieldData->varBinary.type,
+                               pFieldData->varBinary.pStr,
+                               pFieldData->varBinary.strSize ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    default:
       break ;
    }
+done:
    return rc ;
+error:
+   goto done ;
 }
 
 INT32 csvParser::_appendBson( void *bsonObj, const CHAR *pKey,
@@ -1952,16 +2051,40 @@ INT32 csvParser::_appendBson( void *bsonObj, const CHAR *pKey,
    switch( pValueData->type )
    {
    case CSV_TYPE_INT:
-      bson_append_int( pObj, pKey, pValueData->varInt ) ;
+      rc = bson_append_int( pObj, pKey, pValueData->varInt ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_LONG:
-      bson_append_long( pObj, pKey, pValueData->varLong ) ;
+      rc = bson_append_long( pObj, pKey, pValueData->varLong ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_BOOL:
-      bson_append_bool( pObj, pKey, pValueData->varBool ) ;
+      rc = bson_append_bool( pObj, pKey, pValueData->varBool ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_DOUBLE:
-      bson_append_double( pObj, pKey, pValueData->varDouble ) ;
+      rc = bson_append_double( pObj, pKey, pValueData->varDouble ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_STRING:
       rc = _valueEscape( pValueData->pVarString, pValueData->stringSize,
@@ -1970,38 +2093,75 @@ INT32 csvParser::_appendBson( void *bsonObj, const CHAR *pKey,
       {
          goto error ;
       }
-      bson_append_string_n( pObj, pKey,
-                            pValueData->pVarString, pValueData->stringSize ) ;
+      rc = bson_append_string_n( pObj, pKey,
+                                 pValueData->pVarString,
+                                 pValueData->stringSize ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_TIMESTAMP:
-      bson_append_timestamp2( pObj, pKey,
-                              (pValueData->varTimestamp).t,
-                              (pValueData->varTimestamp).i ) ;
+      rc = bson_append_timestamp2( pObj, pKey,
+                                   (pValueData->varTimestamp).t,
+                                   (pValueData->varTimestamp).i ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_DATE:
-      bson_append_date( pObj, pKey, pValueData->varLong ) ;
+      rc = bson_append_date( pObj, pKey, pValueData->varLong ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_NULL:
-      bson_append_null( pObj, pKey ) ;
+      rc = bson_append_null( pObj, pKey ) ;
       break ;
    case CSV_TYPE_OID:
       bson_oid_t bot ;
       bson_oid_from_string ( &bot, pValueData->pVarString ) ;
-      bson_append_oid( pObj, pKey, &bot ) ;
+      rc = bson_append_oid( pObj, pKey, &bot ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_REGEX:
-      bson_append_regex( pObj, pKey,
-                         pValueData->varRegex.pPattern,
-                         pValueData->varRegex.pOptions ) ;
+      rc = bson_append_regex( pObj, pKey,
+                              pValueData->varRegex.pPattern,
+                              pValueData->varRegex.pOptions ) ;
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
+      }
       break ;
    case CSV_TYPE_BINARY:
-      bson_append_binary( pObj, pKey,
-                          pValueData->varBinary.type,
-                          pValueData->varBinary.pStr,
-                          pValueData->varBinary.strSize ) ;
+      rc = bson_append_binary( pObj, pKey,
+                               pValueData->varBinary.type,
+                               pValueData->varBinary.pStr,
+                               pValueData->varBinary.strSize ) ;
       if( TRUE == pValueData->varBinary.isOwnmem )
       {
          SAFE_OSS_FREE( pValueData->varBinary.pStr ) ;
+      }
+      if( rc )
+      {
+         rc = SDB_DRIVER_BSON_ERROR ;
+         PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+         goto error ;
       }
    default:
       break ;
@@ -2283,7 +2443,13 @@ the field appears delChar, rc = %d", rc ) ;
       }
    }
 
-   bson_finish ( &obj ) ;
+   rc = bson_finish ( &obj ) ;
+   if( rc )
+   {
+      rc = SDB_DRIVER_BSON_ERROR ;
+      PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+      goto error ;
+   }
    bsonsize = *((INT32*)obj.data) ;
    if ( bsonsize < 0 )
    {
@@ -2325,8 +2491,20 @@ INT32 csvParser::csv2bson( CHAR *pBuffer, INT32 size, void *pbson )
    }
    obj.ownmem = 0 ;
    obj.data = NULL ;
-   bson_init_finished_data ( &obj, pBsonBuf ) ;
-   bson_copy ( pObj, &obj ) ;
+   rc = bson_init_finished_data ( &obj, pBsonBuf ) ;
+   if( rc )
+   {
+      rc = SDB_DRIVER_BSON_ERROR ;
+      PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+      goto error ;
+   }
+   rc = bson_copy ( pObj, &obj ) ;
+   if( rc )
+   {
+      rc = SDB_DRIVER_BSON_ERROR ;
+      PD_LOG ( PDERROR, "Failed to build bson object" ) ;
+      goto error ;
+   }
    SAFE_OSS_FREE ( pBsonBuf ) ;
 done:
    return rc ;

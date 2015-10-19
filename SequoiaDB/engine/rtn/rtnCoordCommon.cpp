@@ -53,6 +53,17 @@ using namespace bson;
 
 namespace engine
 {
+   /*
+      Local define
+   */
+   #define RTN_COORD_RSP_WAIT_TIME        1000     //1s
+   #define RTN_COORD_RSP_WAIT_TIME_QUICK  10       //10ms
+
+   /*
+      Local function define
+   */
+
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOCATAQUERY, "rtnCoordCataQuery" )
    INT32 rtnCoordCataQuery ( const CHAR *pCollectionName,
                              const BSONObj &selector,
@@ -290,14 +301,16 @@ namespace engine
                             REPLY_QUE &replyQue, const SINT32 opCode,
                             BOOLEAN isWaitAll, BOOLEAN clearReplyIfFailed )
    {
-      INT32 rc = SDB_OK;
-      ossQueue<pmdEDUEvent> tmpQue;
+      INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB_RTNCOGETREPLY ) ;
-      REQUESTID_MAP::iterator iterMap;
-      INT64 waitTime = RTN_COORD_RSP_WAIT_TIME;
+
+      ossQueue<pmdEDUEvent> tmpQue ;
+      REQUESTID_MAP::iterator iterMap ;
+      INT64 waitTime = RTN_COORD_RSP_WAIT_TIME ;
+
       while ( requestIdMap.size() > 0 )
       {
-         pmdEDUEvent pmdEvent;
+         pmdEDUEvent pmdEvent ;
          BOOLEAN isGotMsg = cb->waitEvent( pmdEvent, waitTime ) ;
          PD_CHECK( !cb->isInterrupted() && !cb->isForced(),
                    SDB_APP_INTERRUPT, error, PDERROR,
@@ -307,144 +320,151 @@ namespace engine
          {
             if ( !isWaitAll && !replyQue.empty() )
             {
-               break;
+               break ;
             }
             else
             {
-               continue;
+               continue ;
             }
          }
 
          if ( pmdEvent._eventType != PMD_EDU_EVENT_MSG )
          {
-            PD_LOG ( PDWARNING, "received unknown event(eventType:%d)",
+            PD_LOG ( PDWARNING, "Received unknown event(eventType:%d)",
                      pmdEvent._eventType ) ;
             pmdEduEventRelase( pmdEvent, cb ) ;
             pmdEvent.reset () ;
             continue;
          }
-         MsgHeader *pMsg = (MsgHeader *)(pmdEvent._Data);
-         if ( NULL == pMsg )
+         MsgHeader *pReply = (MsgHeader *)(pmdEvent._Data) ;
+         if ( NULL == pReply )
          {
-            PD_LOG ( PDWARNING, "received invalid event(data is null)" );
-            continue;
+            PD_LOG ( PDWARNING, "Received invalid event(data is null)" );
+            continue ;
          }
 
-         if ( MSG_COOR_REMOTE_DISC == pMsg->opCode )
+         if ( MSG_COOR_REMOTE_DISC == pReply->opCode )
          {
             MsgRouteID routeID;
-            routeID.value = pMsg->routeID.value;
-            if ( cb->isTransNode( routeID ))
+            routeID.value = pReply->routeID.value;
+            if ( cb->isTransNode( routeID ) )
             {
-               cb->setTransRC( SDB_COORD_REMOTE_DISC );
-               PD_LOG ( PDERROR,
-                        "transaction operation interrupt, "
-                        "remote-node disconnected:"
-                        "groupID=%u, nodeID=%u, serviceID=%u",
-                        routeID.columns.groupID,
-                        routeID.columns.nodeID,
-                        routeID.columns.serviceID );
+               cb->setTransRC( SDB_COORD_REMOTE_DISC ) ;
+               PD_LOG ( PDERROR, "Transaction operation interrupt, "
+                        "remote-node[%s] disconnected",
+                        routeID2String( routeID ).c_str() ) ;
             }
 
-            iterMap = requestIdMap.begin();
+            iterMap = requestIdMap.begin() ;
             while ( iterMap != requestIdMap.end() )
             {
                if ( iterMap->second.value == routeID.value )
                {
-                  break;
+                  break ;
                }
-               ++iterMap;
+               ++iterMap ;
             }
-            if ( iterMap != requestIdMap.end()
-               && iterMap->first <= pMsg->requestID )
+            if ( iterMap != requestIdMap.end() &&
+                 iterMap->first <= pReply->requestID )
             {
+               PD_LOG ( PDERROR, "Get reply failed, remote-node[%s] "
+                        "disconnected",
+                        routeID2String( iterMap->second ).c_str() ) ;
 
-               PD_LOG ( PDERROR,
-                     "get reply failed, remote-node disconnected:"
-                     "groupID=%u, nodeID=%u, serviceID=%u",
-                     iterMap->second.columns.groupID,
-                     iterMap->second.columns.nodeID,
-                     iterMap->second.columns.serviceID );
-               MsgOpReply *pDiscSrc = ( MsgOpReply *)(pmdEvent._Data);
-               MsgOpReply *pDiscMsg = NULL;
-               pDiscMsg = (MsgOpReply *)SDB_OSS_MALLOC( pDiscSrc->header.messageLength );
+               MsgHeader *pDiscMsg = NULL ;
+               pDiscMsg = (MsgHeader *)SDB_OSS_MALLOC( pReply->messageLength ) ;
                if ( NULL == pDiscMsg )
                {
-                  rc = rc ? rc : SDB_OOM;
-                  PD_LOG( PDERROR, "malloc failed(size=%d)", sizeof(MsgOpReply) );
+                  rc = SDB_OOM ;
+                  PD_LOG( PDERROR, "Malloc failed(size=%d)",
+                          pReply->messageLength ) ;
+                  goto error ;
                }
                else
                {
-                  ossMemcpy( (CHAR *)pDiscMsg, (CHAR *)pDiscSrc,
-                              pDiscSrc->header.messageLength );
-                  replyQue.push( (CHAR *)pDiscMsg );
+                  ossMemcpy( (CHAR *)pDiscMsg, (CHAR *)pReply,
+                              pReply->messageLength );
+                  replyQue.push( (CHAR *)pDiscMsg ) ;
                }
-               cb->getCoordSession()->delRequest( iterMap->first );
-               requestIdMap.erase( iterMap );
+               cb->getCoordSession()->delRequest( iterMap->first ) ;
+               requestIdMap.erase( iterMap ) ;
             }
-            if ( cb->getCoordSession()->isValidResponse( routeID, pMsg->requestID ))
+            if ( cb->getCoordSession()->isValidResponse( routeID,
+                                                         pReply->requestID ) )
             {
                tmpQue.push( pmdEvent );
             }
             else
             {
-               SDB_OSS_FREE ( pmdEvent._Data );
+               SDB_OSS_FREE ( pmdEvent._Data ) ;
                pmdEvent.reset () ;
             }
-            continue;
-         }
-         MsgHeader *pReply = ( MsgHeader *)(pmdEvent._Data);
+            continue ;
+         } // if ( MSG_COOR_REMOTE_DISC == pReply->opCode )
 
-         if ( opCode != pReply->opCode
-            || ( iterMap=requestIdMap.find( pReply->requestID ))
-                           == requestIdMap.end() )
+         iterMap = requestIdMap.find( pReply->requestID ) ;
+         if ( iterMap == requestIdMap.end() )
          {
-            if ( cb->getCoordSession()->isValidResponse( pReply->requestID ))
+            if ( cb->getCoordSession()->isValidResponse( pReply->requestID ) )
             {
-               tmpQue.push( pmdEvent );
+               tmpQue.push( pmdEvent ) ;
             }
             else
             {
-               PD_LOG ( PDWARNING, 
-                        "received unexpected msg(opCode=%[%d]%d,"
-                        "expectOpCode=[%d]%d,"
-                        "groupID=%u, nodeID=%u, serviceID=%u)",
+               PD_LOG ( PDWARNING, "Received expired or unexpected msg( "
+                        "opCode=[%d]%d, expectOpCode=[%d]%d, requestID=%lld, "
+                        "TID=%d) from node[%s]",
                         IS_REPLY_TYPE( pReply->opCode ),
                         GET_REQUEST_TYPE( pReply->opCode ),
                         IS_REPLY_TYPE( opCode ),
                         GET_REQUEST_TYPE( opCode ),
-                        pReply->routeID.columns.groupID,
-                        pReply->routeID.columns.nodeID,
-                        pReply->routeID.columns.serviceID );
-               SDB_OSS_FREE( pReply );
+                        pReply->requestID, pReply->TID,
+                        routeID2String( pReply->routeID ).c_str() ) ;
+               SDB_OSS_FREE( pReply ) ;
             }
          }
          else
          {
-            PD_LOG ( PDDEBUG, "received the reply("
-                     " opCode=[%d]%d, requestID=%llu, TID=%u, "
-                     "groupID=%u, nodeID=%u, serviceID=%u )",
-                     IS_REPLY_TYPE( pReply->opCode ),
-                     GET_REQUEST_TYPE( pReply->opCode ),
-                     pReply->requestID, pReply->TID,
-                     pReply->routeID.columns.groupID,
-                     pReply->routeID.columns.nodeID,
-                     pReply->routeID.columns.serviceID );
+            if ( opCode != pReply->opCode ||
+                 pReply->routeID.value != iterMap->second.value )
+            {
+               PD_LOG ( PDWARNING, "Received unexpected msg(opCode=[%d]%d,"
+                        "requestID=%lld, TID=%d, expectOpCode=[%d]%d, "
+                        "expectNode=%s) from node[%s]",
+                        IS_REPLY_TYPE( pReply->opCode ),
+                        GET_REQUEST_TYPE( pReply->opCode ),
+                        pReply->requestID, pReply->TID,
+                        IS_REPLY_TYPE( opCode ),
+                        GET_REQUEST_TYPE( opCode ),
+                        routeID2String( iterMap->second ).c_str(),
+                        routeID2String( pReply->routeID ).c_str() ) ;
+            }
+            else
+            {
+               PD_LOG ( PDDEBUG , "Received the reply(opCode=[%d]%d, "
+                        "requestID=%llu, TID=%u) from node[%s]",
+                        IS_REPLY_TYPE( pReply->opCode ),
+                        GET_REQUEST_TYPE( pReply->opCode ),
+                        pReply->requestID, pReply->TID,
+                        routeID2String( pReply->routeID ).c_str() ) ;
+            }
 
-            requestIdMap.erase(iterMap);
-            cb->getCoordSession()->delRequest( pReply->requestID );
-            replyQue.push( (CHAR *)( pmdEvent._Data ));
+            requestIdMap.erase( iterMap ) ;
+            cb->getCoordSession()->delRequest( pReply->requestID ) ;
+            replyQue.push( (CHAR *)( pmdEvent._Data ) ) ;
             pmdEvent.reset () ;
             if ( !isWaitAll )
             {
-               waitTime = RTN_COORD_RSP_WAIT_TIME_QUICK;
+               waitTime = RTN_COORD_RSP_WAIT_TIME_QUICK ;
             }
-         }
-      }
+         } // if ( iterMap == requestIdMap.end() )
+      } // while ( requestIdMap.size() > 0 )
+
       if ( rc )
       {
          goto error;
       }
+
    done:
       while( !tmpQue.empty() )
       {
@@ -464,14 +484,14 @@ namespace engine
             SDB_OSS_FREE( pData );
          }
       }
-      rtnCoordClearRequest( cb, requestIdMap );
+      rtnCoordClearRequest( cb, requestIdMap ) ;
       goto done;
    }
 
-   PD_TRACE_DECLARE_FUNCTION ( SDB_GETSERVNAME, "getServiceName" )
+   // PD_TRACE_DECLARE_FUNCTION ( SDB_GETSERVNAME, "getServiceName" )
    INT32 getServiceName ( BSONElement &beService,
-                                 INT32 serviceType,
-                                 std::string &strServiceName )
+                          INT32 serviceType,
+                          std::string &strServiceName )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_GETSERVNAME ) ;
@@ -567,7 +587,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOGETLOCALCATA, "rtnCoordGetLocalCata" )
    INT32 rtnCoordGetLocalCata( const CHAR *pCollectionName,
-                                         CoordCataInfoPtr &cataInfo )
+                               CoordCataInfoPtr &cataInfo )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOGETLOCALCATA ) ;
@@ -580,8 +600,8 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOGETREMOTECATA, "rtnCoordGetRemoteCata" )
    INT32 rtnCoordGetRemoteCata( pmdEDUCB *cb,
-                              const CHAR *pCollectionName,
-                              CoordCataInfoPtr &cataInfo )
+                                const CHAR *pCollectionName,
+                                CoordCataInfoPtr &cataInfo )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOGETREMOTECATA ) ;
@@ -652,7 +672,7 @@ namespace engine
          }
          REPLY_QUE replyQue;
          rc = rtnCoordGetReply( cb, sendNodes, replyQue,
-                        MSG_CAT_QUERY_CATALOG_RSP );
+                                MSG_CAT_QUERY_CATALOG_RSP );
          if ( rc != SDB_OK )
          {
             PD_LOG ( PDERROR,"Failed to get reply from catalogue-node(rc=%d)",
@@ -692,6 +712,16 @@ namespace engine
          {
             isNeedRefresh = TRUE;
             continue;
+         }
+         else if ( rc )
+         {
+            PD_LOG( PDWARNING, "Get catalog info[%s] from remote failed, rc: %d",
+                    pCollectionName, rc ) ;
+            if ( ( SDB_DMS_NOTEXIST == rc || SDB_DMS_EOC == rc ) &&
+                 pCoordcb->isSubCollection( pCollectionName ) )
+            {
+               rc = SDB_CLS_COORD_NODE_CAT_VER_OLD ;
+            }
          }
          break;
       }while ( TRUE );
@@ -1096,13 +1126,13 @@ namespace engine
                else
                {
                   PD_LOG( PDWARNING, "received unexpected message"
-                        "(opCode=[%d]%d, requestID=%llu, TID=%u, "
-                        "groupID=%u, nodeID=%u, serviceID=%u )",
-                        pMsg->opCode>>31&0x01, pMsg->opCode&0x7fffffff,
-                        pMsg->requestID, pMsg->TID,
-                        pMsg->routeID.columns.groupID,
-                        pMsg->routeID.columns.nodeID,
-                        pMsg->routeID.columns.serviceID );
+                          "(opCode=[%d]%d, requestID=%llu, TID=%u, "
+                          "groupID=%u, nodeID=%u, serviceID=%u )",
+                          pMsg->opCode>>31&0x01, pMsg->opCode&0x7fffffff,
+                          pMsg->requestID, pMsg->TID,
+                          pMsg->routeID.columns.groupID,
+                          pMsg->routeID.columns.nodeID,
+                          pMsg->routeID.columns.serviceID );
                   SDB_OSS_FREE( pMsg );
                }
                continue;
@@ -1358,12 +1388,12 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNCOSENDREQUESTTONODEWITHOUTCHECK ) ;
       rc = pRouteAgent->syncSendWithoutCheck( routeID, pBuffer, reqID, cb );
       PD_RC_CHECK ( rc, PDERROR,
-                  "failed to send the request to node"
-                  "(groupID=%u, nodeID=%u, serviceID=%u, rc=%d)",
-                  routeID.columns.groupID,
-                  routeID.columns.nodeID,
-                  routeID.columns.serviceID,
-                  rc );
+                    "Failed to send the request to node"
+                    "(groupID=%u, nodeID=%u, serviceID=%u, rc=%d)",
+                    routeID.columns.groupID,
+                    routeID.columns.nodeID,
+                    routeID.columns.serviceID,
+                    rc );
       sendNodes[ reqID ] = routeID;
    done:
       PD_TRACE_EXITRC ( SDB_RTNCOSENDREQUESTTONODEWITHOUTCHECK, rc ) ;
@@ -1382,12 +1412,12 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNCOSENDREQUESTTONODEWITHOUTREPLY ) ;
       rc = pRouteAgent->syncSend( routeID, pBuffer, reqID, NULL );
       PD_RC_CHECK ( rc, PDERROR,
-                  "failed to send the request to node"
-                  "(groupID=%u, nodeID=%u, serviceID=%u, rc=%d)",
-                  routeID.columns.groupID,
-                  routeID.columns.nodeID,
-                  routeID.columns.serviceID,
-                  rc );
+                    "Failed to send the request to node"
+                    "(groupID=%u, nodeID=%u, serviceID=%u, rc=%d)",
+                    routeID.columns.groupID,
+                    routeID.columns.nodeID,
+                    routeID.columns.serviceID,
+                    rc );
    done:
       PD_TRACE_EXITRC ( SDB_RTNCOSENDREQUESTTONODEWITHOUTREPLY, rc ) ;
       return rc;
@@ -1407,12 +1437,12 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNCOSENDREQUESTTONODE ) ;
       rc = pRouteAgent->syncSend( routeID, pBuffer, reqID, cb );
       PD_RC_CHECK ( rc, PDERROR,
-                  "failed to send the request to node"
-                  "(groupID=%u, nodeID=%u, serviceID=%u, rc=%d)",
-                  routeID.columns.groupID,
-                  routeID.columns.nodeID,
-                  routeID.columns.serviceID,
-                  rc );
+                    "Failed to send the request to node"
+                    "(groupID=%u, nodeID=%u, serviceID=%u, rc=%d)",
+                    routeID.columns.groupID,
+                    routeID.columns.nodeID,
+                    routeID.columns.serviceID,
+                    rc );
       sendNodes[ reqID ] = routeID;
    done:
       PD_TRACE_EXITRC ( SDB_RTNCOSENDREQUESTTONODE, rc ) ;
@@ -1434,12 +1464,12 @@ namespace engine
       PD_TRACE_ENTRY ( SDB_RTNCOSENDREQUESTTONODE2 ) ;
       rc = pRouteAgent->syncSend( routeID, ( MsgHeader *)pBuffer, iov, reqID, cb );
       PD_RC_CHECK ( rc, PDERROR,
-                  "failed to send the request to node"
-                  "(groupID=%u, nodeID=%u, serviceID=%u, rc=%d)",
-                  routeID.columns.groupID,
-                  routeID.columns.nodeID,
-                  routeID.columns.serviceID,
-                  rc );
+                    "Failed to send the request to node"
+                    "(groupID=%u, nodeID=%u, serviceID=%u, rc=%d)",
+                    routeID.columns.groupID,
+                    routeID.columns.nodeID,
+                    routeID.columns.serviceID,
+                    rc );
       sendNodes[ reqID ] = routeID;
    done:
       PD_TRACE_EXITRC ( SDB_RTNCOSENDREQUESTTONODE2, rc ) ;
@@ -1539,13 +1569,13 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOSENDREQUESTTONODEGROUPS2, "rtnCoordSendRequestToNodeGroups" )
    INT32 rtnCoordSendRequestToNodeGroups( MsgHeader *pBuffer,
-                                  CoordGroupList &groupLst,
-                                  BOOLEAN isSendPrimary,
-                                  netMultiRouteAgent *pRouteAgent,
-                                  pmdEDUCB *cb,
-                                  const netIOVec &iov,
-                                  REQUESTID_MAP &sendNodes,
-                                  MSG_ROUTE_SERVICE_TYPE type )
+                                          CoordGroupList &groupLst,
+                                          BOOLEAN isSendPrimary,
+                                          netMultiRouteAgent *pRouteAgent,
+                                          pmdEDUCB *cb,
+                                          const netIOVec &iov,
+                                          REQUESTID_MAP &sendNodes,
+                                          MSG_ROUTE_SERVICE_TYPE type )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY( SDB_RTNCOSENDREQUESTTONODEGROUPS2 ) ;
@@ -1578,8 +1608,8 @@ namespace engine
                                          netMultiRouteAgent *pRouteAgent,
                                          pmdEDUCB *cb,
                                          const netIOVec &iov,
-                                          REQUESTID_MAP &sendNodes,
-                                          MSG_ROUTE_SERVICE_TYPE type )
+                                         REQUESTID_MAP &sendNodes,
+                                         MSG_ROUTE_SERVICE_TYPE type )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOSENDREQUESTTONODEGROUP2 ) ;
@@ -1641,25 +1671,36 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOSENDREQUESTTOPRIMARY ) ;
-      MsgRouteID primaryRouteID = groupInfo->getPrimary( type );
+      CoordSession *pSession  = cb->getCoordSession() ;
+      MsgRouteID primaryRouteID = groupInfo->getPrimary( type ) ;
+	  MsgHeader *pMsg = ( MsgHeader* )pBuffer ;
+
       if ( primaryRouteID.value != 0 )
       {
          UINT64 reqID = 0;
          rc = pRouteAgent->syncSend( primaryRouteID, pBuffer, reqID, cb );
          if ( rc != SDB_OK )
          {
-            groupInfo->setSlave( primaryRouteID );
-            PD_LOG ( PDWARNING, "Failed to send the request to primary(rc=%d)",
-                     rc );
+            groupInfo->setSlave( primaryRouteID ) ;
+
+            PD_LOG ( PDWARNING, "Failed to send the request[opCode: %d, TID: %u] to "
+                     "group[%u]'s primary node[%s], rc: %d",
+                     pMsg->opCode, pMsg->TID, groupInfo->getGroupID(),
+                     routeID2String( primaryRouteID ).c_str(),
+                     rc ) ;
          }
          else
          {
             sendNodes[reqID] = primaryRouteID ;
+            if ( pSession )
+            {
+               pSession->addLastNode( primaryRouteID ) ;
+            }
          }
       }
       else
       {
-         rc = SDB_RTN_NO_PRIMARY_FOUND;
+         rc = SDB_RTN_NO_PRIMARY_FOUND ;
       }
       PD_TRACE_EXITRC ( SDB_RTNCOSENDREQUESTTOPRIMARY, rc ) ;
       return rc;
@@ -1676,25 +1717,37 @@ namespace engine
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOSENDREQUESTTOPRIMARY2 ) ;
+      CoordSession *pSession  = cb->getCoordSession() ;
       MsgRouteID primaryRouteID = groupInfo->getPrimary( type );
+
       if ( primaryRouteID.value != 0 )
       {
          UINT64 reqID = 0;
          rc = pRouteAgent->syncSend( primaryRouteID, pBuffer, iov, reqID, cb );
          if ( rc != SDB_OK )
          {
-            groupInfo->setSlave( primaryRouteID );
-            PD_LOG ( PDWARNING, "Failed to send the request to primary(rc=%d)",
-                     rc );
+            groupInfo->setSlave( primaryRouteID ) ;
+
+            PD_LOG ( PDWARNING, "Failed to send the request[opCode: %d, TID: %u] to "
+                     "group[%u]'s primary node[%s], rc: %d",
+                     pBuffer->opCode, pBuffer->TID, groupInfo->getGroupID(),
+                     routeID2String( primaryRouteID ).c_str(),
+                     rc ) ;
          }
          else
          {
             sendNodes[reqID] = primaryRouteID ;
+            if ( pSession )
+            {
+               pSession->addLastNode( primaryRouteID ) ;
+            }
          }
       }
       else
       {
          rc = SDB_RTN_NO_PRIMARY_FOUND;
+         PD_LOG( PDERROR, "group[%d] does not have primary in catalog info",
+                 groupInfo->getGroupID() ) ;
       }
       PD_TRACE_EXITRC ( SDB_RTNCOSENDREQUESTTOPRIMARY2, rc ) ;
       return rc;
@@ -1702,9 +1755,9 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOGETNODEPOS, "rtnCoordGetNodePos" )
    INT32 rtnCoordGetNodePos( pmdEDUCB *cb,
-                           const CoordGroupInfoPtr &groupInfo,
-                           UINT32 random,
-                           UINT32 &pos )
+                             const CoordGroupInfoPtr &groupInfo,
+                             UINT32 random,
+                             UINT32 &pos )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOGETNODEPOS ) ;
@@ -1793,7 +1846,7 @@ namespace engine
                }
                else
                {
-                  pSession->removeLastNode(groupInfo->getGroupID());
+                  pSession->removeLastNode( groupInfo->getGroupID() ) ;
                }
             }
          }
@@ -1816,18 +1869,17 @@ namespace engine
          rc = rtnCoordGetNodePos( cb, groupInfo, pHeader->TID, beginPos );
          if ( rc )
          {
-            PD_LOG( PDERROR,
-                  "failed to send the request(rc=%d)",
-                  rc );
+            PD_LOG( PDERROR, "Failed to send the request(rc=%d)",
+                    rc );
             break;
          }
 
          UINT32 i = 0;
          while ( i != nodeNum )
          {
-            if ( i + 1 == nodeNum
-               && PREFER_REPL_ANYONE != preferReplicaType
-               && PREFER_REPL_MASTER != preferReplicaType )
+            if ( i + 1 == nodeNum &&
+                 PREFER_REPL_ANYONE != preferReplicaType &&
+                 PREFER_REPL_MASTER != preferReplicaType )
             {
                routeID = groupItem->primary( type );
                if ( MSG_INVALID_ROUTEID == routeID.value )
@@ -1845,9 +1897,9 @@ namespace engine
             }
             else
             {
-               if ( PREFER_REPL_ANYONE != preferReplicaType
-                  && PREFER_REPL_MASTER != preferReplicaType
-                  && beginPos == groupItem->getPrimaryPos() )
+               if ( PREFER_REPL_ANYONE != preferReplicaType &&
+                    PREFER_REPL_MASTER != preferReplicaType &&
+                    beginPos == groupItem->getPrimaryPos() )
                {
                   beginPos = ( beginPos + 1 ) % nodeNum ;
                   continue;
@@ -1859,8 +1911,8 @@ namespace engine
                }
             }
             SINT32 status = NET_NODE_STAT_NORMAL ;
-            if ( SDB_OK == groupItem->getNodeInfo( beginPos, status )
-               && NET_NODE_STAT_NORMAL == status )
+            if ( SDB_OK == groupItem->getNodeInfo( beginPos, status ) &&
+                 NET_NODE_STAT_NORMAL == status )
             {
                rc = pRouteAgent->syncSend( routeID, pBuffer, reqID, cb ) ;
             }
@@ -1957,9 +2009,8 @@ namespace engine
          rc = rtnCoordGetNodePos( cb, groupInfo, pHeader->TID, beginPos );
          if ( rc )
          {
-            PD_LOG( PDERROR,
-                  "failed to send the request(rc=%d)",
-                  rc );
+            PD_LOG( PDERROR, "Failed to send the request(rc=%d)",
+                    rc ) ;
             break;
          }
 
@@ -2053,7 +2104,6 @@ namespace engine
       routeID.value = MSG_INVALID_ROUTEID ;
       CoordSession *pSession = cb->getCoordSession();
 
-
       PD_CHECK( pSession, SDB_SYS, error, PDERROR,
                 "Not found the session[%d]", pHeader->TID ) ;
 
@@ -2077,13 +2127,17 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOPROCESSGETGROUPREPLY, "rtnCoordProcessGetGroupReply" )
    INT32 rtnCoordProcessGetGroupReply ( MsgCatGroupRes *pReply,
-                                       CoordGroupInfoPtr &groupInfo )
+                                        CoordGroupInfoPtr &groupInfo )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOPROCESSGETGROUPREPLY ) ;
       do
       {
-         if ( SDB_OK == pReply->header.res &&
+         if ( MSG_COOR_REMOTE_DISC == pReply->header.header.opCode )
+         {
+            rc = SDB_NETWORK_CLOSE ;
+         }
+         else if ( SDB_OK == pReply->header.res &&
               pReply->header.header.messageLength >=
               (INT32)sizeof(MsgCatGroupRes)+5 )
          {
@@ -2139,7 +2193,7 @@ namespace engine
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_RTNCOPROCESSQUERYCATREPLY, "rtnCoordProcessQueryCatReply" )
    INT32 rtnCoordProcessQueryCatReply ( MsgCatQueryCatRsp *pReply,
-                                       CoordCataInfoPtr &cataInfo )
+                                        CoordCataInfoPtr &cataInfo )
    {
       INT32 rc = SDB_OK;
       PD_TRACE_ENTRY ( SDB_RTNCOPROCESSQUERYCATREPLY ) ;
@@ -2375,7 +2429,7 @@ namespace engine
    }
 
    INT32 rtnCoordReadALine( const CHAR *&pInput,
-                           CHAR *pOutput )
+                            CHAR *pOutput )
    {
       INT32 rc = SDB_OK;
       while( *pInput != 0x0D && *pInput != 0x0A
@@ -2399,7 +2453,6 @@ namespace engine
       }
    }
 
-
    INT32 rtnCoordGetSubCLsByGroups( const CoordSubCLlist &subCLList,
                                     const CoordGroupList &sendGroupList,
                                     pmdEDUCB *cb,
@@ -2418,8 +2471,8 @@ namespace engine
          rc = rtnCoordGetCataInfo( cb, (*iterCL).c_str(),
                                  FALSE, cataInfo );
          PD_RC_CHECK( rc, PDWARNING,
-                     "failed to get catalog info of sub-collection(%s)",
-                     (*iterCL).c_str() );
+                      "Failed to get catalog info of sub-collection(%s)",
+                      (*iterCL).c_str() );
          if ( NULL == query || query->isEmpty() )
          {
             cataInfo->getGroupLst( groupList );
@@ -2450,7 +2503,6 @@ namespace engine
    error:
       goto done;
    }
-
 
    INT32 rtnCoordParseGroupList( pmdEDUCB *cb,
                                  const BSONObj &obj,
@@ -2740,6 +2792,7 @@ namespace engine
                                     INT32 retCode )
    {
       INT32 rc = SDB_OK;
+      PD_TRACE_ENTRY ( SDB_RTNCOUPNODESTATBYRC ) ;
       CoordGroupInfoPtr groupInfo;
       clsGroupItem *groupItem;
       NET_NODE_STATUS status = NET_NODE_STAT_NORMAL;
@@ -2765,7 +2818,7 @@ namespace engine
             }
       }
       rc = rtnCoordGetLocalGroupInfo( routeID.columns.groupID,
-                                    groupInfo );
+                                      groupInfo ) ;
       if ( SDB_OK != rc )
       {
          goto done;
@@ -2774,6 +2827,7 @@ namespace engine
       groupItem->updateNodeStat( routeID.columns.nodeID,
                                  status );
    done:
+      PD_TRACE_EXIT ( SDB_RTNCOUPNODESTATBYRC ) ;
       return ;
    }
 
@@ -2787,7 +2841,8 @@ namespace engine
            SDB_NET_CANNOT_CONNECT == retCode ||
            SDB_CLS_GRP_NOT_EXIST == retCode ||
            SDB_CLS_NODE_NOT_EXIST == retCode ||
-           SDB_CAT_NO_MATCH_CATALOG == retCode )
+           SDB_CAT_NO_MATCH_CATALOG == retCode ||
+           SDB_RTN_NO_PRIMARY_FOUND == retCode )
       {
          return TRUE ;
       }

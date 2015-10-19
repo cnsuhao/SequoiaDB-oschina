@@ -156,8 +156,10 @@ namespace engine
                _currentTuple.clear() ;
                SDB_ASSERT( 0 == _lastDataSz, "must be zero" ) ;
             }
-
-            _currentTuple = _pool[_current] ;
+            else
+            {
+               _currentTuple = _pool.at(_current) ;
+            }
          }
          else
          {
@@ -209,7 +211,7 @@ namespace engine
       }
 #endif
       _current = 0 ;
-      _currentTuple = _pool[_current ] ;
+      _currentTuple = _pool.at(_current) ;
       PD_TRACE_EXIT( SDB_RTNLOBDATAPOOL_PUSHDONE ) ;
       return ;
    }

@@ -76,6 +76,9 @@ namespace engine
          void           setRestTimeout( INT32 timeout ) { _restTimeout = timeout ; }
          void           setRSManager( pmdRemoteSessionMgr *pRSManager ) ;
 
+         void           registerNet( _netFrame *pNetFrame ) ;
+         void           unregNet( _netFrame *pNetFrame ) ;
+
          restAdaptor*   getRestAdptor() { return &_restAdptor ; }
          pmdRemoteSessionMgr* getRSManager() { return _pRSManager ; }
 
@@ -105,7 +108,7 @@ namespace engine
          virtual void  registerCB( SDB_ROLE dbrole ) ;
 
       private:
-         INT32 initForeignModule( const CHAR *strName ) ;
+         INT32 initForeignModule( const CHAR *moduleName ) ;
          INT32 activeForeignModule() ;
          void  finishForeignModule() ;
 
@@ -133,6 +136,8 @@ namespace engine
 
          restAdaptor                            _restAdptor ;
          pmdRemoteSessionMgr                    *_pRSManager ;
+
+         vector< _netFrame* >                   _vecMonNets ;
 
    } ;
    typedef _pmdController pmdController ;

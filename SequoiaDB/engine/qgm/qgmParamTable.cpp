@@ -112,7 +112,7 @@ namespace engine
 
       bPair.obj = builder.obj() ;
       _const.push_back(  bPair ) ;
-      _qgmBsonPair &p =  _const.at( _const.size() -1 ) ;
+      _qgmBsonPair &p = *( _const.rbegin() ) ;
       p.ele = p.obj.firstElement() ;
       out = &(p.ele) ;
       }
@@ -141,7 +141,7 @@ namespace engine
       {
          bPair.obj = obj ;
          _const.push_back( bPair ) ;
-         _qgmBsonPair &p =  _const.at( _const.size() -1 ) ;
+         _qgmBsonPair &p = *( _const.rbegin() ) ;
          p.ele = p.obj.firstElement() ;
          out = &(p.ele) ;
       }

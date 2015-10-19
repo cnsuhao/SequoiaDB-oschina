@@ -168,49 +168,68 @@ static INT32 _ossEnumFiles( const string &dirPath,
    INT32 rc = SDB_OK ;
    const CHAR *pFind = NULL ;
 
-   fs::path dbDir ( dirPath ) ;
-   fs::directory_iterator end_iter ;
-
-   if ( 0 == deep )
+   try
    {
-      goto done ;
-   }
+      fs::path dbDir ( dirPath ) ;
+      fs::directory_iterator end_iter ;
 
-   if ( fs::exists ( dbDir ) && fs::is_directory ( dbDir ) )
-   {
-      for ( fs::directory_iterator dir_iter ( dbDir );
-            dir_iter != end_iter; ++dir_iter )
+      if ( 0 == deep )
       {
-         if ( fs::is_regular_file ( dir_iter->status() ) )
-         {
-            const std::string fileName =
-               dir_iter->path().filename().string() ;
+         goto done ;
+      }
 
-            if ( ( OSS_MATCH_NULL == type ) ||
-                 ( OSS_MATCH_LEFT == type &&
-                   0 == ossStrncmp( fileName.c_str(), filter, filterLen ) ) ||
-                 ( OSS_MATCH_MID == type &&
-                   ossStrstr( fileName.c_str(), filter ) ) ||
-                 ( OSS_MATCH_RIGHT == type &&
-                   ( pFind = ossStrstr( fileName.c_str(), filter ) ) &&
-                   pFind[filterLen] == 0 ) ||
-                 ( OSS_MATCH_ALL == type &&
-                   0 == ossStrcmp( fileName.c_str(), filter ) )
-               )
+      if ( fs::exists ( dbDir ) && fs::is_directory ( dbDir ) )
+      {
+         for ( fs::directory_iterator dir_iter ( dbDir );
+               dir_iter != end_iter; ++dir_iter )
+         {
+            try
             {
-               mapFiles[ fileName ] = dir_iter->path().string() ;
+               if ( fs::is_regular_file ( dir_iter->status() ) )
+               {
+                  const std::string fileName =
+                     dir_iter->path().filename().string() ;
+
+                  if ( ( OSS_MATCH_NULL == type ) ||
+                       ( OSS_MATCH_LEFT == type &&
+                         0 == ossStrncmp( fileName.c_str(), filter,
+                                          filterLen ) ) ||
+                       ( OSS_MATCH_MID == type &&
+                         ossStrstr( fileName.c_str(), filter ) ) ||
+                       ( OSS_MATCH_RIGHT == type &&
+                         ( pFind = ossStrstr( fileName.c_str(), filter ) ) &&
+                         pFind[filterLen] == 0 ) ||
+                       ( OSS_MATCH_ALL == type &&
+                         0 == ossStrcmp( fileName.c_str(), filter ) )
+                     )
+                  {
+                     mapFiles[ fileName ] = dir_iter->path().string() ;
+                  }
+               }
+               else if ( fs::is_directory( dir_iter->path() ) && deep > 1 )
+               {
+                  _ossEnumFiles( dir_iter->path().string(), mapFiles,
+                                 filter, filterLen, type, deep - 1 ) ;
+               }
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDWARNING, "File or dir[%s] occur exception: %s",
+                       dir_iter->path().string().c_str(),
+                       e.what() ) ;
             }
          }
-         else if ( fs::is_directory( dir_iter->path() ) && deep > 1 )
-         {
-            _ossEnumFiles( dir_iter->path().string(), mapFiles,
-                           filter, filterLen, type, deep - 1 ) ;
-         }
+      }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
       }
    }
-   else
+   catch( std::exception &e )
    {
-      rc = SDB_INVALIDARG ;
+      PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      rc = SDB_SYS ;
       goto error ;
    }
 
@@ -275,46 +294,63 @@ static INT32 _ossEnumSubDirs( const string &dirPath,
 {
    INT32 rc = SDB_OK ;
 
-   fs::path dbDir ( dirPath ) ;
-   fs::directory_iterator end_iter ;
-
-   string subDir ;
-
-   if ( 0 == deep )
+   try
    {
-      goto done ;
-   }
+      fs::path dbDir ( dirPath ) ;
+      fs::directory_iterator end_iter ;
 
-   if ( fs::exists ( dbDir ) && fs::is_directory ( dbDir ) )
-   {
-      for ( fs::directory_iterator dir_iter ( dbDir );
-            dir_iter != end_iter; ++dir_iter )
+      string subDir ;
+
+      if ( 0 == deep )
       {
-         if ( fs::is_directory( dir_iter->path() ) )
-         {
-            if ( parentSubDir.empty() )
-            {
-               subDir = dir_iter->path().leaf().string() ;
-            }
-            else
-            {
-               string subDir = parentSubDir ;
-               subDir += OSS_FILE_SEP ;
-               subDir += dir_iter->path().leaf().string() ;
-            }
-            subDirs.push_back( subDir ) ;
+         goto done ;
+      }
 
-            if ( deep > 1 )
+      if ( fs::exists ( dbDir ) && fs::is_directory ( dbDir ) )
+      {
+         for ( fs::directory_iterator dir_iter ( dbDir );
+               dir_iter != end_iter; ++dir_iter )
+         {
+            try
             {
-               _ossEnumSubDirs( dir_iter->path().string(), subDir,
-                                subDirs,deep - 1 ) ;
+               if ( fs::is_directory( dir_iter->path() ) )
+               {
+                  if ( parentSubDir.empty() )
+                  {
+                     subDir = dir_iter->path().leaf().string() ;
+                  }
+                  else
+                  {
+                     string subDir = parentSubDir ;
+                     subDir += OSS_FILE_SEP ;
+                     subDir += dir_iter->path().leaf().string() ;
+                  }
+                  subDirs.push_back( subDir ) ;
+
+                  if ( deep > 1 )
+                  {
+                     _ossEnumSubDirs( dir_iter->path().string(), subDir,
+                                      subDirs,deep - 1 ) ;
+                  }
+               }
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDWARNING, "File or dir[%s] occur exception: %s",
+                       dir_iter->path().string().c_str(), e.what() ) ;
             }
          }
       }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
    }
-   else
+   catch( std::exception &e )
    {
-      rc = SDB_INVALIDARG ;
+      PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      rc = SDB_SYS ;
       goto error ;
    }
 

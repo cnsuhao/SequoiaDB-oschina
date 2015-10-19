@@ -344,6 +344,66 @@ namespace engine
 
 #endif // _LINUX
 
+   void pmdUpdateDBTick()
+   {
+      ++(pmdGetSysInfo()->_tick) ;
+      return ;
+   }
+
+   UINT64 pmdGetDBTick()   
+   {
+      return pmdGetSysInfo()->_tick ;
+   }
+
+   UINT64 pmdGetTickSpanTime( UINT64 lastTick )
+   {
+      UINT64 curTick = pmdGetDBTick() ;
+      if ( curTick > lastTick )
+      {
+         return ( curTick - lastTick ) * PMD_SYNC_CLOCK_INTERVAL ;
+      }
+      return 0 ;
+   }
+
+   UINT64 pmdDBTickSpan2Time( UINT64 tickSpan )
+   {
+      return tickSpan * PMD_SYNC_CLOCK_INTERVAL ;
+   }
+
+   void pmdUpdateValidationTick()
+   {
+      pmdGetSysInfo()->_validationTick = pmdGetDBTick() ;
+      return ;
+   } 
+
+   UINT64 pmdGetValidationTick()
+   {
+      return pmdGetSysInfo()->_validationTick ;
+   }
+
+   void pmdGetTicks( UINT64 &tick,
+                     UINT64 &validationTick )
+   {
+      validationTick = pmdGetSysInfo()->_validationTick ;
+      tick = pmdGetSysInfo()->_tick ;
+      return ;
+   }
+
+   BOOLEAN pmdDBIsAbnormal()
+   {
+      UINT64 validationTick = 0 ;
+      UINT64 tick = 0 ;
+      const static UINT64 s_maxTick = (30*OSS_ONE_SEC)/PMD_SYNC_CLOCK_INTERVAL ;
+      pmdGetTicks( tick, validationTick ) ;
+
+      if ( tick > validationTick && tick - validationTick > s_maxTick )
+      {
+         PD_LOG( PDERROR, "db is abnormal, tick[%lld], validation tick[%lld]",
+                 tick, validationTick ) ;
+         return TRUE ;
+      }
+      return FALSE ;
+   }
 }
 
 

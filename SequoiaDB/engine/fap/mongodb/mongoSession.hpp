@@ -42,8 +42,8 @@
 #include "rtnContextBuff.hpp"
 #include "pmdSession.hpp"
 #include "mongodef.hpp"
-
-class mongoConverter ;
+#include "parser.hpp"
+#include "mongoConverter.hpp"
 
 /*
    _mongoSession define
@@ -65,7 +65,7 @@ protected:
    virtual void  _onDetach() {}
 
 protected:
-   BOOLEAN _preProcessMsg( const mongoParser &parser,
+   BOOLEAN _preProcessMsg( msgParser &parser,
                            engine::IResource *resource,
                            engine::rtnContextBuf &buff ) ;
    INT32 _processMsg( const CHAR *pMsg ) ;
@@ -79,14 +79,17 @@ private:
    void  _handleResponse( const INT32 opType, engine::rtnContextBuf &buff ) ;
 
 private:
-   mongoConverter         *_converter ;
+   mongoConverter          _converter ;
    MsgOpReply              _replyHeader ;
    BOOLEAN                 _masterRead ;
+   BOOLEAN                 _authed ;
+   cursorStartFrom         _cursorStartFrom ;
    engine::rtnContextBuf   _contextBuff ;
    BSONObj                 _errorInfo ;
 
    msgBuffer               _inBuffer ;
    msgBuffer               _outBuffer ;
+   msgBuffer               _tmpBuffer ;
    engine::IResource      *_resource ;
 } ;
 

@@ -1128,7 +1128,7 @@ namespace engine
       BSONObj obj ;
       MsgAuthReply reply ;
 
-      if ( !_pAuthCB->needAuthenticate() )
+      if ( !_pAuthCB->authEnabled() )
       {
          goto done ;
       }
@@ -1137,6 +1137,11 @@ namespace engine
       {
          rc = SDB_CLS_NOT_PRIMARY ;
          goto error ;
+      }
+
+      if ( !_pAuthCB->needAuthenticate() )
+      {
+         goto done ;
       }
 
       rc = extractAuthMsg( &(msg->header), obj ) ;
@@ -1232,7 +1237,7 @@ namespace engine
          || pMsgReq->dstRouteID.columns.serviceID != localRouteID.columns.serviceID )
       {
          rc = SDB_INVALID_ROUTEID;
-         PD_LOG ( PDERROR, "routeID is different from the local"
+         PD_LOG ( PDERROR, "routeID is different from local: "
                   "RemoteRouteID(groupID=%u, nodeID=%u, serviceID=%u)"
                   "LocalRouteID(groupID=%u, nodeID=%u, serviceID=%u)",
                   pMsgReq->dstRouteID.columns.groupID,
@@ -1253,6 +1258,7 @@ namespace engine
    {
       PD_LOG( PDDEBUG, "add context( handle=%u, contextID=%lld )",
               handle, contextID );
+      ossScopedLock lock( &_contextLatch ) ;
       _contextLst[ contextID ] = ossPack32To64( handle, tid ) ;
    }
 
@@ -1263,6 +1269,7 @@ namespace engine
       UINT32 saveTid = 0 ;
       UINT32 saveHandle = 0 ;
 
+      ossScopedLock lock( &_contextLatch ) ;
       CONTEXT_LIST::iterator iterMap = _contextLst.begin() ;
       while ( iterMap != _contextLst.end() )
       {
@@ -1285,6 +1292,7 @@ namespace engine
       UINT32 saveTid = 0 ;
       UINT32 saveHandle = 0 ;
 
+      ossScopedLock lock( &_contextLatch ) ;
       CONTEXT_LIST::iterator iterMap = _contextLst.begin() ;
       while ( iterMap != _contextLst.end() )
       {
@@ -1303,6 +1311,7 @@ namespace engine
    {
       PD_LOG ( PDDEBUG, "delete context( contextID=%lld )", contextID ) ;
 
+      ossScopedLock lock( &_contextLatch ) ;
       CONTEXT_LIST::iterator iterMap = _contextLst.find( contextID ) ;
       if ( iterMap != _contextLst.end() )
       {

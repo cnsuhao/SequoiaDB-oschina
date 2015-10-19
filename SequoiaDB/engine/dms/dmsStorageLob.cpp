@@ -323,6 +323,8 @@ namespace engine
       DPS_LSN_OFFSET relatedLsn = DPS_INVALID_LSN_OFFSET ;
       CHAR fullName[DMS_SU_FILENAME_SZ + DMS_COLLECTION_NAME_SZ + 2] ;
       BOOLEAN locked = mbContext->isMBLock() ;
+      _dmsLobDataMapBlk *blk = NULL ;
+      BOOLEAN pageFilled = FALSE ;
 
       if ( _needDelayOpen )
       {
@@ -397,6 +399,22 @@ namespace engine
          goto error ;
       }
 
+      rc = _find( record, mbContext->clLID(), page, blk ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to find piece:%d", rc ) ;
+         goto error ;
+      }
+
+      if ( DMS_LOB_INVALID_PAGEID != page )
+      {
+         PD_LOG( PDERROR, "lob piece found, piece[%s], sequence[%d], page:%d",
+                 record._oid->str().c_str(), record._sequence, page ) ;
+         rc = SDB_LOB_SEQUENCE_EXISTS ;
+         page = DMS_LOB_INVALID_PAGEID ;
+         goto error ;
+      }
+
       rc = _allocatePage( record, mbContext, page ) ;
       if ( SDB_OK != rc )
       {
@@ -404,6 +422,10 @@ namespace engine
                  _suFileName, rc ) ;
          goto error ;
       }
+
+#if defined (_DEBUG)
+      SDB_ASSERT( DMS_LOB_PAGE_IN_USED( page ), "must be used" ) ;
+#endif
 
       rc = _data.write( page, record._data, record._dataLen,
                         record._offset, cb ) ;
@@ -413,6 +435,14 @@ namespace engine
                  _suFileName, rc ) ;
          goto error ;
       }
+
+      rc = _fillPage( record, page, mbContext ) ;
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to fill page:%d", rc ) ;
+         goto error ;
+      }
+      pageFilled = TRUE ;
 
       if ( NULL != dpscb )
       {
@@ -424,17 +454,7 @@ namespace engine
             PD_LOG( PDERROR, "failed to prepare dps log:%d", rc ) ;
             goto error ;
          }
-      }
 
-      rc = _fillPage( record, page, mbContext ) ;
-      if ( SDB_OK != rc )
-      {
-         PD_LOG( PDERROR, "failed to fill page:%d", rc ) ;
-         goto error ;
-      }
-
-      if ( NULL != dpscb )
-      {
          if ( !locked )
          {
             mbContext->mbUnlock() ;
@@ -457,9 +477,11 @@ namespace engine
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB_WRITE, rc ) ;
       return rc ;
    error:
-      if ( DMS_LOB_INVALID_PAGEID != page )
+      if ( SDB_LOB_SEQUENCE_EXISTS != rc && DMS_LOB_INVALID_PAGEID != page )
       {
-         _releasePage( page ) ;
+         PD_LOG( PDEVENT, "rollback lob piece[oid:%s, sequence:%d, page:%d]",
+                 record._oid->str().c_str(), record._sequence, page ) ;
+         _rollback( page, mbContext, pageFilled ) ;
       }
       goto done ;
    }
@@ -633,10 +655,6 @@ namespace engine
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB_UPDATE, rc ) ;
       return rc ;
    error:
-      if ( DMS_LOB_INVALID_PAGEID != page )
-      {
-         _releasePage( page ) ;
-      }
       goto done ;
    }
 
@@ -685,6 +703,10 @@ namespace engine
          rc = SDB_LOB_SEQUENCE_NOT_EXIST ;
          goto error ;
       }
+
+#if defined (_DEBUG)
+      SDB_ASSERT( DMS_LOB_PAGE_IN_USED( page ), "must be used" ) ;
+#endif
 
       rc = _data.read( page, record._dataLen, record._offset,
                        cb, buf, readLen ) ;
@@ -931,8 +953,13 @@ namespace engine
       goto done ;
    }
 
-   INT32 _dmsStorageLob::_releasePage( DMS_LOB_PAGEID page )
+   INT32 _dmsStorageLob::_releasePage( DMS_LOB_PAGEID page,
+                                       dmsMBContext *context )
    {
+      if ( NULL != context )
+      {
+         context->mbStat()->_totalLobPages -= 1 ;
+      }
       return _releaseSpace( page, 1 ) ;
    }
 
@@ -960,6 +987,13 @@ namespace engine
          }
 
          blk = DMS_LOB_META( extent ) ;
+#if defined (_DEBUG)
+         {
+         UINT32 __hash = 0 ;
+         DMS_LOB_GET_HASH_FROM_BLK( blk, __hash ) ;
+         SDB_ASSERT( __hash == record._hash, "must be same" ) ;
+         }
+#endif
          if ( clID == blk->_clLogicalID &&
               blk->equals( record._oid->getData(), record._sequence ) )
          {
@@ -1293,7 +1327,7 @@ namespace engine
 
       pos = current ;
    done:
-      if ( mbContext->isMBLock() )
+      if ( !locked )
       {
          mbContext->mbUnlock() ;
       }
@@ -1377,7 +1411,7 @@ namespace engine
       }
 
       _dmsData->_mbStatInfo[ blk->_mbID ]._totalLobPages -= 1 ;
-      _releasePage( page ) ;
+      _releasePage( page, NULL ) ;
    done:
       PD_TRACE_EXITRC( SDB__DMSSTORAGELOB__REMOVEPAGE, rc ) ;
       return rc ;
@@ -1415,7 +1449,7 @@ namespace engine
       }
 
       if ( !dmsAccessAndFlagCompatiblity ( mbContext->mb()->_flag,
-                                           DMS_ACCESS_TYPE_DELETE ) )
+                                           DMS_ACCESS_TYPE_TRUNCATE ) )
       {
          PD_LOG ( PDERROR, "Incompatible collection mode: %d",
                   mbContext->mb()->_flag ) ;
@@ -1534,6 +1568,67 @@ namespace engine
                  "error" ) ;
          ossPanic() ;
       }
+      goto done ;
+   }
+
+   // PD_TRACE_DECLARE_FUNCTION ( SDB__DMSSTORAGELOB__ROLLBACK, "_dmsStorageLob::_rollback" )
+   INT32 _dmsStorageLob::_rollback( DMS_LOB_PAGEID page,
+                                    dmsMBContext *mbContext,
+                                    BOOLEAN pageFilled )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY( SDB__DMSSTORAGELOB__ROLLBACK ) ;
+      BOOLEAN locked = mbContext->isMBLock() ;
+      if ( DMS_LOB_INVALID_PAGEID == page )
+      {
+         goto done ;
+      }
+
+      if ( !locked )
+      {
+         rc = mbContext->mbLock( EXCLUSIVE ) ;
+         PD_RC_CHECK( rc, PDERROR, "dms mb context lock failed, rc: %d", rc ) ;  
+      }
+
+      if ( !isOpened() )
+      {
+         rc = SDB_SYS ;
+         PD_LOG( PDERROR, "File[%s] is not open in write", getSuName() ) ;
+         goto error ;
+      }
+
+      if ( pageFilled )
+      {
+         const _dmsLobDataMapBlk *blk = NULL ;
+         ossValuePtr extent = extentAddr( page ) ;
+         if ( !extent )
+         {
+            PD_LOG( PDERROR, "we got a NULL extent from extendAddr(), "
+                    "pageid:%d", page ) ;
+            rc = SDB_SYS ;
+            goto error ;
+         }
+
+         blk = DMS_LOB_META( extent ) ;
+         rc = _removePage( page, blk, NULL ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "failed to remove page:%d, rc:%d", page, rc ) ;
+            goto error ;
+         }
+      }
+      else
+      {
+         _releasePage( page, mbContext ) ;
+      }
+   done:
+      if ( !locked )
+      {
+         mbContext->mbUnlock() ;
+      }
+      PD_TRACE_EXITRC( SDB__DMSSTORAGELOB__ROLLBACK, rc ) ;
+      return rc ;
+   error:
       goto done ;
    }
 }

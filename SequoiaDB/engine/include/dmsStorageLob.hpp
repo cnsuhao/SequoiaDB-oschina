@@ -179,11 +179,15 @@ namespace engine
                       dmsMBContext *mbContext,
                       DMS_LOB_PAGEID &page ) ;
 
-      INT32 _releasePage( DMS_LOB_PAGEID page ) ;
+      INT32 _releasePage( DMS_LOB_PAGEID page, dmsMBContext *mbContext ) ;
 
       INT32 _removePage( DMS_LOB_PAGEID page,
                          const _dmsLobDataMapBlk *blk,
                          const UINT32 *bucket ) ;
+
+      INT32 _rollback( DMS_LOB_PAGEID page,
+                       dmsMBContext *mbContext,
+                       BOOLEAN pageFilled ) ;                       
 
    private:
       dmsBucketsManagementExtent    *_dmsBME ;

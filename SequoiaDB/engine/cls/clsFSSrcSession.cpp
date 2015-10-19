@@ -48,6 +48,7 @@
 #include "clsTrace.hpp"
 #include "dpsLogRecordDef.hpp"
 #include "rtnLob.hpp"
+#include "pmdStartup.hpp"
 #include <set>
 
 using namespace bson ;
@@ -55,7 +56,8 @@ using namespace bson ;
 namespace engine
 {
 
-#define CLS_SYNC_MAX_TIME           (5)
+#define CLS_SYNC_MAX_TIME                 (5)         // second
+#define CLS_FS_SRC_MAX_NO_MSG_TIME        (3600000)   // 1 hour
 
 #define CLS_IS_LOB_LOG( type )\
         ( LOG_TYPE_LOB_WRITE == ( type ) || \
@@ -132,7 +134,7 @@ namespace engine
             goto done ;
          }
 
-         if ( CLS_DST_SESSION_NO_MSG_TIME < _timeCounter )
+         if ( CLS_FS_SRC_MAX_NO_MSG_TIME < _timeCounter )
          {
             PD_LOG ( PDWARNING, "Session[%s]: no msg a long time, quit",
                      sessionName() ) ;
@@ -583,7 +585,6 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSDSBS__DISCONN );
       PD_LOG( PDDEBUG, "Session[%s]: disconnect with peer", sessionName() ) ;
       _agent->syncSend( netHandle(), &_disconnectMsg ) ;
-      _reset() ;
       _quit = TRUE ;
       PD_TRACE_EXIT ( SDB__CLSDSBS__DISCONN );
       return ;
@@ -632,7 +633,7 @@ namespace engine
          _mb.writePtr( alignedLen ) ;
          _mb.writePtr( bmSize + _mb.length() ) ;
          rc = _lobFetcher.fetch( eduCB(), page, &_mb ) ;
-         if ( SDB_DMS_EOC == rc )
+         if ( SDB_DMS_EOC == rc || SDB_DMS_NOTEXIST == rc )
          {
             _mb.writePtr( oldSize ) ;
             rc = SDB_OK ;
@@ -853,6 +854,8 @@ namespace engine
 
       if ( -1 == _contextID || !pRtnCB->contextFind ( _contextID ) )
       {
+         _context = NULL ;
+         _contextID = -1 ;
          rc = SDB_RTN_CONTEXT_NOTEXIST ;
       }
 
@@ -1065,8 +1068,8 @@ namespace engine
 
          rc = dmsCB->nameToSUAndLock( cs, suID, &su ) ;
          PD_RC_CHECK( rc, PDWARNING,
-                     "session[%s]: can not find cs: %s [rc=%d]",
-                    sessionName(), cs, rc );
+                      "Session[%s]: can not find cs: %s [rc=%d]",
+                      sessionName(), cs, rc ) ;
 
          rc = su->data()->getMBContext( &mbContext, collection, SHARED ) ;
          if ( rc )
@@ -1382,6 +1385,16 @@ namespace engine
          goto done ;
       }
 
+      if ( !pmdGetStartup().isOK () )
+      {
+         PD_LOG ( PDWARNING, "FS Session[%s] database is not repared,"
+                  "can't be the fs source node", sessionName() ) ;
+         msg.header.res = SDB_RTN_IN_REBUILD ;
+         _quit = TRUE ;
+         _agent->syncSend( handle, &msg ) ;
+         goto done ;
+      }
+
 
       {
          _reset() ;
@@ -1562,7 +1575,7 @@ namespace engine
       }
       else if ( fullCLLID == _curCollection )
       {
-         dpsLogRecord record ;
+         const dpsLogRecordHeader *rh = NULL ;
          DPS_LSN lsn ;
          lsn.offset = offset ;
          SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
@@ -1570,14 +1583,13 @@ namespace engine
          INT32 rc = dpsCB->searchHeader( lsn, &_lsnSearchMB ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG ( PDERROR, "Split Session[%s]: Failed to load dps "
+            PD_LOG ( PDERROR, "FS Src Session[%s]: Failed to load dps "
                      "log[offset:%lld, rc:%d]", sessionName(), offset, rc ) ;
             goto error ;
          }
 
-         if ( LOG_TYPE_LOB_WRITE == record.head()._type ||
-              LOG_TYPE_LOB_REMOVE == record.head()._type ||
-              LOG_TYPE_LOB_UPDATE == record.head()._type )
+         rh = ( const dpsLogRecordHeader * )( _lsnSearchMB.startPtr() ) ;
+         if ( CLS_IS_LOB_LOG( rh->_type ) )
          {
             if ( !_findEnd )
             {
@@ -2261,8 +2273,9 @@ namespace engine
       }
       if ( objSet.size() != 1 )
       {
-         PD_LOG ( PDINFO, "Split Session[%s]: More than one sharding key[%d] "
-                  "is detected", sessionName(), objSet.size() ) ;
+         PD_LOG ( PDERROR, "Split Session[%s]: More than one sharding key[%d] "
+                  "is detected[%s]", sessionName(), objSet.size(),
+                  obj.toString().c_str() ) ;
          rc = SDB_MULTI_SHARDING_KEY ;
          goto error ;
       }
@@ -2418,6 +2431,8 @@ namespace engine
       PD_TRACE_EXIT ( SDB__CLSSPLSS__ONOBJFLT );
       return outBuff ;
    error:
+      PD_LOG( PDERROR, "Split Session[%s]: Filter obj failed[%d], disconnect",
+              sessionName(), rc ) ;
       outSize = 0 ;
       _disconnect() ;
       goto done ;

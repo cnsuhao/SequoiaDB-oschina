@@ -41,6 +41,8 @@ using namespace bson ;
 
 namespace engine
 {
+   #define PMD_RECV_DATA_AFTER_LENGTH_TIMEOUT         ( 30 * OSS_ONE_SEC )
+
    /*
       _pmdLocalSession implement
    */
@@ -146,13 +148,16 @@ namespace engine
             }
             buffSize = getBuffLen() ;
             *(UINT32*)pBuff = msgSize ;
-            rc = recvData( pBuff + sizeof(UINT32), msgSize - sizeof(UINT32) ) ;
+            rc = recvData( pBuff + sizeof(UINT32),
+                           msgSize - sizeof(UINT32),
+                           PMD_RECV_DATA_AFTER_LENGTH_TIMEOUT ) ;
             if ( rc )
             {
                if ( SDB_APP_FORCED != rc )
                {
-                  PD_LOG( PDERROR, "Session failed to recv rest msg, rc: %d",
-                          sessionName(), rc ) ;
+                  PD_LOG( PDERROR, "Session[%s] failed to recv msg[len: %u], "
+                          "rc: %d", sessionName(), msgSize - sizeof(UINT32),
+                          rc ) ;
                }
                break ;
             }
@@ -202,7 +207,8 @@ namespace engine
       buffLen = getBuffLen() ;
       *(INT32*)(*ppBuff) = msgSize ;
 
-      rc = recvData( *ppBuff + sizeof(UINT32), recvSize - sizeof( UINT32 ) ) ;
+      rc = recvData( *ppBuff + sizeof(UINT32), recvSize - sizeof( UINT32 ),
+                     PMD_RECV_DATA_AFTER_LENGTH_TIMEOUT ) ;
       if ( rc )
       {
          if ( SDB_APP_FORCED != rc )

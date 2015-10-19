@@ -239,17 +239,20 @@ static void clientEndianConvertHeader ( MsgHeader *pHeader )
    ossMemcpy ( pHeader, &newheader, sizeof(newheader) ) ;
 }
 
-INT32 clientCheckRetMsgHeader( const CHAR *pSendBuf, const CHAR *pRecvBuf )
+INT32 clientCheckRetMsgHeader( const CHAR *pSendBuf, const CHAR *pRecvBuf,
+                               BOOLEAN endianConvert )
 {
-   INT32 rc = SDB_OK ;
-   INT32 sendOpCode = 0 ;
+   INT32 rc          = SDB_OK ;
+   INT32 tmpOpCode   = 0 ;
+   INT32 sendOpCode  = 0 ;
    UINT32 recvOpCode = 0 ;
    if ( NULL == pSendBuf || NULL == pRecvBuf )
    {
       rc = SDB_INVALIDARG ;
       goto done ;
    }
-   sendOpCode = ((MsgHeader*)pSendBuf)->opCode ;
+   tmpOpCode = ((MsgHeader*)pSendBuf)->opCode ;
+   ossEndianConvertIf ( tmpOpCode, sendOpCode, endianConvert ) ;
    recvOpCode = (UINT32)(((MsgHeader*)pRecvBuf)->opCode) ;
    if ( MAKE_REPLY_TYPE( sendOpCode ) != recvOpCode )
    {

@@ -29,6 +29,7 @@ from pysequoiadb.collectionspace import collectionspace
 from pysequoiadb.collection import collection
 from pysequoiadb.cursor import cursor
 from pysequoiadb.replicagroup import replicagroup
+from pysequoiadb.datacenter import datacenter
 from pysequoiadb.common import const
 from pysequoiadb.error import (SDBBaseError, SDBTypeError)
 
@@ -662,14 +663,17 @@ class client(object):
 
       return cs
 
-   def create_collection_space(self, cs_name, page_size = 0):
+   def create_collection_space(self, cs_name, options = 0):
       """Create collection space with specified pagesize.
 
       Parameters:
-         Name         Type     Info:
-         cs_name      str      The name of collection space to be created.
-         page_size    int      The page size of collection space. See Info
+         Name          Type     Info:
+         cs_name       str      The name of collection space to be created.
+         options       int/dict The options to create collection space.
+          -PageSize    int      The page size of collection space. See Info
                                      as below.
+          -Domain      str      The domain of collection space to belongs
+          -LobPageSize int      The page size when stored lob, see Info as below
       Return values:
          collection space object created.
       Exceptions:
@@ -683,18 +687,34 @@ class client(object):
                        16384  :  16k
                        32768  :  32k
                        65536  :  64k
+         valid LOB page size value:
+                           0  :  256k default Lob page size
+                        4096  :  4k
+                        8192  :  8k
+                       16384  :  16k
+                       32768  :  32k
+                       65536  :  64k
+                      131072  :  128k
+                      262144  :  256k
+                      524288  :  512k
       """
       if not isinstance(cs_name, basestring):
          raise SDBTypeError("name of collection space must be an instance of basestring")
-      if not isinstance(page_size, int):
-         raise SDBTypeError("page size must be an instance of int")
-      if page_size not in [0, 4096, 8192, 16384, 32768, 65536]:
-         raise SDBTypeError("page size is invalid")
+      if isinstance(options, int):
+         if page_size not in [0, 4096, 8192, 16384, 32768, 65536]:
+            raise SDBTypeError("page size is invalid")
+         ops["PageSize"] = options
+      elif isinstance(options, dict):
+         ops = options
+      else:
+         raise SDBTypeError("options must be an instance of int")
+
+      bson_options = bson.BSON.encode(ops)
 
       try:
          cs = collectionspace()
          rc = sdb.sdb_create_collection_space(self._client, cs_name,
-                                                page_size, cs._cs)
+                                              bson_options, cs._cs)
          pysequoiadb._raise_if_error("Failed to create collection space", rc)
       except SDBBaseError:
          del cs
@@ -1098,7 +1118,11 @@ class client(object):
 
       try:
          result = cursor()
-         rc = sdb.sdb_eval_JS(self._client, result._cursor, name)
+         rc, type, bson_errmsg = sdb.sdb_eval_JS(self._client, result._cursor, name)
+         if const.SDB_OK != rc:
+            record, size = bson._bson_to_dict(bson_errmsg, dict, False,
+                                              bson.OLD_UUID_SUBTYPE, True)
+            pysequoiadb._print(record)
          pysequoiadb._raise_if_error("Failed to eval procedure", rc)
       except SDBBaseError:
          del result
@@ -1412,3 +1436,22 @@ class client(object):
          raise
 
       return valid
+
+   def get_datacenter(self):
+      """get data center
+
+      Return values:
+         an object of data center 
+      Exceptions:
+         pysequoiadb.error.SDBBaseError
+      """
+      try:
+         dc = datacenter()
+         rc = sdb.sdb_get_datacenter(self._client, cs._dc)
+         pysequoiadb._raise_if_error("Failed to get data center", rc)
+      except SDBBaseError:
+         del dc;
+         dc = None
+         raise
+
+      return dc

@@ -705,7 +705,7 @@ namespace engine
       }
       else
       {
-         PD_LOG( PDERROR, "Stop sequoaidb node failed, svc = %d, rc: %d",
+         PD_LOG( PDERROR, "Stop sequoaidb node failed, svc = %s, rc: %d",
                  svcname, rc ) ;
          goto error ;
       }
@@ -988,12 +988,6 @@ namespace engine
                   cfgPath, rc ) ;
          goto error ;
       }
-      else if ( !isModify )
-      {
-         PD_LOG ( PDERROR, "service[%s] node existed", pSvcName ) ;
-         rc = SDBCM_NODE_EXISTED ;
-         goto error ;
-      }
 
       rc = utilBuildFullPath( cfgPath, PMD_DFT_CONF, OSS_MAX_PATHSIZE,
                               cfgFile ) ;
@@ -1003,6 +997,21 @@ namespace engine
                   pSvcName, rc ) ;
          goto error ;
       }
+      else if ( !isModify && ( NULL != getNodeProcessInfo( pSvcName ) ||
+                SDB_OK == ossAccess( cfgFile ) ) )
+      {
+         if ( omsvc )
+         {
+            pmdOptionsCB nodeOptions ;
+            nodeOptions.initFromFile( cfgFile ) ;
+            *omsvc = nodeOptions.getOMService() ;
+         }
+
+         PD_LOG ( PDERROR, "service[%s] node existed", pSvcName ) ;
+         rc = SDBCM_NODE_EXISTED ;
+         goto error ;
+      }
+
       {
          pmdOptionsCB nodeOptions ;
          stringstream ss ;

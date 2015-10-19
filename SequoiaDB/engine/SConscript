@@ -130,7 +130,8 @@ utilFiles = [
       "util/csv2rawbson.cpp",
       "util/utilCommon.cpp",
       "util/url.c",
-      "util/utilBsonHash.cpp"
+      "util/utilBsonHash.cpp",
+      "util/utilBsonHashObsolete.cpp"
       ]
 
 rtnFiles = [
@@ -345,7 +346,8 @@ clsFiles = [
       "cls/clsCataHashMatcher.cpp",
       "cls/clsCommand.cpp",
       "cls/clsReelection.cpp",
-      "cls/clsDCMgr.cpp"
+      "cls/clsDCMgr.cpp",
+      "cls/clsLocalValidation.cpp"
       ]
 
 dpsFiles = [
@@ -496,124 +498,111 @@ sdbrestoreFiles = [
       ]
 
 # Test Buckets
-cmTestFile = [
-      "test/cmTest.cpp"
-      ]
-
-SMWrapperTestFiles = [
-      "test/smwrappertest.cpp"
-      ]
-LatchTestFiles = [
-      "test/ossLatchTest.cpp"
-      ]
-ossIOTestFiles = [
-      "test/ossIOTest.cpp"
-      ]
-ossIOTestFiles2 = [
-      "test/ossIOTest2.cpp"
-      ]
-socketTestFiles = [
-      "test/socketTest.cpp"
-      ]
-signalTestFiles = [
-      "test/signalTest.cpp"
-      ]
+#cmTestFile = [
+#      "test/cmTest.cpp"
+#      ]
+#SMWrapperTestFiles = [
+#      "test/smwrappertest.cpp"
+#      ]
+#LatchTestFiles = [
+#      "test/ossLatchTest.cpp"
+#      ]
+#ossIOTestFiles = [
+#      "test/ossIOTest.cpp"
+#      ]
+#ossIOTestFiles2 = [
+#      "test/ossIOTest2.cpp"
+#      ]
+#socketTestFiles = [
+#      "test/socketTest.cpp"
+#      ]
+#signalTestFiles = [
+#      "test/signalTest.cpp"
+#      ]
 #dmsTestFiles = [
 #      "test/dmsMmapTest.cpp"
 #      ]
-mthTestMatcher = [
-      "test/mthMatchTest.cpp"
-      ]
-mthTestModifier = [
-      "test/mthModifierTest.cpp"
-      ]
+#mthTestMatcher = [
+#      "test/mthMatchTest.cpp"
+#      ]
+#mthTestModifier = [
+#      "test/mthModifierTest.cpp"
+#      ]
 clientTestFiles = [
       "test/clientTest.cpp",
       "util/linenoise.cpp",
       "util/utilLinenoiseWrapper.cpp"
       ]
-ixmTestFiles = [
-      "test/ixmTest.cpp"
-      ]
-pdTestFiles = [
-      "test/pdTest.cpp"
-      ]
-cryptoTestFiles = [
-      "test/cryptoTest.cpp"
-      ]
-dpsloggingTestFiles = [
-      "test/dps/dpsLoggingTest.cpp"
-      ]
-genRecordTestFiles = [
-      "test/genRecordTest.cpp"
-      ]
-snappyTestFiles = [
-      "test/snappyTest.cpp"
-      ]
+#ixmTestFiles = [
+#      "test/ixmTest.cpp"
+#      ]
+#pdTestFiles = [
+#      "test/pdTest.cpp"
+#      ]
+#cryptoTestFiles = [
+#      "test/cryptoTest.cpp"
+#      ]
+#dpsloggingTestFiles = [
+#      "test/dps/dpsLoggingTest.cpp"
+#      ]
+#genRecordTestFiles = [
+#      "test/genRecordTest.cpp"
+#      ]
+#snappyTestFiles = [
+#      "test/snappyTest.cpp"
+#      ]
 #replTestFiles = [
 #      "test/repl/replElectionTest.cpp"
 #      ]
-
-netTestFiles = [
-      "test/net/netTest.cpp"
-      ]
-clsTestFiles = [
-      "test/cls/clsTest.cpp"
-      ]
-
-catalogueTestFiles = [
-      "test/catalogTest/catalogTestMainController.cpp"
-      ]
-restadaptorTestFiles = [
-      "test/restAdaptorTest.cpp"
-      ]
-npipeServerTestFiles = [
-      "test/npipeServerTest.cpp"
-      ]
-npipeClientTestFiles = [
-      "test/npipeClientTest.cpp"
-      ]
-
-
+#netTestFiles = [
+#      "test/net/netTest.cpp"
+#      ]
+#clsTestFiles = [
+#      "test/cls/clsTest.cpp"
+#      ]
+#catalogueTestFiles = [
+#      "test/catalogTest/catalogTestMainController.cpp"
+#      ]
+#restadaptorTestFiles = [
+#      "test/restAdaptorTest.cpp"
+#      ]
+#npipeServerTestFiles = [
+#      "test/npipeServerTest.cpp"
+#      ]
+#npipeClientTestFiles = [
+#      "test/npipeClientTest.cpp"
+#      ]
 sqlTest2Files =[
       "test/sql/sqlTest2.cpp"
       ]
-
 #sqlTest3Files =[
 #      "test/sql/sqlTest3.cpp"
 #      ]
-
 clientCPPFiles = [
       "client/clientcpp.cpp",
       "client/common.c"
       ]
-
-sqlclientFiles= [
-      "test/sql/main.cpp"
-      ]
-
+#sqlclientFiles= [
+#      "test/sql/main.cpp"
+#      ]
 #performanceFiles = [
 #      "test/performance/performance.cpp"
 #      ]
-
 gtestMainFile = [
       "gtest/src/gtest_main.cc"
       ]
-
 constructFiles = [
       "test/construct/construct.cpp",
       "test/construct/createBson.cpp",
       "test/construct/runner.cpp",
       "test/construct/statistics.cpp"
       ]
-
-spdTestFiles =[
-      "test/spd/spdTest.cpp"
-      ]
-
-selectorTestFiles= [
-      "test/selector/test.cpp"
-     ]
+#spdTestFiles =[
+#      "test/spd/spdTest.cpp"
+#      ]
+#selectorTestFiles= [
+#      "test/selector/test.cpp"
+#     ]
 
 #BSON
 env.StaticLibrary('bson', bsonFiles)
@@ -679,14 +668,14 @@ env.StaticLibrary('clientcpp', clientCPPFiles )
 env.StaticLibrary('omsvc', omsvcFiles)
 
 #gtest main
-dpsgtest = env.Object ( 'dpsgtest', gtestMainFile )
-nettest = env.Object ( 'nettest', gtestMainFile )
-cataloguetest = env.Object('cataloguetest', gtestMainFile)
-clstest = env.Object('clstest', gtestMainFile)
+#dpsgtest = env.Object ( 'dpsgtest', gtestMainFile )
+#nettest = env.Object ( 'nettest', gtestMainFile )
+#cataloguetest = env.Object('cataloguetest', gtestMainFile)
+#clstest = env.Object('clstest', gtestMainFile)
 sqltest2 = env.Object('sqltest2', gtestMainFile)
 #sqltest3 = env.Object('sqltest3', gtestMainFile)
-spdtest = env.Object('spdtest', gtestMainFile)
-selectortest = env.Object('selectortest', gtestMainFile)
+#spdtest = env.Object('spdtest', gtestMainFile)
+#selectortest = env.Object('selectortest', gtestMainFile)
 
 if hasEngine:
    engine = env.Program("sequoiadb", pmdMain,
@@ -700,107 +689,100 @@ if hasTestcase:
 #smwrappertest = env.Program("smwrappertest", SMWrapperTestFiles,
 #         LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","pcre","bson","oss","bps","ixm","pmd","mig","pd","util","rtn","msg","dms","mth","opt","mon", "net", "sql"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
-   cmtest = env.Program("cmtest", cmTestFile,
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon","net","sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   cmtest = env.Program("cmtest", cmTestFile,
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon","net","sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
 
-   osslatchtest = env.Program("osslatchtest", LatchTestFiles,
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon","net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   ossIOTest = env.Program("ossIOTest", ossIOTestFiles,
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   ossIOTest2 = env.Program("ossIOTest2", ossIOTestFiles2,
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   sockettest = env.Program("sockettest", socketTestFiles,
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   signaltest = env.Program("signaltest", signalTestFiles,
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","pd","pmd","mig","rtn","ixm","msg","dms","mth","opt","bson","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   osslatchtest = env.Program("osslatchtest", LatchTestFiles,
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon","net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   ossIOTest = env.Program("ossIOTest", ossIOTestFiles,
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   ossIOTest2 = env.Program("ossIOTest2", ossIOTestFiles2,
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   sockettest = env.Program("sockettest", socketTestFiles,
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   signaltest = env.Program("signaltest", signalTestFiles,
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","pd","pmd","mig","rtn","ixm","msg","dms","mth","opt","bson","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
 #   dmstest = env.Program("dmstest", dmsTestFiles,
 #          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
-   matchertest = env.Program("matchertest", mthTestMatcher,
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   modifiertest = env.Program("modifiertest", mthTestModifier,
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   matchertest = env.Program("matchertest", mthTestMatcher,
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   modifiertest = env.Program("modifiertest", mthTestModifier,
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
    clienttest = env.Program("clienttest", clientTestFiles,
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","pd","pmd","mig","util","rtn","ixm","msg","dms","mth","opt","bson","mon","net","sql","auth", "aggr", "spd", "omsvc"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
-   ixmtest = env.Program("ixmtest", ixmTestFiles,
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   pdtest = env.Program("pdtest", pdTestFiles,
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   cryptotest = env.Program("cryptotest", cryptoTestFiles,
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   dpsloggingtest = env.Program("dpsloggingtest", [ dpsloggingTestFiles, dpsgtest],
-          LIBDEPS=["qgm","bar","rest","cat","coord","gtest","snappy","cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","dps","gtest","net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   genRecordTest = env.Program("genRecordTest",genRecordTestFiles,
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   #replTest = env.Program("replTest", [ replTestFiles, replgtest],
-   #        LIBDEPS=["bar","rest","dps","cat","coord","gtest","snappy","repl","pcre","bps","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net", "sql","auth", "aggr", "omsvc"],
-   #         _LIBDEPS='$_LIBDEPS_OBJS' )
-   netTest = env.Program("netTest", [ netTestFiles, nettest],
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   catalogueTest = env.Program("catalogueTest", [ catalogueTestFiles, cataloguetest],
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   restadaptorTest = env.Program("restadaptorTest", [ restadaptorTestFiles ],
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   npipeServerTest = env.Program("npipeServerTest", [npipeServerTestFiles],
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   npipeClientTest = env.Program("npipeClientTest", [npipeClientTestFiles],
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   snappyTest = env.Program("snappyTest", [snappyTestFiles],
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth","aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-   clsTest = env.Program("clsTest", [ clsTestFiles, clstest],
-          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-
-
+#   ixmtest = env.Program("ixmtest", ixmTestFiles,
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   pdtest = env.Program("pdtest", pdTestFiles,
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   cryptotest = env.Program("cryptotest", cryptoTestFiles,
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   dpsloggingtest = env.Program("dpsloggingtest", [ dpsloggingTestFiles, dpsgtest],
+#          LIBDEPS=["qgm","bar","rest","cat","coord","gtest","snappy","cls","pcre","oss","pd","pmd","mig","rtn","msg","ixm","dms","bps","bson","mth","opt","util","mon","dps","gtest","net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   genRecordTest = env.Program("genRecordTest",genRecordTestFiles,
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   replTest = env.Program("replTest", [ replTestFiles, replgtest],
+#          LIBDEPS=["bar","rest","dps","cat","coord","gtest","snappy","repl","pcre","bps","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net", "sql","auth", "aggr", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   netTest = env.Program("netTest", [ netTestFiles, nettest],
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   catalogueTest = env.Program("catalogueTest", [ catalogueTestFiles, cataloguetest],
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   restadaptorTest = env.Program("restadaptorTest", [ restadaptorTestFiles ],
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   npipeServerTest = env.Program("npipeServerTest", [npipeServerTestFiles],
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   npipeClientTest = env.Program("npipeClientTest", [npipeClientTestFiles],
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   snappyTest = env.Program("snappyTest", [snappyTestFiles],
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth","aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   clsTest = env.Program("clsTest", [ clsTestFiles, clstest],
+#          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon", "net", "sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
    sqlTest2 = env.Program("sqlTest2", [ sqlTest2Files, sqltest2],
           LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","sql","auth", "aggr", "spd", "omsvc"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
-
 #   sqlTest3 = env.Program("sqlTest3", [ sqlTest3Files, sqltest3],
 #          LIBDEPS=["qgm","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","sql","auth", "aggr", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
-
    construct = env.Program("construct", [ constructFiles],
           LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net", "sql","auth", "aggr", "spd", "omsvc"],
           _LIBDEPS='$_LIBDEPS_OBJS' )
+#   spdTest =  env.Program("spdTest", [ spdTestFiles, spdtest],
+#          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
 
-   spdTest =  env.Program("spdTest", [ spdTestFiles, spdtest],
-          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net",
-"sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
-
-   sqlclient = env.Program("sqlclient", [ sqlclientFiles],
-          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   sqlclient = env.Program("sqlclient", [ sqlclientFiles],
+#          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 #   performance = env.Program("performance", [ performanceFiles],
 #          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "omsvc"],
 #          _LIBDEPS='$_LIBDEPS_OBJS' )
 
-   selectorTest =  env.Program("selectorTest", [ selectorTestFiles, selectortest],
-          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net",
-"sql","auth", "aggr", "spd", "omsvc"],
-          _LIBDEPS='$_LIBDEPS_OBJS' )
+#   selectorTest =  env.Program("selectorTest", [ selectorTestFiles, selectortest],
+#          LIBDEPS=["qgm","clientcpp","bar","rest","dps","cat","coord","gtest","snappy","cls","bps","pcre","oss","util","bson","mth","opt","pd","ixm","pmd","mig","msg","rtn","dms","mon","net","sql","auth", "aggr", "spd", "omsvc"],
+#          _LIBDEPS='$_LIBDEPS_OBJS' )
 
 # Tools
 if hasTool:
@@ -813,36 +795,36 @@ if hasTool:
          _LIBDEPS='$_LIBDEPS_OBJS' )
 # Install testcases
 if hasTestcase:
-   env.Install( '#/tests', cmtest )
-   env.Install( '#/tests', osslatchtest )
-   env.Install( '#/tests', sockettest )
-   env.Install( '#/tests', signaltest )
+#   env.Install( '#/tests', cmtest )
+#   env.Install( '#/tests', osslatchtest )
+#   env.Install( '#/tests', sockettest )
+#   env.Install( '#/tests', signaltest )
 #   env.Install( '#/tests', dmstest )
-   env.Install( '#/tests', ossIOTest )
-   env.Install( '#/tests', ossIOTest2 )
-   env.Install( '#/tests', matchertest )
-   env.Install( '#/tests', modifiertest )
+#   env.Install( '#/tests', ossIOTest )
+#   env.Install( '#/tests', ossIOTest2 )
+#   env.Install( '#/tests', matchertest )
+#   env.Install( '#/tests', modifiertest )
    env.Install( '#/tests', clienttest )
-   env.Install( '#/tests', ixmtest )
-   env.Install( '#/tests', pdtest )
-   env.Install( '#/tests', cryptotest )
-   env.Install( '#/tests', dpsloggingtest )
-   env.Install( '#/tests', genRecordTest )
+#   env.Install( '#/tests', ixmtest )
+#   env.Install( '#/tests', pdtest )
+#   env.Install( '#/tests', cryptotest )
+#   env.Install( '#/tests', dpsloggingtest )
+#   env.Install( '#/tests', genRecordTest )
    #env.Install( '#/tests', replTest )
-   env.Install( '#/tests', netTest )
-   env.Install( '#/tests', catalogueTest )
-   env.Install( '#/tests', restadaptorTest )
-   env.Install( '#/tests', npipeServerTest )
-   env.Install( '#/tests', npipeClientTest )
-   env.Install( '#/tests', clsTest )
+#   env.Install( '#/tests', netTest )
+#   env.Install( '#/tests', catalogueTest )
+#   env.Install( '#/tests', restadaptorTest )
+#   env.Install( '#/tests', npipeServerTest )
+#   env.Install( '#/tests', npipeClientTest )
+#   env.Install( '#/tests', clsTest )
    env.Install( '#/tests', construct )
    env.Install( '#/tests', sqlTest2 )
-   env.Install( '#/tests', snappyTest )
-   env.Install( '#/tests', spdTest )
+#   env.Install( '#/tests', snappyTest )
+#   env.Install( '#/tests', spdTest )
 #   env.Install( '#/tests', sqlTest3 )
-   env.Install( '#/tests', sqlclient )
+#   env.Install( '#/tests', sqlclient )
 #   env.Install( '#/tests', performance )
-   env.Install( '#/tests', selectorTest )
+#   env.Install( '#/tests', selectorTest )
 # Install tools
 if hasTool:
    env.Install( '#/bin', sdbrestore )

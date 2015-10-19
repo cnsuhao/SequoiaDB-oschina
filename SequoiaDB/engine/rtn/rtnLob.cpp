@@ -554,6 +554,7 @@ namespace engine
          goto error ;
       }
 
+      lobEnv.oprDone() ;
       if ( NULL != dpsCB )
       {
          dpsCB->completeOpr( cb, w ) ;

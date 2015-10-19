@@ -613,7 +613,6 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 								+ " have not set method.");
 					}
 
-					
 					field = this.get(p.getName());	
 					
 
@@ -635,10 +634,30 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 							while(iterator.hasNext()){
 								Map.Entry<?,?> entry=iterator.next();
 								String  key =entry.getKey().toString();
-								if(((Class)valueType).isPrimitive()||((Class)valueType).equals(java.lang.String.class)){
-									realMap.put(key,((BSONObject) field).get(key));
-								}else{
-									realMap.put(key,((BSONObject)((BSONObject) field).get(key)).as((Class)valueType));
+								if (((Class)valueType).equals(java.lang.Object.class)){
+								    Object v = entry.getValue();
+								    if (BSON.IsBasicType(v)){
+								        realMap.put(key, v);
+								    }
+								    else if ( v instanceof BasicBSONList ){
+								        realMap.put(key, ((BasicBSONList)v).asList());
+								    }
+								    else if ( v instanceof BasicBSONObject ){
+								        realMap.put(key, ((BasicBSONObject)v).asMap());
+								    }
+								    else{
+								        throw new IllegalArgumentException(
+								                "can't support in map. value_type=" + v.getClass());
+								    }
+								}
+								else{
+								    if(((Class)valueType).isPrimitive()
+                                        ||((Class)valueType).equals(java.lang.String.class)){
+                                    realMap.put(key,((BSONObject) field).get(key));
+                                    }
+								    else{
+                                        realMap.put(key,((BSONObject)((BSONObject) field).get(key)).as((Class)valueType));
+                                    }
 								}
 							}
 							writeMethod.invoke(result,realMap);
@@ -674,77 +693,121 @@ public class BasicBSONObject implements Map<String, Object>, BSONObject {
 		}
 		return result;
 	}
-	
 
+	public Object asMap() {                        
+        Map<String, Object> realMap = new HashMap<String, Object>();
+        for (String key : this.keySet()) {
+            Object v = this.get(key);
+            if (v == null) {
+                continue;
+            }
+            else if (BSON.IsBasicType(v)){
+                realMap.put(key, v);
+            }
+            else if ( v instanceof BasicBSONList ){
+                realMap.put(key, ((BasicBSONList)v).asList());
+            }
+            else if ( v instanceof BasicBSONObject ){
+                realMap.put(key, ((BasicBSONObject)v).asMap());
+            }
+            else{
+                throw new IllegalArgumentException(
+                        "can't support in map. value_type=" + v.getClass());
+            }
+        }
+        
+        return realMap;
+    }
+
+	public static BSONObject typeToBson(Object object, Boolean ignoreNullValue)
+	        throws IntrospectionException, IllegalArgumentException,
+            IllegalAccessException, InvocationTargetException {
+	    BSONObject result = null;
+        if (object == null) {
+            result = null;
+        } else if (BSON.IsBasicType(object)) {
+            throw new IllegalArgumentException(
+                    "Current version is not support basice type to bson in the top level.");
+        } else if (object instanceof List) {
+            BSONObject listObj = new BasicBSONList();
+            List list = (List) object;
+            int index = 0;
+            for (Object obj : list) {
+                if (BSON.IsBasicType(obj)) {
+                    if ( !ignoreNullValue || null != obj ){
+                        listObj.put(Integer.toString(index), obj);
+                    }
+                } else {
+                    BSONObject tmpObj = typeToBson(obj, ignoreNullValue);
+                    if ( !ignoreNullValue || null != tmpObj ){
+                        listObj.put(Integer.toString(index), tmpObj);
+                    }
+                }
+                ++index;
+            }
+            result = listObj;
+        } else if (object instanceof Map) {
+            BSONObject mapObj=new BasicBSONObject();
+            Map map=(Map)object;
+            Set<Map.Entry<?,?>> set=map.entrySet();
+            Iterator<Map.Entry<?,?>> iterator=set.iterator();
+            while(iterator.hasNext()){
+                Map.Entry<?,?> entry=iterator.next();
+                String  key =entry.getKey().toString();
+                Object value=entry.getValue();
+                if(BSON.IsBasicType(value)){
+                    if ( !ignoreNullValue || null != value ){
+                        mapObj.put(key, value);
+                    }
+                }else{
+                    BSONObject tmpObj = typeToBson(value, ignoreNullValue);
+                    if ( !ignoreNullValue || null != value ){
+                        mapObj.put(key, tmpObj);
+                    }
+                }               
+            }
+            result = mapObj;
+        }else if(object.getClass().isArray()){
+            throw new IllegalArgumentException(
+                    "Current version is not support Map/Array type field.");
+        }else if (object instanceof BSONObject) {
+            result = (BSONObject) object;
+        } else if (object.getClass().getName() == "java.lang.Class") {
+            throw new IllegalArgumentException(
+                    "Current version is not support java.lang.Class type field.");
+        } else { // User define type.
+            result = new BasicBSONObject();
+            Class<?> cl = object.getClass();
+
+            BeanInfo bi = Introspector.getBeanInfo(cl);
+            PropertyDescriptor[] props = bi.getPropertyDescriptors();
+            for (PropertyDescriptor p : props) {
+                Class<?> type = p.getPropertyType();
+                Object propObj = p.getReadMethod().invoke(object);
+                if (BSON.IsBasicType(propObj)) {
+                    if ( !ignoreNullValue || null != propObj ){
+                        result.put(p.getName(), propObj);
+                    }
+                } else if (type.getName() == "java.lang.Class") {
+                    continue;
+                } else {
+                    BSONObject tmpObj = typeToBson(propObj, ignoreNullValue);
+                    if ( !ignoreNullValue || null != tmpObj ){
+                        result.put(p.getName(), tmpObj);
+                    }
+                }
+            }
+        }
+
+        return result;
+	}
 	
-	@SuppressWarnings({"rawtypes"})
+    @SuppressWarnings({"rawtypes"})
 	public static BSONObject typeToBson(Object object)
 			throws IntrospectionException, IllegalArgumentException,
 			IllegalAccessException, InvocationTargetException {
 
-		BSONObject result = null;
-		if (object == null) {
-			result = null;
-		} else if (BSON.IsBasicType(object)) {
-			throw new IllegalArgumentException(
-					"Current version is not support basice type to bson in the top level.");
-		} else if (object instanceof List) {
-			BSONObject listObj = new BasicBSONList();
-			List list = (List) object;
-			int index = 0;
-			for (Object obj : list) {
-				if (BSON.IsBasicType(obj)) {
-					listObj.put(Integer.toString(index), obj);
-				} else {
-					listObj.put(Integer.toString(index), typeToBson(obj));
-				}
-				++index;
-			}
-			result = listObj;
-		} else if (object instanceof Map) {
-			BSONObject mapObj=new BasicBSONObject();
-			Map map=(Map)object;
-			Set<Map.Entry<?,?>> set=map.entrySet();
-			Iterator<Map.Entry<?,?>> iterator=set.iterator();
-			while(iterator.hasNext()){
-				Map.Entry<?,?> entry=iterator.next();
-				String  key =entry.getKey().toString();
-				Object value=entry.getValue();
-				if(BSON.IsBasicType(value)){
-					mapObj.put(key, value);
-				}else{
-					mapObj.put(key, typeToBson(value));
-				}				
-			}
-			result = mapObj;
-		}else if(object.getClass().isArray()){
-			throw new IllegalArgumentException(
-					"Current version is not support Map/Array type field.");
-		}else if (object instanceof BSONObject) {
-			result = (BSONObject) object;
-		} else if (object.getClass().getName() == "java.lang.Class") {
-			throw new IllegalArgumentException(
-					"Current version is not support java.lang.Class type field.");
-		} else { // User define type.
-			result = new BasicBSONObject();
-			Class<?> cl = object.getClass();
-
-			BeanInfo bi = Introspector.getBeanInfo(cl);
-			PropertyDescriptor[] props = bi.getPropertyDescriptors();
-			for (PropertyDescriptor p : props) {
-				Class<?> type = p.getPropertyType();
-				Object propObj = p.getReadMethod().invoke(object);
-				if (BSON.IsBasicType(propObj)) {
-					result.put(p.getName(), propObj);
-				} else if (type.getName() == "java.lang.Class") {
-					continue;
-				} else {
-					result.put(p.getName(), typeToBson(propObj));
-				}
-			}
-		}
-
-		return result;
+		return typeToBson(object, false);
 	}
 
     @Override

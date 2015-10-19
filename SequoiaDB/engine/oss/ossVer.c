@@ -35,10 +35,12 @@
 
 *******************************************************************************/
 #include "ossVer.h"
+#include "ossUtil.h"
 #include <iostream>
 
 void ossGetVersion ( INT32 *version,
                      INT32 *subVersion,
+                     INT32 *fixVersion,
                      INT32 *release,
                      const CHAR **ppBuild )
 {
@@ -48,15 +50,72 @@ void ossGetVersion ( INT32 *version,
       *subVersion = SDB_ENGINE_SUBVERSION_CURRENT ;
    if ( release )
       *release = SDB_ENGINE_RELEASE_CURRENT ;
+   if ( fixVersion )
+   {
+#ifdef SDB_ENGINE_FIXVERSION_CURRENT
+      *fixVersion = SDB_ENGINE_FIXVERSION_CURRENT ;
+#else
+      *fixVersion = 0 ;
+#endif // SDB_ENGINE_FIXVERSION_CURRENT
+   }
    if ( ppBuild )
       *ppBuild = SDB_ENGINE_BUILD_TIME ;
 }
 
+void ossSprintVersion( const CHAR *prompt, CHAR *pBuff, UINT32 len,
+                       BOOLEAN multiLine )
+{
+   if ( 0 == len )
+   {
+      return ;
+   }
+   ossMemset( pBuff, 0, len ) ;
+
+#ifdef SDB_ENGINE_FIXVERSION_CURRENT
+   if ( multiLine )
+   {
+      ossSnprintf( pBuff, len - 1, "%s: %d.%d.%d%sRelease: %d%s%s%s",
+                   prompt, SDB_ENGINE_VERISON_CURRENT,
+                   SDB_ENGINE_SUBVERSION_CURRENT,
+                   SDB_ENGINE_FIXVERSION_CURRENT,
+                   OSS_NEWLINE, SDB_ENGINE_RELEASE_CURRENT,
+                   OSS_NEWLINE, SDB_ENGINE_BUILD_TIME,
+                   OSS_NEWLINE ) ;
+   }
+   else
+   {
+      ossSnprintf( pBuff, len - 1, "%s: %d.%d.%d, Release: %d, Build: %s",
+                   prompt, SDB_ENGINE_VERISON_CURRENT,
+                   SDB_ENGINE_SUBVERSION_CURRENT,
+                   SDB_ENGINE_FIXVERSION_CURRENT,
+                   SDB_ENGINE_RELEASE_CURRENT,
+                   SDB_ENGINE_BUILD_TIME ) ;
+   }
+#else
+   if ( multiLine )
+   {
+      ossSnprintf( pBuff, len - 1, "%s: %d.%d%sRelease: %d%s%s%s",
+                   prompt, SDB_ENGINE_VERISON_CURRENT,
+                   SDB_ENGINE_SUBVERSION_CURRENT,
+                   OSS_NEWLINE, SDB_ENGINE_RELEASE_CURRENT,
+                   OSS_NEWLINE, SDB_ENGINE_BUILD_TIME,
+                   OSS_NEWLINE ) ;
+   }
+   else
+   {
+      ossSnprintf( pBuff, len - 1, "%s: %d.%d, Release: %d, Build: %s",
+                   prompt, SDB_ENGINE_VERISON_CURRENT,
+                   SDB_ENGINE_SUBVERSION_CURRENT,
+                   SDB_ENGINE_RELEASE_CURRENT,
+                   SDB_ENGINE_BUILD_TIME ) ;
+   }
+#endif //SDB_ENGINE_FIXVERSION_CURRENT
+}
+
 void ossPrintVersion( const CHAR *prompt )
 {
-   std::cout << prompt << ": " << SDB_ENGINE_VERISON_CURRENT << "."
-             << SDB_ENGINE_SUBVERSION_CURRENT << std::endl ;
-   std::cout << "Release: " << SDB_ENGINE_RELEASE_CURRENT << std::endl ;
-   std::cout << SDB_ENGINE_BUILD_TIME << std::endl ;
+   CHAR verText[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+   ossSprintVersion( prompt, verText, sizeof( verText ), TRUE ) ;
+   std::cout << verText ;
 }
 

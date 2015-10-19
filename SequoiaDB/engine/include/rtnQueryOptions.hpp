@@ -41,6 +41,9 @@
 #include "core.hpp"
 #include "oss.hpp"
 #include "../bson/bson.hpp"
+#include <string>
+
+using namespace std ;
 
 namespace engine
 {
@@ -104,9 +107,28 @@ namespace engine
 
       }
 
+      _rtnQueryOptions( const _rtnQueryOptions &o )
+      :_query( o._query ),
+       _selector( o._selector ),
+       _orderBy( o._orderBy ),
+       _hint( o._hint ),
+       _fullName( o._fullName ),
+       _fullNameBuf( NULL ),
+       _skip( o._skip ),
+       _limit( o._limit ),
+       _flag( o._flag ),
+       _enablePrefetch( o._enablePrefetch )
+      {
+
+      }
+
+      _rtnQueryOptions &operator=( const _rtnQueryOptions &o ) ;
+
       virtual ~_rtnQueryOptions() ;
 
       INT32 getOwned() ;
+
+      string toString() const ;
 
    public:
       bson::BSONObj _query ;
@@ -119,6 +141,7 @@ namespace engine
       SINT64 _limit ;
       INT32 _flag ;
       BOOLEAN _enablePrefetch ;
+
    } ;
    typedef class _rtnQueryOptions rtnQueryOptions ;
 }

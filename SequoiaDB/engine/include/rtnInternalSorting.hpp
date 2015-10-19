@@ -53,7 +53,8 @@ namespace engine
    {
    public:
       _rtnInternalSorting( const BSONObj &orderby,
-                           CHAR *buf, UINT64 size ) ;
+                           CHAR *buf, UINT64 size,
+                           INT64 limit ) ;
       virtual ~_rtnInternalSorting() ;
 
    public:
@@ -65,6 +66,10 @@ namespace engine
 
       BOOLEAN more() const
       {
+         if ( _limit > 0 && _fetched >= _limit )
+         {
+            return FALSE ;
+         }
          return  _fetched < _objNum ;
       }
 
@@ -105,6 +110,7 @@ namespace engine
       UINT64 _objNum ;
       UINT64 _fetched ;
       UINT64 _recursion ;
+      INT64  _limit ;
    } ;
 }
 

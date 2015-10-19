@@ -188,8 +188,8 @@ namespace engine
       _limit = limit ;
 
       PD_LOG( PDDEBUG, "number of blks[%d], size of buf[%lld]"
-              " max merge size[%d], limit[%lld]"
-             , _src->size(), _size, _mergeMax, _limit ) ;
+              " max merge size[%d], limit[%lld]",
+              _src->size(), _size, _mergeMax, _limit ) ;
    done:
       return rc ;
    error:

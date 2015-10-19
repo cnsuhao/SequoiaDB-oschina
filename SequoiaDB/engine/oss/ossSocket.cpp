@@ -39,6 +39,9 @@
 #include <stdio.h>
 #include "pdTrace.hpp"
 #include "ossTrace.hpp"
+#if defined (_WINDOWS)
+#include <mstcpip.h>
+#endif
 #ifdef SDB_SSL
 #include "ossSSLWrapper.h"
 #endif
@@ -222,6 +225,72 @@ error:
    goto done ;
 }
 
+// PD_TRACE_DECLARE_FUNCTION ( SDB_OSSSK_KPAL, "ossSocket::setKeepAlive" )
+INT32 _ossSocket::setKeepAlive( INT32 keepAlive, INT32 keepIdle,
+                                INT32 keepInterval, INT32 keepCount )
+{
+   INT32 rc = SDB_OK ;
+#if defined (_WINDOWS)
+   struct tcp_keepalive alive_in ;
+   DWORD ulBytesReturn       = 0 ;
+#endif
+   PD_CHECK( _init, SDB_SYS, error, PDWARNING, "Socket is not init" ) ;
+
+#if defined (_WINDOWS)
+   alive_in.onoff             = keepAlive ;
+   alive_in.keepalivetime     = keepIdle * 1000 ; // ms
+   alive_in.keepaliveinterval = keepInterval * 1000 ; // ms
+   rc = setsockopt( _fd, SOL_SOCKET, SO_KEEPALIVE,
+                    ( CHAR *)&keepAlive, sizeof(keepAlive) ) ;
+   if ( SDB_OK != rc )
+   {
+      PD_LOG ( PDWARNING, "Failed to setsockopt, rc = %d",
+               SOCKET_GETLASTERROR ) ;
+   }
+   rc = WSAIoctl( _fd, SIO_KEEPALIVE_VALS, &alive_in, sizeof(alive_in),
+                  NULL, 0, &ulBytesReturn, NULL, NULL ) ;
+   if ( SDB_OK != rc )
+   {
+      PD_LOG ( PDWARNING, "Failed to setsockopt, rc = %d",
+               SOCKET_GETLASTERROR ) ;
+   }
+#else
+   rc = setsockopt( _fd, SOL_SOCKET, SO_KEEPALIVE,
+                    ( void *)&keepAlive, sizeof(keepAlive) ) ;
+   if ( SDB_OK != rc )
+   {
+      PD_LOG ( PDWARNING, "Failed to setsockopt, rc = %d",
+               SOCKET_GETLASTERROR ) ;
+   }
+   rc = setsockopt( _fd, SOL_TCP, TCP_KEEPIDLE,
+                    ( void *)&keepIdle, sizeof(keepIdle) ) ;
+   if ( SDB_OK != rc )
+   {
+      PD_LOG ( PDWARNING, "Failed to setsockopt, rc = %d",
+               SOCKET_GETLASTERROR ) ;
+   }
+   rc = setsockopt( _fd, SOL_TCP, TCP_KEEPINTVL,
+                    ( void *)&keepInterval, sizeof(keepInterval) ) ;
+   if ( SDB_OK != rc )
+   {
+      PD_LOG ( PDWARNING, "Failed to setsockopt, rc = %d",
+               SOCKET_GETLASTERROR ) ;
+   }
+   rc = setsockopt( _fd, SOL_TCP, TCP_KEEPCNT,
+                    ( void *)&keepCount, sizeof(keepCount) ) ;
+   if ( SDB_OK != rc )
+   {
+      PD_LOG ( PDWARNING, "Failed to setsockopt, rc = %d",
+               SOCKET_GETLASTERROR ) ;
+   }
+#endif // _WINDOWS
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
 // PD_TRACE_DECLARE_FUNCTION ( SDB_OSSSK_BIND_LSTN, "ossSocket::bind_listen" )
 INT32 _ossSocket::bind_listen ()
 {
@@ -280,7 +349,6 @@ INT32 _ossSocket::send ( const CHAR *pMsg, INT32 len,
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSSK_SEND );
    SDB_ASSERT ( pMsg, "message is NULL" ) ;
-   SDB_ASSERT ( _init, "socket is not initialized" ) ;
 
    sentLen = 0 ;
    SOCKET maxFD = _fd ;
@@ -389,6 +457,10 @@ done :
    PD_TRACE_EXITRC ( SDB_OSSSK_SEND, rc );
    return rc ;
 error :
+   if ( SDB_NETWORK == rc )
+   {
+      close() ;
+   }
    goto done ;
 }
 
@@ -426,7 +498,6 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
 {
    INT32 rc = SDB_OK ;
    SDB_ASSERT ( pMsg, "message is NULL" ) ;
-   SDB_ASSERT ( _init, "socket is not init" ) ;
    UINT32 retries = 0 ;
    SOCKET maxFD = _fd ;
    struct timeval maxSelectTime ;
@@ -577,6 +648,10 @@ INT32 _ossSocket::recv ( CHAR *pMsg, INT32 len,
 done :
    return rc ;
 error :
+   if ( SDB_NETWORK == rc || SDB_NETWORK_CLOSE == rc )
+   {
+      close() ;
+   }
    goto done ;
 }
 
@@ -625,7 +700,6 @@ INT32 _ossSocket::connect ( INT32 timeout )
    if ( fcntl( native(), F_SETFL, flags & ~O_NONBLOCK ) <0 )
    {
       PD_LOG( PDERROR, "failed to fcntl sock:%d",native() ) ;
-      close() ;
       rc = SDB_SYS ;
       goto error ;
    }
@@ -691,6 +765,7 @@ void _ossSocket::close ()
 #else
       ::close ( _fd ) ;
 #endif
+      _fd = SOCKET_INVALIDSOCKET ;
       _init = FALSE ;
    }
    PD_TRACE_EXIT ( SDB_OSSSK_CLOSE );
@@ -703,7 +778,6 @@ INT32 _ossSocket::accept ( SOCKET *sock, struct sockaddr *addr, socklen_t
    SOCKET maxFD = _fd ;
    INT32 sysError = 0 ;
    struct timeval maxSelectTime ;
-   SDB_ASSERT ( _init, "socket is not initialized" ) ;
    SDB_ASSERT ( sock, "Output sock is NULL" ) ;
 
    fd_set fds ;
@@ -770,7 +844,6 @@ INT32 _ossSocket::disableNagle ()
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSSK_DISNAG );
    INT32 temp = 1 ;
-   SDB_ASSERT ( _init, "socket is not initialized" ) ;
 
    PD_CHECK( _init, SDB_SYS, error, PDWARNING, "Socket is not init" ) ;
 
@@ -802,7 +875,7 @@ void _ossSocket::quickAck ()
 #if defined( _LINUX )
    if ( _init )
    {
-      INT32 i = 0 ;
+      INT32 i = 1 ;
       setsockopt( _fd, IPPROTO_TCP, TCP_QUICKACK, (void*)&i, sizeof(i) ) ;
    }
 #endif // _LINUX
@@ -1019,7 +1092,6 @@ INT32 _ossSocket::setTimeout ( INT32 milliSeconds )
 {
    INT32 rc = SDB_OK ;
    PD_TRACE_ENTRY ( SDB_OSSSK_SETTMOUT );
-   SDB_ASSERT ( _init, "socket is not initialized" ) ;
    struct timeval tv ;
 
    PD_CHECK( _init, SDB_SYS, error, PDWARNING, "Socket is not init" ) ;

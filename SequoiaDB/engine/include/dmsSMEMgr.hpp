@@ -107,7 +107,7 @@ namespace engine
       UINT32                     _pageSize ;
       _dmsStorageBase            *_pStorageBase ;
       _dmsSpaceManagementExtent  *_pSME ;
-      UINT32                     _totalFree ;
+      ossAtomic32                _totalFree ;
 
    public :
       _dmsSMEMgr() ;

@@ -44,7 +44,7 @@
 
 namespace engine
 {
-   class _rtnContextSort : public _rtnContextData
+   class _rtnContextSort : public _rtnContextBase
    {
    public:
       _rtnContextSort( INT64 contextID, UINT64 eduID ) ;
@@ -63,6 +63,7 @@ namespace engine
 
    protected:
       virtual INT32 _prepareData( _pmdEDUCB *cb ) ;
+      virtual void  _toString( stringstream &ss ) ;
 
    private:
       INT32 _rebuildSrcContext( const BSONObj &orderBy,

@@ -1177,18 +1177,18 @@ namespace engine
       if ( type & DMS_SU_DATA )
       {
          dataHeader = _pDataSu->getHeader() ;
-         totalSize += ( dataHeader->_storageUnitSize <<
+         totalSize += ( (INT64)( dataHeader->_storageUnitSize ) <<
                         _pDataSu->pageSizeSquareRoot() ) ;
       }
       if ( type & DMS_SU_INDEX )
       {
          dataHeader = _pIndexSu->getHeader() ;
-         totalSize += ( dataHeader->_storageUnitSize <<
+         totalSize += ( (INT64)( dataHeader->_storageUnitSize ) <<
                         _pDataSu->pageSizeSquareRoot() ) ;
       }
       if ( ( type & DMS_SU_LOB ) && _pLobSu->isOpened() )
       {
-         totalSize += ( _pLobSu->getHeader()->_storageUnitSize <<
+         totalSize += ( (INT64)( _pLobSu->getHeader()->_storageUnitSize ) <<
                         _pLobSu->pageSizeSquareRoot() ) ;
          totalSize += _pLobSu->getLobData()->getFileSz() ;
       }

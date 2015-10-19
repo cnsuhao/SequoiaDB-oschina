@@ -29,100 +29,42 @@
    Change Activity:
    defect Date        Who Description
    ====== =========== === ==============================================
-          01/27/2015  LZ  Initial Draft
+          06/01/2015  LZ  Initial Draft
 
    Last Changed =
 
 *******************************************************************************/
-#ifndef _SDB_MONGO_COMMANDS_HPP_
-#define _SDB_MONGO_COMMANDS_HPP_
+#ifndef _SDB_FAP_MONGO_COMMANDS_HPP_
+#define _SDB_FAP_MONGO_COMMANDS_HPP_
 
-#include <map>
-#include "util.hpp"
-#include "mongodef.hpp"
+#include "baseCommand.hpp"
 
-class command
-{
-public:
-   command( const CHAR *cmdName, const char* secondName = NULL ) ;
-   virtual ~command() {} ;
-
-   const CHAR *name() const
-   {
-      return _cmdName ;
-   }
-
-   virtual INT32 convertRequest( mongoParser &parser, msgBuffer &sdbMsgs )
-   {
-      return SDB_OK ;
-   }
-
-protected:
-   const CHAR *_cmdName ;
-} ;
-
-class commandMgr
-{
-public:
-   static commandMgr *instance() ;
-
-   void addCommand( const std::string &name, command *cmd )
-   {
-      command *tmp = _cmdMap[name] ;
-      if ( NULL != tmp )
-      {
-      }
-      _cmdMap[name] = cmd ;
-   }
-
-   command *findCommand( const std::string &cmdName )
-   {
-      command *cmd = NULL ;
-      std::map< std::string, command* >::iterator it = _cmdMap.find( cmdName ) ;
-      if ( _cmdMap.end() != it )
-      {
-         cmd = it->second ;
-      }
-
-      return cmd ;
-   }
-
-public:
-   commandMgr()
-   {
-      _cmdMap.clear() ;
-   }
-
-   ~commandMgr()
-   {
-      _cmdMap.clear() ;
-   }
-
-private:
-   std::map< std::string, command *> _cmdMap ;
-} ;
-
-#define __DECLARE_COMMAND( cmd, secondName, cmdClass )               \
-class cmdClass : public command                                      \
+#define __DECLARE_COMMAND( cmd, secondName, clsName )                \
+class clsName : public baseCommand                                   \
 {                                                                    \
 public:                                                              \
-   cmdClass() : command( cmd, secondName ) {}                        \
-   virtual INT32 convertRequest( mongoParser &parser,                \
-                                 msgBuffer &sdbMsgs ) ;              \
+   clsName() : baseCommand( cmd, secondName )                        \
+   {}                                                                \
+                                                                     \
+   virtual INT32 convert( msgParser &parser ) ;                      \
+                                                                     \
+   virtual INT32 buildMsg( msgParser &parser, msgBuffer &sdbMsg ) ;  \
+                                                                     \
+   virtual INT32 doCommand( void *pData = NULL ) ;                   \
 } ;
 
-#define __DECLARE_COMMAND_VAR( commandClass, var )                   \
-        commandClass var ;
+#define __DECLARE_COMMAND_VAR( commandClass, var )                \
+      commandClass var ;
 
+#define DECLARE_COMMAND( command )                                \
+      __DECLARE_COMMAND( #command, NULL, command##Command )
 
-#define DECLARE_COMMAND( command )                                   \
-        __DECLARE_COMMAND( #command, NULL, command##Command )
+#define DECLARE_COMMAND_ALAIS( command, secondName )              \
+      __DECLARE_COMMAND( #command, secondName, command##Command)
 
-#define DECLARE_COMMAND_WITH_SECONDNAME( command, secondName )       \
-        __DECLARE_COMMAND( #command, secondName, command##Command )
+#define DECLARE_COMMAND_VAR( command )                            \
+      __DECLARE_COMMAND_VAR( command##Command, command##Cmd )
 
-#define DECLARE_COMMAND_VAR( command )                               \
-        __DECLARE_COMMAND_VAR( command##Command, command##Cmd )
 
 DECLARE_COMMAND( insert )
 DECLARE_COMMAND( delete )
@@ -131,20 +73,24 @@ DECLARE_COMMAND( query )
 DECLARE_COMMAND( getMore )
 DECLARE_COMMAND( killCursors )
 
-DECLARE_COMMAND( createCS )   // create collection space, NOT in mongodb
-DECLARE_COMMAND( create )     // create collection
-DECLARE_COMMAND( drop )       // drop   collection
+DECLARE_COMMAND( getnonce )
+DECLARE_COMMAND( authenticate )
+DECLARE_COMMAND( createUser )
+DECLARE_COMMAND( dropUser )
+DECLARE_COMMAND( listUsers )
+DECLARE_COMMAND( create )
+DECLARE_COMMAND( createCS )
+DECLARE_COMMAND( listCollection )
+DECLARE_COMMAND( drop )
 DECLARE_COMMAND( count )
 DECLARE_COMMAND( aggregate )
 DECLARE_COMMAND( dropDatabase )
-
 DECLARE_COMMAND( createIndexes )
-DECLARE_COMMAND_WITH_SECONDNAME( deleteIndexes, "dropIndexes" )
+DECLARE_COMMAND_ALAIS( deleteIndexes, "dropIndexes")
 DECLARE_COMMAND( listIndexes )
-
 DECLARE_COMMAND( getlasterror )
-DECLARE_COMMAND_WITH_SECONDNAME( ismaster, "isMaster" )
-
+DECLARE_COMMAND_ALAIS( ismaster, "isMaster" )
 DECLARE_COMMAND( ping )
+DECLARE_COMMAND( logout )
 
 #endif

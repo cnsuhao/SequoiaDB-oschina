@@ -40,6 +40,7 @@ import org.bson.BasicBSONEncoder;
 import org.bson.BasicBSONObject;
 import org.bson.io.BasicOutputBuffer;
 import org.bson.io.OutputBuffer;
+import org.bson.types.ObjectId;
 
 import com.google.gson.Gson;
 import com.google.gson.internal.Primitives;
@@ -211,7 +212,7 @@ public class SDBMessageHelper {
 	}
 
 	public static int buildBulkInsertRequest(IoBuffer bulk_buffer, long reqID,
-			String collectionFullName, List<BSONObject> insertor, int flag)
+			String collectionFullName, List<BSONObject> insertor, int flag, boolean ensureOID)
 			throws BaseException {
 		try {
 			int messageLength = SDBMessageHelper.MESSAGE_OPINSERT_LENGTH - 1;
@@ -239,18 +240,44 @@ public class SDBMessageHelper {
 					newCollectionName.length, 4);
 	
 			bulk_buffer.put(Helper.roundToMultipleX(newCollectionName, 4));
-			for (int i = 0; i < insertor.size(); i++) {
-				int record_length = bsonObjectToByteBuffer(bulk_buffer,
-						insertor.get(i));
+			if ( true == ensureOID )
+			{
+				for (int i = 0; i < insertor.size(); i++) {
 	
-				int length = Helper.roundToMultipleXLength(record_length, 4);
-				int j = 0;
-				while (record_length + j < length) {
-					bulk_buffer.put(BTYE_FILL);
-					j++;
+					BSONObject record=insertor.get(i);
+					Object tmp = record.get(SequoiadbConstants.OID);
+					if (tmp == null) {
+						ObjectId objId = ObjectId.get();
+						record.put(SequoiadbConstants.OID, objId);
+					}
+					
+					int record_length = bsonObjectToByteBuffer(bulk_buffer, record);
+	
+					int length = Helper.roundToMultipleXLength(record_length, 4);
+					int j = 0;
+					while (record_length + j < length) {
+						bulk_buffer.put(BTYE_FILL);
+						j++;
+					}
+		
+					messageLength += length;
 				}
+			}
+			else
+			{
+				for (int i = 0; i < insertor.size(); i++) {
+					
+					int record_length = bsonObjectToByteBuffer(bulk_buffer, insertor.get(i));
 	
-				messageLength += length;
+					int length = Helper.roundToMultipleXLength(record_length, 4);
+					int j = 0;
+					while (record_length + j < length) {
+						bulk_buffer.put(BTYE_FILL);
+						j++;
+					}
+		
+					messageLength += length;
+				}
 			}
 	
 			bulk_buffer.position(startPos); // set the real messageLength

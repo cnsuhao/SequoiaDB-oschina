@@ -61,6 +61,7 @@ namespace engine
    #define JUDGE_RC( rc ) if ( SDB_OK != rc ) { goto error ; }
 
    #define PMD_OPTION_BRK_TIME_DEFAULT (7000)
+   #define PMD_OPTION_OPR_TIME_DEFAULT (30000)
    #define PMD_MAX_PREF_POOL           (0) // modify 200 to 0
    #define PMD_MAX_SUB_QUERY           (10)
    #define PMD_MIN_SORTBUF_SZ          (RTN_SORT_MIN_BUFSIZE)
@@ -1252,6 +1253,8 @@ namespace engine
       _sparseFile          = FALSE ;
       _weight              = 0 ;
       _auth                = TRUE ;
+      _planBucketNum       = 500 ;
+      _oprtimeout          = PMD_OPTION_OPR_TIME_DEFAULT ;
 
       ossMemset( _krcbConfPath, 0, sizeof( _krcbConfPath ) ) ;
       ossMemset( _krcbConfFile, 0, sizeof( _krcbConfFile ) ) ;
@@ -1287,6 +1290,8 @@ namespace engine
                FALSE, FALSE, "" ) ;
 
       rdxUInt( pEX, PMD_OPTION_MAXPOOL, _krcbMaxPool, FALSE, TRUE, 0 ) ;
+      rdvMinMax( pEX, _krcbMaxPool, 0, 10000, TRUE ) ;
+
       rdxInt( pEX, PMD_OPTION_DIAGLOG_NUM, _dialogFileNum, FALSE, TRUE,
               PD_DFT_FILE_NUM ) ;
       rdxString( pEX, PMD_OPTION_SVCNAME, _krcbSvcName, sizeof(_krcbSvcName),
@@ -1398,6 +1403,10 @@ namespace engine
 
       rdxBooleanS( pEX, PMD_OPTION_AUTH, _auth,
                    FALSE, FALSE, TRUE, FALSE ) ;
+      rdxUInt( pEX, PMD_OPTION_PLAN_BUCKETS, _planBucketNum,
+               FALSE, TRUE, 500, FALSE ) ;
+      rdxUInt( pEX, PMD_OPTION_OPERATOR_TIMEOUT, _oprtimeout, FALSE, TRUE,
+               PMD_OPTION_OPR_TIME_DEFAULT, TRUE ) ;
 
 
       return getResult () ;
@@ -1638,6 +1647,7 @@ namespace engine
          _maxReplSync      = 0 ;
          _pagecleanNum     = 1 ;
          _pagecleanInterval= PMD_DFT_PAGECLEANINTERVAL ;
+         _syncStrategy     = CLS_SYNC_NONE ;
       }
 
    done:

@@ -231,6 +231,11 @@ namespace engine
    INT32 _dpsLogWrapper::move( const DPS_LSN_OFFSET &offset,
                                const DPS_LSN_VER &version )
    {
+      if ( DPS_INVALID_LSN_OFFSET != offset &&
+           DPS_INVALID_LSN_VERSION == version )
+      {
+         return _buf.move( offset, DPS_INVALID_LSN_VERSION + 1 ) ;
+      }
       return _buf.move( offset, version ) ;
    }
 

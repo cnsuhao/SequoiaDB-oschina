@@ -111,7 +111,7 @@
 		<Valid>0-50</Valid>
 		<Display>edit box</Display>
 		<Edit>true</Edit>
-		<Desc>The diry page cleaner number must turn on when start the database, and 0 means non dirty page cleaner to start.</Desc>
+		<Desc>The diry page cleaner number must turn on when start the database, and 0 means non dirty page cleaner to start, value range:[0,50]</Desc>
 		<Level>0</Level>
 		<DynamicEdit>false</DynamicEdit>
 		<BatchEdit>true</BatchEdit>

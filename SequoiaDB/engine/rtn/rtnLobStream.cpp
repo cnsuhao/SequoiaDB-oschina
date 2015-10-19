@@ -548,7 +548,7 @@ namespace engine
       while ( 0 < needLen )
       {
          UINT32 dataLen = 0 ;
-         if ( _pool.next( needLen, &data, dataLen ) )
+         if( _pool.next( needLen, &data, dataLen ) )
          {
             needLen -= dataLen ;
             readLen += dataLen ;

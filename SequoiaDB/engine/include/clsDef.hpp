@@ -65,10 +65,12 @@ namespace engine
    #define CLS_TID(sessionid)          ((UINT32)(sessionid & 0xFFFFFFFF))
    #define CLS_NODEID(sessionid)       ((UINT32)(sessionid >> 32))
 
+   #define CLS_BEATID_BEGIN                     ( 1 )
+   #define CLS_BEATID_INVALID                   ( 0 )
 
-   #define CLS_FS_NORES_TIMEOUT 10000
-   #define CLS_DST_SESSION_NO_MSG_TIME          (300000)
-   #define CLS_SRC_SESSION_NO_MSG_TIME          (10000)
+   #define CLS_FS_NORES_TIMEOUT                 (10000)  // 10 secs
+   #define CLS_DST_SESSION_NO_MSG_TIME          (300000) // 5 mins
+   #define CLS_SRC_SESSION_NO_MSG_TIME          (10000)  // 10 secs
 
    enum CLS_SYNC_STATUS
    {
@@ -110,9 +112,9 @@ namespace engine
 
    enum CLS_NODE_SERVICE_STATUS
    {
-      SERVICE_NORMAL          = 0,
-      SERVICE_ABNORMAL,
-      SERVICE_UNKNOWN
+      SERVICE_NORMAL          = 0,     /// node is normal, and data is normal
+      SERVICE_ABNORMAL,                /// node is normal, but data is abnormal
+      SERVICE_UNKNOWN                  /// node is abnormal(crashed)
    } ;
 
    /*
@@ -134,7 +136,7 @@ namespace engine
       _clsGroupBeat(): version( 0 ),
                        role( CLS_GROUP_ROLE_SECONDARY ),
                        syncStatus( CLS_SYNC_STATUS_NONE ),
-                       beatID( 0 ),
+                       beatID( CLS_BEATID_INVALID ),
                        serviceStatus( SERVICE_UNKNOWN )
       {
          UINT64 *p = ( UINT64 *)(&weight) ;
@@ -143,7 +145,11 @@ namespace engine
 
       BOOLEAN isValidID( const UINT32 &id )
       {
-         if ( beatID < id )
+         if ( CLS_BEATID_INVALID == beatID )
+         {
+            return TRUE ;
+         }
+         else if ( beatID < id )
          {
             return TRUE ;
          }
@@ -168,10 +174,13 @@ namespace engine
       _clsGroupBeat beat ;
       UINT32 timeout ;
       UINT32 breakTime ;
-      _clsSharingStatus():timeout(0), breakTime( 0 )
+      UINT32 deadtime ;
+      _clsSharingStatus():timeout(0), breakTime( 0 ), deadtime( 0 )
       {
       }
    } ;
+
+   #define CLS_NODE_KEEPALIVE_TIMEOUT              ( 6000 ) // ms
 
    /*
       _clsGroupInfo define
@@ -186,7 +195,7 @@ namespace engine
       _MsgRouteID local ;
       UINT32 localBeatID ;
       CLS_GROUP_VERSION version ;
-      _clsGroupInfo():localBeatID( 0 ),
+      _clsGroupInfo():localBeatID( CLS_BEATID_BEGIN ),
                       version( 0 )
       {
          local.value = 0 ;
@@ -196,6 +205,15 @@ namespace engine
       {
          alives.clear() ;
          info.clear() ;
+      }
+      UINT32 nextBeatID()
+      {
+         ++localBeatID ;
+         if ( localBeatID <= CLS_BEATID_BEGIN  )
+         {
+            localBeatID = CLS_BEATID_BEGIN + 1 ;
+         }
+         return localBeatID ;
       }
 
       UINT32 groupSize ()
@@ -241,6 +259,25 @@ namespace engine
             ++it ;
          }
          return TRUE ;
+      }
+
+      UINT32 getAlivesByTimeout( UINT32 timeout = CLS_NODE_KEEPALIVE_TIMEOUT )
+      {
+         UINT32 count = 1 ;
+         map<UINT64, _clsSharingStatus>::iterator it = info.begin() ;
+         while ( it != info.end() )
+         {
+            _clsSharingStatus &status = it->second ;
+            if ( SERVICE_UNKNOWN == status.beat.serviceStatus &&
+                 ( 0 == timeout || status.breakTime > timeout ) )
+            {
+               ++it ;
+               continue ;
+            }
+            ++count ;
+            ++it ;
+         }
+         return count ;
       }
 
    } ;

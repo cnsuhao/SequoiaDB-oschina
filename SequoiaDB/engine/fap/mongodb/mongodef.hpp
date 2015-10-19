@@ -44,7 +44,8 @@
 enum mongoOption
 {
    dbReply       = 1,
-   dbUpdate      = 1000,
+   dbMsg         = 1000,
+   dbUpdate      = 2001,
    dbInsert      = 2002,
    dbQuery       = 2004,
    dbGetMore     = 2005,
@@ -101,16 +102,18 @@ enum authState
    AUTH_FINISHED = 1 << 31,
 } ;
 
+#define SDB_AUTH_SOURCE_FAP "fap-mongo"
+
 #pragma pack(1)
 struct mongoMsgHeader
 {
-   INT32 len ;
-   INT32 id ;
-   INT32 responseTo ;
+   INT32  msgLen ;
+   INT32  requestId ;
+   INT32  responseTo ;
    SINT16 opCode ;
-   CHAR _flags ;
-   CHAR _version ;
-   INT32 reservedFlags ;
+   CHAR   flags ;
+   CHAR   version ;
+   INT32  reservedFlags ;
 };
 #pragma pack()
 
@@ -148,66 +151,26 @@ enum
    OP_CMD_GETLASTERROR,    // will not process msg
    OP_CMD_DROP_INDEX,
    OP_CMD_GET_INDEX,
+   OP_CMD_GET_CLS,
    OP_CMD_COUNT,
    OP_CMD_COUNT_MORE,      // need special handle
    OP_CMD_AGGREGATE,
+   OP_CMD_AUTH,
 
    OP_CMD_GETNONCE,
+   OP_CMD_CRTUSER,
+   OP_CMD_DELUSER,
+   OP_CMD_LISTUSER,
    OP_CMD_ISMASTER,
    OP_CMD_PING,
    OP_CMD_NOT_SUPPORTED,
    OP_COMMAND_END,
 };
 
-class mongoParser : public mongoMsgHeader
+struct cursorStartFrom
 {
-public:
-   BOOLEAN withCmd ;
-   BOOLEAN withIndex ;
-   INT32 nsLen ;
-   INT32 opType ;
-   const CHAR *cmdName ;
-   CHAR csName[ CS_NAME_SIZE + 1 ] ;
-   CHAR fullName[ CL_FULL_NAME_SIZE + 1 ] ;
-
-public:
-   mongoParser() ;
-   ~mongoParser() ;
-
-   void init( const CHAR *in, const INT32 inLen ) ;
-
-   void setEndian( BOOLEAN bigEndian ) ;
-
-   void nextObj( bson::BSONObj &obj ) ;
-
-   void skip( INT32 size )
-   {
-      _offset += size ;
-   }
-
-   BOOLEAN more()
-   {
-      _nextObj = _dataStart + _offset ;
-      return ( _nextObj < _dataEnd ) ;
-   }
-
-   void reparse()
-   {
-      init( _dataStart, len ) ;
-   }
-
-   void readNumber( const UINT32 size, CHAR *out ) ;
-
-private:
-   void reset() ;
-   void extractMsg() ;
-
-private:
-   const CHAR *_dataStart ;
-   const CHAR *_dataEnd ;
-   const CHAR *_nextObj ;
-   UINT32 _offset ;
-   BOOLEAN _bigEndian ;
-} ;
+   INT64 cursorId ;
+   INT32 startFrom ;
+};
 
 #endif

@@ -84,7 +84,8 @@ namespace engine
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB_AUTHCB_AUTHENTICATE, "_authCB::authenticate" )
-   INT32 _authCB::authenticate( BSONObj &obj, _pmdEDUCB *cb )
+   INT32 _authCB::authenticate( BSONObj &obj, _pmdEDUCB *cb,
+                                BOOLEAN chkPasswd )
    {
       INT32 rc = SDB_OK ;
       BSONObj hint ;
@@ -109,7 +110,8 @@ namespace engine
       PD_LOG( PDDEBUG, "get authentication msg:[%s]",
               obj.toString().c_str()) ;
 
-      if ( SDB_OK != _valid( obj, FALSE ) )
+      if ( SDB_OK != _valid( obj, FALSE ) &&
+           SDB_OK != _validSource( obj, chkPasswd ) )
       {
          rc = SDB_INVALIDARG;
          goto error ;
@@ -227,7 +229,7 @@ namespace engine
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
 
-      rc = authenticate( obj, cb ) ;
+      rc = authenticate( obj, cb, FALSE ) ;
       if ( SDB_OK != rc )
       {
          goto error ;
@@ -351,7 +353,8 @@ namespace engine
       SDB_DMSCB *dmsCB = pmdGetKRCB()->getDMSCB() ;
       SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB() ;
 
-      if ( SDB_OK != _valid( obj, TRUE ) )
+      if ( SDB_OK != _valid( obj, TRUE ) &&
+           SDB_OK != _validSource( obj, TRUE ) )
       {
          rc = SDB_INVALIDARG ;
          goto error ;
@@ -430,6 +433,51 @@ namespace engine
       goto done ;
    }
 
+   INT32 _authCB::_validSource( BSONObj &obj, BOOLEAN chkPasswd )
+   {
+      INT32 rc = SDB_OK ;
+      PD_TRACE_ENTRY ( SDB_AUTHCB__VALID ) ;
+      BSONElement usr, source, pass ;
+      if ( obj.isEmpty() )
+      {
+         goto error ;
+      }
+
+      if ( !obj.hasField( SDB_AUTH_SOURCE ) )
+      {
+         goto error ;
+      }
+
+      source = obj.getField( SDB_AUTH_SOURCE ) ;
+      if ( source.eoo() || String != source.type() ||
+           ( source.String().empty() ) )
+      {
+         goto error ;
+      }
+
+      usr = obj.getField( SDB_AUTH_USER ) ;
+      if ( usr.eoo() || String != usr.type() || ( usr.String().empty() ) )
+      {
+         goto error ;
+      }
+
+      if ( chkPasswd )
+      {
+         pass = obj.getField( SDB_AUTH_PASSWD ) ;
+         if ( pass.eoo() || String != pass.type() || ( pass.String().empty() ) )
+         {
+            goto error ;
+         }
+      }
+
+   done:
+      return rc ;
+   error:
+      rc = SDB_INVALIDARG ;
+      PD_LOG( PDDEBUG, "invalid obj of the auth[%s]",
+              obj.toString().c_str() ) ;
+      goto done ;
+   }
    /*
       get gloabl SDB_AUTHCB cb
    */

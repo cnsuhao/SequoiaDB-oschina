@@ -118,8 +118,10 @@ namespace bson {
             return !(*this == r);
         }
         bool operator<(const OpTime& r) const {
-            if ( secs != r.secs )
-                return secs < r.secs;
+            INT32 l_secs = ( INT32 ) secs ;
+            INT32 r_secs = ( INT32 ) r.secs ;
+            if ( l_secs != r_secs )
+                return l_secs < r_secs;
             return i < r.i;
         }
         bool operator<=(const OpTime& r) const {

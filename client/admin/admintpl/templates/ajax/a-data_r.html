@@ -152,7 +152,9 @@
 						<td colspan="6">
 							<div style="margin-bottom:10px;">
 								<span id="tablekeysnum_{{$tablekeysnum}}" style="cursor:pointer;width:30px;" onclick='toggletable("tablekeysnum_{{$tablekeysnum}}","tableshownum_{{$tableshownum}}");'>[ + ]</span>			
-								{{$child["GroupName"]}}
+								{{if array_key_exists( "GroupName", $child )}}
+                                {{$child["GroupName"]}}
+                                {{/if}}
 							</div>
 							<div style="display:none;" id="tableshownum_{{$tableshownum}}">
 								<table class="table table-bordered" style="word-break:break-all;">

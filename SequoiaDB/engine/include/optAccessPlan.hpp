@@ -49,6 +49,8 @@
 #include "../bson/bson.h"
 #include "ossUtil.hpp"
 
+using namespace bson ;
+
 namespace engine
 {
    class _dmsMBContext ;
@@ -142,7 +144,7 @@ namespace engine
          ossMemset( _idxName, 0, sizeof( _idxName ) ) ;
          ossMemset ( _collectionName, 0, sizeof(_collectionName) ) ;
          ossStrncpy ( _collectionName, collectionName,
-                      sizeof(_collectionName) ) ;
+                      sizeof(_collectionName) - 1 ) ;
 
          _isInitialized = FALSE ;
          _scanType = TBSCAN ;
@@ -164,7 +166,8 @@ namespace engine
       {
          if ( _useCount.peek() != 0 )
          {
-            PD_LOG ( PDWARNING, "Plan is deleted when use count is not 0: %d",
+            PD_LOG ( PDWARNING, "Plan[%s] is deleted when use count is "
+                     "not 0: %d", toString().c_str(),
                      _useCount.peek() ) ;
          }
          if ( _predList )
@@ -293,6 +296,8 @@ namespace engine
       {
          return _isAutoPlan ;
       }
+
+      std::string toString() const ;
 
    } ;
    typedef class _optAccessPlan optAccessPlan ;

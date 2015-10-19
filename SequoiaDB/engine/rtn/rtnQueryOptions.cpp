@@ -37,6 +37,7 @@
 
 #include "rtnQueryOptions.hpp"
 #include "ossUtil.hpp"
+#include <sstream>
 
 namespace engine
 {
@@ -80,4 +81,41 @@ namespace engine
    error:
       goto done ;
    }
+
+   _rtnQueryOptions &_rtnQueryOptions::operator=( const _rtnQueryOptions &o )
+   {
+      _query = o._query ;
+      _selector = o._selector ;
+      _orderBy = o._orderBy ;
+      _hint = o._hint ;
+      _fullName = o._fullName ;
+      if ( NULL != _fullNameBuf )
+      {
+         SDB_OSS_FREE( _fullNameBuf ) ;
+         _fullNameBuf = NULL ;
+      }
+      _skip = o._skip ;
+      _limit = o._limit ;
+      _flag = o._flag ;
+      _enablePrefetch = o._enablePrefetch ;
+      return *this ;
+   }
+
+   string _rtnQueryOptions::toString() const
+   {
+      stringstream ss ;
+      if ( _fullName )
+      {
+         ss << "Name: " << _fullName ;
+         ss << ", Query: " << _query.toString() ;
+         ss << ", Selector: " << _selector.toString() ;
+         ss << ", OrderBy: " << _orderBy.toString() ;
+         ss << ", Hint: " << _hint.toString() ;
+         ss << ", Skip: " << _skip ;
+         ss << ", Limit: " << _limit ;
+         ss << ", Flags: " << _flag ;
+      }
+      return ss.str() ;
+   }
+
 }

@@ -134,7 +134,7 @@ namespace engine
       INT16 _majoritySize() ;
 
       INT32 _getNodeInfoByConf( BSONObj &boConf, BSONObjBuilder &bobNodeInfo ) ;
-      INT32 _checkLocalHost( BOOLEAN &isValid ) ;
+      INT32 _checkLocalHost( BOOLEAN isLocalHost, BOOLEAN &isValid ) ;
 
    private:
       _SDB_DMSCB                 *_pDmsCB;

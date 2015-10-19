@@ -268,10 +268,11 @@ namespace engine
    {
       INT32 major        = 0 ;
       INT32 minor        = 0 ;
+      INT32 fix          = 0 ;
       INT32 release      = 0 ;
       const CHAR *pBuild = NULL ;
       PD_TRACE_ENTRY ( SDB_MONAPPENDVERSION ) ;
-      ossGetVersion ( &major, &minor, &release, &pBuild ) ;
+      ossGetVersion ( &major, &minor, &fix, &release, &pBuild ) ;
       PD_TRACE4 ( SDB_MONAPPENDVERSION,
                   PD_PACK_INT ( major ),
                   PD_PACK_INT ( minor ),
@@ -282,6 +283,7 @@ namespace engine
       {
          obVersion.append ( FIELD_NAME_MAJOR, major ) ;
          obVersion.append ( FIELD_NAME_MINOR, minor ) ;
+         obVersion.append ( FIELD_NAME_FIX, fix ) ;
          obVersion.append ( FIELD_NAME_RELEASE, release ) ;
          obVersion.append ( FIELD_NAME_BUILD, pBuild ) ;
          ob.append ( FIELD_NAME_VERSION, obVersion.obj () ) ;

@@ -72,7 +72,9 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__CLSVSSL_HDTMOUT ) ;
       _timeout() += millisec ;
 
-      if ( pmdGetOptionCB()->sharingBreakTime() + 1000 <= _timeout() )
+      const static UINT32 maxSliceTime = 30 * OSS_ONE_SEC ;
+      if ( pmdGetOptionCB()->sharingBreakTime() + 1000 <= _timeout() ||
+           maxSliceTime <= _timeout() )
       {
          next = CLS_ELECTION_STATUS_SEC ;
          goto done ;

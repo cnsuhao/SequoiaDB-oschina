@@ -107,6 +107,8 @@ class _ossSocket : public SDBObject
 
    public :
       INT32 setSocketLi ( INT32 lOnOff, INT32 linger ) ;
+      INT32 setKeepAlive( INT32 keepAlive, INT32 keepIdle,
+                          INT32 keepInterval, INT32 keepCount ) ;
 
       _ossSocket ( UINT32 port, INT32 timeoutMilli = 0 ) ;
       _ossSocket ( const CHAR *pHostname, UINT32 port, INT32 timeoutMilli = 0 ) ;

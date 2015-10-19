@@ -170,7 +170,8 @@ namespace engine
       _logicType = CLS_CATA_LOGIC_INVALID ;
    }
 
-   INT32 clsCataHashPredTree::generateHashPredicate( UINT32 partitionBit )
+   INT32 clsCataHashPredTree::generateHashPredicate( UINT32 partitionBit,
+                                                     UINT32 internalV )
    {
       INT32 rc = SDB_OK ;
       try
@@ -179,6 +180,7 @@ namespace engine
          UINT32 i = 0 ;
          BSONObjBuilder bobKey ;
          BSONObj objKey ;
+         BSONElement eleShard ;
          BSONObjIterator iterKey( _shardingKey ) ;
          if ( CLS_CATA_LOGIC_AND == _logicType && isNull() )
          {
@@ -201,7 +203,28 @@ namespace engine
                _fieldSet.clear() ;
                break ;
             }
-            bobKey.appendAs( iterField->second, "" ) ;
+            else if ( Array == iterField->second.type() )
+            {
+               BSONObj tmpObj( iterField->second.embeddedObject() ) ;
+               if ( tmpObj.nFields() > 1 )
+               {
+                  includeAllKey = FALSE ;
+                  if ( _logicType != CLS_CATA_LOGIC_AND )
+                  {
+                     upgradeToUniverse() ;
+                     goto done ;
+                  }
+                  _fieldSet.clear() ;
+                  break ;
+               }
+               eleShard = tmpObj.firstElement() ;
+            }
+            else
+            {
+               eleShard = iterField->second ;
+            }
+
+            bobKey.appendAs( eleShard, "" ) ;
          }
 
          if ( includeAllKey )
@@ -209,13 +232,13 @@ namespace engine
             objKey = bobKey.obj() ;
             _hashVal = clsPartition( objKey,
                                      partitionBit,
-                                     CAT_INTERNAL_VERSION_2 ) ;
+                                     internalV ) ;
             _hasPred = TRUE ;
          }
 
          for ( i = 0 ; i < _children.size() ; i++ )
          {
-            rc = _children[i]->generateHashPredicate( partitionBit ) ;
+            rc = _children[i]->generateHashPredicate( partitionBit, internalV ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to generate hash predicate "
                          "for children(rc=%d)", rc ) ;
             if ( _logicType != CLS_CATA_LOGIC_AND &&
@@ -284,7 +307,7 @@ namespace engine
          }
          for ( i = 0 ; i < _children.size() ; i++ )
          {
-            rc = _children[i]->matches( pCatalogItem, rsTmp );
+            rc = _children[i]->matches( pCatalogItem, rsTmp ) ;
             PD_RC_CHECK( rc, PDERROR, "Failed to match the children!" ) ;
             if ( !rsTmp && CLS_CATA_LOGIC_AND == _logicType )
             {
@@ -337,7 +360,7 @@ namespace engine
          while ( cit != _fieldSet.end() )
          {
             buf << "{ " << cit->first << ": "
-                << cit->second.toString() << " }" ;
+                << cit->second.toString( false, false ) << " }" ;
             ++cit ;
          }
       }
@@ -368,7 +391,8 @@ namespace engine
    }
 
    INT32 clsCataHashMatcher::loadPattern( const BSONObj &matcher,
-                                          UINT32 partitionBit )
+                                          UINT32 partitionBit,
+                                          UINT32 internalV )
    {
       INT32 rc = SDB_OK ;
       try
@@ -377,7 +401,7 @@ namespace engine
          rc = parseAnObj( _matcher, _predicateSet ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to load pattern(rc=%d)", rc ) ;
 
-         rc = _predicateSet.generateHashPredicate( partitionBit ) ;
+         rc = _predicateSet.generateHashPredicate( partitionBit, internalV ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to generate hash value(rc=%d)",
                       rc ) ;
       }
@@ -637,10 +661,7 @@ namespace engine
                {
                   if ( iter.more() )
                   {
-                     rc = SDB_INVALIDARG ;
-                     PD_LOG( PDERROR, "Invalid field:%s",
-                             obj.toString().c_str() ) ;
-                     goto error ;
+                     result = PREDICATE_OBJ_TYPE_OP_NOT_EQ ;
                   }
                   else
                   {
@@ -651,8 +672,8 @@ namespace engine
                {
                   result = PREDICATE_OBJ_TYPE_OP_NOT_EQ ;
                }
-               break ;
             }
+            break ;
          }
       }
       catch ( std::exception &e )

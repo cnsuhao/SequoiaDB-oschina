@@ -260,6 +260,8 @@ namespace engine
                         "reorg, rc = %d", rc ) ;
                goto error ;
             }
+            su->data()->restoreForCrash() ;
+
             goto rebuild ;
 
          case DMS_MB_FLAG_OFFLINE_REORG_REBUILD:
@@ -275,6 +277,8 @@ namespace engine
                PD_LOG ( PDERROR, "Failed to rebuild indexes, rc = %d", rc ) ;
                goto error ;
             }
+            su->index()->restoreForCrash() ;
+
             rc = mbContext->mbLock( EXCLUSIVE ) ;
             if ( rc )
             {
@@ -349,6 +353,7 @@ namespace engine
       UINT32 attributes = 0 ;
       CHAR fullFilePath [ OSS_MAX_PATHSIZE + 1 ] = {0} ;
       const CHAR *dbpath = krcb->getOptionCB()->getDbPath() ;
+      BOOLEAN dataRebuild = FALSE ;
 
       if ( ossStrlen ( dbpath ) + 1 +
            ossStrlen ( pCollectionFullName ) +
@@ -402,12 +407,17 @@ namespace engine
             goto error ;
          }
 
+         if ( su->data()->getHeader()->_validFlag )
+         {
+            PD_LOG( PDEVENT, "Data file is valid, does not need rebuild" ) ;
+            goto rebuild_index ;
+         }
+         dataRebuild = TRUE ;
+
          /******************************************************************
           *       SHADOW COPY PHASE STARTS
           ******************************************************************/
-         DMS_SET_MB_OFFLINE_REORG_SHADOW_COPY ( flag ) ;
          PD_LOG ( PDEVENT, "Shadow copy phase starts" ) ;
-         mbContext->mb()->_flag = flag ;
 
          while ( TRUE )
          {
@@ -418,7 +428,7 @@ namespace engine
                {
                   PD_LOG ( PDERROR, "Error detected during fetch, rc = %d",
                            rc ) ;
-                  if ( !ignoreError )
+                  if ( SDB_APP_INTERRUPT == rc || !ignoreError )
                   {
                      goto error_shadow_copy ;
                   }
@@ -462,7 +472,7 @@ namespace engine
 
          rc = su->data()->truncateCollection ( mbContext->mb()->_collectionName,
                                                cb, NULL, TRUE, mbContext,
-                                               FALSE ) ;
+                                               FALSE, FALSE ) ;
          if ( rc )
          {
             PD_LOG ( PDERROR, "Failed to truncate collection, rc = %d", rc ) ;
@@ -487,6 +497,16 @@ namespace engine
          /******************************************************************
           *       REBUILD PHASE STARTS
           ******************************************************************/
+      rebuild_index:
+         su->data()->restoreForCrash() ;
+
+         if ( FALSE == dataRebuild &&
+              su->index()->getHeader()->_validFlag )
+         {
+            PD_LOG( PDEVENT, "Index file is valid, does not need rebuild" ) ;
+            goto cleanup ;
+         }
+
          DMS_SET_MB_OFFLINE_REORG_REBUILD ( flag ) ;
          PD_LOG ( PDEVENT, "Rebuild phase starts" ) ;
          mbContext->mb()->_flag = flag ;
@@ -497,6 +517,8 @@ namespace engine
             PD_LOG ( PDERROR, "Failed to rebuild indexes, rc = %d", rc ) ;
             goto error_rebuild ;
          }
+         su->index()->restoreForCrash() ;
+
          rc = mbContext->mbLock( EXCLUSIVE ) ;
          if ( rc )
          {
@@ -519,6 +541,7 @@ namespace engine
                goto error ;
             }
          }
+
          goto done ;
 
       error_shadow_copy :

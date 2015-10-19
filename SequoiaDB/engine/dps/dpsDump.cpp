@@ -72,7 +72,7 @@ namespace engine
          dpsLogHeader *logHead = (dpsLogHeader*)inBuf ;
          /* dump output looks like
           *  Head    : SDBLOGHD
-          *  FirstLSN: 0x123456789
+          *  FirstLSN: 0x00000000123456789(4886718345)
           *  LogID   : 10
           */
          len += ossSnprintf ( outBuf + len, outSize - len,
@@ -94,7 +94,8 @@ namespace engine
             goto exit ;
          }
          len += ossSnprintf ( outBuf + len, outSize - len,
-                              " FirstLSN: 0x%08lx"OSS_NEWLINE,
+                              " FirstLSN: 0x%016lx(%lld)"OSS_NEWLINE,
+                              logHead->_firstLSN.offset,
                               logHead->_firstLSN.offset ) ;
          len += ossSnprintf ( outBuf + len, outSize - len,
                               " LogID  : %d"OSS_NEWLINE,

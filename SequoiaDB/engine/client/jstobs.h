@@ -43,6 +43,7 @@
 #define RELATIVE_MIN_SEC 60
 
 #define TIME_FORMAT "%d-%d-%d-%d.%d.%d.%d"
+#define TIME_FORMAT_IOS "%d-%d-%dT%d:%d:%d.%dZ"
 #define TIME_OUTPUT_CSV_FORMAT "%04d-%02d-%02d-%02d.%02d.%02d.%06d"
 #define TIME_OUTPUT_FORMAT "{ \"$timestamp\": \"" TIME_OUTPUT_CSV_FORMAT "\" }"
 #define DATE_FORMAT "%d-%d-%d"

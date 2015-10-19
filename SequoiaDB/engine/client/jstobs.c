@@ -891,36 +891,57 @@ static BOOLEAN jsonConvertBson ( cJSON *cj, bson *bs, BOOLEAN isObj )
          if ( cJSON_Timestamp == cj->type )
          {
             /* for timestamp type, we provide yyyy-mm-dd-hh.mm.ss.uuuuuu */
-            if ( !sscanf ( cj->valuestring,
-                             TIME_FORMAT,
-                             &year   ,
-                             &month  ,
-                             &day    ,
-                             &hour   ,
-                             &minute ,
-                             &second ,
-                             &micros ) )
+            if( !sscanf ( cj->valuestring,
+                          TIME_FORMAT,
+                          &year,
+                          &month,
+                          &day,
+                          &hour,
+                          &minute,
+                          &second,
+                          &micros ) )
             {
-              return FALSE ;
+               return FALSE ;
             }
          }
          else
          {
             /* for date type, we provide yyyy-mm-dd */
-            if ( !sscanf ( cj->valuestring,
-                           DATE_FORMAT,
-                           &year,
-                           &month,
-                           &day ) )
+            if( strchr( cj->valuestring, 'T' ) )
+            {
+               if( !sscanf ( cj->valuestring,
+                             TIME_FORMAT_IOS,
+                             &year,
+                             &month,
+                             &day,
+                             &hour,
+                             &minute,
+                             &second,
+                             &micros ) )
+               {
                   return FALSE ;
+               }
+            }
+            else
+            {
+               if( !sscanf ( cj->valuestring,
+                             DATE_FORMAT,
+                             &year,
+                             &month,
+                             &day ) )
+               {
+                  return FALSE ;
+               }
+            }
          }
          --month ;
          /* sanity check for years */
-         if( year    >=    INT32_LAST_YEAR   ||
+         if( cJSON_Timestamp == cj->type && (
+             year    >=    INT32_LAST_YEAR   ||
              month   >=    RELATIVE_MOD      || //[0,11]
              month   <     0                 ||
              day     >     RELATIVE_DAY      || //[1,31]
-             day     <=    0 )
+             day     <=    0 ) )
          {
             return FALSE ;
          }
@@ -932,6 +953,14 @@ static BOOLEAN jsonConvertBson ( cJSON *cj, bson *bs, BOOLEAN isObj )
              second  >=    RELATIVE_MIN_SEC  || //[0,59]
              second  <     0                )
            )
+         {
+            return FALSE ;
+         }
+         if( cJSON_Date == cj->type && (
+             month   >=    RELATIVE_MOD      || //[0,11]
+             month   <     0                 ||
+             day     >     RELATIVE_DAY      || //[1,31]
+             day     <=    0 ) )
          {
             return FALSE ;
          }

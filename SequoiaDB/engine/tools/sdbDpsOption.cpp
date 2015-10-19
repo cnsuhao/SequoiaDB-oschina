@@ -250,8 +250,8 @@ INT32 _dpsFilterOption::doDataExchange( engine::pmdCfgExchange *pEx )
    rdxPath( pEx, DPS_LOG_FILTER_SOURCE,
             _cmdData.srcPath, OSS_MAX_PATHSIZE, FALSE, FALSE, "./" ) ;
 
-   rdxPath( pEx, DPS_LOG_FILTER_OUTPUT,
-            _cmdData.dstPath, OSS_MAX_PATHSIZE, FALSE, FALSE, "./" ) ;
+   rdxString( pEx, DPS_LOG_FILTER_OUTPUT,
+              _cmdData.dstPath, OSS_MAX_PATHSIZE, FALSE, FALSE, "./" ) ;
 
    rdxString( pEx, DPS_LOG_FILTER_NAME,
             _cmdData.inputName, OSS_MAX_PATHSIZE, FALSE, FALSE, "" ) ;

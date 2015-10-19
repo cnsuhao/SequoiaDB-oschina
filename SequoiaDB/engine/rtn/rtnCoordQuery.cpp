@@ -434,6 +434,8 @@ namespace engine
                }
                else
                {
+                  PD_LOG( PDERROR, "get unexpected result[%d] in msg which is from node[%s]",
+                          rcTmp, routeID2String( pReply->header.routeID ).c_str() ) ;
                   CoordGroupInfoPtr groupInfoTmp;
                   cb->getCoordSession()->removeLastNode( groupID );
                   if ( SDB_CLS_FULL_SYNC == rcTmp )

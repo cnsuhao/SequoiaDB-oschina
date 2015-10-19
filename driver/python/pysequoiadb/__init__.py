@@ -57,9 +57,9 @@ except ImportError:
    raise Exception("Cannot find extension: sdb")
 
 def get_version():
-   ver, sub_version, release, build = sdb.sdb_get_version()
-   return ("( Version: %s , subVersion: %s , Release: %s , build: %s )"
-            % (ver, sub_version, release, build))
+   ver, sub_version, fixed, release, build = sdb.sdb_get_version()
+   return ("( Version: %s, subVersion: %s, fixed: %s, Release: %s , build: %s )"
+            % (ver, sub_version, fixed, release, build))
 
 PY3 = sys.version_info[0] == 3
 

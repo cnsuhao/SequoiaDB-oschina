@@ -35,6 +35,7 @@
 #include "coordSession.hpp"
 #include "pdTrace.hpp"
 #include "netTrace.hpp"
+#include "msgMessage.hpp"
 
 namespace engine
 {
@@ -132,6 +133,14 @@ namespace engine
       {
          rc = _pNetWork->syncSend( id, pHeader, body, bodyLen ) ;
       }
+
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to send msg to node:[%s], rc:%d",
+                 routeID2String( id ).c_str(), rc ) ;
+         goto error ;
+      }
+
       if ( SDB_OK == rc && pSession )
       {
          pSession->addRequest( reqID, id );
@@ -177,6 +186,13 @@ namespace engine
                id.columns.groupID, id.columns.nodeID, id.columns.serviceID );
 
       rc = _pNetWork->syncSendv( id, header, iov );
+      if ( SDB_OK != rc )
+      {
+         PD_LOG( PDERROR, "failed to send msg to node:[%s], rc:%d",
+                 routeID2String( id ).c_str(), rc ) ;
+         goto error ;
+      }
+
       if ( SDB_OK == rc && pSession )
       {
          pSession->addRequest( reqID, id );

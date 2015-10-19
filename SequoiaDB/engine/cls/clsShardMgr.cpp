@@ -256,10 +256,12 @@ namespace engine
       if ( CATALOG_GROUPID == groupID )
       {
          ossScopedLock lock ( &_shardLatch, SHARED ) ;
-         if ( primary && _primary >= 0 && _primary < (INT32)_vecCatlog.size() )
+         INT32 tmpPrimary = _primary ;
+         if ( primary && tmpPrimary >= 0 &&
+              tmpPrimary < (INT32)_vecCatlog.size() )
          {
-            hosts.push_back( _hostAndPort( _vecCatlog[_primary].host,
-                                           _vecCatlog[_primary].service ) ) ;
+            hosts.push_back( _hostAndPort( _vecCatlog[tmpPrimary].host,
+                                           _vecCatlog[tmpPrimary].service ) ) ;
          }
          else if ( !primary )
          {
@@ -1231,6 +1233,10 @@ namespace engine
       else
       {
          _clsCatalogSet *catSet = NULL ;
+         INT32 version = 0 ;
+         UINT32 groupCount = 0 ;
+         const CHAR *pCLType = "normal" ;
+         string collectionName ;
          rc = msgExtractReply ( (CHAR *)msg, &flag, &contextID, &startFrom,
                                 &numReturned, objList ) ;
          if ( SDB_OK != rc )
@@ -1245,6 +1251,20 @@ namespace engine
          _pCatAgent->lock_w () ;
          rc = _pCatAgent->updateCatalog ( 0, groupID, objList[0].objdata(),
                                           objList[0].objsize(), &catSet ) ;
+         if ( catSet )
+         {
+            version = catSet->getVersion() ;
+            groupCount = catSet->groupCount() ;
+            collectionName = catSet->name() ;
+            if ( catSet->isMainCL() )
+            {
+               pCLType = "main" ;
+            }
+            else if ( !catSet->getMainCLName().empty() )
+            {
+               pCLType = "sub" ;
+            }
+         }
          _pCatAgent->release_w () ;
          if ( SDB_OK != rc )
          {
@@ -1252,8 +1272,9 @@ namespace engine
             goto error ;
          }
 
-         PD_LOG ( PDEVENT, "Update catalog [version:%u, rc: %d]",
-                  NULL == catSet ? 0 : catSet->getVersion(), rc ) ;
+         PD_LOG ( PDEVENT, "Update catalog[name: %s, version:%u, type: %s, "
+                  "group count: %d, rc: %d]", collectionName.c_str(),
+                  version, pCLType, groupCount, rc ) ;
 
          BSONElement ele = objList[0].getField ( CAT_COLLECTION_NAME ) ;
          clsEventItem *pEventInfo = _findCatSyncEvent( ele.str().c_str(),

@@ -253,7 +253,7 @@ const CHAR* getErrDesp ( INT32 errCode );
 #define SDB_DPS_LOG_FILE_OUT_OF_SIZE    -203  /**< Log file size is too large */
 #define SDB_CATA_RM_NODE_FORBIDDEN      -204  /**< Unable to remove the last node in a group */
 #define SDB_CATA_FAILED_TO_CLEANUP      -205  /**< Unable to clean up catalog, manual cleanup may be required */
-#define SDB_CATA_RM_CATA_FORBIDDEN      -206  /**< Unable to remove primary catalog or catalog group for non-empty database */
+#define SDB_CATA_RM_CATA_FORBIDDEN      -206  /**< Unable to remove catalog for non-empty database */
 #define SDB_CAT_GRP_NOT_EXIST           -207  /**< Group does not exist */
 #define SDB_CAT_RM_GRP_FORBIDDEN        -208  /**< Unable to remove non-empty group */
 #define SDB_MIG_END_OF_QUEUE            -209  /**< End of queue */
@@ -325,14 +325,4 @@ const CHAR* getErrDesp ( INT32 errCode );
 #define SDB_DMS_CS_NOT_EMPTY            -275  /**< There are some collections in the collection space */
 #define SDB_CAT_LOCALHOST_CONFLICT      -276  /**< 'localhost' and '127.0.0.1' cannot be used mixed with other hostname and IP address */
 #define SDB_CAT_NOT_LOCALCONN           -277  /**< If use 'localhost' and '127.0.0.1' for hostname, coord and catalog must in the same host  */
-#define SDB_CAT_IS_NOT_DATAGROUP        -278  /**< The special group is not data group */
-#define SDB_RTN_AUTOINDEXID_IS_FALSE    -279  /**< can not update/delete data when autoindexid is false */
-#define SDB_CLS_CAN_NOT_STEP_UP         -280  /**< can not step up when primary node exists or LSN is not the biggest */
-#define SDB_CAT_IMAGE_ADDR_CONFLICT     -281  /**< Image address is conflict with the self cluster */
-#define SDB_CAT_GROUP_HASNOT_IMAGE      -282  /**< The data group does not have image group */
-#define SDB_CAT_GROUP_HAS_IMAGE         -283  /**< The data group has image group */
-#define SDB_CAT_IMAGE_IS_ENABLED        -284  /**< The image is in enabled status */
-#define SDB_CAT_IMAGE_NOT_CONFIG        -285  /**< The cluster's image does not configured */
-#define SDB_CAT_DUAL_ACTIVE             -286  /**< This cluster and image cluster is both active */
-#define SDB_CAT_CLUSTER_NOT_ACTIVE      -287  /**< This cluster is not active */
 #endif /* OSSERR_HPP_ */

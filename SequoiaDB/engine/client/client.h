@@ -2044,6 +2044,16 @@ SDB_EXPORT INT32 sdbReelect( sdbReplicaGroupHandle cHandle,
 SDB_EXPORT INT32 sdbForceStepUp( sdbConnectionHandle cHandle,
                                  const bson *options ) ;
 
+
+/** \fn INT32 sdbTruncateCollection( sdbConnectionHandle cHandle,
+ *                                   const CHAR *fullName )
+ *  \param [in] cHandle The handle of connection.
+ *  \param [in] fullName The full name of collection to be truncated, eg: foo.bar.
+ *  \retval SDB_OK Operation Success
+ *  \retval Others Operation Fail
+ */
+SDB_EXPORT INT32 sdbTruncateCollection( sdbConnectionHandle cHandle,
+                                        const CHAR *fullName ) ;
 SDB_EXTERN_C_END
 #endif
 

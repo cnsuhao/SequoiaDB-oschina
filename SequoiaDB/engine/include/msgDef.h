@@ -61,6 +61,7 @@
 #define FIELD_NAME_GROUP                     "Group"
 #define FIELD_NAME_GROUPS                    "Groups"
 #define FIELD_NAME_VERSION                   "Version"
+#define FIELD_NAME_EDITION                   "Edition"
 #define FIELD_NAME_W                         "ReplSize"
 #define FIELD_NAME_PRIMARY                   "PrimaryNode"
 #define FIELD_NAME_GROUP_STATUS              "Status"
@@ -95,9 +96,11 @@
 #define FIELD_NAME_PARTITION                 "Partition"
 #define FIELD_NAME_MAJOR                     "Major"
 #define FIELD_NAME_MINOR                     "Minor"
+#define FIELD_NAME_FIX                       "Fix"
 #define FIELD_NAME_RELEASE                   "Release"
 #define FIELD_NAME_BUILD                     "Build"
 #define FIELD_NAME_SESSIONID                 "SessionID"
+#define FIELD_NAME_FIX                       "Fix"
 #define FIELD_NAME_TID                       "TID"
 #define FIELD_NAME_CONTEXTS                  "Contexts"
 #define FIELD_NAME_CONTEXTID                 "ContextID"
@@ -415,8 +418,9 @@
 #define CMD_NAME_ALTER_IMAGE                 "alter image"
 #define CMD_NAME_REELECT                     "reelect"
 #define CMD_NAME_FORCE_STEP_UP               "force step up"
-
+#define CMD_NAME_LIST_USERS                  "list users"
 #define CMD_NAME_JSON_LOAD                   "json load"
+#define CMD_NAME_TRUNCATE                    "truncate"
 
 #define CMD_VALUE_NAME_ATTACH                "attach"
 #define CMD_VALUE_NAME_DETACH                "detach"
@@ -456,6 +460,7 @@
 
 #define SDB_AUTH_USER                        "User"
 #define SDB_AUTH_PASSWD                      "Passwd"
+#define SDB_AUTH_SOURCE                      "Source"
 
 #define SDB_LOB_OID_LEN                      16
 

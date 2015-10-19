@@ -153,7 +153,8 @@ namespace engine
                            pmdEDUCB *cb, INT16 w ) ;
 
    INT32 catGetCSGroupsFromCLs( const CHAR *csName, pmdEDUCB *cb,
-                                vector< UINT32 > &groups ) ;
+                                vector< UINT32 > &groups,
+                                BOOLEAN includeSubCLGroups = FALSE ) ;
 
    /* Collection[CAT_TASK_INFO_COLLECTION] functions: */
    INT32 catAddTask( BSONObj & taskObj, pmdEDUCB *cb, INT16 w ) ;

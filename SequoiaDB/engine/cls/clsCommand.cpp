@@ -237,6 +237,7 @@ namespace engine
    _rtnLinkCollection::_rtnLinkCollection()
    {
       _collectionName = NULL ;
+      _subCLName      = NULL ;
    }
 
    _rtnLinkCollection::~_rtnLinkCollection()
@@ -280,9 +281,19 @@ namespace engine
                                     &_collectionName ) ;
          if ( SDB_OK != rc )
          {
-            PD_LOG ( PDERROR, "Failed to get string [collection] " ) ;
+            PD_LOG ( PDERROR, "Failed to get string[%s], rc: %d",
+                     FIELD_NAME_NAME, rc ) ;
             goto error ;
          }
+         rc = rtnGetStringElement( arg, FIELD_NAME_SUBCLNAME,
+                                   &_subCLName ) ;
+         if ( SDB_OK != rc )
+         {
+            PD_LOG( PDERROR, "Failed to get string [%s], rc: %d",
+                    FIELD_NAME_SUBCLNAME, rc ) ;
+            goto error ;
+         }
+         
       }
       catch( std::exception &e )
       {
@@ -302,23 +313,26 @@ namespace engine
                                     _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                                     INT16 w, INT64 *pContextID )
    {
+      INT32 rc = sdbGetShardCB()->syncUpdateCatalog( _subCLName ) ;
+      if ( rc )
+      {
+         catAgent *pCatAgent = sdbGetShardCB()->getCataAgent() ;
+         pCatAgent->lock_w() ;
+         pCatAgent->clear( _subCLName ) ;
+         pCatAgent->release_w() ;
+      }
       sdbGetClsCB()->invalidateCata( _collectionName ) ;
+      sdbGetClsCB()->invalidateCata( _subCLName ) ;
       return SDB_OK ;
    }
 
    IMPLEMENT_CMD_AUTO_REGISTER(_rtnUnlinkCollection)
    _rtnUnlinkCollection::_rtnUnlinkCollection()
    {
-      _collectionName = NULL ;
    }
 
    _rtnUnlinkCollection::~_rtnUnlinkCollection()
    {
-   }
-
-   INT32 _rtnUnlinkCollection::spaceService ()
-   {
-      return CMD_SPACE_SERVICE_SHARD ;
    }
 
    const CHAR * _rtnUnlinkCollection::name ()
@@ -331,51 +345,25 @@ namespace engine
       return CMD_UNLINK_COLLECTION ;
    }
 
-   const CHAR *_rtnUnlinkCollection::collectionFullName ()
-   {
-      return _collectionName ;
-   }
-
-   // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSUNLINKCL_INIT, "_rtnUnlinkCollection::init" )
-   INT32 _rtnUnlinkCollection::init ( INT32 flags, INT64 numToSkip,
-                                      INT64 numToReturn,
-                                      const CHAR * pMatcherBuff,
-                                      const CHAR * pSelectBuff,
-                                      const CHAR * pOrderByBuff,
-                                      const CHAR * pHintBuff)
-   {
-      PD_TRACE_ENTRY ( SDB__CLSUNLINKCL_INIT ) ;
-      INT32 rc = SDB_OK;
-      try
-      {
-         BSONObj arg ( pMatcherBuff ) ;
-         rc = rtnGetStringElement ( arg, FIELD_NAME_NAME,
-                                    &_collectionName ) ;
-         if ( SDB_OK != rc )
-         {
-            PD_LOG ( PDERROR, "Failed to get string [collection] " ) ;
-            goto error ;
-         }
-      }
-      catch( std::exception &e )
-      {
-         PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
-         rc = SDB_INVALIDARG;
-         goto error ;
-      }
-
-   done:
-      PD_TRACE_EXITRC ( SDB__CLSUNLINKCL_INIT, rc ) ;
-      return rc ;
-   error:
-      goto done ;
-   }
-
    INT32 _rtnUnlinkCollection::doit ( _pmdEDUCB *cb, _SDB_DMSCB *dmsCB,
                                       _SDB_RTNCB *rtnCB, _dpsLogWrapper *dpsCB,
                                       INT16 w, INT64 *pContextID )
    {
+      catAgent *pCatAgent = sdbGetShardCB()->getCataAgent() ;
+      INT32 rc = sdbGetShardCB()->syncUpdateCatalog( _subCLName ) ;
+      if ( rc )
+      {
+         pCatAgent->lock_w() ;
+         pCatAgent->clear( _subCLName ) ;
+         pCatAgent->release_w() ;
+      }
+
+      pCatAgent->lock_w() ;
+      pCatAgent->clear( _collectionName ) ;
+      pCatAgent->release_w() ;
+      
       sdbGetClsCB()->invalidateCata( _collectionName ) ;
+      sdbGetClsCB()->invalidateCata( _subCLName ) ;
       return SDB_OK ;
    }
 

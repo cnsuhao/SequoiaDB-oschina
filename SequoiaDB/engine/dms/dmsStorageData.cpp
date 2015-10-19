@@ -315,17 +315,42 @@ namespace engine
       {
          if ( DMS_IS_MB_INUSE ( _dmsMME->_mbList[i]._flag ) )
          {
-            _dmsMME->_mbList[i]._totalRecords = _mbStatInfo[i]._totalRecords ;
-            _dmsMME->_mbList[i]._totalDataPages =
-               _mbStatInfo[i]._totalDataPages ;
-            _dmsMME->_mbList[i]._totalIndexPages =
-               _mbStatInfo[i]._totalIndexPages ;
-            _dmsMME->_mbList[i]._totalDataFreeSpace =
-               _mbStatInfo[i]._totalDataFreeSpace ;
-            _dmsMME->_mbList[i]._totalIndexFreeSpace =
-               _mbStatInfo[i]._totalIndexFreeSpace ;
-            _dmsMME->_mbList[i]._totalLobPages =
-               _mbStatInfo[i]._totalLobPages ;
+            if ( _dmsMME->_mbList[i]._totalRecords !=
+                 _mbStatInfo[i]._totalRecords )
+            {
+               _dmsMME->_mbList[i]._totalRecords =
+                  _mbStatInfo[i]._totalRecords ;
+            }
+            if ( _dmsMME->_mbList[i]._totalDataPages !=
+                 _mbStatInfo[i]._totalDataPages )
+            {
+               _dmsMME->_mbList[i]._totalDataPages =
+                  _mbStatInfo[i]._totalDataPages ;
+            }
+            if ( _dmsMME->_mbList[i]._totalIndexPages !=
+                 _mbStatInfo[i]._totalIndexPages )
+            {
+               _dmsMME->_mbList[i]._totalIndexPages =
+                  _mbStatInfo[i]._totalIndexPages ;
+            }
+            if ( _dmsMME->_mbList[i]._totalDataFreeSpace !=
+                 _mbStatInfo[i]._totalDataFreeSpace )
+            {
+               _dmsMME->_mbList[i]._totalDataFreeSpace =
+                  _mbStatInfo[i]._totalDataFreeSpace ;
+            }
+            if ( _dmsMME->_mbList[i]._totalIndexFreeSpace !=
+                 _mbStatInfo[i]._totalIndexFreeSpace )
+            {
+               _dmsMME->_mbList[i]._totalIndexFreeSpace =
+                  _mbStatInfo[i]._totalIndexFreeSpace ;
+            }
+            if ( _dmsMME->_mbList[i]._totalLobPages !=
+                 _mbStatInfo[i]._totalLobPages )
+            {
+               _dmsMME->_mbList[i]._totalLobPages =
+                  _mbStatInfo[i]._totalLobPages ;
+            }
          }
       }
       PD_TRACE_EXIT ( SDB__DMSSTORAGEDATA_SYNCMEMTOMMAP ) ;
@@ -527,11 +552,15 @@ namespace engine
    INT32 _dmsStorageData::_logDPS( SDB_DPSCB *dpsCB, dpsMergeInfo &info,
                                    pmdEDUCB *cb, dmsMBContext *context,
                                    dmsExtentID extLID,
-                                   BOOLEAN needUnLock )
+                                   BOOLEAN needUnLock,
+                                   UINT32 *clLID )
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA__LOGDPS1 ) ;
-      info.setInfoEx( logicalID(), context->clLID(), extLID, cb ) ;
+      info.setInfoEx( logicalID(),
+                      NULL == clLID ?
+                      context->clLID() : *clLID,
+                      extLID, cb ) ;
       rc = dpsCB->prepare( info ) ;
       if ( rc )
       {
@@ -1550,11 +1579,13 @@ namespace engine
                                               SDB_DPSCB *dpscb,
                                               BOOLEAN sysCollection,
                                               dmsMBContext *context,
-                                              BOOLEAN needChangeCLID )
+                                              BOOLEAN needChangeCLID,
+                                              BOOLEAN truncateLob )
    {
       INT32 rc           = SDB_OK ;
       BOOLEAN getContext = FALSE ;
       UINT32 newCLID     = DMS_INVALID_CLID ;
+      UINT32 oldCLID     = DMS_INVALID_CLID ;
 
       PD_TRACE_ENTRY ( SDB__DMSSTORAGEDATA_TRUNCATECOLLECTION ) ;
       CHAR fullName[DMS_COLLECTION_FULL_NAME_SZ + 1] = {0} ;
@@ -1632,12 +1663,6 @@ namespace engine
       rc = context->resume() ;
       PD_RC_CHECK( rc, PDERROR, "dms mb context resume falied, rc: %d", rc ) ;
 
-      if ( needChangeCLID )
-      {
-         context->mb()->_logicalID = newCLID ;
-         context->_clLID           = newCLID ;
-      }
-
       rc = _pIdxSU->truncateIndexes( context ) ;
       PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] indexes failed, "
                    "rc: %d", pName, rc ) ;
@@ -1646,16 +1671,23 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] data failed, rc: %d",
                    pName, rc ) ;
 
-      if ( _pLobSU->isOpened() )
+      if ( truncateLob && _pLobSU->isOpened() )
       {
          rc = _pLobSU->truncate( context, cb, NULL ) ;
          PD_RC_CHECK( rc, PDERROR, "Truncate collection[%s] lob failed, rc: %d",
                       pName, rc ) ;
       }
 
+      if ( needChangeCLID )
+      {
+         oldCLID = context->_clLID ;
+         context->mb()->_logicalID = newCLID ;
+         context->_clLID           = newCLID ;
+      }
+
       if ( dpscb )
       {
-         rc = _logDPS( dpscb, info, cb, context, DMS_INVALID_EXTENT, TRUE ) ;
+         rc = _logDPS( dpscb, info, cb, context, DMS_INVALID_EXTENT, TRUE, &oldCLID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to insert CLTrunc record to log, "
                       "rc: %d", rc ) ;
       }
@@ -1888,14 +1920,14 @@ namespace engine
                           DMS_MB_ATTR_COMPRESSED ) )
       {
          rc = dmsCompress( cb, record, ((CHAR*)(&oid)), oidLen,
-                             &compressedData, &compressedDataSize ) ;
+                           &compressedData, &compressedDataSize ) ;
          PD_RC_CHECK ( rc, PDERROR, "Failed to compress record[%s], rc: %d",
                        record.toString().c_str(), rc ) ;
          dmsRecordSize = compressedDataSize + sizeof(INT32) ;
          PD_TRACE2 ( SDB__DMSSTORAGEDATA_INSERTRECORD,
                      PD_PACK_STRING ( "size after compress" ),
                      PD_PACK_UINT ( dmsRecordSize ) ) ;
-                     
+
          if ( dmsRecordSize > (UINT32)(record.objsize() + oidLen) )
          {
             dmsRecordSize = record.objsize() ;
@@ -1938,7 +1970,6 @@ namespace engine
             goto error ;
          }
 
-         logRecSize = ossAlign4( logRecord.alignedLen() + oidLen ) ;
          rc = pTransCB->reservedLogSpace( logRecSize ) ;
          if ( rc )
          {
@@ -2081,6 +2112,12 @@ namespace engine
 
       if ( DMS_DELETEDRECORD_GETSIZE ( deletedRecordPtr ) < dmsRecordSize )
       {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+      else if ( len < 5 )
+      {
+         PD_LOG( PDERROR, "Bson obj size[%d] is invalid", len ) ;
          rc = SDB_INVALIDARG ;
          goto error ;
       }

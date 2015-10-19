@@ -64,7 +64,7 @@ namespace engine
          goto error ;
       }
 
-      while ( ! cb->isDisconnected() )
+      while ( !cb->isDisconnected() && !pListerner->isClosed() )
       {
          SOCKET s ;
          rc = pListerner->accept ( &s, NULL, NULL ) ;

@@ -45,6 +45,7 @@
 #include "ossUtil.hpp"
 #include "dpsLogDef.hpp"
 #include <string>
+#include "ossEvent.hpp"
 
 using namespace std ;
 
@@ -98,6 +99,8 @@ namespace engine
       UINT32         _fileNum ;
       UINT32         _idleSize ;
       dpsLogHeader   _logHeader ;
+      ossAutoEvent   _writeEvent ;
+      BOOLEAN        _inRestore ;
 
    public:
       _dpsLogFile();
@@ -129,6 +132,7 @@ namespace engine
       INT32 close();
       UINT32 getIdleSize() { return _idleSize ; }
       UINT32 getLength () { return _fileSize - _idleSize ; }
+      UINT32 getValidLength() const ;
       INT32 reset ( UINT32 logID, const DPS_LSN_OFFSET &offset,
                     const DPS_LSN_VER &version ) ;
       DPS_LSN getFirstLSN ( BOOLEAN mustExist = TRUE ) ;

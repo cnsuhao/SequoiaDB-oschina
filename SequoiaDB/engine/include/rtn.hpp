@@ -436,6 +436,19 @@ namespace engine
                                               const CHAR *extFilter =
                                               DMS_DATA_SU_EXT_NAME ) ;
 
+   enum SDB_FILE_TYPE
+   {
+      SDB_FILE_DATA        = 0,
+      SDB_FILE_INDEX       = 1,
+      SDB_FILE_LOBM        = 2,
+      SDB_FILE_LOBD        = 3,
+
+      SDB_FILE_STARTUP     = 10,
+      SDB_FILE_UNKNOW      = 255
+   } ;
+
+   SDB_FILE_TYPE rtnParseFileName( const CHAR *pFileName ) ;
+
    string   rtnMakeSUFileName( const string &csName, UINT32 sequence,
                                const string &extName ) ;
    string   rtnFullPathName( const string &path, const string &name ) ;

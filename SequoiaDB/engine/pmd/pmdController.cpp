@@ -41,6 +41,7 @@
 #include "../bson/lib/md5.hpp"
 #include "ossDynamicLoad.hpp"
 #include "pmdModuleLoader.hpp"
+#include "ossProc.hpp"
 
 namespace engine
 {
@@ -143,6 +144,10 @@ namespace engine
    done:
       return rc ;
    error:
+      if ( SDB_NETWORK == rc )
+      {
+         rc = SDB_NET_CANNOT_LISTEN ;
+      }
       goto done ;
    }
 
@@ -156,7 +161,12 @@ namespace engine
       PD_RC_CHECK( rc, PDERROR, "Failed to init rest adaptor, rc: %d", rc ) ;
 
       rc = pEDUMgr->startEDU( EDU_TYPE_SYNCCLOCK, NULL, &eduID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Start sync clock edu failed, rc: %d", rc ) ;
       pEDUMgr->regSystemEDU( EDU_TYPE_SYNCCLOCK, eduID ) ;
+
+      rc = pEDUMgr->startEDU( EDU_TYPE_DBMONITOR, NULL, &eduID ) ;
+      PD_RC_CHECK( rc, PDERROR, "Start db monitor edu failed, rc: %d", rc ) ;
+      pEDUMgr->regSystemEDU( EDU_TYPE_DBMONITOR, eduID ) ;
 
       rc = pEDUMgr->startEDU( EDU_TYPE_TCPLISTENER, (void*)_pTcpListener,
                               &eduID ) ;
@@ -494,6 +504,11 @@ namespace engine
          _checkSession( interval ) ;
          _timeCounter = 0 ;
       }
+
+      for ( UINT32 i = 0 ; i < _vecMonNets.size() ; ++i )
+      {
+         _vecMonNets[ i ]->heartbeat( OSS_ONE_SEC ) ;
+      }
    }
 
    void _pmdController::releaseFixBuf( CHAR * pBuff )
@@ -554,12 +569,37 @@ namespace engine
       _pRSManager = pRSManager ;
    }
 
-   INT32 _pmdController::initForeignModule( const CHAR *strName )
+   void _pmdController::registerNet( _netFrame *pNetFrame )
+   {
+      SDB_ASSERT( FALSE == pmdGetKRCB()->isActive(),
+                  "Can't register when actived" ) ;
+      _vecMonNets.push_back( pNetFrame ) ;
+   }
+
+   void _pmdController::unregNet( _netFrame *pNetFrame )
+   {
+      SDB_ASSERT( FALSE == pmdGetKRCB()->isActive(),
+                  "Can't register when actived" ) ;
+      vector< _netFrame* >::iterator it = _vecMonNets.begin() ;
+      while( it != _vecMonNets.end() )
+      {
+         if ( *it == pNetFrame )
+         {
+            _vecMonNets.erase( it ) ;
+            break ;
+         }
+         ++it ;
+      }
+   }
+
+   INT32 _pmdController::initForeignModule( const CHAR *moduleName )
    {
       INT32 rc = SDB_OK ;
       UINT16 protocolPort = 0 ;
+      CHAR rootPath[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
+      CHAR path[ OSS_MAX_PATHSIZE + 1 ] = { 0 } ;
 
-      if (  NULL == strName || '\0' == strName[ 0 ] )
+      if (  NULL == moduleName || '\0' == moduleName[ 0 ] )
       {
          goto done ;
       }
@@ -571,10 +611,23 @@ namespace engine
          rc = SDB_OOM ;
          goto error ;
       }
-
-      rc = _fapMongo->load( strName, FAP_MODULE_PATH ) ;
+      rc = ossGetEWD( rootPath, OSS_MAX_PATHSIZE ) ;
+      if ( rc )
+      {
+         ossPrintf ( "Failed to get excutable file's working "
+                     "directory"OSS_NEWLINE ) ;
+         goto error ;
+      }
+      rc = utilBuildFullPath( rootPath, FAP_MODULE_PATH,
+                              OSS_MAX_PATHSIZE, path );
+      if ( rc )
+      {
+         ossPrintf( "Failed to build module path: %d"OSS_NEWLINE, rc ) ;
+         goto error ;
+      }
+      rc = _fapMongo->load( moduleName, path ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to load module: %s, path: %s"
-                   " rc: %d", strName, FAP_MODULE_PATH, rc ) ;
+                   " rc: %d", moduleName, FAP_MODULE_PATH, rc ) ;
       rc = _fapMongo->create( _protocol ) ;
       PD_RC_CHECK( rc, PDERROR, "Failed to create protocol service" ) ;
 

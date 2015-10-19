@@ -165,7 +165,7 @@ namespace engine
     public:
          OSS_INLINE BOOLEAN next()
          {
-            if ( DPS_MERGE_BLOCK_MAX_DATA == ++_current )
+            if ( DPS_MERGE_BLOCK_MAX_DATA <= ++_current )
             {
                return FALSE ;
             }
@@ -241,6 +241,7 @@ namespace engine
       const CHAR *_data[DPS_MERGE_BLOCK_MAX_DATA] ;
       _dpsRecordEle _dataHeader[DPS_MERGE_BLOCK_MAX_DATA] ;
       UINT32 _write ;
+      INT32  _result ;
    } ;
    typedef class _dpsLogRecord dpsLogRecord ;
 

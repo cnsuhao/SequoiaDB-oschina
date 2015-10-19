@@ -672,7 +672,9 @@ namespace engine
 
       if ( cb && cb->getDmsLockLevel() >= DMS_LOCK_WRITE )
       {
+         _stateMtx.get () ;
          ++_writeCounter ;
+         _stateMtx.release() ;
          goto done ;
       }
 
@@ -818,7 +820,7 @@ namespace engine
             _stateMtx.release();
             if ( cb )
             {
-               cb->setDmsLockLevel( DMS_LOCK_WRITE ) ;
+               cb->setDmsLockLevel( DMS_LOCK_WHOLE ) ;
             }
             goto done;
          }
@@ -1088,8 +1090,12 @@ namespace engine
 
          _mutex.release_shared() ;
          rc = _CSCBNameRemoveP1( pName, cb, dpsCB ) ;
-         PD_RC_CHECK( rc, PDERROR,
-                     "failed to drop cs(rc=%d)", rc );
+         if ( rc )
+         {
+            PD_LOG( PDERROR, "Failed to drop cs[%s], rc: %d",
+                    pName, rc ) ;
+            goto error ;
+         }
       }
    done :
       PD_TRACE_EXITRC ( SDB__SDB_DMSCB_DROPCSP1, rc );
@@ -1169,7 +1175,7 @@ namespace engine
       {
          su = NULL ;
          dmsStorageUnitID suID = (*it).second ;
-         ossScopedRWLock lock ( _latchVec[suID], SHARED ) ;
+
          SDB_DMS_CSCB *cscb = _cscbVec[suID] ;
          if ( !cscb )
             continue ;
@@ -1205,7 +1211,7 @@ namespace engine
       for ( it = _cscbNameMap.begin(); it != _cscbNameMap.end(); it++ )
       {
          dmsStorageUnitID suID = (*it).second ;
-         ossScopedRWLock lock ( _latchVec[suID], SHARED ) ;
+
          SDB_DMS_CSCB *cscb = _cscbVec[suID] ;
          if ( !cscb )
          {
@@ -1270,7 +1276,7 @@ namespace engine
       {
          su = NULL ;
          dmsStorageUnitID suID = (*it).second ;
-         ossScopedRWLock lock ( _latchVec[suID], SHARED ) ;
+
          SDB_DMS_CSCB *cscb = _cscbVec[suID] ;
          if ( !cscb )
          {
@@ -1303,7 +1309,7 @@ namespace engine
       {
          su = NULL ;
          dmsStorageUnitID suID = (*it).second ;
-         ossScopedRWLock lock ( _latchVec[suID], SHARED ) ;
+
          SDB_DMS_CSCB *cscb = _cscbVec[suID] ;
          if ( !cscb )
          {

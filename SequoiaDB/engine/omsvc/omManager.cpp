@@ -711,13 +711,18 @@ namespace engine
       }
 
       {
-         INT32 ver ;
-         INT32 subVer ;
-         INT32 release ;
+         INT32 ver = 0 ;
+         INT32 subVer = 0 ;
+         INT32 fix = 0 ;
+         INT32 release = 0 ;
          const CHAR *pBuild = NULL ;
-         ossGetVersion( &ver, &subVer, &release, &pBuild ) ;
-         ss << "{\n  version:\"" << ver << "." << subVer 
-            << "\",\n  buildTime:\"" << pBuild << "\",\n  release:\""
+         ossGetVersion( &ver, &subVer, &fix, &release, &pBuild ) ;
+         ss << "{\n  version:\"" << ver << "." << subVer ;
+         if ( fix > 0 )
+         {
+            ss << "." << fix ;
+         }
+         ss << "\",\n  buildTime:\"" << pBuild << "\",\n  release:\""
             << release << "\"\n}";
       }
 

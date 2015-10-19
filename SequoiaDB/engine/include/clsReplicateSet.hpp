@@ -63,6 +63,7 @@ namespace engine
    class _pmdEDUCB ;
 
    #define CLS_SYNCCTRL_THRESHOLD_SIZE          (10)
+   #define CLS_SYNC_DFT_TIMEOUT                 ( 3600 * OSS_ONE_SEC )
 
    /*
       _clsReplicateSet define
@@ -136,6 +137,16 @@ namespace engine
             return num ;
          }
 
+         OSS_INLINE UINT32 getAlivesByTimeout( UINT32 timeout =
+                                               CLS_NODE_KEEPALIVE_TIMEOUT )
+         {
+            UINT32 num = 0 ;
+            _info.mtx.lock_r () ;
+            num = _info.getAlivesByTimeout( timeout ) ;
+            _info.mtx.release_r  () ;
+            return num ;
+         }
+
          OSS_INLINE BOOLEAN isAlive ( NodeID node )
          {
             BOOLEAN bAlive = FALSE ;
@@ -164,7 +175,7 @@ namespace engine
          OSS_INLINE INT32 sync( const DPS_LSN_OFFSET &offset,
                                 _pmdEDUCB *eduCB,
                                 UINT32 w = 1,
-                                INT64 timeout = -1 )
+                                INT64 timeout = CLS_SYNC_DFT_TIMEOUT )
          {
             if ( DPS_INVALID_LSN_OFFSET == offset || 1 >= w )
             {
@@ -232,14 +243,12 @@ namespace engine
 
          INT32 handleEvent( pmdEDUEvent *event ) ;
 
-         INT32 callCatalog( MsgHeader *header ) ;
+         INT32 callCatalog( MsgHeader *header, UINT32 times = 1 ) ;
 
          void getGroupInfo( _MsgRouteID &primary,
                             vector<_netRouteNode > &group ) ;
 
          _MsgRouteID getPrimary () ;
-
-         void tearDown() ;
 
          INT64 netIn() ;
          INT64 netOut() ;
@@ -290,9 +299,9 @@ namespace engine
          _clsMgr                 *_clsCB ;
          UINT64                  _timerID ;
          UINT32                  _beatTime ;
-         UINT32                  _downloadTime ;
          BOOLEAN                 _active ;
          CLS_BS_STATUS           _replStatus ;
+         UINT64                  _checkBreakTime ;
 
          UINT32                  _srcSessionNum ;
          ossRWMutex              _vecLatch ;

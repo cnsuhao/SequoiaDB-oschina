@@ -74,7 +74,12 @@ namespace engine
          virtual INT32  _defaultMsgFunc ( NET_HANDLE handle, MsgHeader* msg ) ;
 
          INT32   _createCSByCatalog( const CHAR *clFullName ) ;
-         INT32   _createCLByCatalog( const CHAR *clFullName ) ;
+         INT32   _createCLByCatalog( const CHAR *clFullName,
+                                     const CHAR *pParent = NULL,
+                                     BOOLEAN mustOnSelf = TRUE ) ;
+         INT32   _processSubCLResult( INT32 result,
+                                      const CHAR *clFullName,
+                                      const CHAR *pParent ) ;
 
       protected:
          INT32 _onOPMsg ( NET_HANDLE handle, MsgHeader *msg ) ;
@@ -125,8 +130,8 @@ namespace engine
          INT32 _includeShardingOrder( const CHAR *pCollectionName,
                                     const BSONObj &orderBy,
                                     BOOLEAN &result );
-         INT32 _InsertToMainCL( BSONObj &objs, INT32 objNum, INT32 flags,
-                              INT16 w = 1 );
+         INT32 _insertToMainCL( BSONObj &objs, INT32 objNum, INT32 flags,
+                                INT16 w = 1 );
          INT32 _queryToMainCL( const CHAR *pCollectionName,
                                const BSONObj &selector,
                                const BSONObj &matcher,
@@ -164,6 +169,7 @@ namespace engine
                              const CHAR *pOrderBy,
                              const CHAR *pHint,
                              INT16 w,
+                             INT32 version,
                              SINT64 &contextID );
 
          INT32 _getOnMainCL( const CHAR *pCommand,
@@ -192,17 +198,26 @@ namespace engine
 
          INT32 _dropMainCL( const CHAR *pCollection,
                            INT16 w,
+                           INT32 version,
                            SINT64 &contextID );
 
          INT32 _getSubCLList( const BSONObj &matcher,
                               const CHAR *pCollectionName,
                               BSONObj &boNewMatcher,
-                              std::vector< std::string > &strSubCLList );
+                              vector< string > &strSubCLList ) ;
+
+         INT32 _getSubCLList( const CHAR *pCollectionName,
+                              vector< string > &subCLList ) ;
+
+         INT32 _sortSubCLListByBound( const CHAR *pCollectionName,
+                                      std::vector< std::string > &strSubCLList ) ;
 
          INT32 _aggregateMainCLExplaining( const CHAR *fullName,
                                            pmdEDUCB *cb,
                                            SINT64 &mainCLContextID,
                                            SINT64 &contextID ) ;
+
+         INT32 _truncateMainCL( const CHAR *fullName ) ;
 
       protected:
          _clsReplicateSet       *_pReplSet ;
@@ -215,6 +230,9 @@ namespace engine
          MsgOpReply             _replyHeader ;
          BSONObj                _errorInfo ;
          const CHAR             *_pCollectionName ;
+
+         BOOLEAN                _isMainCL ;
+         BOOLEAN                _hasUpdateCataInfo ;
 
          ossTimestamp           _lastRecvTime ;
    };

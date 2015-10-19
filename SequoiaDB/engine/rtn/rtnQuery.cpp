@@ -407,6 +407,10 @@ namespace engine
                                  numToSkip,
                                  pBlockObj, direction ) ;
          PD_RC_CHECK( rc, PDERROR, "Open data context failed, rc: %d", rc ) ;
+
+         suID = DMS_INVALID_CS ;
+         plan = NULL ;
+         mbContext = NULL ;
       }
       else
       {
@@ -417,6 +421,10 @@ namespace engine
                                  pBlockObj, direction ) ;
          PD_RC_CHECK( rc, PDERROR, "Open data context failed, rc: %d", rc ) ;
 
+         suID = DMS_INVALID_CS ;
+         plan = NULL ;
+         mbContext = NULL ;
+
          rc = rtnSort ( (rtnContext**)&dataContext,
                         orderBy,
                         cb, numToSkip,
@@ -424,10 +432,6 @@ namespace engine
                         contextID ) ;
          PD_RC_CHECK( rc, PDERROR, "Failed to sort, rc: %d", rc ) ;
       }
-
-      suID = DMS_INVALID_CS ;
-      plan = NULL ;
-      mbContext = NULL ;
 
       if ( cb->getMonConfigCB()->timestampON )
       {

@@ -1,0 +1,118 @@
+<!--@param ${is.debug} : for debug choise , default false , true|false . this choise is old, ignore it,now debug is true-->
+<!--@param ${JDK.VERSION.5}: choise true|false-->
+<!--@param ${base.dir} : where the java driver source's root is -->
+<project name="build_java_driver" default="build_java_driver">
+  <target name="clean_env" depends="">
+    <delete dir="${base.dir}/build" failonerror="false" />
+    <delete dir="${base.dir}/temp" failonerror="false" />
+    <mkdir dir="${base.dir}/temp" />
+    <mkdir dir="${base.dir}/build"  />
+    <copy file="${base.dir}/src/main/resources/errors.properties" todir="${base.dir}/build" />
+  </target>
+  <target name="build_java_driver" depends="clean_env">
+    <property name="is.debug" value="false" />
+    <!--property name="JDK.VERSION"  value="" /-->
+    <property name="JDK.VERSION.5" value="false" />
+
+    <if>
+      <equals arg1="${JDK.VERSION.5}" arg2="true"/>
+      <then>
+         <property name="JDK.VERSION" value="5" />
+      </then>
+      <else>
+         <property name="JDK.VERSION" value="" />
+      </else>
+    </if>
+
+    <echo message="os.name=${os.name}, os.arch=${os.arch}" />
+		<if>
+			<equals arg1="${os.name}" arg2="Linux" />
+			<then>
+				<property name="jdk.name.os" value="jdk${JDK.VERSION}_linux" />
+			</then>
+			<else>
+				<property name="jdk.name.os" value="jdk${JDK.VERSION}_win" />
+			</else>
+		</if>
+
+    <if>
+    	<equals arg1="${os.arch}" arg2="ppc64" />
+    	<then>
+    		<property name="jdk.name" value="jdk_ppclinux64" />
+      </then>
+    </if>
+
+		<if>
+			<equals arg1="${os.arch}" arg2="amd64" />
+			<then>
+				<property name="jdk.name" value="${jdk.name.os}64" />
+			</then>
+			<else>
+				<property name="jdk.name" value="${jdk.name.os}32" />
+			</else>
+		</if>
+		<echo message="jdk.name is ${jdk.name}" />
+    <javac srcdir="${base.dir}/src"
+           destdir="${base.dir}/build"
+           debug="on"
+           encoding="UTF-8"
+           fork="yes" >
+       <compilerarg value="-Xlint:unchecked" />
+    </javac>
+    <tstamp>
+		  <format property="current.time" pattern="MM-dd-hh.mm.ss" />
+		</tstamp>
+
+    <trycatch>
+    	<try>
+        <exec dir="${base.dir}" executable="svn" output="${base.dir}/temp/svn.status.txt" failonerror="false" >
+          <arg line="status -u" />
+        </exec>
+        <exec dir="${base.dir}" executable="grep" output="${base.dir}/temp/svn.grep.txt" failonerror="false" >
+          <arg line="&quot;Status against revision&quot;" />
+          <arg line="${base.dir}/temp/svn.status.txt" />
+        </exec>
+        <exec dir="${base.dir}" executable="awk" outputproperty="svn.version" failonerror="false" >
+          <arg line="-F &apos;:&apos; &apos;{print $2}&apos;" />
+          <arg line="${base.dir}/temp/svn.grep.txt" />
+        </exec>
+
+    	</try>
+    	<catch>
+    		<property name="svn.version" value="unknow" />
+    	</catch>
+    	<finally>
+    	</finally>
+    </trycatch>
+
+    <trycatch>
+    	<try>
+        <copy file="${base.dir}/../../misc/ci/exec-tools/print_version.c" todir="${base.dir}/temp/" />
+     		<echo>
+     			/usr/bin/gcc  ${base.dir}/temp/print_version.c -o ${base.dir}/temp/print_version -I${base.dir}/../../SequoiaDB/engine/include
+     		</echo>
+     		<exec executable="/usr/bin/gcc" dir="${base.dir}" failonerror="true">
+           <arg line="${base.dir}/temp/print_version.c -o ${base.dir}/temp/print_version -I${base.dir}/../../SequoiaDB/engine/include" />
+        </exec>
+        <exec executable="${base.dir}/temp/print_version" dir="${base.dir}" failonerror="false" outputproperty="project.version" />
+
+    	</try>
+    	<catch>
+    	   <property name="project.version" value="unknow" />
+    	</catch>
+    	<finally>
+    	</finally>
+    </trycatch>
+    <propertyfile file="${base.dir}/build/version">
+       <entry key="Release" value="${svn.version}"/>
+       <entry key="build.time" value="${current.time}"/>
+       <entry key="SequoiaDB_version" value="${project.version}"/>
+    </propertyfile>
+    <jar file="${base.dir}/sequoiadb.jar" >
+       <manifest>
+       </manifest>
+       <fileset dir="${base.dir}/build"/>
+    </jar>
+  </target>
+
+</project>

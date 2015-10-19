@@ -102,6 +102,9 @@ namespace engine
       {
          _isTempSU = TRUE ;
       }
+
+      _validFlag          = 0 ;
+      _isCrash            = FALSE ;
    }
 
    _dmsStorageBase::~_dmsStorageBase()
@@ -333,6 +336,10 @@ namespace engine
 
       if ( ossMmapFile::_opened )
       {
+         if ( !_isCrash )
+         {
+            _dmsHeader->_validFlag = 1 ;
+         }
          _dmsHeader     = NULL ;
          _dmsSME        = NULL ;
          ossLatch ( &_pagecleanerLatch ) ;
@@ -489,6 +496,7 @@ namespace engine
       pHeader->_pageNum  = 0 ;
       pHeader->_secretValue = _pStorageInfo->_secretValue ;
       pHeader->_createLobs = 0 ;
+      pHeader->_validFlag  = 0 ;
    }
 
    INT32 _dmsStorageBase::_checkPageSize( dmsStorageUnitHeader * pHeader )
@@ -626,6 +634,12 @@ namespace engine
                "page size: %d\ndata size: %d pages\nname: %s\nsequence: %d",
                getSuFileName(), pHeader->_pageSize, pHeader->_pageNum,
                pHeader->_name, pHeader->_sequence ) ;
+
+      _validFlag = pHeader->_validFlag ;
+      if ( !_validFlag )
+      {
+         _isCrash = TRUE ;
+      }
 
    done :
       return rc ;
@@ -768,6 +782,7 @@ namespace engine
 
          if ( DMS_INVALID_EXTENT != foundPage )
          {
+            _invalidate() ;
             break ;
          }
 
@@ -837,6 +852,7 @@ namespace engine
 
    INT32 _dmsStorageBase::_releaseSpace( SINT32 pageStart, UINT16 numPages )
    {
+      _invalidate() ;
       return _smeMgr.releasePages( pageStart, numPages ) ;
    }
 
@@ -902,6 +918,17 @@ namespace engine
          *pNum = numbers ;
       }
       return ;
+   }
+
+   void _dmsStorageBase::_invalidate()
+   {
+      if ( _validFlag && _dmsHeader )
+      {
+         _validFlag = 0 ;
+         _dmsHeader->_validFlag = 0 ;
+
+         ossMmapFile::flush( 0, TRUE ) ;
+      }
    }
 
    /*

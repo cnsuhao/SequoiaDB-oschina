@@ -584,7 +584,8 @@ namespace engine
                                     SDB_DPSCB *dpscb,
                                     BOOLEAN sysCollection = TRUE,
                                     dmsMBContext *context = NULL,
-                                    BOOLEAN needChangeCLID = TRUE ) ;
+                                    BOOLEAN needChangeCLID = TRUE,
+                                    BOOLEAN truncateLob = TRUE ) ;
 
          INT32 truncateCollectionLoads( const CHAR *pName,
                                         dmsMBContext *context = NULL ) ;
@@ -655,7 +656,8 @@ namespace engine
 
          INT32          _logDPS( SDB_DPSCB *dpsCB, dpsMergeInfo &info,
                                  _pmdEDUCB *cb, dmsMBContext *context,
-                                 dmsExtentID extLID, BOOLEAN needUnLock ) ;
+                                 dmsExtentID extLID, BOOLEAN needUnLock,
+                                 UINT32 *clLID = NULL ) ;
 
       private:
          INT32          _saveDeletedRecord ( dmsMB *mb,

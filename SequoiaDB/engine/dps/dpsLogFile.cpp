@@ -46,12 +46,15 @@
 
 namespace engine
 {
+   #define DPS_LOGFILE_READ_TIMEOUT          ( 30000 )
+
    _dpsLogFile::_dpsLogFile()
    {
       _file = NULL ;
       _fileSize = 0 ;
       _fileNum  = 0 ;
       _idleSize = 0 ;
+      _inRestore= FALSE ;
    }
 
    _dpsLogFile::~_dpsLogFile()
@@ -92,6 +95,7 @@ namespace engine
    {
       INT32 rc = SDB_OK ;
       PD_TRACE_ENTRY ( SDB__DPSLOGFILE_INIT ) ;
+      BOOLEAN created = FALSE ;
 
       SDB_ASSERT ( 0 == ( _fileSize % DPS_DEFAULT_PAGE_SIZE ),
                    "Size must be multiple of DPS_DEFAULT_PAGE_SIZE bytes" ) ;
@@ -116,10 +120,16 @@ namespace engine
             rc = _restore () ;
             if ( rc == SDB_OK )
             {
+               UINT32 startOffset = 0 ;
+               if ( DPS_INVALID_LSN_OFFSET != _logHeader._firstLSN.offset )
+               {
+                  startOffset = (UINT32)( _logHeader._firstLSN.offset %
+                                          _fileSize ) ;
+               }
                PD_LOG ( PDEVENT, "Restore dps log file[%s] succeed, "
                         "firstLsn[%lld], idle space: %u, start offset: %d",
                         path, getFirstLSN().offset, getIdleSize(),
-                        (INT32)( _logHeader._firstLSN.offset % _fileSize ) ) ;
+                        startOffset ) ;
                goto done ;
             }
             else
@@ -150,6 +160,9 @@ namespace engine
          PD_LOG ( PDERROR, "Failed to open log file %s, rc = %d", path, rc ) ;
          goto error;
       }
+
+      created = TRUE ;
+
       rc = ossExtendFile( _file, (SINT64)_fileSize + DPS_LOG_HEAD_LEN );
       if ( rc )
       {
@@ -183,7 +196,17 @@ namespace engine
       if ( NULL != _file )
       {
          SDB_OSS_DEL _file;
-         _file = NULL;
+         _file = NULL ;
+      }
+      if ( created )
+      {
+         INT32 rcTmp = SDB_OK ;
+         rcTmp = ossDelete( path ) ;
+         if ( SDB_OK != rcTmp )
+         {
+            PD_LOG( PDERROR, "failed to remove new file[%s], rc:%d",
+                    path, rc ) ;
+         }
       }
       goto done;
    }
@@ -200,6 +223,8 @@ namespace engine
       CHAR *lastRecord = NULL ;
       UINT64 lastOffset = 0 ;
       UINT32 lastLen = 0 ;
+
+      _inRestore = TRUE ;
 
       rc = ossGetFileSize( _file, &fileSize ) ;
       if ( SDB_OK != rc )
@@ -283,7 +308,8 @@ namespace engine
          PD_RC_CHECK( rc, PDERROR, "Failed to flush header, rc: %d", rc ) ;
       }
 
-      if ( _logHeader._logID == DPS_INVALID_LOG_FILE_ID )
+      if ( _logHeader._logID == DPS_INVALID_LOG_FILE_ID ||
+           _logHeader._firstLSN.invalid() )
       {
          _logHeader._firstLSN.version = DPS_INVALID_LSN_VERSION ;
          _logHeader._firstLSN.offset = DPS_INVALID_LSN_OFFSET ;
@@ -370,20 +396,30 @@ namespace engine
             PD_LOG( PDERROR, "failed to load record log:%d", rc ) ;
             goto error ;
          }
-         else
-         {
-
-         }
       }
 
       _idleSize = _fileSize - offSet ;
 
    done:
+      _inRestore = FALSE ;
       SAFE_OSS_FREE( lastRecord ) ;
       PD_TRACE_EXITRC ( SDB__DPSLOGFILE__RESTRORE, rc );
       return rc ;
    error:
       goto done ;
+   }
+
+   UINT32 _dpsLogFile::getValidLength() const
+   {
+      if ( DPS_INVALID_LSN_OFFSET == _logHeader._firstLSN.offset )
+      {
+         return _fileSize - _idleSize ;
+      }
+      else
+      {
+         return _fileSize - _idleSize -
+               ( _logHeader._firstLSN.offset % _fileSize ) ;
+      }
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__DPSLOGFILE_RESET, "_dpsLogFile::reset" )
@@ -483,7 +519,6 @@ namespace engine
             if ( SDB_OK == rc )
             {
                written += (UINT32)writtenLen ;
-               _idleSize -= (UINT32)writtenLen ;
             }
             else
             {
@@ -493,6 +528,7 @@ namespace engine
                goto error;
             }
          }
+         _idleSize -= len ;
       }
       else if ( len > _idleSize )
       {
@@ -507,6 +543,7 @@ namespace engine
          rc = SDB_SYS ;
          goto error ;
       }
+      _writeEvent.signalAll() ;
 
    done:
       PD_TRACE_EXITRC ( SDB__DPSLOGFILE_WRITE, rc );
@@ -523,6 +560,7 @@ namespace engine
       PD_TRACE_ENTRY ( SDB__DPSLOGFILE_READ );
       SINT64 readLen = 0;
       UINT32 read = 0 ;
+      UINT32 readTimerCounter = 0 ;
       UINT32 offset = lOffset % _fileSize ;
       SDB_ASSERT ( offset + len <= _fileSize,
                    "Read out of range" ) ;
@@ -533,6 +571,19 @@ namespace engine
          rc = SDB_DPS_LOG_NOT_IN_FILE ;
          goto error ;
       }
+      while ( !_inRestore && offset + len > getLength() )
+      {
+         if ( SDB_OK == _writeEvent.wait( OSS_ONE_SEC ) )
+         {
+            continue ;
+         }
+         readTimerCounter += OSS_ONE_SEC ;
+         if ( readTimerCounter >= DPS_LOGFILE_READ_TIMEOUT )
+         {
+            break ;
+         }
+      }
+
       while ( read < len )
       {
          rc = ossSeekAndRead ( _file, offset + DPS_LOG_HEAD_LEN + read,

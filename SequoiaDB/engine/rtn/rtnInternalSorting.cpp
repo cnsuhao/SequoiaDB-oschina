@@ -43,7 +43,7 @@
 #include "ossUtil.hpp"
 #include "ixm_common.hpp"
 
-#define RTN_SORT_USE_INSERTSORT 8
+#define RTN_SORT_USE_INSERTSORT 64
 #define RTN_SORT_SAME_SWAP_THRESHOLD 0.1
 #define RTN_SORT_MEDIAN_OF_THREE 32
 #define RTN_SORT_RANDOM_NUM 100
@@ -59,7 +59,8 @@
 namespace engine
 {
    _rtnInternalSorting::_rtnInternalSorting( const BSONObj &orderby,
-                                             CHAR *buf, UINT64 size )
+                                             CHAR *buf, UINT64 size,
+                                             INT64 limit )
    :_orderObj( orderby ),
     _keyGen( orderby ),
     _order( Ordering::make( orderby ) ),
@@ -69,7 +70,8 @@ namespace engine
     _tailOffset( size ),
     _objNum( 0 ),
     _fetched( 0 ),
-    _recursion(0)
+    _recursion(0),
+    _limit( limit )
    {
 
    }
@@ -215,20 +217,20 @@ namespace engine
       SDB_ASSERT( left < right, "impossible" ) ;
       SDB_ASSERT( NULL != *left && NULL != *right, "can not be NULL" ) ;
 
-      {
-      _rtnSortTuple **mid = left + (( right - left ) >> 1) ;
+      _rtnSortTuple **mid = left + (( right - left ) >> 1 ) ;
+      _rtnSortTuple **randPtr = NULL ;
 
       try
       {
-         if ( 0 < (*left)->compare( *mid, _order ))
+         if ( 0 < (*left)->compare( *mid, _order ) )
          {
             RTN_SORT_SWAP( mid, left ) ;
          }
-         if ( 0 < (*left)->compare( *right, _order ))
+         if ( 0 < (*left)->compare( *right, _order ) )
          {
             RTN_SORT_SWAP( left, right ) ;
          }
-         if ( 0 < (*right)->compare( *mid, _order ))
+         if ( 0 < (*right)->compare( *mid, _order ) )
          {
             RTN_SORT_SWAP( mid, right ) ;
          }
@@ -238,7 +240,6 @@ namespace engine
          PD_LOG( PDERROR, "unexpected err happened:%s", e.what() ) ;
          rc = SDB_SYS ;
          goto error ;
-      }
       }
 
       {
@@ -344,6 +345,12 @@ namespace engine
          RTN_SORT_SWAP( pivot, j ) ;
       }
 
+      if ( j + 1 < right )
+      {
+         randPtr = j + 1 + ossRand() % ( right - j - 1 ) ;
+         RTN_SORT_SWAP( right, randPtr ) ;
+      }
+
       leftAxis = j ;
       rightAxis = j ;
 
@@ -371,8 +378,8 @@ namespace engine
    }
 
    INT32 _rtnInternalSorting::_swapLeftSameKey( _rtnSortTuple **left,
-                                               _rtnSortTuple **right,
-                                               _rtnSortTuple **&axis )
+                                                _rtnSortTuple **right,
+                                                _rtnSortTuple **&axis )
    {
       INT32 rc = SDB_OK ;
       _rtnSortTuple *pivot = *right ;
@@ -455,6 +462,11 @@ namespace engine
       _rtnSortTuple **rightAxis = NULL ;
       ++_recursion ;
 
+      if ( cb->isInterrupted() )
+      {
+         rc = SDB_APP_INTERRUPT ;
+         goto error ;
+      }
 
       if ( left == right )
       {
@@ -485,6 +497,11 @@ namespace engine
          {
             goto error ;
          }
+      }
+
+      if ( _limit > 0 && rightAxis - left + 1 >= _limit )
+      {
+         goto done ;
       }
 
       if ( rightAxis + 1 < right )

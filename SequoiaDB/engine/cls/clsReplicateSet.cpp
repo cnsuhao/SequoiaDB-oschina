@@ -63,11 +63,13 @@ namespace engine
    const UINT32 CLS_REPL_SEC_TIME = 1000 ;
 
    #define CLS_REPL_ACTIVE_CHECK( rc ) \
-           if ( !_active ) \
-           { \
-              rc = SDB_REPL_GROUP_NOT_ACTIVE ;\
-              goto error ;\
-           }
+            do { \
+               if ( !_active ) \
+               { \
+                  rc = SDB_REPL_GROUP_NOT_ACTIVE ;\
+                  goto error ;\
+               } \
+            } while( 0 )
 
 #if defined (_WINDOWS)
    #define CLS_CONNREFUSED    WSAECONNREFUSED
@@ -86,7 +88,6 @@ namespace engine
      _clsCB( NULL ),
      _timerID( CLS_INVALID_TIMERID ),
      _beatTime( 0 ),
-     _downloadTime( 0 ),
      _active( FALSE ),
      _replStatus( CLS_BS_NORMAL )
    {
@@ -96,6 +97,7 @@ namespace engine
 
       _totalLogSize = 0 ;
       _inSyncCtrl   = FALSE ;
+      _checkBreakTime = 0 ;
       memset( _sizethreshold, 0, sizeof( _sizethreshold ) ) ;
       memset( _timeThreshold, 0, sizeof( _timeThreshold ) ) ;
    }
@@ -319,8 +321,7 @@ namespace engine
 
       {
       BOOLEAN hasLocal = FALSE ;
-      map<UINT64, _netRouteNode>::iterator itr =
-                                          nodes.begin() ;
+      map<UINT64, _netRouteNode>::iterator itr = nodes.begin() ;
       for ( ; itr != nodes.end(); itr++ )
       {
         if ( itr->first == _info.local.value )
@@ -351,8 +352,7 @@ namespace engine
       }
 
       {
-      map<UINT64, _clsSharingStatus>::iterator itr2 =
-                                          _info.info.begin() ;
+      map<UINT64, _clsSharingStatus>::iterator itr2 = _info.info.begin() ;
       for ( ; itr2 != _info.info.end(); )
       {
          if ( nodes.end() == nodes.find( itr2->first ) )
@@ -385,9 +385,9 @@ namespace engine
       goto done ;
    }
 
-   INT32 _clsReplicateSet::callCatalog( MsgHeader *header )
+   INT32 _clsReplicateSet::callCatalog( MsgHeader *header, UINT32 times )
    {
-      return _cata.call( header ) ;
+      return _cata.call( header, times ) ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSREPSET_GETPRMY, "_clsReplicateSet::getPrimary" )
@@ -467,6 +467,7 @@ namespace engine
          _checkBreak( interval ) ;
 
          _vote.handleTimeout( interval ) ;
+         _sync.handleTimeout( interval ) ;
       }
 
    done:
@@ -524,7 +525,7 @@ namespace engine
          }
          case MSG_CLS_BEAT :
          {
-            CLS_REPL_ACTIVE_CHECK( rc )
+            CLS_REPL_ACTIVE_CHECK( rc ) ;
             rc = _handleSharingBeat( ( const _MsgClsBeat *)msg ) ;
             break ;
          }
@@ -543,26 +544,25 @@ namespace engine
          }
          case MSG_CLS_BEAT_RES :
          {
-            CLS_REPL_ACTIVE_CHECK( rc )
+            CLS_REPL_ACTIVE_CHECK( rc ) ;
             rc = _handleSharingBeatRes( ( const _MsgClsBeatRes *)msg ) ;
             break ;
          }
          case MSG_CLS_BALLOT :
          {
-            CLS_REPL_ACTIVE_CHECK( rc )
+            CLS_REPL_ACTIVE_CHECK( rc ) ;
             rc = _vote.handleInput( msg ) ;
             break ;
          }
          case MSG_CLS_BALLOT_RES :
          {
-            CLS_REPL_ACTIVE_CHECK( rc )
+            CLS_REPL_ACTIVE_CHECK( rc ) ;
             rc = _vote.handleInput( msg ) ;
             break ;
          }
          case MSG_CLS_GINFO_UPDATED :
          {
-            PD_LOG( PDEVENT,
-                    "group info has been updated, download again." ) ;
+            PD_LOG( PDEVENT, "Group info has been updated, download again" ) ;
             MsgCatGroupReq msg ;
             msg.id = _info.local ;
             _cata.call( (MsgHeader *)(&msg) ) ;
@@ -593,7 +593,8 @@ namespace engine
             _clsCB->updateCatGroup ( TRUE ) ;
          }
 
-         PD_LOG( PDERROR, "download group info request was refused" ) ;
+         PD_LOG( PDWARNING, "download group info request was refused, rc: %d",
+                 msg->header.res ) ;
          goto error ;
       }
       {
@@ -610,8 +611,12 @@ namespace engine
       rc = _setGroupSet( version, group ) ;
       if ( SDB_OK != rc )
       {
-         PD_LOG( PDWARNING, "set group info failed, rc = %d", rc ) ;
-         goto error ;
+         if ( SDB_REPL_REMOTE_G_V_EXPIRED != rc )
+         {
+            PD_LOG( PDWARNING, "set group info failed, rc = %d", rc ) ;
+            goto error ;
+         }
+         rc = SDB_OK ;
       }
 
       _cata.remove( (MsgInternalReplyHeader *)msg ) ;
@@ -653,29 +658,30 @@ namespace engine
       msg.beat.version = _info.version ;
       msg.beat.role = _vote.primaryIsMe() ?
                       CLS_GROUP_ROLE_PRIMARY : CLS_GROUP_ROLE_SECONDARY ;
-      msg.beat.beatID = ++_info.localBeatID ;
+      msg.beat.beatID = _info.nextBeatID() ;
       msg.beat.serviceStatus = pmdGetStartup().isOK() ?
                                SERVICE_NORMAL : SERVICE_ABNORMAL ;
       UINT8 weight = pmdGetOptionCB()->weight() ;
       UINT8 shadowWeight = _vote.getShadowWeight() ;
       msg.beat.weight = CLS_GET_WEIGHT( weight, shadowWeight ) ;
-      map<UINT64, _clsSharingStatus>::iterator itr =
-                                        _info.info.begin() ;
+
+      map<UINT64, _clsSharingStatus>::iterator itr = _info.info.begin() ;
       for ( ; itr != _info.info.end(); itr++ )
       {
-         if ( itr->second.timeout >= pmdGetOptionCB()->sharingBreakTime() &&
-              itr->second.timeout >= _beatTime )
+         if ( itr->second.deadtime >= pmdGetOptionCB()->sharingBreakTime() &&
+              itr->second.deadtime >= _beatTime )
          {
-            itr->second.timeout -= _beatTime ;
+            itr->second.deadtime -= _beatTime ;
             continue ;
          }
          msg.beat.syncStatus = clsSyncWindow( itr->second.beat.endLsn,
                                               fBegin, mBegin, end ) ;
+
          if ( SDB_OK != _agent->syncSend( itr->second.beat.identity, &msg ) &&
               _info.alives.find( itr->first ) == _info.alives.end() )
          {
             UINT32 resetTimeout = 0 ;
-            itr->second.timeout = pmdGetOptionCB()->sharingBreakTime() - 1 ;
+            itr->second.deadtime = pmdGetOptionCB()->sharingBreakTime() - 1 ;
             if ( SOCKET_GETLASTERROR == CLS_CONNREFUSED )
             {
                resetTimeout = 1800 * OSS_ONE_SEC ;
@@ -684,7 +690,7 @@ namespace engine
             {
                resetTimeout = 120 * OSS_ONE_SEC ;
             }
-            itr->second.timeout += resetTimeout ;
+            itr->second.deadtime += resetTimeout ;
 
             PD_LOG( PDEVENT, "Reset node[%d] sharing-beat time to %u(sec)",
                     itr->second.beat.identity.columns.nodeID,
@@ -701,10 +707,22 @@ namespace engine
    void _clsReplicateSet::_checkBreak( const UINT32 &millisec )
    {
       PD_TRACE_ENTRY ( SDB__CLSREPSET__CHKBRK );
+
+      UINT64 nowTime = time( NULL ) ;
       BOOLEAN needErase = FALSE ;
-      map<UINT64, _clsSharingStatus *>::iterator itr =
-                                        _info.alives.begin() ;
-      for ( ; itr != _info.alives.end(); itr++ )
+      map<UINT64, _clsSharingStatus *>::iterator itr ;
+      map< UINT64, _clsSharingStatus>::iterator itrInfo ;
+
+      if ( ( nowTime >= _checkBreakTime &&
+             ( nowTime - _checkBreakTime ) * OSS_ONE_SEC < millisec ) ||
+           ( nowTime <= _checkBreakTime &&
+             ( _checkBreakTime - nowTime ) * OSS_ONE_SEC < millisec ) )
+      {
+         goto done ;
+      }
+      _checkBreakTime = nowTime ;
+
+      for ( itr = _info.alives.begin() ; itr != _info.alives.end() ; itr++ )
       {
          itr->second->timeout += millisec ;
          if ( pmdGetOptionCB()->sharingBreakTime() <= itr->second->timeout )
@@ -713,8 +731,8 @@ namespace engine
          }
       }
 
-      map< UINT64, _clsSharingStatus>::iterator itrInfo = _info.info.begin() ;
-      for ( ; itrInfo != _info.info.end() ; ++itrInfo )
+      for ( itrInfo = _info.info.begin() ; itrInfo != _info.info.end() ;
+            ++itrInfo )
       {
          if ( _info.alives.find( itrInfo->first ) != _info.alives.end() )
          {
@@ -742,7 +760,7 @@ namespace engine
             }
             PD_LOG( PDERROR, "vote: [node:%d] alive break",
                     itr->second->beat.identity.columns.nodeID ) ;
-            itr->second->beat.beatID = 0 ;
+            itr->second->beat.beatID = CLS_BEATID_INVALID ;
             itr->second->beat.serviceStatus = SERVICE_UNKNOWN ;
 
             _sync.updateNodeStatus( itr->second->beat.identity, FALSE ) ;
@@ -873,15 +891,15 @@ namespace engine
          _clsSharingStatus &status = itr->second ;
          _info.mtx.lock_w() ;
          _info.alives.insert( make_pair( itr->first, &status ) ) ;
-         _info.mtx.release_w() ;
-
          _sync.updateNodeStatus( status.beat.identity, TRUE ) ;
+         _info.mtx.release_w() ;
 
          PD_LOG( PDEVENT, "vote: [node:%d] aliving from break",
                  status.beat.identity.columns.nodeID ) ;
       }
       itr->second.timeout = 0 ;
       itr->second.breakTime = 0 ;
+      itr->second.deadtime = 0 ;
    done:
       PD_TRACE_EXITRC ( SDB__CLSREPSET__ALIVE, rc );
       return rc ;
@@ -1127,6 +1145,7 @@ namespace engine
       return rc ;
    error:
       goto done ;
-   } 
+   }
+
 }
 

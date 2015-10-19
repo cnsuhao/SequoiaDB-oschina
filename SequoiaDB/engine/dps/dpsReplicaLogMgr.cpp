@@ -189,7 +189,9 @@ namespace engine
 
       _movePages( beginLsn.offset, beginLsn.version ) ;
 
-      while ( beginLsn.offset % file->size() < length )
+      while ( ( beginLsn.offset % file->size() < length ) &&
+              ( beginLsn.offset / file->size() % _logger.getLogFileNum() ==
+                _logger.getWorkPos() ) )
       {
          rc = _logger.load ( beginLsn, &block ) ;
          if ( SDB_OK != rc )
@@ -313,7 +315,7 @@ namespace engine
                   _vecEventHandler[i]->onPrepareLog( info.getCSLID(),
                                                      info.getCLLID(),
                                                      info.getExtentLID(),
-                                                     head._lsn ) ;
+                                                     dummyhead._lsn ) ;
                }
             }
          }
@@ -670,8 +672,9 @@ namespace engine
       beginLSN = _getStartLsn() ;
       if ( beginLSN.invalid() )
       {
-         PD_LOG( PDERROR, "begin lsn invalid [offset:%lld] [version:%d]",
-                 beginLSN.offset, beginLSN.version ) ;
+         PD_LOG( PDERROR, "begin lsn invalid [offset:%lld] [version:%d], "
+                 "begin: %d, work: %d", beginLSN.offset, beginLSN.version,
+                 _begin, _work ) ;
          rc = SDB_DPS_LOG_NOT_IN_BUF ;
          goto error ;
       }
@@ -897,11 +900,6 @@ namespace engine
          WORK_PAGE->allocate( allocLen );
          needAlloc -= allocLen;
 
-         if ( _begin == _work && _rollFlag )
-         {
-            _begin = _incPageID ( _begin ) ;
-         }
-
          if ( 0 == WORK_PAGE->getLastSize() )
          {
             _work = _incPageID ( _work ) ;
@@ -909,6 +907,10 @@ namespace engine
             if ( !_rollFlag && _begin != _work )
             {
                _rollFlag = TRUE ;
+            }
+            else if ( _begin == _work && _rollFlag )
+            {
+               _begin = _incPageID ( _begin ) ;
             }
          }
       } while ( needAlloc > 0 ) ;

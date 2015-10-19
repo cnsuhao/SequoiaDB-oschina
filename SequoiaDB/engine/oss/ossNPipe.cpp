@@ -962,7 +962,8 @@ INT32 ossCreateNamedPipe ( const CHAR *name,
    handle._state = action ;
    ossMemset ( handle._name, 0, sizeof(handle._name) ) ;
    ossStrncpy ( handle._name, pathName.c_str(), OSS_NPIPE_MAX_NAME_LEN + 1 ) ;
-   handle._handle = mkfifo ( pathName.c_str(), (S_IRUSR | S_IWUSR) ) ;
+   handle._handle = mkfifo ( pathName.c_str(),
+                             (S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH ) ) ;
    if ( -1 == handle._handle )
    {
       rc = ossGetLastError () ;
@@ -1339,44 +1340,63 @@ static INT32 _ossEnumNamedPipes( const string &dirPath,
    INT32 rc = SDB_OK ;
    const CHAR *pFind = NULL ;
 
-   fs::path dbDir ( dirPath ) ;
-   fs::directory_iterator end_iter ;
-
-   if ( fs::exists ( dbDir ) && fs::is_directory ( dbDir ) )
+   try
    {
-      for ( fs::directory_iterator dir_iter ( dbDir );
-            dir_iter != end_iter; ++dir_iter )
-      {
-         if ( fs::is_regular_file ( dir_iter->status() ) ||
-              fs::is_directory( dir_iter->path() ) )
-         {
-            continue ;
-         }
-         else
-         {
-            const std::string fileName =
-               dir_iter->path().filename().string() ;
+      fs::path dbDir ( dirPath ) ;
+      fs::directory_iterator end_iter ;
 
-            if ( ( OSS_MATCH_NULL == type ) ||
-                 ( OSS_MATCH_LEFT == type &&
-                   0 == ossStrncmp( fileName.c_str(), filter, filterLen ) ) ||
-                 ( OSS_MATCH_MID == type &&
-                   ossStrstr( fileName.c_str(), filter ) ) ||
-                 ( OSS_MATCH_RIGHT == type &&
-                   ( pFind = ossStrstr( fileName.c_str(), filter ) ) &&
-                   pFind[filterLen] == 0 ) ||
-                 ( OSS_MATCH_ALL == type &&
-                   0 == ossStrcmp( fileName.c_str(), filter ) )
-               )
+      if ( fs::exists ( dbDir ) && fs::is_directory ( dbDir ) )
+      {
+         for ( fs::directory_iterator dir_iter ( dbDir );
+               dir_iter != end_iter; ++dir_iter )
+         {
+            try
             {
-               names.push_back( fileName ) ;
+               if ( fs::is_regular_file ( dir_iter->status() ) ||
+                    fs::is_directory( dir_iter->path() ) )
+               {
+                  continue ;
+               }
+               else
+               {
+                  const std::string fileName =
+                     dir_iter->path().filename().string() ;
+
+                  if ( ( OSS_MATCH_NULL == type ) ||
+                       ( OSS_MATCH_LEFT == type &&
+                         0 == ossStrncmp( fileName.c_str(), filter,
+                                          filterLen ) ) ||
+                       ( OSS_MATCH_MID == type &&
+                         ossStrstr( fileName.c_str(), filter ) ) ||
+                       ( OSS_MATCH_RIGHT == type &&
+                         ( pFind = ossStrstr( fileName.c_str(), filter ) ) &&
+                         pFind[filterLen] == 0 ) ||
+                       ( OSS_MATCH_ALL == type &&
+                         0 == ossStrcmp( fileName.c_str(), filter ) )
+                     )
+                  {
+                     names.push_back( fileName ) ;
+                  }
+               }
+            }
+            catch( std::exception &e )
+            {
+               PD_LOG( PDWARNING, "File or dir[%s] occur exception: %s",
+                       dir_iter->path().string().c_str(),
+                       e.what() ) ;
             }
          }
       }
+      else
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
    }
-   else
+   catch( std::exception &e )
    {
-      rc = SDB_INVALIDARG ;
+      PD_LOG( PDERROR, "Occur exception: %s", e.what() ) ;
+      rc = SDB_SYS ;
       goto error ;
    }
 
@@ -1395,5 +1415,5 @@ INT32 ossEnumNamedPipes( vector<string > &names,
                               ossStrlen( pattern ), type ) ;
 }
 
-#endif
+#endif // _LINUX
 

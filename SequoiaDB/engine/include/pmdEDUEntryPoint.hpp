@@ -78,6 +78,7 @@ namespace engine
    INT32 pmdPipeListenerEntryPoint ( pmdEDUCB *cb, void *arg ) ;
    INT32 pmdLoadWorkerEntryPoint ( pmdEDUCB *cb, void *pData ) ;
    INT32 pmdSyncClockEntryPoint( pmdEDUCB *cb, void *arg ) ;
+   INT32 pmdDBMonitorEntryPoint( pmdEDUCB *cb, void *arg ) ;
 
    INT32 pmdFapListenerEntryPoint ( pmdEDUCB *cb, void *pData ) ;
    INT32 pmdFapAgentEntryPoint( pmdEDUCB *cb, void *arg ) ;

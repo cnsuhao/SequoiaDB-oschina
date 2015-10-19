@@ -50,7 +50,9 @@ namespace engine
 {
    class _dmsStorageUnit ;
    class _rtnAccessPlanManager ;
-#define RTN_APL_SIZE 5
+
+   #define RTN_APL_SIZE             ( 5 )
+
    class _rtnAccessPlanList : public SDBObject
    {
    private :
@@ -85,10 +87,10 @@ namespace engine
          _plans.clear() ;
       }
 
-      void invalidate () ;
+      void invalidate ( UINT32 &cleanNum ) ;
       INT32 getPlan ( const BSONObj &query, const BSONObj &orderBy,
                       const BSONObj &hint, optAccessPlan **out,
-                      BOOLEAN &incSize ) ;
+                      SINT32 &incSize ) ;
 
       void releasePlan ( optAccessPlan *plan ) ;
 
@@ -98,17 +100,18 @@ namespace engine
          return _plans.size() ;
       }
 
-      void clear () ;
+      void clear ( UINT32 &cleanNum ) ;
    } ;
    typedef class _rtnAccessPlanList rtnAccessPlanList ;
 
 #if defined (_DEBUG)
-#define RTN_APS_SIZE 10
+   #define RTN_APS_SIZE             ( 10 )
 #else
-#define RTN_APS_SIZE 50
+   #define RTN_APS_SIZE             ( 50 )
 #endif
-#define RTN_APS_DFT_OCCUPY_PCT 0.75f
-#define RTN_APS_DFT_OCCUPY (RTN_APS_SIZE*RTN_APS_DFT_OCCUPY_PCT)
+   #define RTN_APS_DFT_OCCUPY_PCT   ( 0.75f )
+   #define RTN_APS_DFT_OCCUPY       (RTN_APS_SIZE*RTN_APS_DFT_OCCUPY_PCT)
+
    class _rtnAccessPlanSet : public SDBObject
    {
    private :
@@ -121,7 +124,7 @@ namespace engine
    #endif
    #define RTNAPS_SLOCK ossScopedLock _lock ( &_mutex, SHARED ) ;
       ossSpinSLatch _mutex ;
-      INT32 _totalNum ;
+      ossAtomic32   _totalNum ;
       map<UINT32, rtnAccessPlanList *> _planLists ;
       _dmsStorageUnit *_su ;
       CHAR _collectionName [DMS_COLLECTION_NAME_SZ+1] ;
@@ -130,8 +133,8 @@ namespace engine
       explicit _rtnAccessPlanSet( _dmsStorageUnit *su,
                                   const CHAR *collectionName,
                                   _rtnAccessPlanManager *apm )
+      :_totalNum( 0 )
       {
-         _totalNum = 0 ;
          ossMemset ( _collectionName, 0, sizeof(_collectionName)) ;
          ossStrncpy ( _collectionName, collectionName,
                       sizeof(_collectionName) ) ;
@@ -147,18 +150,18 @@ namespace engine
          }
          _planLists.clear() ;
       }
-      void invalidate () ;
+      void invalidate ( UINT32 &cleanNum ) ;
       INT32 getPlan ( const BSONObj &query, const BSONObj &orderBy,
                       const BSONObj &hint, optAccessPlan **out,
-                      BOOLEAN &incSize ) ;
+                      SINT32 &incSize ) ;
 
       void releasePlan ( optAccessPlan *plan ) ;
 
       INT32 size()
       {
-         return _totalNum ;
+         return _totalNum.peek() ;
       }
-      void clear ( BOOLEAN full = TRUE ) ;
+      void clear ( UINT32 &cleanNum, BOOLEAN full = TRUE ) ;
       CHAR *getName()
       {
          return _collectionName ;
@@ -167,12 +170,13 @@ namespace engine
    typedef class _rtnAccessPlanSet rtnAccessPlanSet ;
 
 #if defined (_DEBUG)
-#define RTN_APM_SIZE 20
+   #define RTN_APM_SIZE             ( 20 )
 #else
-#define RTN_APM_SIZE 500
+   #define RTN_APM_SIZE             ( 500 )
 #endif
-#define RTN_APM_DFT_OCCUPY_PCT 0.75f
-#define RTN_APM_DFT_OCCUPY (RTN_APM_SIZE*RTN_APM_DFT_OCCUPY_PCT)
+   #define RTN_APM_DFT_OCCUPY_PCT   ( 0.75f )
+   #define RTN_APM_DFT_OCCUPY       (RTN_APM_SIZE*RTN_APM_DFT_OCCUPY_PCT)
+
    class _rtnAccessPlanSet ;
    class _rtnAccessPlanManager : public SDBObject
    {
@@ -186,7 +190,7 @@ namespace engine
    #endif
    #define RTNAPM_SLOCK ossScopedLock _lock ( &_mutex, SHARED ) ;
       ossSpinSLatch _mutex ;
-      INT32 _totalNum ;
+      ossAtomic32   _totalNum ;
       struct cmp_str
       {
          bool operator() (const char *a, const char *b)
@@ -195,20 +199,20 @@ namespace engine
          }
       } ;
       _dmsStorageUnit *_su ;
-      map<const CHAR*, _rtnAccessPlanSet*, cmp_str> _planSets ;
+      typedef map<const CHAR*, _rtnAccessPlanSet*, cmp_str> PLAN_SETS ;
+
+#if defined (_WINDOWS)
+      typedef map<const CHAR*, rtnAccessPlanSet*, cmp_str>::iterator PLAN_SETS_ITERATOR ;
+#elif defined (_LINUX)
+      typedef map<const CHAR*, rtnAccessPlanSet*>::iterator PLAN_SETS_ITERATOR ;
+#endif
+      PLAN_SETS _planSets ;
+      UINT32 _bucketsNum ;
    public :
-      explicit _rtnAccessPlanManager( _dmsStorageUnit *su )
-      {
-         _totalNum = 0 ;
-         _su = su ;
-      }
+      explicit _rtnAccessPlanManager( _dmsStorageUnit *su ) ;
       ~_rtnAccessPlanManager()
       {
-#if defined (_WINDOWS)
-         map<const CHAR*, rtnAccessPlanSet*, cmp_str>::iterator it ;
-#elif defined (_LINUX)
-         map<const CHAR*, rtnAccessPlanSet*>::iterator it ;
-#endif
+         PLAN_SETS_ITERATOR it ;
          for ( it = _planSets.begin(); it != _planSets.end(); ++it )
          {
             SDB_OSS_DEL (*it).second ;
@@ -222,7 +226,7 @@ namespace engine
       void releasePlan ( optAccessPlan *plan ) ;
       INT32 size()
       {
-         return _totalNum ;
+         return _totalNum.peek() ;
       }
       void clear ( BOOLEAN full = TRUE ) ;
    } ;

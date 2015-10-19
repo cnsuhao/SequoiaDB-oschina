@@ -212,13 +212,7 @@ INT32 parseArguments ( int argc , CHAR ** argv , ArgInfo & argInfo )
    }
    if ( vm.count( "version" ) )
    {
-      INT32 version, subVersion, release ;
-      const CHAR *pBuild = NULL ;
-      ossGetVersion ( &version, &subVersion, &release, &pBuild ) ;
-      std::cout << "SequoiaDB shell version: " << version << "."
-      << subVersion << std::endl ;
-      std::cout << "Release: " << release << std::endl ;
-      std::cout << "Build: " << pBuild <<std::endl ;
+      ossPrintVersion( "SequoiaDB shell version" ) ;
       rc = SDB_SDB_VERSION_ONLY ;
       goto done ;
    }
@@ -772,11 +766,6 @@ int main ( int argc , CHAR **argv )
    PD_TRACE_ENTRY ( SDB_SDB_MAIN );
    ArgInfo           argInfo ;
 
-   rc = setProgramName( argv[0] );
-   if ( rc )
-   {
-      goto error ;
-   }
 #if defined( _LINUX )
    signal( SIGCHLD, SIG_IGN ) ;
 #endif // _LINUX

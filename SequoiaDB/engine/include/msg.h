@@ -45,6 +45,9 @@
 
 enum MSG_TYPE
 {
+   MSG_HEARTBEAT                       = 1,
+   MSG_HEARTBEAT_RES                   = MAKE_REPLY_TYPE(MSG_HEARTBEAT),
+
    MSG_BS_MSG_REQ                      = 1000,
    MSG_BS_MSG_RES                      = MAKE_REPLY_TYPE(MSG_BS_MSG_REQ),
    MSG_BS_INSERT_REQ                   = 2002,

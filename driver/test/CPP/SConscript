@@ -1,0 +1,99 @@
+import os
+
+Import("env")
+
+gtestFiles = [
+      "../../../../../../SequoiaDB/engine/gtest/src/gtest-all.cc"
+      ]
+
+gtestMainFile = [
+      "../../../../../../SequoiaDB/engine/gtest/src/gtest_main.cc"
+      ]
+
+testCommonFiles = [
+        "testcommon.cpp"
+      ]
+
+testFiles1 = [
+        "collection.cpp"
+      ]
+testFiles2 = [
+        "collectionspace.cpp"
+      ]
+testFiles3 = [
+        "cursor.cpp"
+      ]
+testFiles4 = [
+        "sdb.cpp"
+      ]
+testFiles5 = [
+        "cppbson.cpp"
+      ]
+#testFiles6 = [
+#        "shard.cpp"
+#      ]
+testFiles7 = [
+        "debug.cpp"
+      ]
+testFiles8 = [
+        "domain.cpp"
+      ]
+testFiles9 = [
+        "lob.cpp"
+      ]
+testFiles10 = [
+        "query.cpp"
+      ]
+testFiles11 = [
+        "select_query.cpp"
+      ]
+
+testFiles12 = [
+        "procedure.cpp"
+]
+
+#Google Test
+gtestall = env.StaticLibrary('gtest', gtestFiles)
+gtestMainObj = env.Object('gtestMainObj', gtestMainFile)
+
+collection = env.Program("collection", [testFiles1, gtestMainObj, testCommonFiles],
+                     _LIBDEPS='$_LIBDEPS_OBJS')
+collectionspace = env.Program("collectionspace", [testFiles2, gtestMainObj, testCommonFiles],
+                     LIBDEPS=["testCommonLib"],
+                     _LIBDEPS='$_LIBDEPS_OBJS')
+cursor = env.Program("cursor", [testFiles3, gtestMainObj, testCommonFiles],
+                     LIBDEPS=["testCommonLib"],
+                     _LIBDEPS='$_LIBDEPS_OBJS')
+sdb = env.Program("sdb", [testFiles4, gtestMainObj, testCommonFiles],
+                     LIBDEPS=["testCommonLib"],
+                     _LIBDEPS='$_LIBDEPS_OBJS')
+cppbson = env.Program("cppbson", [testFiles5, gtestMainObj, testCommonFiles],
+                     LIBDEPS=["testCommonLib"],
+                     _LIBDEPS='$_LIBDEPS_OBJS')
+#shard = env.Program("shard", [testFiles6, gtestMainObj, testCommonFiles],
+#                     LIBDEPS=["testCommonLib"],
+#                     _LIBDEPS='$_LIBDEPS_OBJS')
+debug = env.Program("debug", [testFiles7, gtestMainObj, testCommonFiles],
+                     LIBDEPS=["testCommonLib"],
+                     _LIBDEPS='$_LIBDEPS_OBJS')
+domain = env.Program("domain", [testFiles8, gtestMainObj, testCommonFiles],
+                     LIBDEPS=["testCommonLib"],
+                     _LIBDEPS='$_LIBDEPS_OBJS')
+lob = env.Program("lob", [testFiles9, gtestMainObj, testCommonFiles],
+                     LIBDEPS=["testCommonLib"],
+                     _LIBDEPS='$_LIBDEPS_OBJS')
+query = env.Program("query", [testFiles10, gtestMainObj, testCommonFiles],
+                     LIBDEPS=["testCommonLib"],
+                     _LIBDEPS='$_LIBDEPS_OBJS')
+selectQuery = env.Program("selectQuery", [testFiles11, gtestMainObj, testCommonFiles],
+                     LIBDEPS=["testCommonLib"],
+                     _LIBDEPS='$_LIBDEPS_OBJS')
+
+procedure = env.Program("procedure", [testFiles12, gtestMainObj, testCommonFiles],
+                     LIBDEPS=["testCommonLib"],
+                     _LIBDEPS='$_LIBDEPS_OBJS')
+
+
+
+env.Install( '#/build_test',[collection,collectionspace,cursor,query,
+                             sdb,cppbson, debug, domain, lob, selectQuery, procedure ] )

@@ -143,11 +143,11 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    class _MsgReplSyncReq : public SDBObject
    {
    public :
-      _MsgHeader header ;
-      _MsgRouteID identity ;
-      DPS_LSN  next;
-      DPS_LSN  completeNext ;
-      INT32    needData ;
+      _MsgHeader           header ;
+      _MsgRouteID          identity ;
+      DPS_LSN              next;
+      DPS_LSN              completeNext ;
+      INT32                needData ;
       _MsgReplSyncReq()
       {
          header.messageLength = sizeof( _MsgReplSyncReq ) ;
@@ -164,8 +164,8 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    {
    public :
       _MsgInternalReplyHeader header ;
-      _MsgRouteID identity ;
-      DPS_LSN_OFFSET  oldestTransLsn;
+      _MsgRouteID             identity ;
+      DPS_LSN_OFFSET          oldestTransLsn;
       _MsgReplSyncRes()
       {
          header.header.messageLength = sizeof( _MsgReplSyncRes ) ;
@@ -180,9 +180,9 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    class _MsgReplVirSyncReq : public SDBObject
    {
    public :
-      _MsgHeader header ;
-      DPS_LSN  next;
-      MsgRouteID from ;
+      _MsgHeader        header ;
+      DPS_LSN           next;
+      MsgRouteID        from ;
       _MsgReplVirSyncReq()
       {
          header.messageLength = sizeof( _MsgReplVirSyncReq ) ;
@@ -197,9 +197,11 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    class _MsgReplConsultation : public SDBObject
    {
    public :
-      _MsgHeader header ;
-      DPS_LSN current ;
-      MsgRouteID identity ;
+      _MsgHeader        header ;
+      DPS_LSN           current ;
+      MsgRouteID        identity ;
+      UINT32            hashValue ;
+      CHAR              reserved[ 16 ] ;
       _MsgReplConsultation()
       {
          header.messageLength = sizeof( _MsgReplConsultation ) ;
@@ -207,6 +209,8 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
          header.routeID.value = MSG_INVALID_ROUTEID ;
          header.TID= 0 ;
          identity.value = MSG_INVALID_ROUTEID ;
+         hashValue = 0 ;
+         ossMemset( reserved, 0, sizeof( reserved ) ) ;
       }
    } ;
    typedef class _MsgReplConsultation MsgReplConsultation ;
@@ -215,7 +219,9 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
    {
    public :
       _MsgInternalReplyHeader header ;
-      DPS_LSN returnTo ;
+      DPS_LSN                 returnTo ;
+      UINT32                  hashValue ;
+      CHAR                    reserved[ 16 ] ;
       _MsgReplConsultationRes()
       {
          header.header.messageLength =
@@ -223,6 +229,8 @@ const UINT32 MSG_SERVICE_MAX = 64 ;
          header.header.opCode = MSG_CLS_CONSULTATION_RES ;
          header.header.routeID.value = MSG_INVALID_ROUTEID ;
          header.header.TID= 0 ;
+         hashValue = 0 ;
+         ossMemset( reserved, 0, sizeof( reserved ) ) ;
       }
    } ;
    typedef class _MsgReplConsultationRes MsgReplConsultationRes ;

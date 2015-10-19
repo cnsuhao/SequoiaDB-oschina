@@ -39,7 +39,7 @@
 #include "ossMem.hpp"
 #include "ossUtil.hpp"
 
-#define UTIL_ARRAY_DEFAULT_SIZE 16
+#define UTIL_ARRAY_DEFAULT_SIZE 8 
 
 namespace engine
 {

@@ -46,21 +46,11 @@ using namespace engine;
 namespace
 {
    /**
-    ** get the oid bson object
-    ***/
-   void getOID( const bson::BSONElement &e, bson::OID &id )
-   {
-      bson::BSONObj o;
-      id = e.OID() ;
-   }
-
-   /**
     ** get the index of min bson object
     ***/
    INT32 getMinObjectIndex( ciBson &doc, const INT32 nodeCount )
    {
-      bson::OID oid ;
-      bson::BSONElement e ;
+      bson::BSONElement eMin, ee ;
 
       INT32 idx = 0 ;
       INT32 minIndex = 0 ;
@@ -69,21 +59,19 @@ namespace
          ++idx ;
          minIndex = idx ;
       }
-      if ( doc.objs[0].getObjectID( e ) )
+      if ( doc.objs[0].getObjectID( eMin ) )
       {
-         getOID( e, oid ) ;
       }
       for ( ; idx < nodeCount ; ++idx )
       {
          if ( !doc.objs[idx].isEmpty() )
          {
             bson::OID id ;
-            if ( doc.objs[idx].getObjectID( e ) )
+            if ( doc.objs[idx].getObjectID( ee ) )
             {
-               getOID( e, id );
-               if ( id < oid )
+               if ( ee < eMin )
                {
-                  oid = id ;
+                  eMin = ee ;
                   minIndex = idx ;
                }
             }
@@ -146,6 +134,14 @@ namespace
                           header->_serviceName ) ;
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
       len += ossSnprintf( buffer + len, bufferSize - len,
+                          "username    : %s"OSS_NEWLINE,
+                          g_username ) ;
+      CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
+      len += ossSnprintf( buffer + len, bufferSize - len,
+                          "password    : %s"OSS_NEWLINE,
+                          g_password ) ;
+      CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
+      len += ossSnprintf( buffer + len, bufferSize - len,
                           "group       : %s"OSS_NEWLINE,
                           header->_groupName ) ;
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
@@ -178,7 +174,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -224,7 +220,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -290,7 +286,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -338,7 +334,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -446,7 +442,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -474,19 +470,19 @@ namespace
                          "Inspect result:"OSS_NEWLINE ) ;
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
       len += ossSnprintf( buffer + len, bufferSize - len,
-                         "Total group count   : %d"OSS_NEWLINE,
+                         "Total inspected group count   : %d"OSS_NEWLINE,
                          tail._groupCount ) ;
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
       len += ossSnprintf( buffer + len, bufferSize - len,
-                         "Total collection    : %d"OSS_NEWLINE,
+                         "Total inspected collection    : %d"OSS_NEWLINE,
                          tail._clCount ) ;
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
       len += ossSnprintf( buffer + len, bufferSize - len,
-                         "Total records count : %d"OSS_NEWLINE,
+                         "Total different records count : %d"OSS_NEWLINE,
                          tail._recordCount ) ;
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
       len += ossSnprintf( buffer + len, bufferSize - len,
-                         "Total time cost     : %d ms"OSS_NEWLINE,
+                         "Total time cost               : %d ms"OSS_NEWLINE,
                          tail._timeCount ) ;
       CHECK_VALUE( ( bufferSize - 1 <= len ), retry ) ;
 
@@ -499,7 +495,7 @@ namespace
       else if ( 1 == tail._exitCode )
       {
          len += ossSnprintf( buffer + len, bufferSize - len,
-                             "Reson for exit : exit with less than 1% of "
+                             "Reason for exit : exit with less than 1%% of "
                              "records not synchronized"OSS_NEWLINE ) ;
       }
       else
@@ -569,7 +565,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -599,7 +595,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -632,7 +628,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -704,6 +700,10 @@ namespace
       len += CI_HOSTNAME_SIZE + 1 ;
       ossMemcpy( header->_serviceName, buffer + len, CI_SERVICENAME_SIZE + 1 ) ;
       len += CI_SERVICENAME_SIZE + 1 ;
+      ossMemcpy( g_username, buffer + len, CI_USERNAME_SIZE + 1 ) ;
+      len += CI_USERNAME_SIZE + 1 ;
+      ossMemcpy( g_password, buffer + len, CI_PASSWD_SIZE + 1 ) ;
+      len += CI_PASSWD_SIZE + 1 ;
       ossMemcpy( header->_groupName, buffer + len, CI_GROUPNAME_SIZE + 1 ) ;
       len += CI_GROUPNAME_SIZE + 1 ;
       ossMemcpy( header->_csName, buffer + len, CI_CS_NAME_SIZE + 1 ) ;
@@ -761,6 +761,10 @@ namespace
       pos += CI_HOSTNAME_SIZE + 1 ;
       ossMemcpy( buffer + pos, header->_serviceName, CI_SERVICENAME_SIZE + 1 ) ;
       pos += CI_SERVICENAME_SIZE + 1 ;
+      ossMemcpy( buffer + pos, g_username, CI_USERNAME_SIZE + 1 ) ;
+      pos += CI_USERNAME_SIZE + 1 ;
+      ossMemcpy( buffer + pos, g_password, CI_PASSWD_SIZE + 1 ) ;
+      pos += CI_PASSWD_SIZE + 1 ;
       ossMemcpy( buffer + pos, header->_groupName, CI_GROUPNAME_SIZE + 1 ) ;
       pos += CI_GROUPNAME_SIZE + 1 ;
       ossMemcpy( buffer + pos, header->_csName, CI_CS_NAME_SIZE + 1 ) ;
@@ -773,12 +777,12 @@ namespace
       pos += OSS_MAX_PATHSIZE + 1 ;
       ossMemcpy( buffer + pos, header->_view, CI_VIEWOPTION_SIZE + 1 ) ;
       pos += CI_VIEWOPTION_SIZE + 1 ;
-      ossMemcpy( buffer + pos, header->_padding, CI_HEAD_PADDING_SIZE ) ;
+      ossMemset( buffer + pos, 0, validSize - pos ) ;
 
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -799,7 +803,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -826,7 +830,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -853,7 +857,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -878,7 +882,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -903,7 +907,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -949,7 +953,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1001,7 +1005,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1022,7 +1026,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1110,69 +1114,68 @@ namespace
          cursor->_index = curNode->_index ;
 
 
-         sdbclient::sdb *db = new sdbclient::sdb() ;
+         sdbclient::sdb *db = curNode->_db ;
+         sdbclient::sdbCollection cl ;
+         sdbclient::sdbCursor *cr = NULL ;
+
          if ( NULL == db )
          {
-            std::cout << "Error: failed to allocate sdbclient::sdb"
-                      << std::endl ;
-            rc = SDB_OOM ;
-            goto error ;
-         }
-
-         sdbclient::sdbCollection cl ;
-
-         rc = db->connect( curNode->_hostname, curNode->_serviceName ) ;
-         if ( SDB_OK != rc )
-         {
-            rc = SDB_OK ;
-            curNode->_state = 1 ;// cannot connect to node
-
-         }
-
-         rc = db->getCollection( clName, cl ) ;
-         if ( SDB_OK != rc )
-         {
-            curNode->_state = 1 ;//cannot get collection
-            delete db ;
-            db = NULL ;
-         }
-
-         sdbclient::sdbCursor *cr = new sdbclient::sdbCursor() ;
-         if ( NULL == cr )
-         {
-            std::cout << "Error: failed to allocate sdbclient::sdbCursor"
-                      << std::endl ;
-            rc = SDB_OOM ;
-            delete db ;
-            db = NULL ;
-            goto error ;
-         }
-
-         if ( orderCon )
-         {
-            rc = cl.query( *cr, sdbclient::_sdbStaticObject,
-                            sdbclient::_sdbStaticObject, con ) ;
-         }
-         else
-         {
-            rc = cl.query( *cr, con ) ;
-         }
-         if ( SDB_OK != rc )
-         {
-            if ( NULL != db )
+            db = new sdbclient::sdb() ;
+            if ( NULL == db )
             {
-               delete db ;
-               db = NULL ;
+               std::cout << "Error: failed to allocate sdbclient::sdb"
+                         << std::endl ;
+               rc = SDB_OOM ;
+               goto error ;
             }
-            delete cr ;
-            curNode->_state = 2 ;//cannot get cursor
-            rc = SDB_OK ; //
+            curNode->_db = db;
+            rc = db->connect( curNode->_hostname, curNode->_serviceName,
+                              g_username, g_password ) ;
+            if ( SDB_OK != rc )
+            {
+               curNode->_state = 1 ;// cannot connect to node
+
+            }
          }
-         else
+
+         if ( 1 != curNode->_state )
          {
-            cursor->_db = db ;
-            cursor->_cursor = cr ;
+            rc = db->getCollection( clName, cl ) ;
+            if ( SDB_OK != rc )
+            {
+               curNode->_state = 1 ;//cannot get collection
+            }
          }
+
+         if ( 1 != curNode->_state )
+         {
+            cr = new sdbclient::sdbCursor() ;
+            if ( NULL == cr )
+            {
+               std::cout << "Error: failed to allocate sdbclient::sdbCursor"
+                         << std::endl ;
+               rc = SDB_OOM ;
+               goto error ;
+            }
+
+            if ( orderCon )
+            {
+               rc = cl.query( *cr, sdbclient::_sdbStaticObject,
+                              sdbclient::_sdbStaticObject, con ) ;
+            }
+            else
+            {
+               rc = cl.query( *cr, con ) ;
+            }
+            if ( SDB_OK != rc )
+            {
+               DELETE_PTR(cr);
+               curNode->_state = 2 ;//cannot get cursor
+            }
+         }
+         cursor->_db = db ;
+         cursor->_cursor = cr ;
+         rc = SDB_OK ;
 
          cursors.add( cursor ) ;
          curNode = nodes.next() ;
@@ -1181,7 +1184,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1303,7 +1306,7 @@ namespace
       }
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1360,7 +1363,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1381,7 +1384,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1428,7 +1431,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1471,7 +1474,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1492,7 +1495,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1533,7 +1536,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
    INT32 writeMainSubCl( OSSFILE &out, const mainCl &mainCls, CHAR *&buffer,
@@ -1595,7 +1598,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1640,7 +1643,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1706,7 +1709,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1801,7 +1804,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1847,6 +1850,7 @@ namespace
                  oldheader._coordAddr, CI_HOSTNAME_SIZE + 1 ) ;
       ossMemcpy( header->_serviceName,
                  oldheader._serviceName, CI_SERVICENAME_SIZE + 1 ) ;
+
       ossMemcpy( header->_groupName,
                  oldheader._groupName, CI_GROUPNAME_SIZE + 1 ) ;
       ossMemcpy( header->_csName, oldheader._csName, CI_CS_NAME_SIZE + 1 ) ;
@@ -1861,7 +1865,7 @@ namespace
 
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1870,6 +1874,18 @@ namespace
       INT32 rc = SDB_OK ;
       sdbclient::sdbCursor cursor ;
       bson::BSONObj record ;
+
+      if ( NULL == coord )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( !coord->isValid() )
+      {
+         rc = SDB_NETWORK ;
+         goto error ;
+      }
 
       rc = coord->getSnapshot( cursor, 8 ) ;
       CHECK_VALUE( ( SDB_OK != rc ), error ) ;
@@ -1905,7 +1921,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1916,10 +1932,23 @@ namespace
                      ciLinkList< ciGroup > &groupList )
    {
       INT32 rc = SDB_OK ;
+
       BOOLEAN hasGroup = ( 0 != ossStrncmp( "", groupName,
                                             CI_GROUPNAME_SIZE ) ) ;
       bson::BSONObj obj ;
       sdbclient::sdbCursor cursor ;
+
+      if ( NULL == coord )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
+      if ( !coord->isValid() )
+      {
+         rc = SDB_NETWORK ;
+         goto error ;
+      }
 
       rc = coord->listReplicaGroups( cursor ) ;
       if ( SDB_OK != rc )
@@ -1978,7 +2007,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -1990,12 +2019,25 @@ namespace
    {
       INT32 rc = SDB_OK ;
 
+      if ( NULL == coord )
+      {
+         rc = SDB_INVALIDARG ;
+         goto error ;
+      }
+
       if ( NULL != group )
       {
          INT32 index = 0 ;
          header._groupID = group->_groupID ;
          ossMemset( header._groupName, 0, CI_GROUPNAME_SIZE ) ;
          ossMemcpy( header._groupName, group->_groupName, CI_GROUPNAME_SIZE ) ;
+
+         if ( !coord->isValid() )
+         {
+            rc = SDB_NETWORK ;
+            goto error ;
+         }
+
          sdbclient::sdbReplicaGroup rg ;
          rc = coord->getReplicaGroup( group->_groupName, rg ) ;
          if ( SDB_OK != rc )
@@ -2009,7 +2051,8 @@ namespace
          rc = rg.getMaster( master ) ;
          if ( SDB_OK != rc )
          {
-            std::cout << "Error: failed to get master node" << std::endl ;
+            std::cout << "Error: failed to get master node of group: "
+                      << rg.getName() << std::endl ;
             goto error ;
          }
 
@@ -2079,7 +2122,8 @@ namespace
                                               CI_SERVICENAME_SIZE ) ;
                {
                   sdbclient::sdb db ;
-                  rc = db.connect( node->_hostname, node->_serviceName ) ;
+                  rc = db.connect( node->_hostname, node->_serviceName,
+                                   g_username, g_password ) ;
                   if ( SDB_OK != rc )
                   {
                      node->_state = 1 ;
@@ -2099,7 +2143,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -2172,10 +2216,19 @@ namespace
          ossSnprintf( fullName, CI_CL_FULLNAME_SIZE, "%s.%s", csName, clName ) ;
       }
 
-      rc = db.connect( master->_hostname, master->_serviceName ) ;
+      rc = db.connect( master->_hostname, master->_serviceName,
+                       g_username, g_password ) ;
       if ( SDB_OK != rc )
       {
-         std::cout << "Error: failed to connect to master node" << std::endl ;
+         std::cout << "Error: failed to connect to master node: "
+                   << master->_hostname << ":"
+                   << master->_serviceName ;
+         if ( SDB_AUTH_AUTHORITY_FORBIDDEN == rc )
+         {
+            std::cout << "user: " << g_username
+                      << "   password: " << g_password;
+         }
+         std::cout << std::endl ;
          goto error ;
       }
 
@@ -2267,7 +2320,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -2366,7 +2419,7 @@ namespace
    done:
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -2577,7 +2630,7 @@ namespace
 
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 
@@ -2809,8 +2862,7 @@ namespace
 
       return rc ;
    error:
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
-      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+      OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
       goto done ;
    }
 }
@@ -2818,6 +2870,7 @@ namespace
 _sdbCi::_sdbCi()
 {
    ossMemset( _coordAddr, 0, CI_ADDRESS_SIZE + 1 ) ;
+   ossMemset( _auth, 0, CI_AUTH_SIZE + 1 ) ;
 }
 
 _sdbCi::~_sdbCi()
@@ -2972,6 +3025,9 @@ INT32 _sdbCi::handle( const po::options_description &desc,
    }
    CHECK_VALUE( ( SDB_OK != rc ), error ) ;
 
+   rc = splitAuth() ;
+   CHECK_VALUE( ( SDB_OK != rc ), error ) ;
+
    if ( 0 != ossStrncmp( CI_VIEW_GROUP, _header._view, CI_VIEWOPTION_SIZE ) &&
         0 != ossStrncmp( CI_VIEW_CL, _header._view, CI_VIEWOPTION_SIZE ) )
    {
@@ -3035,11 +3091,18 @@ INT32 _sdbCi::inspect()
       goto error ;
    }
 
-   rc = coord->connect( _header._coordAddr, _header._serviceName ) ;
+   rc = coord->connect( _header._coordAddr, _header._serviceName,
+                        g_username, g_password ) ;
    if ( SDB_OK != rc )
    {
       std::cout << "Error: failed to connect to " << _header._coordAddr
-         << ":" << _header._serviceName << std::endl ;
+                << ":" << _header._serviceName ;
+      if ( SDB_AUTH_AUTHORITY_FORBIDDEN == rc )
+      {
+         std::cout << "user: " << g_username
+                   << "   password: " << g_password;
+      }
+      std::cout << std::endl ;
       goto error ;
    }
 
@@ -3118,7 +3181,7 @@ done:
    }
    return rc ;
 error:
-   OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+   OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
    goto done ;
 }
 
@@ -3261,7 +3324,7 @@ done:
 
    return rc ;
 error:
-   OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+   OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
    goto done ;
 }
 
@@ -3364,7 +3427,7 @@ done:
 
    return rc ;
 error:
-   OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__ ) ;
+   OUTPUT_FUNCTION( "Error occurs in ", __FUNCTION__, rc ) ;
    goto done ;
 }
 
@@ -3374,6 +3437,9 @@ INT32 _sdbCi::doDataExchange( engine::pmdCfgExchange *pEx )
 
    rdxString( pEx, CONSISTENCY_INSPECT_COORD, _coordAddr,
                    CI_ADDRESS_SIZE , FALSE, FALSE, "", FALSE ) ;
+
+   rdxString( pEx, CONSISTENCY_INSPECT_AUTH, _auth,
+                   CI_AUTH_SIZE , FALSE, FALSE, "\"\":\"\"", FALSE ) ;
 
    rdxString( pEx, CONSISTENCY_INSPECT_ACTION, _header._action,
                    CI_ACTION_SIZE , FALSE, FALSE, CI_ACTION_INSPECT, FALSE ) ;
@@ -3448,6 +3514,41 @@ INT32 _sdbCi::splitAddr()
 
    ossMemcpy( _header._coordAddr, _coordAddr, pch - begin ) ;
    ossMemcpy( _header._serviceName, pch + 1, end - pch ) ;
+
+done:
+   return rc ;
+error:
+   goto done ;
+}
+
+INT32 _sdbCi::splitAuth()
+{
+   INT32 rc        = SDB_OK ;
+   INT32 length    = ossStrlen( _auth ) ;
+   CHAR *begin     = _auth ;
+   CHAR *end       = begin + length ;
+   const CHAR *pch = NULL ;
+
+   if ( begin == end )
+   {
+      std::cout << "Invalid parameters" << std::endl ;
+      std::cout << " username and password of sequoiadb is NULL"
+         << std::endl ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   pch = ossStrrchr( _auth, ':' ) ;
+   if ( NULL == pch || end == pch + 1 )
+   {
+      std::cout << "Invalid parameters" << std::endl ;
+      std::cout << " hostname and password should be split by \":\"" << std::endl ;
+      rc = SDB_INVALIDARG ;
+      goto error ;
+   }
+
+   ossMemcpy( g_username, _auth, pch - begin ) ;
+   ossMemcpy( g_password, pch + 1, end - pch ) ;
 
 done:
    return rc ;

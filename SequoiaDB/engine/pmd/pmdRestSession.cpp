@@ -1220,6 +1220,7 @@ namespace engine
       {
          PD_LOG_MSG( PDERROR, "get field failed:field=%s", 
                      FIELD_NAME_NAME ) ;
+         rc = SDB_INVALIDARG ;
          goto error ;
       }
 

@@ -181,6 +181,7 @@ namespace engine
       {
          msg.messageLength = sizeof( MsgHeader ) ;
          msg.TID = CLS_TID( _sessionID ) ;
+         msg.routeID.value = MSG_INVALID_ROUTEID ;
          msg.requestID = ++_requestID ;
          msg.opCode = MSG_BS_DISCONNECT ;
          _agent->syncSend( _selector.src(), &msg ) ;
@@ -717,6 +718,10 @@ namespace engine
                  sessionName(), fullName, _fullNames.at( _current ).c_str() ) ;
          goto done ;
       }
+
+      PD_LOG( PDEVENT, "Session[%s]: Begin to sync collection[%s]",
+              sessionName(), fullName ) ;
+
       rc = _replayer.replayCrtCS( cs.c_str(), pageSize, lobPageSize,
                                   eduCB(),
                                   SDB_SESSION_FS_DST == sessionType() ?
@@ -905,6 +910,12 @@ namespace engine
          {
             _expectLSN = msg->lsn ;
             _status = CLS_FS_STATUS_META ;
+
+            PD_LOG( PDEVENT, "Session[%s]: Sync collection[%s] finished, "
+                    "expect lsn: %d.%lld", sessionName(),
+                    _fullNames[ _current ].c_str(), _expectLSN.version,
+                    _expectLSN.offset ) ;
+
             ++_current ;
             _notify( CLS_FS_NOTIFY_TYPE_OVER ) ;
             _meta() ;
@@ -914,6 +925,7 @@ namespace engine
       {
           PD_LOG( PDWARNING, "Session[%s]: ignore msg", sessionName() ) ;
       }
+
    done:
       PD_TRACE_EXIT ( SDB__CLSDATADBS_HNDNTFRES );
       return SDB_OK ;
@@ -1246,6 +1258,11 @@ namespace engine
       return  EDU_TYPE_REPLAGENT ;
    }
 
+   BOOLEAN _clsFSDstSession::canAttachMeta() const
+   {
+      return _status != CLS_FS_STATUS_BEGIN ? TRUE : FALSE ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSFSDS_HNDBGRES, "_clsFSDstSession::handleBeginRes" )
    INT32 _clsFSDstSession::handleBeginRes( NET_HANDLE handle,
                                            MsgHeader* header )
@@ -1290,6 +1307,10 @@ namespace engine
          _disconnect() ;
          goto done ;
       }
+
+      PD_LOG( PDEVENT, "FS Session[%s] close all shard connections",
+              sessionName() ) ;
+      sdbGetClsCB()->getShardRouteAgent()->disconnectAll() ;
 
       sdbGetShardCB()->getCataAgent()->lock_w() ;
       sdbGetShardCB()->getCataAgent()->clearAll() ;
@@ -1384,16 +1405,27 @@ namespace engine
       MsgClsFSBegin msg ;
       msg.type = CLS_FS_TYPE_IN_SET ;
       msg.header.TID = CLS_TID( _sessionID ) ;
-
+      MsgRouteID lastID = _selector.src() ;
       MsgRouteID src = _selector.selected( TRUE ) ;
+
+      if ( MSG_INVALID_ROUTEID != lastID.value &&
+           lastID.value != src.value )
+      {
+         MsgHeader disMsg ;
+         disMsg.messageLength = sizeof( MsgHeader ) ;
+         disMsg.routeID.value = MSG_INVALID_ROUTEID ;
+         disMsg.TID = CLS_TID( _sessionID ) ;
+         disMsg.requestID = ++_requestID ;
+         disMsg.opCode = MSG_BS_DISCONNECT ;
+         _agent->syncSend( lastID, &disMsg ) ;
+      }
+
       if ( MSG_INVALID_ROUTEID != src.value )
       {
          msg.header.requestID = ++_requestID ;
          _agent->syncSend( src, &msg ) ;
          _timeout = 0 ;
       }
-
-      sdbGetClsCB()->getShardRouteAgent()->disconnectAll() ;
 
       PD_TRACE_EXIT ( SDB__CLSFSDS__BEGIN );
       return ;
@@ -1410,6 +1442,8 @@ namespace engine
 
       if ( STEP_TS_END == _tsStep )
       {
+         PD_LOG( PDEVENT, "FS Session[%s]: End to pull trans log",
+                 sessionName() ) ;
          goto doend ;
       }
       else if ( STEP_TS_BEGIN == _tsStep )
@@ -1420,6 +1454,8 @@ namespace engine
             _tsStep = STEP_TS_END ;
             goto doend ;
          }
+         PD_LOG( PDEVENT, "FS Session[%s]: Begin to pull trans log",
+                 sessionName() ) ;
       }
       else
       {
@@ -1430,12 +1466,17 @@ namespace engine
       goto done;
 
    doend:
-      if ( 0 != _expectLSN.compare(lsn) &&
-           SDB_OK != dpsCB->move ( _expectLSN.offset, _expectLSN.version ) )
+      if ( 0 != _expectLSN.compare(lsn) )
       {
-         PD_LOG ( PDERROR, "FS Session[%s]: failed to move lsn[%d,%lld]",
-                  sessionName(), _expectLSN.version, _expectLSN.offset );
-         goto error ;
+         INT32 rcTmp = dpsCB->move ( _expectLSN.offset, _expectLSN.version ) ;
+         if ( rcTmp )
+         {
+            PD_LOG ( PDERROR, "FS Session[%s]: failed to move lsn[%d,%lld]",
+                     sessionName(), _expectLSN.version, _expectLSN.offset ) ;
+            goto error ;
+         }
+         PD_LOG( PDEVENT, "FS Session[%s]: Move repl-log to %d.%lld",
+                 sessionName(), _expectLSN.version, _expectLSN.offset ) ;
       }
       msg.header.TID = CLS_TID( _sessionID ) ;
       msg.header.requestID = ++_requestID ;
@@ -1537,7 +1578,7 @@ namespace engine
    }
 
    INT32 _clsFSDstSession::handleSyncTransRes( NET_HANDLE handle,
-                                             MsgHeader * header )
+                                               MsgHeader * header )
    {
       INT32 rc = SDB_OK;
       SDB_DPSCB *dpsCB = pmdGetKRCB()->getDPSCB();
@@ -1560,8 +1601,8 @@ namespace engine
          goto done ;
       }
 
-      PD_RC_CHECK( rc, PDERROR, "Failed to synchronise transaction-log, "
-                   "rc: %d", rc );
+      PD_RC_CHECK( rc, PDERROR, "FS Session[%s]: Failed to synchronise "
+                   "transaction-log, rc: %d", sessionName(), rc );
 
       if ( CLS_FS_EOF == pRsp->eof )
       {
@@ -1584,9 +1625,21 @@ namespace engine
          {
             SDB_ASSERT( STEP_TS_BEGIN == _tsStep, "get unexpected log" ) ;
             rc = dpsCB->move( header->_lsn, header->_version ) ;
-            PD_RC_CHECK( rc, PDERROR, "Failed to move lsn[%d,%lld], rc: %d",
-                         header->_version, header->_lsn, rc ) ;
-            _tsStep = STEP_TS_ING ;
+            if ( rc )
+            {
+               PD_LOG( PDERROR, "FS Session[%s]: Failed to move lsn to "
+                       "[%u, %lld] for sync the log info, rc: %d",
+                       sessionName(), header->_version, header->_lsn,
+                       rc ) ;
+               goto error ;
+            }
+            else
+            {
+               PD_LOG( PDEVENT, "FS Session[%s]: Move lsn to [%u, %lld] for "
+                       "sync the log info succeed", sessionName(),
+                       header->_version, header->_lsn ) ;
+               _tsStep = STEP_TS_ING ;
+            }
          }
 
          rc = dpsCB->recordRow( pOffset, header->_length );
@@ -1766,6 +1819,20 @@ namespace engine
       return CLS_FS_TYPE_BETWEEN_SETS ;
    }
 
+   void _clsSplitDstSession::_doneSplit()
+   {
+      clsCB *pClsMgr = pmdGetKRCB()->getClsCB() ;
+      if ( _regTask )
+      {
+         pClsMgr->getTaskMgr()->unregCollection( _pTask->clFullName() ) ;
+         _regTask = FALSE ;
+      }
+
+      PD_LOG( PDEVENT, "Split Session[%s]: Split[%s] has been done",
+              sessionName(), _pTask->taskName() ) ;
+      _quit = TRUE ;
+   }
+
    // PD_TRACE_DECLARE_FUNCTION ( SDB__CLSSPLDS__ISREADY, "_clsSplitDstSession::_isReady" )
    BOOLEAN _clsSplitDstSession::_isReady ()
    {
@@ -1774,9 +1841,7 @@ namespace engine
 
       if ( STEP_END == _step )
       {
-         PD_LOG( PDEVENT, "Split Session[%s]: Split[%s] has been done",
-                 sessionName(), _pTask->taskName() ) ;
-         _quit = TRUE ;
+         _doneSplit() ;
          ret = FALSE ;
          goto done ;
       }
@@ -1824,8 +1889,22 @@ namespace engine
          MsgClsFSBegin msg ;
          msg.type = CLS_FS_TYPE_BETWEEN_SETS ;
          msg.header.TID = CLS_TID( _sessionID ) ;
+         MsgRouteID lastID = _selector.src() ;
          MsgRouteID src = _selector.selectPrimary( _pTask->sourceID(),
-                                                   MSG_ROUTE_SHARD_SERVCIE );
+                                                   MSG_ROUTE_SHARD_SERVCIE ) ;
+
+         if ( MSG_INVALID_ROUTEID != lastID.value &&
+              lastID.value != src.value )
+         {
+            MsgHeader disMsg ;
+            disMsg.messageLength = sizeof( MsgHeader ) ;
+            disMsg.routeID.value = MSG_INVALID_ROUTEID ;
+            disMsg.TID = CLS_TID( _sessionID ) ;
+            disMsg.requestID = ++_requestID ;
+            disMsg.opCode = MSG_BS_DISCONNECT ;
+            _agent->syncSend( lastID, &disMsg ) ;
+         }
+
          if ( MSG_INVALID_ROUTEID != src.value )
          {
             msg.header.requestID = ++_requestID ;

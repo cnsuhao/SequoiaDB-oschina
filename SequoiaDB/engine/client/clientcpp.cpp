@@ -67,7 +67,7 @@ namespace sdbclient
       {
 #if defined (_WINDOWS)
          srand ( (UINT32) time ( NULL ) ) ;
-#elif defined (_LINuX)
+#elif defined (_LINUX)
          _sdbRandSeed = time ( NULL ) ;
 #endif
          _sdbIsSrand = TRUE ;
@@ -89,7 +89,8 @@ namespace sdbclient
 #define CHECK_RET_MSGHEADER( pSendBuf, pRecvBuf, pConnect )   \
 do                                                            \
 {                                                             \
-   rc = clientCheckRetMsgHeader( pSendBuf, pRecvBuf ) ;       \
+   rc = clientCheckRetMsgHeader( pSendBuf, pRecvBuf,          \
+                                 pConnect->_endianConvert ) ; \
    if ( SDB_OK != rc )                                        \
    {                                                          \
       if ( SDB_UNEXPECTED_RESULT == rc )                      \
@@ -4693,7 +4694,7 @@ do                                                            \
       {
          rc = clientBuildDisconnectMsg ( &pBuffer, &bufferSize, 0,
                                          _endianConvert ) ;
-         if ( !rc )
+         if ( _sock->isConnected() && !rc )
          {
             clientSocketSend ( _sock, pBuffer, bufferSize ) ;
          }

@@ -45,6 +45,7 @@
 #include "curses.h"
 #include "sptCommon.hpp"
 #include "utilPath.hpp"
+#include "ossVer.hpp"
 #include <sys/time.h>
 #include <string>
 #include <vector>
@@ -371,6 +372,7 @@ BOOLEAN useSSL = FALSE ;
 #define OPTION_SERVICENAME   "servicename"
 #define OPTION_USRNAME       "usrname"
 #define OPTION_PASSWORD      "password"
+#define OPTION_VERSION       "version"
 #define OPTION_SSL           "ssl"
 
 
@@ -382,6 +384,7 @@ BOOLEAN useSSL = FALSE ;
 #define COMMANDS_STRING( a, b ) (string(a) +string( b)).c_str()
 #define COMMANDS_OPTIONS \
        ( COMMANDS_STRING(OPTION_HELP, ",h"), "help" )\
+       ( COMMANDS_STRING(OPTION_VERSION, ",v"), "version" ) \
        ( COMMANDS_STRING(OPTION_CONFPATH, ",c"),boost::program_options::value<string>(), "configuration file path" ) \
        ( COMMANDS_STRING(OPTION_HOSTNAME, ",i"), boost::program_options::value<string>(), "host name" ) \
        ( COMMANDS_STRING(OPTION_SERVICENAME, ",s"), boost::program_options::value<string>(), "service name" ) \
@@ -2305,7 +2308,7 @@ INT32 Event::getActivatedHeadTailMap( BodyMap *activatedPanel,
    {
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
-                   "%s getActivatedHeadTailMap faild,"
+                   "%s getActivatedHeadTailMap failed,"
                    "SDB_HEADER_NULL"OSS_NEWLINE,
                    errStrBuf ) ;
       rc = SDB_ERROR;
@@ -2319,7 +2322,7 @@ INT32 Event::getActivatedHeadTailMap( BodyMap *activatedPanel,
          {
             ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
             ossSnprintf( errStr, errStrLength,
-                         "%s getActivatedHeadTailMap faild, "
+                         "%s getActivatedHeadTailMap failed, "
                          "SDB_HEADER_FOOTER_NULL\n", errStrBuf ) ;
             rc = SDB_ERROR;
             goto error ;
@@ -2328,7 +2331,7 @@ INT32 Event::getActivatedHeadTailMap( BodyMap *activatedPanel,
          {
             ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
             ossSnprintf( errStr, errStrLength,
-                         "%s getActivatedHeadTailMap faild, "
+                         "%s getActivatedHeadTailMap failed, "
                          "SDB_FOOTER_NULL\n", errStrBuf ) ;
             rc = SDB_ERROR;
             goto error ;
@@ -2516,7 +2519,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
       rc = SDB_ERROR ;
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
-                "%s getActualPosition faild:"
+                "%s getActualPosition failed:"
                 "wrong zoomMode:%s"OSS_NEWLINE,
                 errStrBuf, zoomMode.c_str() ) ;
       rc = SDB_ERROR ;
@@ -2533,7 +2536,7 @@ INT32 Event::getActualPosition( Position &actualPosition,
          rc = SDB_ERROR ;
          ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
          ossSnprintf( errStr, errStrLength,
-                      "%s getActualPosition faild:"
+                      "%s getActualPosition failed:"
                       "wrong occupyMode:%s"OSS_NEWLINE,
                       errStrBuf, occupyMode.c_str() ) ;
          rc = SDB_ERROR ;
@@ -2600,8 +2603,8 @@ INT32 Event::mvprintw_SDBTOP( const string &expression, INT32 expressionLength,
    {
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
-                   "%s MVPRINTW_TOP faild,"
-                   "SNPRINTF_TOP faild"OSS_NEWLINE,
+                   "%s MVPRINTW_TOP failed,"
+                   "SNPRINTF_TOP failed"OSS_NEWLINE,
                    errStrBuf ) ;
       goto error ;
    }
@@ -2629,8 +2632,8 @@ INT32 Event::mvprintw_SDBTOP( const char *expression, INT32 expressionLength,
    {
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
-                   "%s MVPRINTW_TOP faild,"
-                   "SNPRINTF_TOP faild"OSS_NEWLINE,
+                   "%s MVPRINTW_TOP failed,"
+                   "SNPRINTF_TOP failed"OSS_NEWLINE,
                    errStrBuf ) ;
       goto error ;
    }
@@ -2947,7 +2950,19 @@ INT32 Event::getExpression( string& expression, string& result )
    }
    else if( EXPRESSION_VERSION == expression )
    {
-      result = SDBTOP_VERSION ;
+      INT32 version = 0 ;
+      INT32 subVersion = 0 ;
+      INT32 fixedVersion = 0 ;
+      INT32 release = 0 ;
+      const CHAR *pBuild = NULL ;
+      CHAR strVersion[BUFFERSIZE] = { 0 } ;
+
+      ossGetVersion( &version, &subVersion,
+                     &fixedVersion, &release, &pBuild ) ;
+
+      ossSnprintf( strVersion, BUFFERSIZE, "version %d.%d.%d",
+                   version, subVersion, fixedVersion ) ;
+      result = strVersion ;
    }
    else if( EXPRESSION_REFRESH_TIME == expression )
    {
@@ -3243,7 +3258,7 @@ INT32 Event::getCurSnapshot()
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s refreshDisplayContent failed, "
-                   "snapShotCursor.next( bsonobj ) faild,"
+                   "snapShotCursor.next( bsonobj ) failed,"
                    "rc = %d"OSS_NEWLINE,
                    errStrBuf, rc ) ;
       goto error ;
@@ -3402,7 +3417,7 @@ INT32 Event::refreshDH( DynamicHelp &DH, Position &position )
    {
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
-                   "%s MVPRINTW_TOP faild,"
+                   "%s MVPRINTW_TOP failed,"
                    "can't malloc memory for printfstr :%d"OSS_NEWLINE,
                    errStrBuf, cellLength ) ;
       rc = SDB_OOM ;
@@ -3567,7 +3582,7 @@ INT32 Event::refreshDE( DynamicExpressionOutPut &DE, Position &position )
                ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
                ossSnprintf( errStr, errStrLength,
                             "%s refreshDisplayContent failed,"
-                            "getExpression faild"OSS_NEWLINE,
+                            "getExpression failed"OSS_NEWLINE,
                             errStrBuf ) ;
                goto error ;
             }
@@ -4259,7 +4274,7 @@ INT32 Event::refreshNodeWindow( NodeWindow &window )
       ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
       ossSnprintf( errStr, errStrLength,
                    "%s refreshNodeWindow failed,"
-                   "getActualPosition faild"OSS_NEWLINE,
+                   "getActualPosition failed"OSS_NEWLINE,
                    errStrBuf ) ;
       goto error ;
    }
@@ -4275,7 +4290,7 @@ INT32 Event::refreshNodeWindow( NodeWindow &window )
 
       ossSnprintf( errStrBuf, errStrLength, "%s", errStr ) ;
       ossSnprintf( errStr, errStrLength, "%s refreshNodeWindow failed,"
-                   "refreshDisplayContent faild"OSS_NEWLINE,
+                   "refreshDisplayContent failed"OSS_NEWLINE,
                    errStrBuf );
       goto error;
    }
@@ -4302,7 +4317,7 @@ INT32 Event::refreshHT( HeadTailMap *headtail )
 
          ossSnprintf( errStrBuf, errStrLength, "%s", errStr ) ;
          ossSnprintf( errStr, errStrLength, "%s refreshHeadTail failed,"
-                      "refreshNodeWindow faild,"
+                      "refreshNodeWindow failed,"
                       "numOfSubWindow = %d"OSS_NEWLINE,
                       errStrBuf, numOfSubWindow ) ;
          goto error ;
@@ -4329,7 +4344,7 @@ INT32 Event::refreshBD( BodyMap *body )
          ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
          ossSnprintf( errStr, errStrLength,
                       "%s refreshBody failed,"
-                      "refreshNodeWindow faild,"
+                      "refreshNodeWindow failed,"
                       "numOfSubWindow = %d"OSS_NEWLINE,
                       errStrBuf, numOfSubWindow ) ;
          goto error ;
@@ -4777,7 +4792,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                {
                   ossSnprintf( errStrBuf, errStrLength,"%s", errStr ) ;
                   ossSnprintf( errStr, errStrLength,
-                               "%s buttonManagement faild,"
+                               "%s buttonManagement failed,"
                                "select ( maxfd, &fds, NULL, NULL, NULL) "
                                "failed"OSS_NEWLINE,
                                errStrBuf ) ;
@@ -4920,7 +4935,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                rc = eventManagement( BUTTON_H_LOWER, FALSE ) ;
                goto done ;
             }
-            note = "please input the filter condition : ";
+            note = "please input the filter condition(eg: TID:12345) : ";
             getmaxyx( stdscr, row, col ) ;
             curs_set( 2 ) ;
             ossMemset( sdbtopBuffer, 0, BUFFERSIZE ) ;
@@ -4958,7 +4973,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                rc = eventManagement( BUTTON_H_LOWER, FALSE ) ;
                goto done ;
             }
-            note = "please input the filter number : ";
+            note = "please input the filter number(the number is additive) : ";
             getmaxyx( stdscr, row, col ) ;
             curs_set( 2 ) ;
             ossMemset( sdbtopBuffer, 0, BUFFERSIZE ) ;
@@ -5009,7 +5024,7 @@ INT32 Event::eventManagement( INT64 key ,BOOLEAN isFirstStart )
                rc = eventManagement( BUTTON_H_LOWER, FALSE ) ;
                goto done ;
             }
-            note = "please input the refreshInterval : ";
+            note = "please input the refresh interval(eg: 5) : ";
             getmaxyx( stdscr, row, col ) ;
             curs_set( 2 ) ;
             ossMemset( sdbtopBuffer, 0, BUFFERSIZE ) ;
@@ -5288,6 +5303,24 @@ void displayArg ( po::options_description &desc )
    std::cout << desc << std::endl ;
 }
 
+void displayVersion()
+{
+   INT32 version = 0 ;
+   INT32 subVersion = 0 ;
+   INT32 fixedVersion = 0 ;
+   INT32 release = 0 ;
+   const CHAR *pBuild = NULL ;
+   CHAR strVersion[BUFFERSIZE] = { 0 } ;
+
+   ossGetVersion( &version, &subVersion, &fixedVersion, &release, &pBuild ) ;
+
+   ossSnprintf( strVersion, BUFFERSIZE, "SequoiaDB version %d.%d.%d"OSS_NEWLINE
+                "Release: %d"OSS_NEWLINE"%s", version, subVersion,
+                fixedVersion, release, pBuild ) ;
+
+   std::cout << strVersion << std::endl ;
+}
+
 INT32 resolveArgument ( po::options_description &desc,
                         INT32 argc, CHAR **argv )
 {
@@ -5323,6 +5356,13 @@ INT32 resolveArgument ( po::options_description &desc,
    if ( vm.count ( OPTION_HELP ) )
    {
       displayArg ( desc ) ;
+      rc = SDB_PMD_HELP_ONLY ;
+      goto done ;
+   }
+
+   if ( vm.count( OPTION_VERSION ) )
+   {
+      displayVersion();
       rc = SDB_PMD_HELP_ONLY ;
       goto done ;
    }

@@ -48,6 +48,8 @@
 #include "msgDef.h"
 #include "msg.h"
 
+#define MIG_MAX_MSG_Size ( 300 * 1024 * 1024 )
+
 migImport::migImport() : _pMigArg(NULL),
                          _pParser(NULL),
                          _ppBsonArray(NULL),
@@ -514,7 +516,7 @@ INT32 migImport::_run ( INT32 &total, INT32 &succeed )
          continue ;
       }
       if ( (UINT32)( sumSize + bsonSize ) >=
-            ( SDB_MAX_MSG_LENGTH - sizeof( MsgOpInsert ) ) )
+            ( MIG_MAX_MSG_Size - sizeof( MsgOpInsert ) ) )
       {
          sumSize = bsonSize ;
          rc = _importRecord ( _ppBsonArray, bsonObjNum ) ;

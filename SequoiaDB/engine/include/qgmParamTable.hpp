@@ -50,7 +50,7 @@ namespace engine
       BSONElement ele ;
    } ;
 
-   typedef std::vector<_qgmBsonPair> QGM_CONST_TABLE ;
+   typedef std::list<_qgmBsonPair> QGM_CONST_TABLE ;
    typedef std::map<qgmDbAttr, BSONElement> QGM_VAR_TABLE ;
 
    class _qgmParamTable : public SDBObject

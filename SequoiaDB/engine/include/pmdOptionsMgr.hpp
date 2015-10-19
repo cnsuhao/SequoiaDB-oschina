@@ -471,6 +471,8 @@ namespace engine
          OSS_INLINE BOOLEAN sparseFile() const { return _sparseFile ; }
          OSS_INLINE UINT8 weight() const { return (UINT8)_weight ; }
          OSS_INLINE BOOLEAN authEnabled() const { return _auth ; }
+         OSS_INLINE UINT32 getPlanBuckets() const { return _planBucketNum ; }
+         OSS_INLINE UINT32 getOprTimeout() const { return _oprtimeout ; }
 
       protected: // rdx members
          CHAR        _krcbDbPath[ OSS_MAX_PATHSIZE + 1 ] ;
@@ -521,6 +523,8 @@ namespace engine
          BOOLEAN     _sparseFile ;
          UINT32      _weight ;
          BOOLEAN     _auth ;
+         UINT32      _planBucketNum ;
+         UINT32      _oprtimeout ;
 
       private: // other configs
          CHAR        _krcbConfPath[ OSS_MAX_PATHSIZE + 1 ] ;

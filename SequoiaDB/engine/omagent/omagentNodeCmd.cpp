@@ -248,7 +248,7 @@ namespace engine
       rc = sdbGetOMAgentMgr()->getNodeMgr()->addANode( _config.objdata(),
                                                        dummy.objdata(),
                                                        &omsvc ) ;
-      if ( SDB_OK == rc &&
+      if ( ( SDB_OK == rc || SDBCM_NODE_EXISTED == rc ) &&
            0 == ossStrcmp( _roleStr.c_str(), SDB_ROLE_OM_STR ) )
       {
          sdbGetOMAgentOptions()->addOMAddr( pmdGetKRCB()->getHostName(),

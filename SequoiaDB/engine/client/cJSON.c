@@ -70,7 +70,7 @@ static const char *dollar_command_string[]= {
    CJSON_OP_MATCH       , CJSON_OP_LIMIT  , CJSON_OP_SKIP    , CJSON_OP_GROUP  ,
    CJSON_OP_FIRST       , CJSON_OP_LAST   , CJSON_OP_MAX     , CJSON_OP_MIN    ,
    CJSON_OP_AVG         , CJSON_OP_SORT   , CJSON_OP_MERGEARRAYSET,
-   CJSON_INNER_META     , CJSON_OP_ISNULL
+   CJSON_OP_ISNULL      , CJSON_INNER_META
 } ;
 
 static const char *parse_array_size(const char *value);
@@ -966,7 +966,9 @@ static const char *parse_first_command(cJSON *item,const char *value,int cj_type
          {
             /* not an object! */
             if ( !((*value_temp >= '0' && *value_temp <= '9') ||
-                 *value_temp == '-' ) )
+                 *value_temp == '-' || *value_temp == 'T' ||
+                 *value_temp == 'Z' || *value_temp == ':' ||
+                 *value_temp == '.' ) )
                return 0 ;
             ++len ;
             ++value_temp ;

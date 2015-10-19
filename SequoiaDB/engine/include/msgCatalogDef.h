@@ -115,7 +115,7 @@
 #define CAT_INTERNAL_VERSION              FIELD_NAME_INTERNAL_VERSION
 
 #define CAT_INTERNAL_VERSION_2            (2)
-#define CAT_INTERNAL_VERSION_IS_OLD(v)    ((v)<CAT_INTERNAL_VERSION_2)
+#define CAT_INTERNAL_VERSION_3            (3)
 
 #define CAT_ASSIGNGROUP_FOLLOW            "$follow"
 #define CAT_ASSIGNGROUP_RANDOM            "$random"

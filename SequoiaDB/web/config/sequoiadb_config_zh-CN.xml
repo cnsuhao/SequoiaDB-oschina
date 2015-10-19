@@ -111,7 +111,7 @@
 		<Valid>0-50</Valid>
 		<Display>edit box</Display>
 		<Edit>true</Edit>
-		<Desc>数据库启动时需要开启的脏页清除器数量，0：不启动任何脏页清除器</Desc>
+		<Desc>数据库启动时需要开启的脏页清除器数量，0：不启动任何脏页清除器，取值范围：[0,50]</Desc>
 		<Level>0</Level>
 		<DynamicEdit>false</DynamicEdit>
 		<BatchEdit>true</BatchEdit>

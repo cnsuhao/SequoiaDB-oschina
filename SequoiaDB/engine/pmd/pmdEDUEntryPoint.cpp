@@ -122,6 +122,9 @@ namespace engine
          ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_FAPLISTENER, TRUE,
                                 pmdFapListenerEntryPoint,
                                 "FAPListener" ),
+         ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_DBMONITOR, TRUE,
+                                pmdDBMonitorEntryPoint,
+                                "DBMonitor" ),
 
          ON_EDUTYPE_TO_ENTRY1 ( EDU_TYPE_MAXIMUM, FALSE,
                                 NULL,
@@ -149,7 +152,6 @@ namespace engine
    */
    INT32 pmdSyncClockEntryPoint( pmdEDUCB * cb, void * arg )
    {
-      const UINT32 syncClockInterval = 10 ; // 10ms
       ossTick tmp ;
       pmdKRCB *pKrcb = pmdGetKRCB() ;
 
@@ -158,7 +160,8 @@ namespace engine
       while ( !cb->isDisconnected() )
       {
          pKrcb->syncCurTime() ;
-         ossSleep( syncClockInterval ) ;
+         pmdUpdateDBTick() ;
+         ossSleep( PMD_SYNC_CLOCK_INTERVAL ) ;
       }
       return SDB_OK ;
    }

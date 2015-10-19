@@ -38,6 +38,7 @@
 #include "core.hpp"
 #include "netFrame.hpp"
 #include "netMsgHandler.hpp"
+#include "pmdEnv.hpp"
 #include "pd.hpp"
 #include "pdTrace.hpp"
 #include "netTrace.hpp"
@@ -64,6 +65,10 @@ namespace engine
                          _netIn(0)
    {
       _local.value = MSG_INVALID_ROUTEID ;
+      _beatInterval = NET_HEARTBEAT_INTERVAL ;
+      _beatTimeout = 0 ;
+      _beatLastTick = pmdGetDBTick() ;
+      _checkBeat = FALSE ;
    }
 
    // PD_TRACE_DECLARE_FUNCTION ( SDB__NETFRAME_DECONS, "_netFrame::~_netFrame" )
@@ -105,6 +110,113 @@ namespace engine
       _ioservice.stop() ;
       close() ;
       PD_TRACE_EXIT ( SDB__NETFRAME_STOP );
+   }
+
+   void _netFrame::setBeatInfo( UINT32 beatTimeout, UINT32 beatInteval )
+   {
+      if ( beatTimeout > 0 && beatTimeout < 2000 )
+      {
+         beatTimeout = 2000 ;
+      }
+      if ( beatInteval < 1000 )
+      {
+         beatInteval = 1000 ;
+      }
+      _beatInterval = beatInteval ;
+      _beatTimeout = beatTimeout ;
+   }
+
+   void _netFrame::_heartbeat()
+   {
+      MsgHeader beat ;
+      NET_EH eh ;
+      NET_HANDLE handle = NET_INVALID_HANDLE ;
+      map<NET_HANDLE, NET_EH>::iterator itr ;
+
+      beat.messageLength = sizeof( MsgHeader ) ;
+      beat.opCode = MSG_HEARTBEAT ;
+      beat.requestID = 0 ;
+      beat.routeID.value = 0 ;
+      beat.TID = 0 ;
+
+      while( TRUE )
+      {
+         _mtx.get_shared() ;
+         itr = _opposite.upper_bound( handle ) ;
+         if ( itr == _opposite.end() )
+         {
+            _mtx.release_shared() ;
+            break ;
+         }
+         eh = itr->second ;
+         handle = itr->first ;
+         _mtx.release_shared() ;
+
+         if ( pmdGetTickSpanTime( eh->getLastBeatTick() ) >= _beatInterval )
+         {
+            eh->mtx().get() ;
+            eh->syncSend( (const void*)&beat, beat.messageLength ) ;
+            eh->syncLastBeatTick() ;
+            eh->mtx().release() ;
+         }
+      }
+   }
+
+   void _netFrame::_checkBreak( UINT32 timeout )
+   {
+      NET_EH eh ;
+      NET_HANDLE handle = NET_INVALID_HANDLE ;
+      map<NET_HANDLE, NET_EH>::iterator itr ;
+      UINT64 spanTime = 0 ;
+      MsgRouteID routeid ;
+
+      while( timeout > 0 )
+      {
+         _mtx.get_shared() ;
+         itr = _opposite.upper_bound( handle ) ;
+         if ( itr == _opposite.end() )
+         {
+            _mtx.release_shared() ;
+            break ;
+         }
+         eh = itr->second ;
+         handle = itr->first ;
+         _mtx.release_shared() ;
+
+         spanTime = pmdGetTickSpanTime( eh->getLastRecvTick() ) ;
+         if ( spanTime >= timeout )
+         {
+            routeid = eh->id() ;
+            PD_LOG( PDERROR, "Connection[Handle: %d, GroupID: %d, NodeID: %d, "
+                    "Service: %d] is broken[BrokenTime: %lld(ms)]",
+                    handle, routeid.columns.groupID, routeid.columns.nodeID,
+                    routeid.columns.serviceID, spanTime ) ;
+            eh->close() ;
+         }
+      }
+   }
+
+   void _netFrame::heartbeat( UINT32 interval )
+   {
+      UINT32 beatTimeout = _beatTimeout ;
+      UINT64 spanTime = pmdGetTickSpanTime( _beatLastTick ) ;
+
+      if ( 0 == beatTimeout )
+      {
+         return ;
+      }
+
+      if ( _checkBeat )
+      {
+         _checkBeat = FALSE ;
+         _checkBreak( beatTimeout ) ;
+      }
+      else if ( spanTime >= _beatInterval )
+      {
+         _beatLastTick = pmdGetDBTick() ;
+         _checkBeat = TRUE ;
+         _heartbeat() ;
+      }
    }
 
    UINT32 _netFrame::getLocalAddress()
@@ -411,7 +523,7 @@ namespace engine
    }
 
    INT32 _netFrame::syncSendv( const NET_HANDLE & handle,
-                               MsgHeader * header,
+                               MsgHeader *header,
                                const netIOVec & iov )
    {
       SDB_ASSERT( NULL != header, "should not be NULL" ) ;
@@ -753,13 +865,47 @@ namespace engine
    void _netFrame::handleMsg( NET_EH eh )
    {
       PD_TRACE_ENTRY ( SDB__NETFRAME_HNDMSG );
-      INT32 rc = _handler->handleMsg( eh->handle(),
-                                      (_MsgHeader *)eh->msg(),
-                                      eh->msg() ) ;
-      _netIn.add( ((_MsgHeader *)eh->msg())->messageLength ) ;
-      if ( SDB_NET_BROKEN_MSG == rc )
+      INT32 rc = SDB_OK ;
+      MsgHeader *pMsg = (_MsgHeader *)eh->msg() ;
+
+      if ( MSG_HEARTBEAT == pMsg->opCode )
       {
-         eh->close() ;
+         MsgOpReply reply ;
+         reply.header.messageLength = sizeof( MsgOpReply ) ;
+         reply.header.opCode = MSG_HEARTBEAT_RES ;
+         reply.header.requestID = pMsg->requestID ;
+         reply.header.routeID.value = 0 ;
+         reply.header.TID = pMsg->TID ;
+         reply.contextID = -1 ;
+         reply.numReturned = 0 ;
+         reply.startFrom = 0 ;
+         reply.flags = pmdDBIsAbnormal() ? SDB_SYS : SDB_OK ;
+
+         eh->mtx().get() ;
+         eh->syncSend( (const void*)&reply, reply.header.messageLength ) ;
+         eh->mtx().release() ;
+      }
+      else if ( MSG_HEARTBEAT_RES == pMsg->opCode )
+      {
+         MsgOpReply *pReply = ( MsgOpReply* )pMsg ;
+         if ( SDB_OK != pReply->flags )
+         {
+            PD_LOG( PDERROR, "Connection[Handle:%d, GroupID:%d, NodeID:%d, "
+                    "Service:%d] is broken because of node is abnormal[%d]",
+                    eh->handle(), eh->id().columns.groupID,
+                    eh->id().columns.nodeID, eh->id().columns.serviceID,
+                    pReply->flags ) ;
+            eh->close() ;
+         }
+      }
+      else
+      {
+         rc = _handler->handleMsg( eh->handle(), pMsg, eh->msg() ) ;
+         _netIn.add( pMsg->messageLength ) ;
+         if ( SDB_NET_BROKEN_MSG == rc )
+         {
+            eh->close() ;
+         }
       }
       PD_TRACE1 ( SDB__NETFRAME_HNDMSG, PD_PACK_INT(rc) );
       PD_TRACE_EXIT ( SDB__NETFRAME_HNDMSG );

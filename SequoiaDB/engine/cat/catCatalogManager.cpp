@@ -274,7 +274,7 @@ namespace engine
          goto error ;
       }
 
-      rc = catGetCSGroupsFromCLs( csName, _pEduCB, groups ) ;
+      rc = catGetCSGroupsFromCLs( csName, _pEduCB, groups, TRUE ) ;
       PD_RC_CHECK( rc, PDERROR, "Get collection space[%s] all groups failed, "
                    "rc: %d", csName, rc ) ;
 
@@ -354,7 +354,6 @@ namespace engine
       if ( SDB_OK == rc && NULL != pReply )
       {
          rc = _pCatCB->netWork()->syncSend ( handle, pReply );
-         SDB_OSS_FREE ( pReply );
       }
       else
       {
@@ -370,6 +369,10 @@ namespace engine
          PD_TRACE1 ( SDB_CATALOGMGR_QUERYCATALOG,
                      PD_PACK_INT ( rc ) ) ;
          rc = _pCatCB->netWork()->syncSend ( handle, &replyMsg );
+      }
+      if( pReply )
+      {
+         SDB_OSS_FREE ( pReply );
       }
       PD_TRACE_EXITRC ( SDB_CATALOGMGR_QUERYCATALOG, rc ) ;
       return rc ;
@@ -1519,7 +1522,7 @@ namespace engine
          {
             builder.append( CAT_SHARDING_PARTITION, clInfo._shardPartition ) ;
 
-            builder.append( CAT_INTERNAL_VERSION, CAT_INTERNAL_VERSION_2 ) ;
+            builder.append( CAT_INTERNAL_VERSION, CAT_INTERNAL_VERSION_3 ) ;
          }
       }
       if ( clInfo._isMainCL )

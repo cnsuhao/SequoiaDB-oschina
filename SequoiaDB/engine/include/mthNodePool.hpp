@@ -36,7 +36,7 @@
 
 #include <list>
 
-#define MTH_NODE_POOL_DEFAULT_SZ 32
+#define MTH_NODE_POOL_DEFAULT_SZ 8 
 
 namespace engine
 {

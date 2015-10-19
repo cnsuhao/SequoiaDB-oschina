@@ -34,5 +34,7 @@ INT32 clientRecv ( Socket* sock, CHAR *pMsg, INT32 len, INT32 timeout ) ;
 
 INT32 disableNagle( Socket* sock ) ;
 SOCKET clientGetRawSocket( Socket* sock ) ;
+INT32 setKeepAlive( SOCKET sock, INT32 keepAlive, INT32 keepIdle,
+                    INT32 keepInterval, INT32 keepCount ) ;
 SDB_EXTERN_C_END
 #endif

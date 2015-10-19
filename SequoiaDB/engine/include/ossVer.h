@@ -61,24 +61,35 @@
 #define SDB_ENGINE_SUBVERSION_10       10
 #define SDB_ENGINE_SUBVERSION_12       12
 
-
 #define SDB_ENGINE_SUBVERSION_CURRENT  SDB_ENGINE_SUBVERSION_12
 
-#ifdef _DEBUG
-   #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT"(Debug)"
-#else
-   #define SDB_ENGINE_BUILD_TIME    SDB_ENGINE_BUILD_CURRENT
-#endif // _DEBUG
+/*
+      SequoiaDB Engine Fix version
+*/
+#define SDB_ENGINE_FIXVERSION_1        1
+#define SDB_ENGINE_FIXVERSION_2        2
+#define SDB_ENGINE_FIXVERSION_3        3
+#define SDB_ENGINE_FIXVERSION_4        4
+
+#define SDB_ENGINE_FIXVERSION_CURRENT  SDB_ENGINE_FIXVERSION_4
+
+/*
+      Build time
+*/
 
 /*
  *    Get the version, subversion and release version.
  */
 void ossGetVersion ( INT32 *version,
                      INT32 *subVersion,
+                     INT32 *fixVersion,
                      INT32 *release,
                      const CHAR **ppBuild ) ;
 
 void ossPrintVersion( const CHAR *prompt ) ;
+
+void ossSprintVersion( const CHAR *prompt, CHAR *pBuff, UINT32 len,
+                       BOOLEAN multiLine ) ;
 
 #endif /* OSSVER_HPP_ */
 

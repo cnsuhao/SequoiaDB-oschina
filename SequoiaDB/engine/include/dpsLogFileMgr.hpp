@@ -105,6 +105,7 @@ namespace engine
       {
          return _files[_work] ;
       }
+      UINT32 getWorkPos() const { return _work ; }
 
    protected:
       void     _analysis () ;
